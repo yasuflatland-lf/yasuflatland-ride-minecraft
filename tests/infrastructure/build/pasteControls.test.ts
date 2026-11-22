@@ -232,6 +232,15 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
   },
 );
 
+it("immediately refreshes the ghost once when Place resumes aiming", () => {
+  const e = setup(PASTE_PLACE_TYPE);
+  e.session.startNewCopy();
+  engine.tick = 11;
+  e.use();
+  expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11, "resumePaste");
+  expect(e.structures.calls).toEqual([]);
+});
+
 it("places without sneaking using the live aim, dimension and tick", () => {
   const e = setup(PASTE_PLACE_TYPE);
   engine.tick = 11;

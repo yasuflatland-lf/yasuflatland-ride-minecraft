@@ -48,7 +48,7 @@ export function registerPasteControls({
   undoDebounce: Debounces<PlayerId>;
   rotateDebounce: Debounces<PlayerId>;
   pasteDebounce: Debounces<PlayerId>;
-  refresh(playerId: PlayerId, tick: number): void;
+  refresh(playerId: PlayerId, tick: number, reason?: "resumePaste"): void;
 }): PasteControlRoutes {
   function pressFromBlockTap(player: Player, isFirstEvent: boolean): boolean {
     if (!controlRole(heldTypeId(player))) return false;
@@ -106,7 +106,7 @@ export function registerPasteControls({
         break;
       case "pasteAim": {
         if (!pasteDebounce.press(playerId, tick)) return;
-        const result = pressPasteAim.execute({
+        const outcome = pressPasteAim.execute({
           playerId,
           dimensionId: asDimensionId(source.dimension.id),
           aim: aim.aim(playerId),
@@ -114,7 +114,8 @@ export function registerPasteControls({
           sneaking: source.isSneaking,
           intent: "place",
         });
-        if (result === "pasted") refresh(playerId, tick);
+        if (outcome === "aiming") refresh(playerId, tick, "resumePaste");
+        else if (outcome === "pasted") refresh(playerId, tick);
         break;
       }
     }

@@ -38,6 +38,7 @@ export const BUILD_MESSAGE: Readonly<
   cutIncomplete: "yasu_build.message.cut_incomplete",
   removing: "yasu_build.message.removing",
   building: "yasu_build.message.building",
+  pasteChoosePosition: "yasu_build.message.paste_choose_position",
   pasteInactive: "yasu_build.message.paste_inactive",
   pasteReady: "yasu_build.message.paste_ready",
   sneakingPrefix: "yasu_build.message.sneaking_prefix",

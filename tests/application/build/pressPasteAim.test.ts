@@ -21,7 +21,10 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  confirmEndpointHeight,
+  selectionFlows,
+} from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
@@ -340,7 +343,18 @@ it("reports a missing target for a sneak press", () => {
   );
 });
 
-it("place hints without starting a paste outside aiming or without a clipboard", () => {
+it("resumes a selected clipboard on the first Place and pastes on the next press", () => {
+  const block = { x: 3, y: 60, z: 1 };
+  const e = setup(block, "up", 0);
+  e.session.setFlow(selectionFlows(block, nether, stone).selected);
+  expect(e.execute(false, "place")).toBe("aiming");
+  expect(e.feedback.messages).toEqual([{ message: "pasteChoosePosition" }]);
+  expect(e.start).not.toHaveBeenCalled();
+  expect(e.execute(false, "place")).toBe("pasted");
+  expect(e.start).toHaveBeenCalledTimes(1);
+});
+
+it("place hints without starting a paste during selection work or without a clipboard", () => {
   fc.assert(
     fc.property(
       cell,
@@ -349,25 +363,17 @@ it("place hints without starting a paste outside aiming or without a clipboard",
       fc.boolean(),
       (block, face, tick, sneaking) => {
         const e = setup(block, face, tick);
-        const first = tapBlock({ kind: "idle" }, nether, block, stone);
-        const endpoint = confirmEndpointHeight(
-          tapAir(first, {
-            ...block,
-            x: block.x + 2,
-            z: block.z + 2,
-          }),
-        );
-        for (const flow of [
-          { kind: "idle" } as const,
-          first,
-          endpoint,
-          chooseHeighted(endpoint, "hip"),
-        ]) {
+        const { selected, inProgress } = selectionFlows(block, nether, stone);
+        for (const flow of inProgress) {
           e.session.setFlow(flow);
           expect(e.execute(sneaking, "place")).toBe("ignored");
           expect(e.session.flow).toBe(flow);
           expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
         }
+        e.session.clearClipboard();
+        e.session.setFlow(selected);
+        expect(e.execute(sneaking, "place")).toBe("ignored");
+        expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
         e.repo.remove(playerId);
         expect(e.execute(sneaking, "place")).toBe("ignored");
         expect(e.repo.get(playerId)).toBeUndefined();

@@ -34,6 +34,7 @@ import {
   buildPasteBlocked,
   buildPasteControlInactive,
   buildPasteControlPlace,
+  buildPasteControlReaim,
   buildPasteControlRotate,
   buildPasteControlRoutesOnce,
   buildPasteItemSwitch,
@@ -481,6 +482,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   build_paste_control_rotate: buildPasteControlRotate,
   build_paste_rotation_display: buildPasteRotationDisplay,
   build_paste_control_place: buildPasteControlPlace,
+  build_paste_control_reaim: buildPasteControlReaim,
   build_paste_control_routes_once: buildPasteControlRoutesOnce,
 
   build_paste_structure: buildPasteStructure,
