@@ -23,6 +23,15 @@ async function check(body: string, data: unknown) {
   expect(JSON.parse(out)).toBe(true);
 }
 
+function checkProperty<T>(arbitrary: fc.Arbitrary<T>, body: string) {
+  return fc.assert(
+    fc.asyncProperty(arbitrary, (data) => check(body, data)),
+    {
+      numRuns: 30,
+    },
+  );
+}
+
 const coord = fc.integer({ min: -300, max: 300 }).map((n) => n / 10);
 const size = fc.integer({ min: 1, max: 200 }).map((n) => n / 10);
 const angle = fc.integer({ min: -90, max: 90 });
@@ -55,18 +64,16 @@ const bone = fc
     }),
     cubes: fc.array(cube, { minLength: 0, maxLength: 5 }),
   })
-  .map((b) =>
-    b.rotation === undefined ? (({ rotation, ...rest }) => rest)(b) : b,
-  );
+  .map((b) => {
+    const { rotation, ...rest } = b;
+    return rotation === undefined ? rest : b;
+  });
 
 describe("camper frames", () => {
   it("to_game_frame mirrors positions, pivots, locators and rotations", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(bone, { minLength: 1, maxLength: 3 }),
-        async (data) => {
-          await check(
-            `out = frames.to_game_frame(data)
+    await checkProperty(
+      fc.array(bone, { minLength: 1, maxLength: 3 }),
+      `out = frames.to_game_frame(data)
 assert out is data
 for actual, original in zip(out, inp, strict=True):
     assert actual.keys() == original.keys()
@@ -91,21 +98,13 @@ for actual, original in zip(out, inp, strict=True):
             rx, ry, rz = before['rotation']
             assert c['pivot'] == [-px, py, pz]
             assert c['rotation'] == [rx, -ry, rz]`,
-            data,
-          );
-        },
-      ),
-      { numRuns: 30 },
     );
   });
 
   it("to_game_frame keeps every face name and UV", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(bone, { minLength: 1, maxLength: 3 }),
-        async (data) => {
-          await check(
-            `uvs = [id(c['uv']) for b in data for c in b.get('cubes', [])]
+    await checkProperty(
+      fc.array(bone, { minLength: 1, maxLength: 3 }),
+      `uvs = [id(c['uv']) for b in data for c in b.get('cubes', [])]
 out = frames.to_game_frame(data)
 actual = [c['uv'] for b in out for c in b.get('cubes', [])]
 original = [c['uv'] for b in inp for c in b.get('cubes', [])]
@@ -113,42 +112,54 @@ for uv, before, identity in zip(actual, original, uvs, strict=True):
     assert id(uv) == identity
     assert list(uv) == list(before)
     assert uv == before`,
-            data,
-          );
-        },
-      ),
-      { numRuns: 30 },
+    );
+  });
+
+  it("to_game_frame assigns new lists and keeps size and uv objects", async () => {
+    await checkProperty(
+      fc.array(bone, { minLength: 1, maxLength: 3 }),
+      `mirrored_lists = []
+cube_objects = []
+for bone in data:
+    mirrored_lists.extend((bone, key) for key in ('pivot', 'rotation') if key in bone)
+    locators = bone['locators']
+    mirrored_lists.extend((locators, name) for name in locators)
+    for cube in bone['cubes']:
+        mirrored_lists.extend(
+            (cube, key) for key in ('origin', 'pivot', 'rotation') if key in cube
+        )
+        cube_objects.append((cube, cube['size'], cube['uv']))
+
+# Keep the original lists alive so Python cannot reuse their IDs during conversion.
+original_lists = [owner[key] for owner, key in mirrored_lists]
+original_ids = [id(value) for value in original_lists]
+frames.to_game_frame(data)
+
+for (owner, key), original_id in zip(mirrored_lists, original_ids, strict=True):
+    assert id(owner[key]) != original_id, key
+for cube, size, uv in cube_objects:
+    assert cube['size'] is size
+    assert cube['uv'] is uv`,
     );
   });
 
   it("from_game_trace keeps every face name and UV", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(cube, { minLength: 1, maxLength: 8 }),
-        async (data) => {
-          await check(
-            `uvs = [id(c['uv']) for c in data]
+    await checkProperty(
+      fc.array(cube, { minLength: 1, maxLength: 8 }),
+      `uvs = [id(c['uv']) for c in data]
 out = frames.from_game_trace(data)
 assert out is data
 for c, before, identity in zip(out, inp, uvs, strict=True):
     assert id(c['uv']) == identity
     assert list(c['uv']) == list(before['uv'])
     assert c['uv'] == before['uv']`,
-            data,
-          );
-        },
-      ),
-      { numRuns: 30 },
     );
   });
 
   it("to_game_frame undoes from_game_trace", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(cube, { minLength: 1, maxLength: 8 }),
-        async (data) => {
-          await check(
-            `frames.to_game_frame([{"name": "b", "pivot": [0, 0, 0], "cubes": frames.from_game_trace(data)}])
+    await checkProperty(
+      fc.array(cube, { minLength: 1, maxLength: 8 }),
+      `frames.to_game_frame([{"name": "b", "pivot": [0, 0, 0], "cubes": frames.from_game_trace(data)}])
 for c, before in zip(data, inp, strict=True):
     assert ('pivot' in c) == ('pivot' in before)
     assert ('rotation' in c) == ('rotation' in before)
@@ -158,11 +169,6 @@ for c, before in zip(data, inp, strict=True):
         assert c['rotation'] == before['rotation']
     assert c['size'] == before['size']
     assert c['uv'] == before['uv']`,
-            data,
-          );
-        },
-      ),
-      { numRuns: 30 },
     );
   });
 
