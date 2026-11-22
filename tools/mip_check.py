@@ -18,9 +18,10 @@ def downsample(pixels, width, height):
             alphas = [texel[3] for texel in texels]
             total_alpha = sum(alphas)
             weights = alphas if total_alpha else (1, 1, 1, 1)
+            divisor = total_alpha or 4
             rgb = [
                 round(sum(texel[c] * weight for texel, weight in zip(texels, weights))
-                      / (total_alpha or 4))
+                      / divisor)
                 for c in range(3)
             ]
             result.append((*rgb, round(total_alpha / 4)))
