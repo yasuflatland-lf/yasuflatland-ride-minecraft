@@ -36,6 +36,12 @@ def mip_chain(pixels, width, height, levels):
 
 
 def swatch_mip_error(chain, rect, level) -> float:
+    """Measure the error for a flat, single-colour swatch rectangle.
+
+    Return the maximum per-channel difference, including alpha, between the
+    top-left source texel and the texel at the given mip level covering the
+    rectangle's centre, with the mip coordinates clamped to the image bounds.
+    """
     x, y, w, h = rect
     source, source_width, _ = chain[0]
     pixels, width, height = chain[level]
