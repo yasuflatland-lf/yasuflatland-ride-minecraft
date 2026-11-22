@@ -21,6 +21,7 @@ TRACE_DIAMETER = 14.8
 TRACE_SCALE = TRACE_DIAMETER / SOURCE_DIAMETER
 WHEEL_LEAN = 60.0
 _DASH = load_tool("camper_dash")
+camper_frames = load_tool("camper_frames")
 # The hub moved with the whole dash, column and wheel group toward the driver.
 HUB_X, HUB_Y, HUB_Z = _DASH.COLUMN_HUB[0], _DASH.COLUMN_HUB[1], _DASH.COLUMN_HUB[2] + _DASH.DASH_SHIFT
 HUB_RECESS = 3.8
@@ -198,15 +199,8 @@ def build_steering(dash: 'DashGeometry', registry: 'RegionRegistry') -> 'AreaCub
     wheel = members[:WHEEL_CUBES]+tilt(wheel[WHEEL_CUBES:],(0,0,0),'x',0,assembly='steering_spokes',assemblies=ASSEMBLIES)
     column = members[WHEEL_CUBES:]
     lever = tilt(lever,(0,0,0),'x',0,assembly='steering_lever',assemblies=ASSEMBLIES)
-    def build_frame(c: Cube) -> Cube:
-        c['origin'][0] = -c['origin'][0]-c['size'][0]
-        c['pivot'][0] = -c['pivot'][0]
-        c['rotation'][1] = -c['rotation'][1]
-        # Traced in the game frame with the +x face named east; to_game_frame keeps names (ADR 0259).
-        c['uv']['east'],c['uv']['west'] = c['uv']['west'],c['uv']['east']
-        return c
-    return b.kit.AreaCubes({'steering':[build_frame(c) for c in wheel],
-                            'body':[build_frame(c) for c in column+lever]})
+    return b.kit.AreaCubes({'steering': camper_frames.from_game_trace(wheel),
+                            'body': camper_frames.from_game_trace(column+lever)})
 
 
 def build() -> 'AreaCubes':

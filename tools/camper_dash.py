@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from tool_loader import load_tool
 
 region_atlas = load_tool("region_atlas")
+camper_frames = load_tool("camper_frames")
 
 if TYPE_CHECKING:
     from camper_kit import AreaCubes
@@ -507,11 +508,6 @@ def build_dash(registry: "RegionRegistry") -> "AreaCubes":
                   for z in (c['origin'][2],c['origin'][2]+c['size'][2]))
         if top > SILL_Y:
             c['size'][1] -= (top-SILL_Y)/co
-    # Area modules build +x right; the spike's traced coordinates are already game-facing. They
-    # name the +x face east, so the swap is the one correction to_game_frame no longer makes (ADR 0259).
-    for c in cubes:
-        c['origin'][0] = -c['origin'][0]-c['size'][0]
-        c['uv']['east'],c['uv']['west'] = c['uv']['west'],c['uv']['east']
-        if 'pivot' in c:
-            c['pivot'][0] = -c['pivot'][0]
+    # Area modules build +x right; the spike's traced coordinates are already game-facing.
+    camper_frames.from_game_trace(cubes)
     return b.kit.AreaCubes({'body':cubes})

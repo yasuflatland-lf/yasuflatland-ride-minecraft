@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import fc from "fast-check";
 import { afterAll, describe, expect, it } from "vitest";
 import { startPythonWorker } from "../support/pythonWorker";
@@ -162,5 +164,21 @@ for c, before in zip(data, inp, strict=True):
       ),
       { numRuns: 30 },
     );
+  });
+
+  it("no camper generator swaps east and west faces", () => {
+    const names = readdirSync("tools")
+      .filter((n) => /^camper_.*\.py$/.test(n))
+      .concat("gen_camper.py");
+    expect(names).not.toHaveLength(0);
+    for (const name of names) {
+      const source = readFileSync(join("tools", name), "utf8");
+      expect(source, name).not.toMatch(
+        /\[\s*['"]east['"]\s*\]\s*,\s*\w+\s*\[\s*['"]uv['"]\s*\]\s*\[\s*['"]west['"]\s*\]\s*=/,
+      );
+      expect(source, name).not.toMatch(
+        /\[\s*['"]west['"]\s*\]\s*,\s*\w+\s*\[\s*['"]uv['"]\s*\]\s*\[\s*['"]east['"]\s*\]\s*=/,
+      );
+    }
   });
 });

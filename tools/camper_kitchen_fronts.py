@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 regions = load_tool("camper_regions")
 kitchen = load_tool("camper_kitchen")
+camper_frames = load_tool("camper_frames")
 RegionRegistry = region_atlas.RegionRegistry
 AREA = "kitchen_fronts"
 DRAWER_HEIGHTS = {"drawer_bottom": 17.25, "drawer_top": 22.65}
@@ -86,7 +87,7 @@ def front(bounds: tuple, wood: region_atlas.RegionRef, panel: region_atlas.Regio
     cube = kitchen.model_box(bounds, wood, registry)
     face = {"uv": list(panel.uv(0, 0)), "uv_size": [PANEL_WIDTH, PANEL_HEIGHT]}
     registry._layout.bind_face(panel.region.name, face)
-    cube["uv"]["east"] = face
+    cube["uv"]["west"] = face
     return cube
 
 
@@ -101,7 +102,7 @@ def build_drawers(regions: "KitchenRegions", registry: RegionRegistry) -> "AreaC
         bounds += [(-19, y + .25, z, 10, 4.5, .2) for z in (10, 22.7)]
         bounds += [(-19, y + .25, 10, .2, 4.5, 12.9), (-19, y + .25, 10, 10, .2, 12.9)]
         cubes += [kitchen.model_box(b, regions.BROWN_ENDGRAIN, registry) for b in bounds]
-        out[name] = kitchen.build_frame(cubes)
+        out[name] = camper_frames.from_game_trace(cubes)
     return out
 
 
@@ -111,9 +112,9 @@ def build_cabinet_fronts(registry: RegionRegistry) -> "AreaCubes":
     bounds = [(-22.8, 50, 8.5, 12.8, 1, 31), (-22.8, 60, 8.5, 12.8, 1, 31),
               (-22.8, 51, 8.5, .5, 9, 31)]
     bounds += [(-22.3, 51, z, 12.3, 9, .5) for z in (8.5, 23.75, 39)]
-    out = kit.AreaCubes(body=kitchen.build_frame([kitchen.model_box(b, wood, registry) for b in bounds]))
+    out = kit.AreaCubes(body=camper_frames.from_game_trace([kitchen.model_box(b, wood, registry) for b in bounds]))
     for name, z, handle in (("cabinet_sink_door", 9, 22.3), ("cabinet_stove_door", 24.4, 24.9)):
-        out[name] = kitchen.build_frame([front((-10, 50.5, z, .5, 10, 14.6), wood, panel, registry),
+        out[name] = camper_frames.from_game_trace([front((-10, 50.5, z, .5, 10, 14.6), wood, panel, registry),
             kitchen.model_box((-9.5, 51, handle, .3, 1.5, .7), wood, registry)])
     return out
 

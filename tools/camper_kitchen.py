@@ -14,6 +14,7 @@ from tool_loader import load_tool
 region_atlas = load_tool("region_atlas")
 
 regions = load_tool("camper_regions")
+camper_frames = load_tool("camper_frames")
 RegionRef = region_atlas.RegionRef
 RegionRegistry = region_atlas.RegionRegistry
 Cube = dict[str, Any]
@@ -243,20 +244,6 @@ def model_box(dimensions: tuple, color, registry: RegionRegistry) -> Cube:
     return {"origin": [x, y, z], "size": [width, height, depth], "uv": {f: face() for f in FACES}}
 
 
-def build_frame(cubes: list[Cube]) -> list[Cube]:
-    """Undo the final generator mirror so measurements can stay in the reference's model frame.
-
-    The reference names its +x face east, as the build frame does. to_game_frame keeps names, so the
-    swap here is the one correction that lands those faces where Bedrock draws them (ADR 0259)."""
-    for c in cubes:
-        c['origin'][0] = -(c['origin'][0] + c['size'][0])
-        c['uv']['east'], c['uv']['west'] = c['uv']['west'], c['uv']['east']
-        if 'pivot' in c:
-            c['pivot'][0] *= -1
-            c['rotation'][1] *= -1
-    return cubes
-
-
 def burner(cx: float, cz: float, turn: float, registry: RegionRegistry | None = None) -> list[Cube]:
     kit = load_tool("camper_kit")
     tilt = load_tool("cube_tilt")
@@ -318,7 +305,7 @@ def burner(cx: float, cz: float, turn: float, registry: RegionRegistry | None = 
             c['origin'] = [c['origin'][i] + pivot[i] - old[i] for i in range(3)]
             c['pivot'] = pivot
             c['rotation'][1] += turn
-    return build_frame(cubes)
+    return camper_frames.from_game_trace(cubes)
 
 
 def build_kitchen_top(registry: RegionRegistry) -> "tuple[AreaCubes, KitchenRegions]":
@@ -347,10 +334,10 @@ def build_kitchen_top(registry: RegionRegistry) -> "tuple[AreaCubes, KitchenRegi
     dial = model_box(DIAL_FACE, refs.STAINLESS, registry)
     f = {"uv": list(refs.DIAL.uv(0, 0)), "uv_size": [refs.DIAL.region.width, refs.DIAL.region.height]}
     registry._layout.bind_face(refs.DIAL.region.name, f)
-    dial['uv']['east'] = f
+    dial['uv']['west'] = f
     stove.extend((dial, model_box(OVEN_FACE, refs.DARK_OLIVE, registry),
                   model_box(HANDLE_INSET, refs.BROWN_ENDGRAIN, registry)))
-    return kit.AreaCubes(body=build_frame(counter + stove) + burner(*BURNER_CENTER, 0, registry)), refs
+    return kit.AreaCubes(body=camper_frames.from_game_trace(counter + stove) + burner(*BURNER_CENTER, 0, registry)), refs
 
 
 def area_of(cube: Cube) -> str:
