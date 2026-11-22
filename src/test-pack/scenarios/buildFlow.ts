@@ -3189,6 +3189,54 @@ export function buildRotateSelection(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildRotateTappedSpan(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const cells = f.region(3, 2, 3);
+    const min = f.cell();
+    const max = f.cell(2, 1, 2);
+    try {
+      for (const c of cells) f.block(c).setType("minecraft:stone");
+      f.block(min).setType("minecraft:gold_block");
+      f.block(max).setType("minecraft:diamond_block");
+      await f.tap("block", min);
+      check(
+        (await f.tap("block", max)).flow.kind === "baseHeight",
+        "Expected live height after the second tap",
+      );
+      f.player.teleport(f.cell(-6, 0, 1.5), { dimension: a.dim });
+      await f.lookSettled(-90, -30);
+      await holdPasteControl(f, PASTE_ROTATE_TYPE);
+      const live = (await f.mode()).flow;
+      check(
+        live.kind === "baseHeight" && (live.previous ?? 0) > 2,
+        "Expected the gaze above the tapped span",
+      );
+      const turned = await f.press("itemUse");
+      check(
+        turned.message === "rotateDone" &&
+          turned.flow.kind === "selected" &&
+          turned.flow.menuLevel === "root" &&
+          !!turned.flow.selection &&
+          sameBox(turned.flow.selection.box, { min, max }),
+        "Expected the two tapped layers to stay selected",
+      );
+      for (const c of cells) {
+        const expected = sameCell(c, f.cell(2, 0, 0))
+          ? "minecraft:gold_block"
+          : sameCell(c, f.cell(0, 1, 2))
+            ? "minecraft:diamond_block"
+            : "minecraft:stone";
+        check(
+          f.block(c).typeId === expected,
+          `Expected ${expected} at ${cellKey(c)} after a clockwise turn`,
+        );
+      }
+    } finally {
+      await releaseControlFixture(f, cells);
+    }
+  });
+}
+
 export function buildPasteControlInactive(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     await f.edit("reset");

@@ -1,9 +1,10 @@
 // Use case: step every listed player's build mode once per tick (ADR 0178, Decision 3).
+import type { PressRole } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { LeaveBuild } from "./leaveBuild";
 
-export type HeldBuildItem = "wand" | "pasteControl" | "undo" | "none";
+export type HeldBuildItem = PressRole | "none";
 
 interface BuildModeInput {
   playerId: PlayerId;
@@ -26,7 +27,8 @@ export class UpdateBuildModes {
           : this.repo.get(playerId);
       const holding =
         held === "wand" ||
-        (held === "pasteControl" &&
+        (held === "pasteRotate" && session?.flow.kind === "baseHeight") ||
+        ((held === "pasteRotate" || held === "pastePlace") &&
           (session?.flow.kind === "pasteAim" ||
             session?.flow.kind === "selected")) ||
         (held === "undo" && session?.isInBuildMode === true);

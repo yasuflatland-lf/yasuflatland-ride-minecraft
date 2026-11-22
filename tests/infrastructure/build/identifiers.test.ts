@@ -102,8 +102,8 @@ it("defines items and test events in the build namespace", () => {
 
 it.each([
   ["yasu_build:selection_wand", "wand"],
-  ["yasu_build:paste_rotate", "pasteControl"],
-  ["yasu_build:paste_place", "pasteControl"],
+  ["yasu_build:paste_rotate", "pasteRotate"],
+  ["yasu_build:paste_place", "pastePlace"],
   ["yasu_build:build_undo", "undo"],
   ["minecraft:stick", undefined],
   [undefined, undefined],

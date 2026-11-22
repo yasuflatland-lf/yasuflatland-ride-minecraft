@@ -192,13 +192,31 @@ export function liveHeightBox(flow: BaseHeightFlow): CellBox {
   return boxWithHeight(flow.baseBox, flow.previous);
 }
 
+export function tappedSpanBox(flow: BaseHeightFlow): CellBox {
+  const span = boxOf(flow.from, flow.to);
+  return boxWithHeight(span, tappedSpanHeight(span));
+}
+
+export function confirmTappedSpan(
+  flow: BaseHeightFlow,
+): Extract<BuildFlow, { kind: "selected" }> {
+  return confirmBox(flow, tappedSpanBox(flow));
+}
+
 export function confirmLiveHeight(
   flow: BaseHeightFlow,
+): Extract<BuildFlow, { kind: "selected" }> {
+  return confirmBox(flow, liveHeightBox(flow));
+}
+
+function confirmBox(
+  flow: BaseHeightFlow,
+  box: CellBox,
 ): Extract<BuildFlow, { kind: "selected" }> {
   return Object.freeze({
     kind: "selected",
     menuLevel: "root",
-    selection: withBox(flow.selection, liveHeightBox(flow)),
+    selection: withBox(flow.selection, box),
     from: flow.from,
     to: flow.to,
   });
