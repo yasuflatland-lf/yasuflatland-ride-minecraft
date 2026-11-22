@@ -59,8 +59,14 @@ export class FakeFeedback implements BuildFeedback {
   }[] = [];
   sizes: { playerId: PlayerId; size: { x: number; y: number; z: number } }[] =
     [];
-  showSize(playerId: PlayerId, size: { x: number; y: number; z: number }) {
+  aimingSizes: boolean[] = [];
+  showSize(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+    aiming = false,
+  ) {
     this.sizes.push({ playerId, size });
+    this.aimingSizes.push(aiming);
   }
   modes: { playerId: PlayerId; mode: BuildMode }[] = [];
   showMode(playerId: PlayerId, mode: BuildMode) {

@@ -99,11 +99,14 @@ export class BedrockFeedback implements BuildFeedback {
   showSize(
     playerId: PlayerId,
     size: { x: number; y: number; z: number },
+    aiming = false,
   ): void {
     const player = playerById(playerId);
     if (!player?.isValid) return;
     player.onScreenDisplay.setActionBar({
-      translate: BUILD_MESSAGE.heightSize,
+      translate: aiming
+        ? BUILD_MESSAGE.heightAimSize
+        : BUILD_MESSAGE.heightSize,
       with: [String(size.x), String(size.y), String(size.z)],
     });
   }

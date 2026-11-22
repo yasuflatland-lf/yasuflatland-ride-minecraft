@@ -1,6 +1,7 @@
 import { aimedEndPoint } from "../../domain/build/aim/endPoint";
 import { aimedHeight } from "../../domain/build/aim/height";
-import type { BuildFlow } from "../../domain/build/flow/flow";
+import { sizeOf } from "../../domain/build/box";
+import { type BuildFlow, liveHeightBox } from "../../domain/build/flow/flow";
 import {
   type PreviewAim,
   previewPoints,
@@ -43,7 +44,11 @@ export class ShowPreview {
   execute(tick: number): void {
     for (const id of this.sizes.keys()) {
       const session = this.repo.get(id);
-      if (!session?.isInBuildMode || session.flow.kind !== "heightStep")
+      if (
+        !session?.isInBuildMode ||
+        (session.flow.kind !== "heightStep" &&
+          session.flow.kind !== "baseHeight")
+      )
         this.sizes.delete(id);
     }
     for (const id of this.staircases.keys()) {
@@ -57,6 +62,22 @@ export class ShowPreview {
         : BUILD_SPEC.outlineInterval;
       if (tick % interval === 0) this.refresh(id, tick);
     }
+  }
+
+  private reportSize(
+    id: PlayerId,
+    size: ReturnType<typeof volumeSize>,
+    aiming: boolean,
+  ): void {
+    const previous = this.sizes.get(id);
+    if (
+      previous?.x === size.x &&
+      previous.y === size.y &&
+      previous.z === size.z
+    )
+      return;
+    this.feedback.showSize(id, size, aiming);
+    this.sizes.set(id, size);
   }
 
   private followsGaze(id: PlayerId): boolean {
@@ -94,17 +115,10 @@ export class ShowPreview {
     if (flow.kind === "heightStep") {
       preview.height =
         !flow.heightLocked && aim ? aimedHeight(flow, aim.ray) : flow.previous;
-      const size = volumeSize(flow.base, preview.height);
-      const previous = this.sizes.get(id);
-      if (
-        previous?.x !== size.x ||
-        previous.y !== size.y ||
-        previous.z !== size.z
-      ) {
-        this.feedback.showSize(id, size);
-        this.sizes.set(id, size);
-      }
+      this.reportSize(id, volumeSize(flow.base, preview.height), false);
     }
+    if (flow.kind === "baseHeight")
+      this.reportSize(id, sizeOf(liveHeightBox(flow)), true);
     if (flow.kind === "stairAim") {
       const hit = aim?.block?.cell;
       const staircase = hit && staircaseToward(flow.row, hit);

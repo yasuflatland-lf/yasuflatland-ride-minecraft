@@ -297,6 +297,7 @@ yasu_build.form.stair_contents_title=階段
 yasu_build.form.stair_passage=通路にする
 yasu_build.form.stair_fill_below=下を埋める
 yasu_build.form.stair_steps_only=段だけ
+yasu_build.message.height_aim_size=大きさ: x %s、y %s、z %s。視線を上下に動かして高さを調整し、タップして確定してください。
 yasu_build.message.height_aim=視線を上下に動かして高さを調整し、タップして確定してください。
 yasu_build.message.aim_stair_goal=ゴールを見て押す
 yasu_build.message.no_stair_goal=そこはゴールにできない

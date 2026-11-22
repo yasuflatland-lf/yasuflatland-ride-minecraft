@@ -1,9 +1,10 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, edgePoints } from "../../../src/domain/build/box";
+import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
+import { boxOutline } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBlockWorld } from "../../../src/infrastructure/build/bedrock/bedrockBlockWorld";
@@ -249,20 +250,17 @@ it("sends translated counts and bounded player-only particles at block centers",
           );
         }
         const box = boxOf(a, b);
-        const centered = edgePoints(box, BUILD_SPEC.outlineMaxPoints).map(
-          (p) => ({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 }),
-        );
+        const centered = boxOutline(box);
         const set = preview(
           style === "selection" ? { shape: centered } : { paste: centered },
         );
         feedback.drawPreview(playerId, dimension, set);
-        const points = edgePoints(box, BUILD_SPEC.outlineMaxPoints);
         expect(spawnParticle.mock.calls).toEqual(
-          points.map((p) => [
+          centered.map((p) => [
             style === "selection"
               ? "yasu_build:outline"
               : "minecraft:blue_flame_particle",
-            { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 },
+            p,
             style === "selection" ? expect.anything() : undefined,
           ]),
         );
