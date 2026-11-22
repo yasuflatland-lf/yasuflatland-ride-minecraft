@@ -369,7 +369,8 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
         fc.record({
           held: fc.constantFrom(
             "wand" as const,
-            "pasteControl" as const,
+            "pasteRotate" as const,
+            "pastePlace" as const,
             "undo" as const,
             "none" as const,
           ),
@@ -392,7 +393,7 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
           releases =
             held === "wand" ||
             held === "undo" ||
-            (held === "pasteControl" && aiming)
+            ((held === "pasteRotate" || held === "pastePlace") && aiming)
               ? 0
               : releases + 1;
           modes.execute([{ playerId, held }]);
@@ -414,7 +415,8 @@ it("does not create a session or enter build mode with paste control or undo alo
     fc.property(
       fc.array(
         fc.constantFrom(
-          "pasteControl" as const,
+          "pasteRotate" as const,
+          "pastePlace" as const,
           "undo" as const,
           "none" as const,
         ),
@@ -443,7 +445,8 @@ it("preserves aiming through held controls and leaves after consecutive empty ti
       fc.array(
         fc.constantFrom(
           "wand" as const,
-          "pasteControl" as const,
+          "pasteRotate" as const,
+          "pastePlace" as const,
           "undo" as const,
         ),
         {
@@ -489,10 +492,10 @@ it("leaves and discards the clipboard when paste control is held outside aiming"
     modes.execute([{ playerId, held: "wand" }]);
   e.session.setFlow({ kind: "idle" });
   for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
-    modes.execute([{ playerId, held: "pasteControl" }]);
+    modes.execute([{ playerId, held: "pasteRotate" }]);
   expect(e.session.isInBuildMode).toBe(true);
   expect(e.session.clipboard).toBeDefined();
-  modes.execute([{ playerId, held: "pasteControl" }]);
+  modes.execute([{ playerId, held: "pasteRotate" }]);
   expect(e.session.isInBuildMode).toBe(false);
   expect(e.session.clipboard).toBeUndefined();
 });

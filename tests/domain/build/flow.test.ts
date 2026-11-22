@@ -13,6 +13,8 @@ import {
   chooseStairs,
   chooseTerrain,
   closeBuildMenu,
+  confirmLiveHeight,
+  confirmTappedSpan,
   cornerTaps,
   enteredBaseHeight,
   fixStairGoal,
@@ -867,5 +869,40 @@ it("starts and re-enters live height at the clamped tapped span", () => {
       });
       expect(adjusted).toEqual(flow);
     }),
+  );
+});
+
+it("confirms the tapped span at root independently of the live height", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.constantFrom(dim, other),
+      fc.constantFrom(stone, dirt),
+      fc.integer(),
+      (from, to, dimensionId, material, previous) => {
+        const flow = tapAir(tapBlock(idle, dimensionId, from, material), to);
+        fc.pre(flow.kind === "baseHeight");
+        if (flow.kind !== "baseHeight") return;
+        const box = boxOf(from, to);
+        const expected = {
+          kind: "selected",
+          menuLevel: "root",
+          from,
+          to,
+          selection: selectionOf(
+            dimensionId,
+            boxWithHeight(box, tappedSpanHeight(box)),
+            material,
+          ),
+        };
+        expect(confirmTappedSpan({ ...flow, previous })).toEqual(expected);
+        const reopened = adjustHeight(
+          confirmLiveHeight({ ...flow, previous: 2 }),
+        );
+        if (reopened.kind === "baseHeight")
+          expect(confirmTappedSpan(reopened)).toEqual(expected);
+      },
+    ),
   );
 });

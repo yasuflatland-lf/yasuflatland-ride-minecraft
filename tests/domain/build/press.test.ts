@@ -229,7 +229,7 @@ it("preserves the old press table in all other flows", () => {
   );
 });
 
-it("routes Paste Rotate to the selected box and otherwise to the clipboard on either route", () => {
+it("routes Paste Rotate to the selected box or tapped span and otherwise to the clipboard on either route", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...Object.values(flows)),
@@ -240,7 +240,8 @@ it("routes Paste Rotate to the selected box and otherwise to the clipboard on ei
         for (const role of controlRoles)
           expect(routePress({ flow, role, route, target, sneaking })).toEqual({
             kind:
-              role === "pasteRotate" && flow.kind === "selected"
+              role === "pasteRotate" &&
+              (flow.kind === "selected" || flow.kind === "baseHeight")
                 ? "rotateSelection"
                 : controlTable[role],
           });
