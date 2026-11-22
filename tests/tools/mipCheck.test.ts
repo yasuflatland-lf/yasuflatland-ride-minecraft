@@ -61,20 +61,12 @@ assert m.downsample(texels, 3, 1) == ([(150, 25, 0, 128), texels[2]], 2, 1)
 assert m.downsample([(20, 0, 40, 0), (40, 30, 0, 0)], 1, 2) == ([(30, 15, 20, 0)], 1, 1)`);
 });
 
-// Part 3/3 (#2238) removes this exception when the camper swatches gain mip padding.
-const KNOWN_FAILING_CAMPER_MIP_LEVELS = [1, 2, 3];
-
 it.each([
-  { vehicle: "suv", atlas: "suv_atlas", requiredThrough: 2, failures: [] },
-  {
-    vehicle: "camper",
-    atlas: "camper_kit",
-    requiredThrough: 3,
-    failures: KNOWN_FAILING_CAMPER_MIP_LEVELS,
-  },
+  { vehicle: "suv", atlas: "suv_atlas", requiredThrough: 2 },
+  { vehicle: "camper", atlas: "camper_kit", requiredThrough: 2 },
 ])(
-  "checks every $vehicle swatch through mip level 3",
-  async ({ vehicle, atlas, requiredThrough, failures }) => {
+  "checks every $vehicle swatch through mip level $requiredThrough",
+  async ({ vehicle, atlas, requiredThrough }) => {
     const output = await run(`import json
 rects = m.swatch_rects(load_tool('${atlas}').ATLAS)
 chain = m.mip_chain(*m.read_texture('${vehicle}'), 3)
@@ -87,6 +79,6 @@ print(json.dumps([max(m.swatch_mip_error(chain, rect, level) for rect in rects.v
     expect(
       failedLevels,
       `Maximum errors by level: ${errors.join(", ")}`,
-    ).toEqual(failures);
+    ).toEqual([]);
   },
 );

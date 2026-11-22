@@ -92,10 +92,12 @@ for name, rgb in expected.items():
     for v in range(3):
         for u in range(2): assert pixel(x+u,y+v) == (*rgb,255)
 assert pixel(0,0) == (0,0,255,255)
-for name in ('lens','marker_amber','marker_red','dome','glow'):
-    assert pixel(${dx}+k.SLOTS.index(name),${dy}) == (0,0,255,255)
+lit_names = ('lens','marker_amber','marker_red','dome','glow')
+lit_cells = [k.ATLAS.grid.origin(k.SLOTS.index(name)) for name in lit_names]
 swatches = {'white': (0,0,85), 'panel': (0,0,90), 'ivory': (0,0,80), 'steel': (255,0,75), 'chrome': (255,0,50), 'slat': (255,0,80), 'aluminium': (255,0,80), 'dash': (0,0,185), 'dark_dash': (0,0,190), 'dash_pad': (0,0,175), 'wood': (0,0,155), 'wall_in': (0,0,160), 'gauge': (0,0,65), 'needle': (0,0,65), 'tweed': (0,0,245), 'tweed_line': (0,0,245), 'curtain': (0,0,245), 'piping': (0,0,235), 'khaki': (0,0,100), 'stripe': (0,0,100), 'tan': (0,0,100)}
-for name,rgb in swatches.items(): assert pixel(${dx}+k.SLOTS.index(name),${dy}) == (*rgb,255)
+for name,rgb in swatches.items():
+    x,y,w,h = k.ATLAS.grid.sample_rect(k.SLOTS.index(name))
+    assert pixel(${dx}+x,${dy}+y) == (*rgb,255)
 for region in k.ATLAS.regions:
     rgb = (0,0,85) if region.name == 'rib' else (255,0,26) if region.name == 'mirror_chrome' else (0,0,255) if region.name == 'burner_cast' else (255,0,75)
     for v in range(region.h):
@@ -109,7 +111,8 @@ l.build_layout_lit_textures(out, Path('.'), 'camper', layout, lambda x,y: (12,34
 mask = m.layout_mask(layout, 'base', lambda x,y: k.MIRROR_CHROME_REGION.x <= x < k.MIRROR_CHROME_REGION.x+k.MIRROR_CHROME_REGION.w and k.MIRROR_CHROME_REGION.y <= y < k.MIRROR_CHROME_REGION.y+k.MIRROR_CHROME_REGION.h)
 for y in range(layout.size[1]):
     for x in range(layout.size[0]):
-        on = y == ${dy} and x-${dx} in k.LIT_SLOTS
+        on = any(u <= x-${dx} < u+k.SWATCH_CELL and v <= y-${dy} < v+k.SWATCH_CELL for u,v in lit_cells)
+        if on: assert pixel(x,y) == (0,0,255,255)
         w,h,color = out.images['camper_lit.png']
         assert (w,h) == layout.size
         assert color(x,y) == (12,34,56,0 if on else 255)

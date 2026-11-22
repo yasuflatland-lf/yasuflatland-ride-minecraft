@@ -29,11 +29,13 @@ describe("camper interior surfaces", () => {
   it("builds against an independent registry with relocated base swatches", () => {
     expect(
       inspect(
-        "[sorted(v.name for v in r.regions()), load_tool('region_atlas').audit(r._layout,load_tool('region_atlas').render_atlas(r._layout)), a['body'][0]['uv']['north']['uv'] == [r._layout.origin('base')[0]+k.SLOTS.index('wood'),r._layout.origin('base')[1]]]",
+        "[sorted(v.name for v in r.regions()), load_tool('region_atlas').audit(r._layout,load_tool('region_atlas').render_atlas(r._layout)), a['body'][0]['uv']['north'] == dict(uv=[ox+x,oy+y], uv_size=[w,h])]",
         `
 r = load_tool('region_atlas').RegionRegistry()
 r.register(load_tool('region_atlas').Region('other', 512, 128, k.regions.Material.WOOD, lambda x,y: (0,0,0,255)))
 a = s.build_surfaces(r)
+ox,oy = r._layout.origin('base')
+x,y,w,h = k.ATLAS.grid.sample_rect(k.SLOTS.index('wood'))
 `,
       ),
     ).toEqual([

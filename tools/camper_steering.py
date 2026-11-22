@@ -83,9 +83,10 @@ class SteeringBuilder:
 
     def box(self, origin: Point, size: Point, color: str, pivot: Point | None=None,
             rotation: Point | None=None) -> Cube:
-        uv = self.refs['base'].uv(self.kit.SLOTS.index(color), 0)
+        x, y, w, h = self.kit.ATLAS.grid.sample_rect(self.kit.SLOTS.index(color))
+        uv = self.refs['base'].uv(x, y)
         c = dict(origin=list(origin), size=list(size),
-                 uv={f:dict(uv=list(uv), uv_size=[1,1]) for f in ('north','south','east','west','up','down')})
+                 uv={f:dict(uv=list(uv), uv_size=[w, h]) for f in ('north','south','east','west','up','down')})
         if rotation is not None:
             c.update(pivot=list(pivot), rotation=list(rotation))
         return c

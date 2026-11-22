@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readRgbaPng } from "../support/png";
 import { startPythonWorker } from "../support/pythonWorker";
-import { swatchUv } from "./camper/helpers";
+import { swatchCell } from "./camper/helpers";
 
 const RP = "packs/yasu_ride_rp";
 const read = (path: string) =>
@@ -136,9 +136,15 @@ print(json.dumps({'rect': list(atlas.BLOCKS['tail_lamp'].region[1:]), 'lit': sor
 
 const headlights = "query.property('yasu_ride:headlights')";
 const ceiling = "query.property('yasu_ride:ceiling_lights')";
-// The slots are the palette columns the generators select by name into
-// LIT_SLOTS (tools/gen_*.py). A palette reorder moves them, so update these
-// together with the generators.
+const camperLitCells = [
+  "lens",
+  "dome",
+  "marker_amber",
+  "marker_red",
+  "glow",
+].map(swatchCell);
+
+// The slot indices below follow the generators' palette order.
 const kinds = [
   {
     kind: "suv",
@@ -163,13 +169,11 @@ const kinds = [
   },
   {
     kind: "camper",
-    slots: [14, 33, 34, 35, 38],
+    slots: [] as number[],
     regionRule: (x: number, y: number) =>
-      ["lens", "dome", "marker_amber", "marker_red", "glow"].some((name) => {
-        const [u, v] = swatchUv(name);
-        return x === u && y === v;
-      }),
-    cell: 1,
+      camperLitCells.some(
+        ([u, v, cell]) => x >= u && x < u + cell && y >= v && y < v + cell,
+      ),
     bones: { headlights, ceiling_lights: ceiling },
     condition: `${headlights} || ${ceiling}`,
   },

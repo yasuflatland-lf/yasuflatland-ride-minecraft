@@ -80,7 +80,9 @@ registry.register(m.Region('other area', 200, 800, materials.Material.WOOD, lamb
 layout = m.pack(registry)
 assert layout.origin('base') != shared.origin('base')
 built = shower.build_shower(registry)
-assert built['body'][0]['uv']['north']['uv'] == [layout.origin('base')[0] + kit.SLOTS.index('ivory'), layout.origin('base')[1]]
+x,y,w,h = kit.ATLAS.grid.sample_rect(kit.SLOTS.index('ivory'))
+ox,oy = layout.origin('base')
+assert built['body'][0]['uv']['north'] == dict(uv=[ox+x,oy+y], uv_size=[w,h])
 for cubes in built.values():
     for cube in cubes:
         for face in cube['uv'].values(): layout.bind_face(layout.face_region(face), face)
