@@ -37,8 +37,8 @@ function setup(from: { x: number; y: number; z: number }) {
   session.completeCopy(selectionOf(overworld, box, stone), old);
   session.setFlow({
     kind: "pasteAim",
-    manualTurn: 0,
-    lastPaste: { anchor: from, turn: 0, tick: 10 },
+    manualTurn: 1,
+    facing: "north",
   });
   const newCopy = new NewCopy(repo);
   const chooseBoxStep = new ChooseBoxStep(

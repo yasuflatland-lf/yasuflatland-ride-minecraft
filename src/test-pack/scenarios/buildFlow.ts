@@ -1132,6 +1132,12 @@ function pasteStep(
   );
 }
 
+function capturePasteSource(f: Fixture, { min, max }: CellBox): Promise<Reply> {
+  return f.edit(
+    `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+  );
+}
+
 async function endPasteStep(f: Fixture): Promise<void> {
   const ended = await f.menu("paste", "endPaste");
   check(
@@ -1186,7 +1192,7 @@ export function buildCopyEntersPasteAim(a: Arena): Promise<Outcome> {
     const expected = snapshot(f, f.region(2, 1, 1));
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     await pasteInto(f, target);
-    await checkState(f, "pasteAim", true);
+    await checkState(f, "selected", true);
     check(
       unchanged(f, target.cells, expected),
       "Copy did not allow immediate Paste",
@@ -1221,21 +1227,27 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     );
     await f.menu("paste", "cancel");
     await checkState(f, "pasteAim", true);
-    await pasteInto(f, target);
+    const box = { min: f.cell(), max: f.cell(1) };
+    await f.edit(
+      `snapshot ${box.min.x} ${box.min.y} ${box.min.z} ${box.max.x} ${box.max.y} ${box.max.z}`,
+    );
     const withHistory = await checkState(f, "pasteAim", true);
     check(
       withHistory.pasteMenu.join() === "newCopy,endPaste,cancel",
       "Paste menu with history must have exactly three ordered entries",
     );
-    await f.menu("utility", "undo");
+    await pasteInto(f, target);
+    await checkState(f, "selected", true);
+    await f.edit("undo");
     check(
       unchanged(f, target.cells, target.before),
-      "Utility Undo did not restore blocks",
+      "Undo did not restore blocks",
     );
     check(
       (await f.state()).pasteMenu.join() === "newCopy,endPaste,cancel",
       "Paste menu changed after Undo",
     );
+    await f.edit("undo");
   });
 }
 
@@ -1299,6 +1311,7 @@ export function buildUndoItemPaste(a: Arena): Promise<Outcome> {
     const expected = snapshot(f, f.region(2, 1, 1));
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     await pasteInto(f, target);
+    await checkState(f, "selected", true);
     check(unchanged(f, target.cells, expected), "Paste did not write blocks");
     f.holdControl(BUILD_UNDO_TYPE);
     const undone = await f.press("blockInteract");
@@ -1309,10 +1322,8 @@ export function buildUndoItemPaste(a: Arena): Promise<Outcome> {
     );
     await checkState(f, "pasteAim", true);
     await pasteInto(f, target);
-    check(
-      unchanged(f, target.cells, expected),
-      "Re-paste lost the clipboard or repeat reset",
-    );
+    await checkState(f, "selected", true);
+    check(unchanged(f, target.cells, expected), "Re-paste lost the clipboard");
     await f.edit("undo");
   });
 }
@@ -1376,7 +1387,7 @@ export function buildUndoItemRoutesOnce(a: Arena): Promise<Outcome> {
     const first = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     const last = pasteTarget(f, f.cell(16, 0, 12), 2, 1, 1);
     await pasteInto(f, first);
-    await wait(BUILD_SPEC.pasteRepeatTicks);
+    await copyLine(f);
     await pasteInto(f, last);
     check(
       unchanged(f, first.cells, expected) && unchanged(f, last.cells, expected),
@@ -1413,6 +1424,7 @@ export function buildUndoItemKeepsPasteAim(a: Arena): Promise<Outcome> {
     await wait(BUILD_SPEC.modeEnterTicks + 2);
     await checkState(f, "pasteAim", true);
     await pasteInto(f, target);
+    await checkState(f, "selected", true);
     check(
       unchanged(f, target.cells, expected),
       "Wand to Undo to wand lost the clipboard or aiming",
@@ -1449,14 +1461,13 @@ export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
     await copyLine(f);
     const expected = snapshot(f, f.region(2, 1, 1));
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
-    // Two cells finish in one edit tick, keeping Undo and re-paste inside
-    // pasteRepeatTicks without a wait or state query between them.
     await pasteInto(f, target);
     check(
       unchanged(f, target.cells, expected),
       "first Paste did not write blocks",
     );
-    await f.edit("undo");
+    const undone = await f.edit("undo");
+    check(undone.flow.kind === "pasteAim", "Undo did not resume aiming");
     check(
       unchanged(f, target.cells, target.before),
       "Undo did not restore blocks",
@@ -1464,9 +1475,9 @@ export function buildPasteUndoRepeat(a: Arena): Promise<Outcome> {
     await pasteInto(f, target);
     check(
       unchanged(f, target.cells, expected),
-      "same-anchor re-paste was suppressed after Undo",
+      "same-anchor re-paste failed after Undo",
     );
-    await checkState(f, "pasteAim", true);
+    await checkState(f, "selected", true);
     await f.edit("undo");
   });
 }
@@ -1521,6 +1532,14 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         true,
       );
       check(pasted.message === "editDoneCount", "aimed paste failed");
+      checkSelection(
+        pasted,
+        {
+          min: { x: anchor.x + dx, y: anchor.y + dy, z: anchor.z + dz },
+          max: { x: anchor.x + dx + 2, y: anchor.y + dy, z: anchor.z + dz },
+        },
+        `Paste on ${face}`,
+      );
       if (face !== "up" && face !== "down")
         check(
           f.block(anchor).typeId === "minecraft:gold_block",
@@ -1667,62 +1686,61 @@ function placeSupportedFrame(f: Fixture, c: Cell): void {
   frame.setPermutation(frame.permutation.withState("facing_direction", 5));
 }
 
-export function buildContinuousPaste(a: Arena): Promise<Outcome> {
+export function buildPasteSelectsBox(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
-    const source = f.region(2, 2, 2);
+    const source = f.region(3, 1, 1);
     mixedSource(f, source);
-    await f.select(f.cell(1, 1, 1));
+    await f.select(f.cell(2));
     const expected = snapshot(f, source);
     await startPasteStep(f);
-    const targets = [20, 24, 28].map((x) =>
-      pasteTarget(f, f.cell(x, 0, 12), 2, 2, 2),
+    const target = pasteTarget(f, f.cell(20, 0, 12), 3, 1, 1);
+    const pasted = await pasteStep(
+      f,
+      target.anchor.x,
+      target.anchor.y,
+      target.anchor.z,
+      "up",
     );
-    for (const target of targets) {
-      const pasted = await pasteStep(
-        f,
-        target.anchor.x,
-        target.anchor.y,
-        target.anchor.z,
-        "up",
-      );
-      check(
-        pasted.message === "editDoneCount" && pasted.flow.kind === "pasteAim",
-        "Paste did not continue",
-      );
-      check(
-        unchanged(f, target.cells, expected),
-        "continuous Paste lost source states",
-      );
-    }
-    const last = targets[targets.length - 1];
-    if (!last) throw new Error("no paste targets");
-    const undone = await f.menu("utility", "undo");
+    check(pasted.message === "editDoneCount", "Paste did not finish");
+    checkSelection(
+      pasted,
+      { min: f.cell(20, 1, 12), max: f.cell(22, 1, 12) },
+      "Pasted box",
+    );
+    check(unchanged(f, target.cells, expected), "Paste lost source states");
+    await checkState(f, "selected", true);
+
+    await holdPasteControl(f, PASTE_ROTATE_TYPE);
+    await wait(BUILD_SPEC.modeLeaveTicks);
+    check((await f.mode()).mode === true, "Paste Rotate left build mode");
+    const rotated = await f.press("blockInteract,itemUse");
+    check(rotated.message === "rotateDone", "Paste Rotate did not finish");
+    checkSelection(
+      rotated,
+      { min: f.cell(21, 1, 11), max: f.cell(21, 1, 13) },
+      "Rotated pasted box",
+    );
+    const log = f.block(f.cell(21, 1, 12));
     check(
-      undone.offered === true &&
-        undone.message === "undoDone" &&
-        undone.flow.kind === "pasteAim",
-      `Undo unavailable while pasting: ${undone.offered} ${undone.message} ${undone.flow.kind}`,
+      log.typeId === "minecraft:oak_log" &&
+        log.permutation.getState("pillar_axis") === "z" &&
+        f.block(f.cell(20, 1, 12)).isAir &&
+        f.block(f.cell(22, 1, 12)).isAir,
+      "Paste Rotate did not turn the blocks in place",
+    );
+    await checkState(f, "selected", true);
+    check(
+      (await f.edit("undo")).flow.kind === "selected",
+      "Undo of rotation left the selection",
     );
     check(
-      unchanged(f, last.cells, last.before),
-      "continuous Paste undo lost destination states",
+      (await f.edit("undo")).flow.kind === "pasteAim",
+      "Undo of paste did not resume aiming",
     );
-    for (const target of targets.slice(0, -1))
-      check(
-        unchanged(f, target.cells, expected),
-        "earlier continuous Paste changed after Undo",
-      );
-    await endPasteStep(f);
-    await f.select(f.cell(1, 1, 1));
-    await startPasteStep(f);
-    f.hold(false);
-    await wait(BUILD_SPEC.modeLeaveTicks + 2);
     check(
-      (await f.mode()).flow.kind !== "pasteAim",
-      "item switch did not end Paste",
+      unchanged(f, target.cells, target.before),
+      "Undo did not restore the paste destination",
     );
-    f.hold(true);
-    await wait(BUILD_SPEC.modeEnterTicks + 2);
   });
 }
 
@@ -1765,7 +1783,7 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
       "up",
     );
     check(
-      pasted.message === "editDoneCount" && pasted.flow.kind === "pasteAim",
+      pasted.message === "editDoneCount" && pasted.flow.kind === "selected",
       "clean Paste after refusal failed",
     );
     check(
@@ -2185,7 +2203,9 @@ async function pasteCutClipboard(
     f.block(cell).setType("minecraft:stone");
   const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
-    pasted.message === "editDoneCount" && pasted.count === volume,
+    pasted.message === "editDoneCount" &&
+      pasted.count === volume &&
+      pasted.flow.kind === "selected",
     `Cut clipboard paste reported ${pasted.message} ${pasted.count}`,
   );
 }
@@ -2280,7 +2300,7 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
       for (const entity of entities()) entity.remove();
       for (const cell of [...source, ...target])
         f.block(cell).setType("minecraft:air");
-      await f.menu("paste", "endPaste");
+      await f.switchItem();
     }
   });
 }
@@ -2476,6 +2496,8 @@ export function buildCutSetsClipboard(a: Arena): Promise<Outcome> {
     const target = f.region(3, 1, 1, f.cell(12, 0, 12));
     await pasteCutClipboard(f, f.cell(12, 0, 12), cells.length, 3, 1, 1);
     check(unchanged(f, target, before), "Cut payload lost block states");
+    await undoCut(f, cells.length);
+    await undoCut(f, cells.length);
     await f.menu("paste", "endPaste");
   });
 }
@@ -2914,7 +2936,6 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
         (await f.state()).clipboard?.facing === "east",
         "Copy did not record east",
       );
-      let firstPaste = true;
       for (const [facing, gazeTurn, yaw] of [
         ["south", 1, 0],
         ["west", 2, 90],
@@ -2952,12 +2973,11 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
           check(
             (
               await f.edit(
-                `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up true ${facing} ${firstPaste ? 0 : 1}`,
+                `pasteat ${anchor.x} ${anchor.y} ${anchor.z} up true ${facing} ${manualTurn}`,
               )
             ).message === "editDoneCount",
             `Paste failed facing ${label}`,
           );
-          firstPaste = false;
           for (const c of target) {
             const x = c.x - f.cell(minX).x;
             const y = c.y - f.cell().y;
@@ -2999,8 +3019,8 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
             `Sign lost text facing ${label}`,
           );
           check(
-            (await f.state()).pasteTurn === turn,
-            `Wrong turn facing ${label}`,
+            (await f.edit("undo")).flow.kind === "pasteAim",
+            `Undo did not resume aiming for ${label}`,
           );
         }
       }
@@ -3279,10 +3299,12 @@ async function pasteControlOnce(
       );
       check(placed.message === "editDoneCount", "Control paste did not finish");
       checkRotatedFurniture(f, target, f.cell(16, 0, 12));
-      check(
-        (await f.state()).pasteTurn === 1,
-        "Control paste lost manual turn",
+      checkSelection(
+        placed,
+        { min: f.cell(16, 0, 12), max: f.cell(18, 2, 16) },
+        "Control paste box",
       );
+      await checkState(f, "selected", true);
       check(
         (await f.edit("undo")).message === "undoDone",
         "Control paste Undo failed",
@@ -3352,9 +3374,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       check(!!oldCow, "missing target cow");
       const min = f.cell();
       const max = f.cell(7, 3, 3);
-      await f.edit(
-        `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
-      );
+      await capturePasteSource(f, { min, max });
       const anchor = f.cell(12, -1);
       const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
       check(
@@ -3395,7 +3415,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
         .map((e) => e.id)
         .sort()
         .join(",");
-      await wait(BUILD_SPEC.pasteRepeatTicks);
+      await capturePasteSource(f, { min, max });
       const refused = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
       check(
         refused.message === "pasteBlocked" && unchanged(f, target, before),
@@ -3570,9 +3590,7 @@ export async function buildPasteStructureDecor(
         removeItems();
         const min = f.cell();
         const max = f.cell(7, 5, 7);
-        await f.edit(
-          `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
-        );
+        await capturePasteSource(f, { min, max });
         // Capture before breaking the original so the clipboard retains its contents.
         breakFrame(cell);
         await wait(2);
@@ -3619,7 +3637,7 @@ export async function buildPasteStructureDecor(
           pastedDrops.join(","),
         );
         removeItems();
-        await wait(BUILD_SPEC.pasteRepeatTicks);
+        await capturePasteSource(f, { min, max });
         f.block(mirrored).setPermutation(permutation);
         for (const c of f.region(8, 1, 8, f.cell(12)))
           f.block(c).setType("minecraft:air");
@@ -3696,7 +3714,18 @@ export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
       f.count(source, "minecraft:air") === source.length,
       "Cut left blocks",
     );
-    for (const target of targets) {
+    const [first, ...remaining] = targets;
+    if (!first) throw new Error("Expected paste targets");
+    const sourceBox = {
+      min: { ...first.anchor, y: first.anchor.y + 1 },
+      max: {
+        x: first.anchor.x + 1,
+        y: first.anchor.y + 2,
+        z: first.anchor.z + 1,
+      },
+    };
+    for (const target of [first, ...remaining]) {
+      if (target !== first) await capturePasteSource(f, sourceBox);
       const pasted = await pasteStep(
         f,
         target.anchor.x,
@@ -3710,7 +3739,7 @@ export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
         "Paste lost filled blocks",
       );
     }
-    await endPasteStep(f);
+    await f.tap("clear");
     for (const target of [...targets].reverse()) {
       check(
         (await f.menu("utility", "undo")).message === "undoDone",

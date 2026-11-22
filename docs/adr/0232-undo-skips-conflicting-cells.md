@@ -16,7 +16,7 @@ Undo previously planned each recorded before state without checking whether anot
 2. `EditJobs` reads the current world state and compares it with `expected` before checking for an unchanged destination. A matching state permits the normal protection and write path. If the current state already equals the destination (the recorded `before`), do not write or count it as skipped. A state differing from both is a conflict: leave it unchanged and increment the skipped count.
 3. For Undo, unreadable or unloaded cells, kept types, protection refusals, and failed writes also increment that same skipped count. Continue with the other cells; never refuse the whole Undo because of a conflict.
 4. Show the existing `undoDone` completion message when no cells were skipped. Otherwise show `undoDonePartial` with the successfully restored count and the skipped count. Extend the feedback port with an optional skipped count while retaining existing count and material arguments, and translate both counts in every locale.
-5. Consume the history record even when no cells can be restored. Keep no retry or redo record. Undo still retains the clipboard and paste aiming and clears the same-anchor repeat window.
+5. Consume the history record even when no cells can be restored. Keep no retry or redo record. Cell Undo retains the clipboard and follows the existing selection restoration rule.
 
 ## Consequences
 

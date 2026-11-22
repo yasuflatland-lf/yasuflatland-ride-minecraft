@@ -12,10 +12,7 @@ import {
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
-import {
-  beginPasteAim,
-  recordPaste,
-} from "../../../src/domain/build/flow/paste";
+import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -27,7 +24,6 @@ import {
 import { confirmEndpointHeight } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
-  cellKey,
   FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
@@ -72,127 +68,6 @@ function setup() {
   };
   return { repo, session, world, feedback, paste, target, structures };
 }
-
-it("keeps aiming through successive synchronous pastes with the newest snapshots up to the shared cap", () => {
-  fc.assert(
-    fc.property(cell, fc.integer({ min: 1, max: 30 }), (origin, count) => {
-      const e = setup();
-      const start = vi.spyOn(e.structures, "place");
-      for (let i = 0; i < count; i++) {
-        const block = { ...origin, x: origin.x + i };
-        e.paste.execute({
-          playerId,
-          dimensionId: overworld,
-          target: e.target(block),
-          tick: i * BUILD_SPEC.pasteRepeatTicks,
-        });
-        expect(e.session.flow).toEqual(
-          recordPaste(
-            beginPasteAim(),
-            { ...block, y: block.y + 1 },
-            0,
-            i * BUILD_SPEC.pasteRepeatTicks,
-          ),
-        );
-        expect(e.session.isEditing).toBe(false);
-      }
-      expect(start).toHaveBeenCalledTimes(count);
-      expect(e.world.writes).toBe(count);
-      expect(e.feedback.messages).toEqual(
-        Array.from({ length: count }, () => ({
-          message: "editDoneCount",
-          count: 1,
-        })),
-      );
-      const last = { ...origin, x: origin.x + count - 1, y: origin.y + 1 };
-      expect(e.session.takeUndo()).toMatchObject({
-        kind: "snapshot",
-        snapshot: { dimensionId: overworld, box: boxOf(last, last) },
-      });
-      expect(
-        e.structures.calls.filter((c) => c.kind === "discard"),
-      ).toHaveLength(Math.max(0, count - BUILD_SPEC.undoDepth));
-      for (
-        let i = count - 2;
-        i >= Math.max(0, count - BUILD_SPEC.undoDepth);
-        i--
-      ) {
-        const cell = { ...origin, x: origin.x + i, y: origin.y + 1 };
-        expect(e.session.takeUndo()).toMatchObject({
-          kind: "snapshot",
-          snapshot: { box: boxOf(cell, cell) },
-        });
-      }
-      expect(undoRecord(e.session.takeUndo())).toBe("nothingToUndo");
-    }),
-  );
-});
-
-it("silently ignores repeats, refuses busy and blocked taps, and records only successful placements", () => {
-  fc.assert(
-    fc.property(
-      cell,
-      fc.integer({ min: 0, max: BUILD_SPEC.pasteRepeatTicks - 1 }),
-      (block, delta) => {
-        const e = setup();
-        const start = vi.spyOn(e.structures, "place");
-        const cmd = {
-          playerId,
-          dimensionId: overworld,
-          target: e.target(block),
-          tick: 100,
-        };
-        e.paste.execute(cmd);
-        const flow = e.session.flow;
-        e.feedback.messages.length = 0;
-        const mayEdit = vi.spyOn(e.world, "mayEdit");
-        e.paste.execute({ ...cmd, tick: cmd.tick + delta });
-        expect(e.feedback.messages).toEqual([]);
-        expect(mayEdit).not.toHaveBeenCalled();
-        const other = { ...block, x: block.x + 1 };
-        e.session.beginEdit();
-        e.paste.execute({ ...cmd, target: e.target(other) });
-        expect(e.feedback.messages.at(-1)?.message).toBe("busy");
-        expect(e.session.flow).toBe(flow);
-        e.session.finishEdit({ dimensionId: overworld, changes: [] }, "undo");
-        const anchor = { ...other, y: other.y + 1 };
-        e.world.protectedCells.add(cellKey(anchor));
-        e.paste.execute({ ...cmd, target: e.target(other), tick: 200 });
-        expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
-        expect(e.session.flow).toBe(flow);
-        expect(e.session.isEditing).toBe(false);
-        expect(start).toHaveBeenCalledTimes(1);
-        e.world.protectedCells.clear();
-        e.paste.execute({ ...cmd, target: e.target(other), tick: 200 });
-        expect(start).toHaveBeenCalledTimes(2);
-        expect(e.session.flow).toMatchObject({
-          kind: "pasteAim",
-          manualTurn: 0,
-          lastPaste: { anchor, turn: 0, tick: 200 },
-        });
-      },
-    ),
-  );
-});
-
-it("allows the same anchor again once the repeat window ends", () => {
-  const e = setup();
-  const cmd = {
-    playerId,
-    dimensionId: overworld,
-    target: e.target({ x: 0, y: 0, z: 0 }),
-    tick: 0,
-  };
-  const start = vi.spyOn(e.structures, "place");
-  e.paste.execute(cmd);
-  e.paste.execute({ ...cmd, tick: BUILD_SPEC.pasteRepeatTicks });
-  expect(start).toHaveBeenCalledTimes(2);
-  expect(e.session.flow).toMatchObject({
-    kind: "pasteAim",
-    manualTurn: 0,
-    lastPaste: { tick: BUILD_SPEC.pasteRepeatTicks },
-  });
-});
 
 it("leaves any flow after the exact grace delay and does not re-trigger", () => {
   fc.assert(
@@ -310,7 +185,7 @@ it("EndPasting preserves the completed snapshot and older cell history", () => {
       };
       e.session.finishEdit(older, "undoable");
       const target = e.target(block);
-      e.paste.execute({ playerId, dimensionId: overworld, target, tick: 0 });
+      e.paste.execute({ playerId, dimensionId: overworld, target });
       expect(e.session.isEditing).toBe(false);
       new EndPasting(e.repo, e.structures).execute(playerId);
       expect(e.session.flow.kind).toBe("idle");
@@ -328,37 +203,10 @@ it("EndPasting preserves the completed snapshot and older cell history", () => {
         playerId,
         dimensionId: overworld,
         target,
-        tick: BUILD_SPEC.pasteRepeatTicks,
       });
       expect(start).not.toHaveBeenCalled();
       expect(e.world.writes).toBe(1);
     }),
-  );
-});
-
-it("accepts a different turn at the same anchor inside the repeat window", () => {
-  fc.assert(
-    fc.property(
-      cell,
-      fc.constantFrom(1 as const, 2 as const, 3 as const),
-      (block, turn) => {
-        const e = setup();
-        const command = {
-          playerId,
-          dimensionId: overworld,
-          target: e.target(block),
-          tick: 0,
-        };
-        expect(e.paste.execute(command)).toBe("pasted");
-        expect(
-          e.paste.execute({ ...command, target: { ...command.target, turn } }),
-        ).toBe("pasted");
-        expect(
-          e.paste.execute({ ...command, target: { ...command.target, turn } }),
-        ).toBe("ignored");
-        expect(e.session.flow).toMatchObject({ lastPaste: { turn } });
-      },
-    ),
   );
 });
 

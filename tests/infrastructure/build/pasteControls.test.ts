@@ -246,7 +246,7 @@ it("places without sneaking using the live aim, dimension and tick", () => {
   });
   expect(e.structures.calls.at(-1)?.kind).toBe("place");
   expect(e.rotate).not.toHaveBeenCalled();
-  expect(e.refresh).not.toHaveBeenCalled();
+  expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11);
 });
 
 it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
@@ -295,7 +295,7 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
         intent: "place",
       });
       expect(e.rotate).not.toHaveBeenCalled();
-      expect(e.refresh).not.toHaveBeenCalled();
+      expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11);
     }
     engine.tick = 11 + window;
     press();
@@ -312,7 +312,8 @@ it("keeps rotate and place windows separate and honors shared wand windows", () 
   expect(e.place).toHaveBeenCalledTimes(1);
   engine.tick = BUILD_SPEC.rotateDebounceTicks;
   e.use();
-  expect(e.rotate).toHaveBeenCalledTimes(1);
+  expect(e.rotateSelection.execute).toHaveBeenCalledTimes(1);
+  expect(e.rotate).not.toHaveBeenCalled();
   e.pasteDebounce.press(e.id, engine.tick);
   e.use(PASTE_PLACE_TYPE);
   expect(e.place).toHaveBeenCalledTimes(1);
@@ -335,8 +336,9 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
     } else {
       expect(e.place).toHaveBeenCalledTimes(1);
       expect(e.structures.calls.at(-1)?.kind).toBe("place");
+      expect(e.session.flow.kind).toBe("selected");
       expect(e.rotate).not.toHaveBeenCalled();
-      expect(e.refresh).not.toHaveBeenCalled();
+      expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 1);
     }
   },
 );

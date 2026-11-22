@@ -104,7 +104,7 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
   };
 }
 
-it("uses the current turn for successive pastes and restores the entire rotated box on Undo", () => {
+it("uses the live turn for a paste and restores the entire rotated box on Undo", () => {
   fc.assert(
     fc.property(origin, turn, (block, turn) => {
       const e = setup(block, turn);
@@ -149,22 +149,23 @@ it("uses the current turn for successive pastes and restores the entire rotated 
       ]);
       for (const cell of cellsOf(e.target.box))
         expect(e.world.stateAt(overworld, cell)).toEqual(dirt);
-      expect(e.session.pasteTurn).toBe(turn);
+      expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
+      expect(e.session.pasteTurn).toBe(0);
       expect(e.press.execute(e.cmd)).toBe("pasted");
       expect(
         e.press.execute({
           ...e.cmd,
           tick: e.cmd.tick + BUILD_SPEC.pasteRepeatTicks,
         }),
-      ).toBe("pasted");
-      expect(e.session.pasteTurn).toBe(turn);
+      ).toBe("ignored");
+      expect(e.session.pasteTurn).toBe(0);
       expect(
         e.store.calls.flatMap((c) =>
           c.kind === "place" && c.handle === e.clipboard.contents.handle
             ? [c.turn]
             : [],
         ),
-      ).toEqual([turn, turn, turn]);
+      ).toEqual([turn, turn]);
     }),
   );
 });

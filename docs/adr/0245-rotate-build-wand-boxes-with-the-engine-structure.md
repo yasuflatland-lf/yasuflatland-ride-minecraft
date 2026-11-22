@@ -5,7 +5,7 @@
 - Supersedes in part: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md): the line that excludes rotation, flip and stacking, for horizontal quarter turns only
 - Extends: [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md)
 - Related: [0001](0001-bedrock-addon-with-stable-script-api.md): stable API only
-- Related: [0202](0202-build-wand-copy-and-continuous-paste.md): continuous paste
+- Related: [0202](0202-build-wand-copy-and-continuous-paste.md): pasted-box selection
 - Related: [0203](0203-build-wand-paste-aiming.md): paste aiming and its menu
 - Related: [0229](0229-open-build-utilities-with-a-plain-air-press.md): build utility menus
 

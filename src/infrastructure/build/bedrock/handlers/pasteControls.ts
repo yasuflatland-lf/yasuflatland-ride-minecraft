@@ -107,9 +107,9 @@ export function registerPasteControls({
         if (rotatePasteAim.execute({ playerId }) === "rotated")
           refresh(playerId, tick);
         break;
-      case "pasteAim":
+      case "pasteAim": {
         if (!pasteDebounce.press(playerId, tick)) return;
-        pressPasteAim.execute({
+        const result = pressPasteAim.execute({
           playerId,
           dimensionId: asDimensionId(source.dimension.id),
           aim: aim.aim(playerId),
@@ -117,7 +117,9 @@ export function registerPasteControls({
           sneaking: source.isSneaking,
           intent: "place",
         });
+        if (result === "pasted") refresh(playerId, tick);
         break;
+      }
     }
   }
   function pressFromItemUse(source: Player, typeId: string): void {

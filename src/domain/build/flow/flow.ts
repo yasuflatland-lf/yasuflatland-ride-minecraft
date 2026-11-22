@@ -375,13 +375,3 @@ export function setHeight(flow: BuildFlow, height: number): BuildFlow {
 export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
   return flow.kind === "selected" ? flow.selection.box : undefined;
 }
-
-export function clearLastPaste(flow: BuildFlow): BuildFlow {
-  return flow.kind === "pasteAim"
-    ? Object.freeze({
-        kind: "pasteAim",
-        manualTurn: flow.manualTurn,
-        facing: flow.facing,
-      })
-    : flow;
-}
