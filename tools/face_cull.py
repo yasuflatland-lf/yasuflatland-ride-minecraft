@@ -9,16 +9,12 @@ from math import ceil, floor, ulp
 from pathlib import Path
 
 from cube_tilt import apply_matrix, cube_matrix
+from face_sides import face_side
 from geometry_passes import keep_faces
 
 _CELL_SIZE = 4
 _LATERAL_TOLERANCE = 1e-6
 _IDENTITY = cube_matrix((0, 0, 0))
-_SIDES = {
-    "west": (0, 0), "east": (0, 1),
-    "down": (1, 0), "up": (1, 1),
-    "north": (2, 0), "south": (2, 1),
-}
 
 
 @dataclass(frozen=True)
@@ -62,7 +58,8 @@ class _Box:
         return self._transform(self.rotation, point)
 
     def shifted_face(self, side, epsilon):
-        axis, end = _SIDES[side]
+        face = face_side(side)
+        axis, end = face.axis, face.end
         points = []
         for corner, local_point in enumerate(self.local_corners):
             if ((corner >> axis) & 1) == end:
