@@ -101,6 +101,11 @@ export function cornerTaps(box: CellBox): Taps {
 export type BaseHeightFlow = Extract<BuildFlow, { kind: "baseHeight" }>;
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
 
+/** The height the two taps span, clamped to the selection height limit. */
+export function tappedSpanHeight(box: CellBox): number {
+  return Math.min(sizeOf(box).y, selectionHeightLimit(box));
+}
+
 export function heightStepBox(flow: HeightStepFlow): CellBox {
   return boxWithHeight(flow.base, flow.previous);
 }
@@ -154,10 +159,7 @@ export function tapAir(flow: BuildFlow, end?: Cell): BuildFlow {
     from,
     to,
     baseBox: boxWithHeight(selection.box, 1),
-    previous: Math.min(
-      sizeOf(selection.box).y,
-      selectionHeightLimit(selection.box),
-    ),
+    previous: tappedSpanHeight(selection.box),
   });
 }
 
@@ -182,7 +184,7 @@ export function adjustHeight(flow: BuildFlow): BuildFlow {
     from: flow.from,
     to: flow.to,
     baseBox: boxWithHeight(box, 1),
-    previous: Math.min(sizeOf(box).y, selectionHeightLimit(box)),
+    previous: tappedSpanHeight(box),
   });
 }
 

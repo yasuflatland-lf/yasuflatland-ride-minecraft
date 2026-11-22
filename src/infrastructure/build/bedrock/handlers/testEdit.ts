@@ -206,14 +206,14 @@ export function registerTestEdit(
           const handle = structures.capture(dimensionId, box, playerId, "copy");
           if (handle === "tooLarge" || handle === "unreadable")
             throw new Error(handle);
-          const previous = repo
-            .getOrCreate(playerId)
-            .completeCopy(selectionOf(dimensionId, box, AIR), {
-              facing,
-              size: sizeOf(box),
-              blockCount: volume(box),
-              contents: { kind: "structure", handle },
-            });
+          const selection = selectionOf(dimensionId, box, AIR);
+          const previous = repo.getOrCreate(playerId).completeCopy(selection, {
+            material: selection.material,
+            facing,
+            size: sizeOf(box),
+            blockCount: volume(box),
+            contents: { kind: "structure", handle },
+          });
           if (previous) structures.discard(previous);
         } else if (command === "releaseStructures" && args.length === 0) {
           const session = repo.getOrCreate(playerId);

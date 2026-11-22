@@ -51,6 +51,7 @@ export function structureClipboard(
   );
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   return {
+    material: read(box.min) ?? AIR,
     size: {
       x: box.max.x - box.min.x + 1,
       y: box.max.y - box.min.y + 1,

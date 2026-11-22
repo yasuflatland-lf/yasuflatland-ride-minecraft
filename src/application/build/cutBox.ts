@@ -64,6 +64,7 @@ export class CutBox implements BoxAction {
       return false;
     }
     const previous = session.completeCopy(selection, {
+      material: selection.material,
       facing: cmd.facing,
       size: sizeOf(box),
       blockCount: count,

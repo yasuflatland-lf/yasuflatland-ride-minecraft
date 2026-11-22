@@ -22,6 +22,7 @@ import {
   setHeight,
   tapAir,
   tapBlock,
+  tappedSpanHeight,
   tapsOf,
 } from "../../../src/domain/build/flow/flow";
 import {
@@ -833,4 +834,38 @@ it("uses the rotated selection as the stair foot and keeps the tapped point for 
     selectionBefore: rotated,
   });
   expect(backToAiming(aim)).toEqual(point);
+});
+
+it("starts and re-enters live height at the clamped tapped span", () => {
+  fc.assert(
+    fc.property(cell, cell, (from, to) => {
+      const flow = tapBlock(tapBlock(idle, dim, from, stone), dim, to, dirt);
+      fc.pre(flow.kind === "baseHeight");
+      if (flow.kind !== "baseHeight") return;
+      const box = flow.selection.box;
+      const expected = Math.min(
+        Math.abs(to.y - from.y) + 1,
+        Math.max(
+          1,
+          Math.min(
+            BUILD_SPEC.worldTopY - box.min.y + 1,
+            Math.floor(
+              BUILD_SPEC.maxCopyVolume /
+                ((Math.abs(to.x - from.x) + 1) * (Math.abs(to.z - from.z) + 1)),
+            ),
+          ),
+        ),
+      );
+      expect(tappedSpanHeight(box)).toBe(expected);
+      expect(flow.previous).toBe(tappedSpanHeight(box));
+      const adjusted = adjustHeight({
+        kind: "selected",
+        menuLevel: "root",
+        selection: flow.selection,
+        from,
+        to,
+      });
+      expect(adjusted).toEqual(flow);
+    }),
+  );
 });

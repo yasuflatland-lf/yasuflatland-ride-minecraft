@@ -29,6 +29,7 @@ export class CopyBox implements BoxAction {
       return false;
     }
     const clipboard: Clipboard = {
+      material: selection.material,
       facing: cmd.facing,
       size: sizeOf(box),
       blockCount: count,

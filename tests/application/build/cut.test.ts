@@ -86,6 +86,7 @@ it("captures the whole box twice before removing anything and records a snapshot
           { kind: "clearBlocks", dimensionId: overworld, box },
         ]);
         expect(e.session.clipboard).toEqual({
+          material: stone,
           size: { x, y, z },
           blockCount: x * y * z,
           facing: "east",

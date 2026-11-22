@@ -43,6 +43,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
     z: anchor.z + 1,
   });
   session.completeCopy(selectionOf(overworld, box, AIR), {
+    material: AIR,
     size: { x: 2, y: 2, z: 2 },
     blockCount,
     facing: "east",

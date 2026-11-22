@@ -6,7 +6,7 @@ import { EndBuildSession } from "../../../src/application/build/endBuildSession"
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { NewCopy } from "../../../src/application/build/newCopy";
-import { AIR } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   type Clipboard,
@@ -64,6 +64,7 @@ it("captures exactly once with the owner and dimension and stores the full box s
       ]);
       const clipboard = e.repo.get(playerId)?.clipboard;
       expect(clipboard).toEqual({
+        material: AIR,
         size: {
           x: box.max.x - box.min.x + 1,
           y: box.max.y - box.min.y + 1,
@@ -76,6 +77,24 @@ it("captures exactly once with the owner and dimension and stores the full box s
       expect(e.feedback.messages).toEqual([
         { message: "copied", count: volume(box) },
       ]);
+    }),
+  );
+});
+
+it("carries the source selection material in the session clipboard", () => {
+  fc.assert(
+    fc.property(boxArb, fc.integer({ min: 0, max: 3 }), (box, direction) => {
+      const e = setup();
+      const material = blockStateOf("minecraft:oak_stairs", {
+        weirdo_direction: direction,
+        upside_down_bit: true,
+      });
+      e.copy.execute({
+        playerId,
+        selection: selectionOf(overworld, box, material),
+        facing: "east",
+      });
+      expect(e.repo.get(playerId)?.clipboard?.material).toEqual(material);
     }),
   );
 });
@@ -356,6 +375,7 @@ it.each(["absent", "structure"] as const)(
                   );
                 }
                 expectedClipboard = {
+                  material: AIR,
                   size: {
                     x: box.max.x - box.min.x + 1,
                     y: box.max.y - box.min.y + 1,
