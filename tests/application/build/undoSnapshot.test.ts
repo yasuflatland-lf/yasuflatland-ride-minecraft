@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
+import { PasteAt } from "../../../src/application/build/pasteAt";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import {
@@ -9,6 +10,9 @@ import {
   cellsOf,
   volume,
 } from "../../../src/domain/build/box";
+import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
@@ -16,6 +20,7 @@ import {
   FakeFeedback,
   FakeSessions,
   FakeWorld,
+  nether,
   overworld,
 } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -47,7 +52,6 @@ function setup(box: CellBox) {
   session.setFlow({
     kind: "pasteAim",
     manualTurn: 0,
-    lastPaste: { anchor: box.min, turn: 0, tick: 12 },
   });
   structures.calls.length = 0;
   return {
@@ -63,7 +67,7 @@ function setup(box: CellBox) {
   };
 }
 
-it("restores any snapshot in order, discards it and clears the paste repeat marker", () => {
+it("restores any snapshot in order, discards it without changing paste aiming", () => {
   fc.assert(
     fc.property(boxArb, (box) => {
       const e = setup(box);
@@ -94,6 +98,66 @@ it("restores any snapshot in order, discards it and clears the paste repeat mark
       expect(e.log.warn).not.toHaveBeenCalled();
     }),
   );
+});
+
+it.each([
+  "matching",
+  "rotated",
+  "another edit",
+  "wrong dimension",
+  "no clipboard",
+] as const)("undoes with a %s selection or session", (situation) => {
+  const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 64, z: 0 });
+  const e = setup(box);
+  e.session.takeUndo();
+  const material = blockStateOf("minecraft:stone");
+  const selection = selectionOf(overworld, box, material);
+  const clipboard = {
+    material,
+    size: { x: 3, y: 1, z: 1 },
+    blockCount: 3,
+    facing: "east" as const,
+    contents: { kind: "structure" as const, handle: e.handle },
+  };
+  e.session.completeCopy(selection, clipboard);
+  const paste = new PasteAt(
+    e.repo,
+    e.world,
+    e.feedback,
+    e.structures,
+    new FakeBuildPlayers(),
+  );
+  expect(
+    paste.execute({
+      playerId,
+      dimensionId: overworld,
+      target: { box, anchor: box.min, turn: 0 },
+    }),
+  ).toBe("pasted");
+  if (situation === "rotated")
+    e.session.replaceSelection(
+      selectionOf(overworld, planRotationAboutCenter(box).target, material),
+    );
+  if (situation === "another edit")
+    e.session.finishEdit(
+      {
+        dimensionId: overworld,
+        changes: [{ cell: box.min, before: AIR, after: material }],
+      },
+      "undoable",
+    );
+  if (situation === "wrong dimension")
+    e.session.replaceSelection(selectionOf(nether, box, material));
+  if (situation === "no clipboard") e.session.clearClipboard();
+  const flow = e.session.flow;
+  e.undo.execute({ playerId });
+  if (situation === "matching") {
+    expect(e.session.flow).toEqual(beginPasteAim());
+    expect(e.session.clipboard).toBe(clipboard);
+    expect(e.structures.live.has(e.handle)).toBe(true);
+  } else {
+    expect(e.session.flow).toBe(flow);
+  }
 });
 
 it("restores snapshots containing laid cells while retaining space protection", () => {

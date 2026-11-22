@@ -343,7 +343,6 @@ describe("edit use cases", () => {
     env.copy.execute({ playerId: alex });
     env.repo.getOrCreate(alex).setFlow(beginPasteAim());
     env.paste.execute({
-      tick: 0,
       playerId: alex,
       dimensionId: overworld,
       target: pasteTarget(
@@ -422,7 +421,6 @@ describe("edit use cases", () => {
     env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
     env.repo.getOrCreate(alex).setFlow(beginPasteAim());
     env.paste.execute({
-      tick: 0,
       playerId: alex,
       dimensionId: overworld,
       target: pasteTarget(

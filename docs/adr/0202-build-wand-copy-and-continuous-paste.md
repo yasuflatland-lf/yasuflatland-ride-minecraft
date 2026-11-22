@@ -21,10 +21,10 @@ Copy:
 
 Paste:
 
-6. Paste is still started from the utility menu with Skip air chosen before aiming. After a paste the wand stays in the paste-aiming step with the same Skip air setting, and every further block tap pastes again at that anchor.
-7. A paste overlapping a protected cell is refused as a whole and the player stays in the step. A tap while the previous paste job runs gives the existing busy message and does not queue. A second tap on the same anchor within `BUILD_SPEC.pasteRepeatTicks` (10) is ignored; a refused paste does not start that window.
-8. While pasting, the utility menu shows only Undo (when there is history) and Stop pasting, and the action bar shows a constant hint with the clipboard size, block count, and both ways out.
-9. Paste aiming ends with no paste when the player switches items, dies, leaves the world, or changes dimension. Each paste is one undo entry (10 per player, as today).
+6. Copy or Cut enters paste aiming. A successful paste selects the pasted box at the root shape menu level, using the clipboard material and the pasted corners. The selection outline appears immediately. Paste Rotate turns the pasted box in place and the wand opens its root shape menu. The clipboard and its structure are retained for the next paste. Re-aiming with Paste Place is specified in the follow-up 4/4.
+7. A paste overlapping a protected cell is refused as a whole and the player keeps aiming. If an edit is already running, an otherwise valid paste reports busy and does not queue. The per-player input debounce continues to filter duplicate presses.
+8. The paste menu offers New copy, End pasting and Cancel. Build Undo is available through its item. ADR 0203 specifies the aiming and input controls.
+9. Paste aiming ends on a successful paste, End pasting, switching away from the build items past the grace delay, death, disconnect, or a dimension change. Each successful paste adds a marked snapshot to the shared undo history of ten entries. After restoring that snapshot, Undo starts fresh paste aiming if the current selection is in the snapshot dimension, its box matches the snapshot box, and a clipboard exists. Otherwise Undo of a paste keeps the current flow. Other edits retain their existing selection restoration rules.
 
 Structure:
 
@@ -34,9 +34,8 @@ Structure:
 ## Consequences
 
 - A flat selection copies exactly one layer, including when the height slider fallback is enabled.
-- Continuous Paste changes the one-paste-then-done behavior of 0198 Decision 10 without rewriting its text.
-- Touch behavior (live selection height, repeated block taps, the utility menu with sneak) is unverified until checked on the iPad.
-- `build_copy_shapes`, `build_continuous_paste`, and `build_paste_blocked` cover real block permutations, exact undo restoration, laid-block protection, and item-switch timing through the engine hooks, following [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) and [0010](0010-testing-strategy.md). Client taps, forms, outlines, and action-bar readability still require manual checks.
-- During normal play, the paste hint points to Stop pasting and item switching as the only ways to leave paste aiming; successful or refused pastes keep it active. Death, disconnect, and dimension changes still cancel it.
-- The undo stack is unchanged: each paste adds one entry, with the same ten-entry limit per player.
-- Revisit this decision if players ask for rotation, flip, or cut.
+- The one-paste interaction in 0198 Decision 10 now ends with the pasted box selected and the clipboard available for another placement.
+- Touch behavior (live selection height, paste controls, the utility menu with sneak) is unverified until checked on the iPad.
+- `build_copy_shapes`, `build_paste_selects_box`, and `build_paste_blocked` cover real block permutations, selected-box rotation, exact undo restoration, and laid-block protection through the engine hooks, following [0188](0188-fuse-in-game-scenarios-and-keep-only-engine-facts-in-game.md) and [0010](0010-testing-strategy.md). Client taps, forms, outlines, and action-bar readability still require manual checks.
+- A refused paste keeps the player aiming at the clipboard preview. A successful paste replaces that preview with a fixed selection outline.
+- Paste, Cut, rotation and cell edits share the ten-entry undo history.

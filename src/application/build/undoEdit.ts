@@ -1,7 +1,7 @@
 // Use case: undo the player's last edit (ADR 0178).
 import { type CellBox, cellsOf, sameBox, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
-import { clearLastPaste } from "../../domain/build/flow/flow";
+import { beginPasteAim } from "../../domain/build/flow/paste";
 import { inDimension, withBox } from "../../domain/build/selection";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -62,7 +62,15 @@ export class UndoEdit {
       this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     }
     const flow = session.flow;
-    if (
+    if (entry.kind === "snapshot" && entry.snapshot.paste) {
+      if (
+        flow.kind === "selected" &&
+        inDimension(flow.selection, entry.snapshot.dimensionId) &&
+        sameBox(flow.selection.box, entry.snapshot.box) &&
+        session.clipboard
+      )
+        session.setFlow(beginPasteAim());
+    } else if (
       edit.selectionBefore &&
       flow.kind === "selected" &&
       inDimension(flow.selection, edit.dimensionId) &&
@@ -75,9 +83,6 @@ export class UndoEdit {
         withBox(flow.selection, edit.selectionBefore),
         entry.kind === "cells" ? entry.record.selectionBeforeTaps : undefined,
       );
-    } else {
-      // ADR 0203: undo must allow an immediate paste at the same anchor.
-      session.setFlow(clearLastPaste(flow));
     }
     if (entry.kind === "snapshot")
       this.feedback.showMessage(

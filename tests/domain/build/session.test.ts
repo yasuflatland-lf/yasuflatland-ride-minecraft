@@ -299,16 +299,6 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   fc.record({
     kind: fc.constant("pasteAim" as const),
     manualTurn: fc.constant(0 as const),
-    lastPaste: fc.option(
-      fc.record({
-        anchor: cellArb,
-        turn: fc.constant(0 as const),
-        tick: fc.nat(),
-      }),
-      {
-        nil: undefined,
-      },
-    ),
   }),
 );
 
@@ -402,33 +392,26 @@ it("endPasting clears every flow, clipboard and confirmed box without changing h
   );
 });
 
-it("startNewCopy idles any paste aiming, clears the box and repeat window, and keeps the clipboard and history", () => {
+it("startNewCopy idles any paste aiming, clears the box, and keeps the clipboard and history", () => {
   fc.assert(
-    fc.property(
-      clipboardArb,
-      boxArb,
-      cellArb,
-      fc.nat(),
-      recordArb,
-      (clipboard, box, anchor, tick, record) => {
-        const session = new BuildSession(asPlayerId("p1"));
-        session.completeCopy(selectionOf(dim, box, stone), clipboard);
-        session.finishEdit(record, "undoable");
-        session.setFlow({
-          kind: "pasteAim",
-          manualTurn: 0,
-          lastPaste: { anchor, turn: 0, tick },
-        });
-        session.startNewCopy();
-        expect(session.flow).toEqual({ kind: "idle" });
-        expect(session.confirmedBox).toBeUndefined();
-        expect(session.clipboard).toBe(clipboard);
-        expect(undoRecord(session.takeUndo())).toBe(record);
-        session.leaveBuildMode();
-        expect(session.flow).toEqual({ kind: "idle" });
-        expect(session.clipboard).toBeUndefined();
-      },
-    ),
+    fc.property(clipboardArb, boxArb, recordArb, (clipboard, box, record) => {
+      const session = new BuildSession(asPlayerId("p1"));
+      session.completeCopy(selectionOf(dim, box, stone), clipboard);
+      session.finishEdit(record, "undoable");
+      session.setFlow({
+        kind: "pasteAim",
+        manualTurn: 1,
+        facing: "north",
+      });
+      session.startNewCopy();
+      expect(session.flow).toEqual({ kind: "idle" });
+      expect(session.confirmedBox).toBeUndefined();
+      expect(session.clipboard).toBe(clipboard);
+      expect(undoRecord(session.takeUndo())).toBe(record);
+      session.leaveBuildMode();
+      expect(session.flow).toEqual({ kind: "idle" });
+      expect(session.clipboard).toBeUndefined();
+    }),
   );
 });
 

@@ -37,6 +37,7 @@ export function registerWand({
   aim,
   debounce,
   pasteDebounce,
+  refresh,
   pointOf,
 }: {
   setPoint: SetPoint;
@@ -50,6 +51,7 @@ export function registerWand({
   aim: AimReader;
   debounce: Debounces<PlayerId>;
   pasteDebounce: Debounces<PlayerId>;
+  refresh(playerId: PlayerId, tick: number): void;
   pointOf(playerId: PlayerId): Cell | undefined;
 }): void {
   const blockPressContext: BlockPressContext = {
@@ -114,6 +116,11 @@ export function registerWand({
       confirmLiveHeight,
       fixStairGoal,
       menus,
+      refresh: (id, now) => {
+        // Another event from the paste gesture now routes through selection.
+        debounce.press(id, now);
+        refresh(id, now);
+      },
       pointOf,
       tapAir,
     });
