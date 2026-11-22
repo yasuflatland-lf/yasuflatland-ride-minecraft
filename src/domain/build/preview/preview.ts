@@ -29,10 +29,43 @@ export interface PreviewAim {
   pasteBox?: CellBox;
 }
 
-function outline(box: CellBox): Vec3[] {
-  return edgePoints(box, BUILD_SPEC.outlineMaxPoints).map((p) =>
-    cellCenter(p, 0.5),
-  );
+/**
+ * Block centers along the box edges, plus extra points between neighbours
+ * on the horizontal edges only, so the outline reads as a line from the side
+ * without spending extra particles on the vertical edges.
+ */
+export function boxOutline(box: CellBox): Vec3[] {
+  const budget = BUILD_SPEC.outlineMaxPoints;
+  const points = withHorizontalMidpoints(box, edgePoints(box, budget));
+  if (points.length <= budget) return points;
+  // Thin the cells so the midpoints they bring still fit the budget.
+  const cells = edgePoints(box, budget);
+  const share = budget / points.length;
+  return withHorizontalMidpoints(
+    box,
+    edgePoints(box, Math.floor(cells.length * share)),
+  ).slice(0, budget);
+}
+
+function withHorizontalMidpoints(box: CellBox, cells: Cell[]): Vec3[] {
+  const { min, max } = box;
+  const onEnds = (value: number, lo: number, hi: number) =>
+    value === lo || value === hi;
+  const steps = BUILD_SPEC.outlineHorizontalSteps;
+  const points: Vec3[] = [];
+  for (const p of cells) {
+    points.push(cellCenter(p, 0.5));
+    const alongX =
+      onEnds(p.y, min.y, max.y) && onEnds(p.z, min.z, max.z) && p.x < max.x;
+    const alongZ =
+      onEnds(p.x, min.x, max.x) && onEnds(p.y, min.y, max.y) && p.z < max.z;
+    for (let k = 1; k < steps; k++) {
+      const offset = 0.5 + k / steps;
+      if (alongX) points.push({ x: p.x + offset, y: p.y + 0.5, z: p.z + 0.5 });
+      if (alongZ) points.push({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + offset });
+    }
+  }
+  return points;
 }
 
 export function endpointMarkers(
@@ -70,15 +103,15 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       break;
     case "point1":
       Object.assign(set, endpointMarkers(flow.cell, end, aim.blink));
-      if (end) set.shape = outline(boxOf(flow.cell, end));
+      if (end) set.shape = boxOutline(boxOf(flow.cell, end));
       break;
     case "baseHeight":
-      set.shape = outline(liveHeightBox(flow));
+      set.shape = boxOutline(liveHeightBox(flow));
       Object.assign(set, endpointMarkers(flow.from, end, false));
       break;
     case "selected":
     case "terrainConfirm":
-      set.shape = outline(flow.selection.box);
+      set.shape = boxOutline(flow.selection.box);
       Object.assign(set, endpointMarkers(flow.from, end, false));
       break;
     case "heightStep": {

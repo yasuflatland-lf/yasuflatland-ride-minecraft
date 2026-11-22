@@ -55,7 +55,11 @@ export interface BuildFeedback {
     material?: BlockState,
     skippedCount?: number,
   ): void;
-  showSize(playerId: PlayerId, size: { x: number; y: number; z: number }): void;
+  showSize(
+    playerId: PlayerId,
+    size: { x: number; y: number; z: number },
+    aiming?: boolean,
+  ): void;
   showMode(playerId: PlayerId, mode: BuildMode): void;
   drawPreview(
     playerId: PlayerId,

@@ -23,6 +23,7 @@ export const LAID_BLOCK_TAG = "yasu_ride:laid";
 export const BUILD_MESSAGE: Readonly<
   Record<
     | BuildMessage
+    | "heightAimSize"
     | "heightSize"
     | "pasteInactive"
     | "pasteReady"
@@ -40,6 +41,7 @@ export const BUILD_MESSAGE: Readonly<
   sneakingPrefix: "yasu_build.message.sneaking_prefix",
   pasteNoTarget: "yasu_build.message.paste_no_target",
   heightSize: "yasu_build.message.height_size",
+  heightAimSize: "yasu_build.message.height_aim_size",
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
   heightAim: "yasu_build.message.height_aim",

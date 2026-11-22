@@ -2,6 +2,8 @@ import type { RGB } from "@minecraft/server";
 import { buildId } from "../identifiers";
 
 export const MARKER_PARTICLE = buildId("marker");
+// Outlines use a larger copy of the marker: at the marker's 0.1 size they read as faint dots on iPad.
+export const OUTLINE_PARTICLE = buildId("outline");
 
 export const MARKER_COLORS: Readonly<
   Record<"startMarker" | "endMarker" | "sharedMarker", RGB>

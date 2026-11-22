@@ -115,12 +115,12 @@ export function registerTestTap(
         // Edit fixtures use the supplied corners independently of the client's gaze.
         if (session && flow?.kind === "baseHeight")
           session.setFlow(setHeight(flow, sizeOf(flow.selection.box).y));
-        new ConfirmLiveHeight(repo, observed).execute({ playerId });
+        new ConfirmLiveHeight(repo).execute({ playerId });
       } else if (press?.kind === "confirmLiveHeight") {
         const sample = aim.aim(playerId);
         if (sample) {
           aimHeight.execute({ playerId, ray: sample.ray });
-          new ConfirmLiveHeight(repo, observed).execute({ playerId });
+          new ConfirmLiveHeight(repo).execute({ playerId });
         }
       } else if (press?.kind === "fixStairGoal")
         new FixStairGoal(repo, observed, aim).execute({ playerId });

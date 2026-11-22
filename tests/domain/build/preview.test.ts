@@ -1,13 +1,14 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, type CellBox } from "../../../src/domain/build/box";
+import { boxOf, type CellBox, edgePoints } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import {
   type BuildFlow,
   chooseHeighted,
 } from "../../../src/domain/build/flow/flow";
 import {
+  boxOutline,
   endpointMarkers,
   previewPoints,
 } from "../../../src/domain/build/preview/preview";
@@ -357,6 +358,33 @@ it("draws a locked cylinder at the box height even when another height is aimed"
         expect(
           previewPoints(flow, { blink: false, height: aimed }).roof,
         ).toEqual(expected);
+      },
+    ),
+  );
+});
+
+it("boxOutline adds extra points on horizontal edges only and stays within the budget", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 0, max: 40 }),
+      fc.integer({ min: 0, max: 40 }),
+      fc.integer({ min: 0, max: 40 }),
+      (dx, dy, dz) => {
+        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: dx, y: dy, z: dz });
+        const points = boxOutline(box);
+        expect(points.length).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
+        for (const p of points) {
+          // Extra points stay at block-center height and on the center line
+          // of one horizontal axis, so they lie on a horizontal edge.
+          expect(Number.isInteger(p.y - 0.5)).toBe(true);
+          expect(
+            Number.isInteger(p.x - 0.5) || Number.isInteger(p.z - 0.5),
+          ).toBe(true);
+        }
+        const cells = edgePoints(box, BUILD_SPEC.outlineMaxPoints);
+        if (cells.length === 1 || dx + dz === 0) return;
+        if (points.length <= BUILD_SPEC.outlineMaxPoints)
+          expect(points.length).toBeGreaterThanOrEqual(cells.length);
       },
     ),
   );

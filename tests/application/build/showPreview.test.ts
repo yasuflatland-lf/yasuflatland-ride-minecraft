@@ -793,3 +793,26 @@ it("redraws faster while the gaze sets the height and at the usual pace otherwis
   preview.execute(interval);
   expect(feedback.previews).toHaveLength(1);
 });
+
+it("shows the live size while aiming the base height, once per change", () => {
+  const { session, preview, feedback, aim } = setup(false);
+  const from = { x: 0, y: 64, z: 0 };
+  const to = { x: 4, y: 64, z: 2 };
+  session.setFlow(
+    tapAir(
+      { kind: "point1", dimensionId: overworld, cell: from, material },
+      to,
+    ),
+  );
+  const origin = { x: -1.5, y: 80, z: 1.5 };
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { origin, direction: { x: 1, y: 0, z: 0 } },
+  });
+  const live = BUILD_SPEC.liveOutlineInterval;
+  preview.execute(live);
+  preview.execute(2 * live);
+  expect(feedback.sizes).toHaveLength(1);
+  expect(feedback.sizes[0]?.size).toMatchObject({ x: 5, z: 3 });
+  expect(feedback.aimingSizes).toEqual([true]);
+});

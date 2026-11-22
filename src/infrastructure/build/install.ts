@@ -210,7 +210,7 @@ export function installBuild(deps: {
   const blockPressContext: BlockPressContext = {
     setPoint: new SetPoint(repo, blocks, feedback),
     aimHeight: cases.aimHeight,
-    confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
+    confirmLiveHeight: new ConfirmLiveHeight(repo),
     fixStairGoal: new FixStairGoal(repo, feedback, aim),
     repo,
     menus,
