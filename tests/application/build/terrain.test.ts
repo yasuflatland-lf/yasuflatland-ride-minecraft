@@ -459,7 +459,7 @@ it("keeps the confirmed box for Copy while Fill below uses the original corners"
       const above = { ...from, y: from.y + 1 };
       const point = tapBlock({ kind: "idle" }, overworld, from, stone);
       e.session.setFlow(setHeight(tapAir(point, to), height));
-      new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
+      new ConfirmLiveHeight(e.repo).execute({ playerId });
       e.choose.execute({ playerId, op: "fillBelow" });
       e.confirm.execute({ playerId });
       e.drain();

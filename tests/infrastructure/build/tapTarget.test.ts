@@ -60,7 +60,7 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
     },
   };
   const setPoint = new SetPoint(repo, blocks, feedback);
-  const confirmLiveHeight = new ConfirmLiveHeight(repo, feedback);
+  const confirmLiveHeight = new ConfirmLiveHeight(repo);
   setPoint.execute({ playerId, dimensionId: nether, cell: start });
   const session = repo.getOrCreate(playerId);
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
@@ -135,7 +135,7 @@ it("fixes the endpoint at the player's tap target cell", () => {
   expect(f.session.flow).toMatchObject({ kind: "baseHeight", to: cell });
 });
 
-it("confirms live height once across repeated hits", () => {
+it("confirms live height and opens the shape menu once across repeated hits", () => {
   const f = setup();
   f.fixEnd();
   f.hit();
@@ -143,8 +143,8 @@ it("confirms live height once across repeated hits", () => {
   expect(f.session.flow.kind).toBe("selected");
   expect(
     f.feedback.messages.filter(({ message }) => message === "endSet"),
-  ).toHaveLength(1);
-  expect(f.menus.showUtilityMenu).not.toHaveBeenCalled();
+  ).toHaveLength(0);
+  expect(f.menus.showUtilityMenu).toHaveBeenCalledTimes(1);
 });
 
 it("requests one shape menu across repeated hits in selected", () => {

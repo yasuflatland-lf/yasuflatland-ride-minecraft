@@ -122,7 +122,7 @@ it("preserves blocks and defers point taps out of before events", () => {
         };
         registerWand({
           fixStairGoal: new FixStairGoal(repo, feedback, aim),
-          confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
+          confirmLiveHeight: new ConfirmLiveHeight(repo),
           aimHeight: new AimHeight(repo),
           repo,
           pressPasteAim: new PressPasteAim(
@@ -289,7 +289,7 @@ function setupAir() {
   );
   registerWand({
     fixStairGoal: new FixStairGoal(repo, feedback, aim),
-    confirmLiveHeight: new ConfirmLiveHeight(repo, feedback),
+    confirmLiveHeight: new ConfirmLiveHeight(repo),
     aimHeight,
     repo,
     pressPasteAim,
@@ -767,7 +767,7 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
 });
 
 it.each(["air", "block"] as const)(
-  "samples the final %s press and fixes live height without opening a menu",
+  "samples the final %s press, fixes live height and opens the shape menu once",
   (target) => {
     const e = setupAir();
     const min = { x: 0, y: 0, z: 0 };
@@ -814,7 +814,7 @@ it.each(["air", "block"] as const)(
     engine.tick += 4;
     e.use();
     expect(e.menus.showContentsMenu).not.toHaveBeenCalled();
-    expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+    expect(e.menus.showUtilityMenu).toHaveBeenCalledTimes(1);
   },
 );
 

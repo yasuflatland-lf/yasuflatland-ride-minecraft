@@ -82,7 +82,7 @@ function setup() {
   };
 }
 
-it("samples material only for a new point 1, clears the confirmed box, and reports the end count", () => {
+it("samples material only for a new point 1, clears the confirmed box", () => {
   const e = setup();
   e.session.confirmBox(selectionOf(overworld, boxOf(from, to), stone));
   e.world.put(from, stone);
@@ -99,7 +99,7 @@ it("samples material only for a new point 1, clears the confirmed box, and repor
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   expect(material).toHaveBeenCalledTimes(1);
   expect(e.session.flow.kind).toBe("baseHeight");
-  new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
+  new ConfirmLiveHeight(e.repo).execute({ playerId });
   expect(e.session.flow).toEqual({
     kind: "selected",
     menuLevel: "root",
@@ -110,7 +110,6 @@ it("samples material only for a new point 1, clears the confirmed box, and repor
   expect(e.feedback.messages).toEqual([
     { message: "pointSet", count: undefined },
     { message: "heightAim" },
-    { message: "endSet", count: 9 },
   ]);
   e.session.clearSelection();
   e.world.put(to, dirt);
@@ -159,12 +158,12 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   expect(e.session.flow.kind).toBe("baseHeight");
   e.air.execute({ playerId, end: to });
   expect(e.feedback.messages).toEqual([{ message: "heightAim" }]);
-  new ConfirmLiveHeight(e.repo, e.feedback).execute({ playerId });
-  expect(e.feedback.messages.at(-1)).toEqual({ message: "endSet", count: 9 });
+  new ConfirmLiveHeight(e.repo).execute({ playerId });
+  expect(e.feedback.messages.at(-1)).toEqual({ message: "heightAim" });
   const selected = e.session.flow;
   e.air.execute({ playerId, end: { ...to, x: 3 } });
   expect(e.session.flow).toBe(selected);
-  expect(e.feedback.messages).toHaveLength(2);
+  expect(e.feedback.messages).toHaveLength(1);
 });
 
 it.each(["block", "air"] as const)(

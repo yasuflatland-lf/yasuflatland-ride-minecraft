@@ -131,7 +131,8 @@ export function pressBlockCell(
       const target = aim.aim(playerId);
       if (!target) return;
       aimHeight.execute({ playerId, ray: target.ray });
-      confirmLiveHeight.execute({ playerId });
+      if (confirmLiveHeight.execute({ playerId }))
+        void menus.showUtilityMenu(player);
       break;
     }
     case "fixStairGoal":
@@ -184,7 +185,8 @@ export function dispatchWandPress(context: PressContext): void {
     case "confirmLiveHeight":
       if (target) {
         context.aimHeight.execute({ playerId, ray: target.ray });
-        context.confirmLiveHeight.execute({ playerId });
+        if (context.confirmLiveHeight.execute({ playerId }))
+          void menus.showUtilityMenu(source);
       }
       break;
     case "fixStairGoal":
