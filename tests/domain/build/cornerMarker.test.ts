@@ -16,13 +16,17 @@ describe("cornerMarkerPoints", () => {
           8 + 8 * (BUILD_SPEC.markerHorizontalEdgeSteps - 1) + 4,
         );
         expect(new Set(points.map(cellKey)).size).toBe(points.length);
+        const out = BUILD_SPEC.markerOutset;
         for (const point of points) {
           let boundaries = 0;
           for (const axis of ["x", "y", "z"] as const) {
-            if (point[axis] === c[axis] || point[axis] === c[axis] + 1)
+            if (
+              point[axis] === c[axis] - out ||
+              point[axis] === c[axis] + 1 + out
+            )
               boundaries++;
-            expect(point[axis]).toBeGreaterThanOrEqual(c[axis]);
-            expect(point[axis]).toBeLessThanOrEqual(c[axis] + 1);
+            expect(point[axis]).toBeGreaterThanOrEqual(c[axis] - out);
+            expect(point[axis]).toBeLessThanOrEqual(c[axis] + 1 + out);
           }
           expect(boundaries).toBeGreaterThanOrEqual(2);
         }
@@ -50,44 +54,39 @@ describe("cornerMarkerPoints", () => {
     );
   });
 
-  it("orders the origin corners, horizontal edge points and vertical midpoints deterministically", () => {
-    expect(cornerMarkerPoints({ x: 0, y: 0, z: 0 })).toEqual([
-      { x: 0, y: 0, z: 0 },
-      { x: 0, y: 0, z: 1 },
-      { x: 0, y: 1, z: 0 },
-      { x: 0, y: 1, z: 1 },
-      { x: 1, y: 0, z: 0 },
-      { x: 1, y: 0, z: 1 },
-      { x: 1, y: 1, z: 0 },
-      { x: 1, y: 1, z: 1 },
-      { x: 0.25, y: 0, z: 0 },
-      { x: 0.25, y: 0, z: 1 },
-      { x: 0.25, y: 1, z: 0 },
-      { x: 0.25, y: 1, z: 1 },
-      { x: 0.5, y: 0, z: 0 },
-      { x: 0.5, y: 0, z: 1 },
-      { x: 0.5, y: 1, z: 0 },
-      { x: 0.5, y: 1, z: 1 },
-      { x: 0.75, y: 0, z: 0 },
-      { x: 0.75, y: 0, z: 1 },
-      { x: 0.75, y: 1, z: 0 },
-      { x: 0.75, y: 1, z: 1 },
-      { x: 0, y: 0, z: 0.25 },
-      { x: 0, y: 0, z: 0.5 },
-      { x: 0, y: 0, z: 0.75 },
-      { x: 0, y: 1, z: 0.25 },
-      { x: 0, y: 1, z: 0.5 },
-      { x: 0, y: 1, z: 0.75 },
-      { x: 1, y: 0, z: 0.25 },
-      { x: 1, y: 0, z: 0.5 },
-      { x: 1, y: 0, z: 0.75 },
-      { x: 1, y: 1, z: 0.25 },
-      { x: 1, y: 1, z: 0.5 },
-      { x: 1, y: 1, z: 0.75 },
-      { x: 0, y: 0.5, z: 0 },
-      { x: 0, y: 0.5, z: 1 },
-      { x: 1, y: 0.5, z: 0 },
-      { x: 1, y: 0.5, z: 1 },
+  it("orders the corners first, then horizontal edge points, then vertical midpoints", () => {
+    const out = BUILD_SPEC.markerOutset;
+    const lo = -out;
+    const hi = 1 + out;
+    const points = cornerMarkerPoints({ x: 0, y: 0, z: 0 });
+    expect(points.slice(0, 8)).toEqual([
+      { x: lo, y: lo, z: lo },
+      { x: lo, y: lo, z: hi },
+      { x: lo, y: hi, z: lo },
+      { x: lo, y: hi, z: hi },
+      { x: hi, y: lo, z: lo },
+      { x: hi, y: lo, z: hi },
+      { x: hi, y: hi, z: lo },
+      { x: hi, y: hi, z: hi },
     ]);
+    expect(points.slice(-4)).toEqual([
+      { x: lo, y: 0.5, z: lo },
+      { x: lo, y: 0.5, z: hi },
+      { x: hi, y: 0.5, z: lo },
+      { x: hi, y: 0.5, z: hi },
+    ]);
+  });
+
+  it("keeps every point off the cube's own faces so ground-level cells show it", () => {
+    fc.assert(
+      fc.property(cell, (c) => {
+        for (const point of cornerMarkerPoints(c)) {
+          for (const axis of ["x", "y", "z"] as const) {
+            expect(point[axis]).not.toBe(c[axis]);
+            expect(point[axis]).not.toBe(c[axis] + 1);
+          }
+        }
+      }),
+    );
   });
 });

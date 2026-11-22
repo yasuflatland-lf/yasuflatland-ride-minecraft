@@ -287,7 +287,7 @@ it("sends translated counts and bounded player-only particles at block centers",
   );
 });
 
-it("draws 36 marker particles on the corner boundary for the owner only", () => {
+it("draws the marker particles on the corner boundary for the owner only", () => {
   fc.assert(
     fc.property(cell, (at) => {
       const spawnParticle = vi.fn();
@@ -305,7 +305,9 @@ it("draws 36 marker particles on the corner boundary for the owner only", () => 
         preview({ startMarker: cornerMarkerPoints(at) }),
       );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
-      expect(spawnParticle).toHaveBeenCalledTimes(36);
+      expect(spawnParticle).toHaveBeenCalledTimes(
+        cornerMarkerPoints(at).length,
+      );
       expect(
         spawnParticle.mock.calls.map(([particle, point]) => [particle, point]),
       ).toEqual(

@@ -11,6 +11,7 @@ import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { tapAir } from "../../../src/domain/build/flow/flow";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
@@ -131,7 +132,9 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
   for (const entry of feedback.previews) {
     expect(entry.playerId).toBe(alex);
     expect(entry.dimensionId).toBe(nether);
-    expect(entry.set.startMarker).toHaveLength(36);
+    expect(entry.set.startMarker).toHaveLength(
+      cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
+    );
   }
 });
 
@@ -187,7 +190,9 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
   );
-  expect(feedback.previews[0]?.set.startMarker).toHaveLength(36);
+  expect(feedback.previews[0]?.set.startMarker).toHaveLength(
+    cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
+  );
   expect(feedback.previews[0]?.set.paste).toEqual([]);
 });
 
