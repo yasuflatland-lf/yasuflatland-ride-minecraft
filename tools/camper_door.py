@@ -39,7 +39,7 @@ def _build_exterior() -> AreaCubes:
                                          (DW1, DW1 + 0.6, *WIN_Y, DOOR_LATCH_REGION)):
         door_frame = box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium")
         if hardware is not None:
-            # The build's +x face is named east; to_game_frame moves it to the outward minimum-x side.
+            # The build's +x face is named east; mirror_x moves it to the outward minimum-x side.
             door_frame["uv"]["east"] = ATLAS.face(hardware)
         door.append(door_frame)
     door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))

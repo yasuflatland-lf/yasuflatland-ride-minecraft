@@ -246,7 +246,7 @@ def model_box(dimensions: tuple, color, registry: RegionRegistry) -> Cube:
 def build_frame(cubes: list[Cube]) -> list[Cube]:
     """Undo the final generator mirror so measurements can stay in the reference's model frame.
 
-    The reference names its +x face east, as the build frame does. to_game_frame keeps names, so the
+    The reference names its +x face east, as the build frame does. mirror_x keeps names, so the
     swap here is the one correction that lands those faces where Bedrock draws them (ADR 0259)."""
     for c in cubes:
         c['origin'][0] = -(c['origin'][0] + c['size'][0])
