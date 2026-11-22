@@ -56,7 +56,10 @@ PALETTE = {
     "glow": (80, 170, 255, 40),
 }
 SLOTS = list(PALETTE)
-ATLAS = camper_atlas.RegisteredAtlas(SLOTS)
+SWATCH_CELL = 8
+SWATCH_INSET = 2
+SWATCH_COLUMNS = 14
+ATLAS = camper_atlas.RegisteredAtlas(SLOTS, cell=SWATCH_CELL, inset=SWATCH_INSET, columns=SWATCH_COLUMNS)
 RIB_PERIOD_TEXELS = 4
 RIB_TEXELS_PER_PX = 2
 BOLT_PITCH_PX = 6

@@ -1,15 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  baseOrigin,
-  baseSize,
   bone,
   bones,
   paletteSlots,
   RP,
   readPng,
   swatch,
-  swatchUv,
+  swatchCell,
 } from "./helpers";
 
 const camperRender = JSON.parse(
@@ -42,15 +40,17 @@ describe("camper glass (ADR 0091)", () => {
 
   it("keeps glass transparent and limits emissive alpha to lamps and glows", () => {
     const { width, pixels } = readPng("textures/entity/yasu_ride/camper");
-    const glowSlot = bone("glow_fl").cubes?.[0]?.uv.north?.uv[0];
-    for (let i = 0; i < baseSize[0]; i++) {
-      const u = baseOrigin[0] + i;
-      const alpha = pixels[(baseOrigin[1] * width + u) * 4 + 3];
-      if (u === swatchUv("glass")[0]) expect(alpha).toBeLessThan(255);
-      else if (u === glowSlot) expect(alpha).toBe(40);
-      else if (u === swatchUv("dome")[0] || i >= paletteSlots.length)
-        expect(alpha).toBe(0);
-      else expect(alpha, `slot ${i}`).toBe(255);
+    for (const name of paletteSlots) {
+      const [u, v, cell] = swatchCell(name);
+      for (let y = v; y < v + cell; y++) {
+        for (let x = u; x < u + cell; x++) {
+          const alpha = pixels[(y * width + x) * 4 + 3];
+          if (name === "glass") expect(alpha).toBeLessThan(255);
+          else if (name === "glow") expect(alpha).toBe(40);
+          else if (name === "dome") expect(alpha).toBe(0);
+          else expect(alpha, name).toBe(255);
+        }
+      }
     }
   });
 

@@ -315,7 +315,8 @@ class DashBuilder:
         self.refs = {r.name: region_atlas.RegionRef(registry, r) for r in registry.regions()}
 
     def swatch(self, name: str) -> dict:
-        return {'uv': list(self.refs['base'].uv(self.kit.SLOTS.index(name), 0)), 'uv_size': [1, 1]}
+        x, y, w, h = self.kit.ATLAS.grid.sample_rect(self.kit.SLOTS.index(name))
+        return {'uv': list(self.refs['base'].uv(x, y)), 'uv_size': [w, h]}
 
     def box(self, x: float, y: float, z: float, w: float, h: float, d: float, color: str) -> Cube:
         return {'origin': [x, y, z], 'size': [w, h, d],

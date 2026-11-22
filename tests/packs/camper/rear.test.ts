@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  ALUMINIUM_SLOT,
   baseOrigin,
   bone,
   bones,
@@ -9,6 +8,8 @@ import {
   end,
   geometry,
   swatch,
+  swatchName,
+  swatchRows,
   swatchUv,
 } from "./helpers";
 
@@ -101,13 +102,6 @@ describe("camper model assets (ADR 0067)", () => {
   });
 });
 describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
-  const WHITE_SLOT = swatchUv("white")[0];
-  const KHAKI_SLOT = swatchUv("khaki")[0];
-  const STEEL_SLOT = swatchUv("steel")[0];
-  const BLACK_SLOT = swatchUv("black")[0];
-  const CHROME_SLOT = swatchUv("chrome")[0];
-  const WALL_IN_SLOT = swatchUv("wall_in")[0];
-  const TRIM_BEIGE_SLOT = swatchUv("trim_beige")[0];
   it("removes the rear-right pane and closes the outer wall, lining, and band", () => {
     expect(
       (bone("glass").cubes ?? []).filter(
@@ -116,14 +110,14 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
       ),
     ).toEqual([]);
     for (const [face, slot, x] of [
-      ["north", WHITE_SLOT, -23.5],
-      ["south", WALL_IN_SLOT, -22.9],
-      ["north", KHAKI_SLOT, -24.05],
+      ["north", "white", -23.5],
+      ["south", "wall_in", -22.9],
+      ["north", "khaki", -24.05],
     ] as const) {
       expect(
         (bone("body").cubes ?? []).some(
           (c) =>
-            c.uv[face]?.uv[0] === slot &&
+            swatchName(c.uv[face]) === slot &&
             [x, 42, 45].every(
               (v, axis) => v >= (c.origin[axis] ?? 0) && v <= end(c, axis),
             ),
@@ -148,17 +142,18 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
   it("frames a grey-beige panel in a raised aluminium rim with cut corners", () => {
     const cubes = lid();
     for (const c of cubes)
-      for (const face of Object.values(c.uv))
-        if (face.uv[1] === baseOrigin[1])
+      for (const face of Object.values(c.uv)) {
+        const name = swatchName(face);
+        if (name !== undefined)
           expect([
-            TRIM_BEIGE_SLOT,
-            STEEL_SLOT,
-            BLACK_SLOT,
-            CHROME_SLOT,
-            ALUMINIUM_SLOT,
-          ]).toContain(face.uv[0]);
+            "trim_beige",
+            "steel",
+            "black",
+            "chrome",
+            "aluminium",
+          ]).toContain(name);
         else {
-          expect(face.uv[1]).toBeGreaterThan(baseOrigin[1]);
+          expect(face.uv[1]).toBeGreaterThanOrEqual(baseOrigin[1] + swatchRows);
           expect(
             (face.uv[0] ?? 0) + (face.uv_size[0] ?? 0),
           ).toBeLessThanOrEqual(geometry.description.texture_width);
@@ -166,8 +161,9 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
             (face.uv[1] ?? 0) + (face.uv_size[1] ?? 0),
           ).toBeLessThanOrEqual(geometry.description.texture_height);
         }
+      }
     const rim = cubes.filter((c) =>
-      [CHROME_SLOT, ALUMINIUM_SLOT].includes(c.uv.north?.uv[0] ?? -1),
+      ["chrome", "aluminium"].includes(swatchName(c.uv.north) ?? ""),
     );
     for (const c of rim) {
       expect(c.origin[0]).toBeCloseTo(-24.5, 4);
@@ -190,7 +186,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
       [48.4, 49.4],
     ] as const)
       expect(cubes.filter((c) => covers(c, y, z))).toEqual([]);
-    for (const c of cubes.filter((c) => c.uv.north?.uv[0] === TRIM_BEIGE_SLOT))
+    for (const c of cubes.filter((c) => swatch(c, "trim_beige")))
       expect(c.origin[0]).toBeCloseTo(-24.3, 4);
   });
   it("cuts two columns of twelve recessed slits above a plain lower part", () => {
@@ -206,7 +202,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
     expect(left).toHaveLength(12);
     expect(right).toHaveLength(12);
     const panel = lid().filter((c) =>
-      Object.values(c.uv).some((face) => face.uv[0] === TRIM_BEIGE_SLOT),
+      Object.values(c.uv).some((face) => swatchName(face) === "trim_beige"),
     );
     for (const c of slits)
       expect(
@@ -216,7 +212,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
       ).toBe(false);
   });
   it("adds a latch below the slits", () => {
-    const steel = lid().filter((c) => c.uv.north?.uv[0] === STEEL_SLOT);
+    const steel = lid().filter((c) => swatch(c, "steel"));
     const latch = steel.filter((c) => (c.size[2] ?? 0) > 1);
     expect(latch).toHaveLength(1);
     expect(end(latch[0] as Cube, 1)).toBeLessThan(40);

@@ -3,7 +3,6 @@ import { afterAll, describe, expect, it } from "vitest";
 import { defined } from "../../support/defined";
 import { startPythonWorker } from "../../support/pythonWorker";
 import {
-  ALUMINIUM_SLOT,
   baseOrigin,
   bone,
   bones,
@@ -12,6 +11,9 @@ import {
   geometry,
   loadAtlas,
   readPng,
+  swatchFace,
+  swatchName,
+  swatchRows,
   swatchUv,
 } from "./helpers";
 
@@ -32,7 +34,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     expect(regions[0]).toEqual([
       "rib",
       base[0],
-      base[1] + 1,
+      base[1] + swatchRows,
       8,
       64 * texelsPerPx,
     ]);
@@ -48,7 +50,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     ]);
     for (const [i, [, x, y, w, h]] of regions.entries()) {
       expect(x).toBeGreaterThanOrEqual(base[0]);
-      expect(y).toBeGreaterThanOrEqual(base[1] + 1);
+      expect(y).toBeGreaterThanOrEqual(base[1] + swatchRows);
       expect(w).toBeGreaterThan(0);
       expect(h).toBeGreaterThan(0);
       expect(x + w).toBeLessThanOrEqual(base[0] + base[2]);
@@ -107,7 +109,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     );
     expect(roof).toBeDefined();
     for (const face of Object.values(roof?.uv ?? {}))
-      expect(face.uv[1]).toBe(baseOrigin[1]);
+      expect(swatchName(face)).toBe("white");
     expect(new Set(entries.map((e) => e.bone))).toEqual(
       new Set(["body", "door_entry"]),
     );
@@ -160,8 +162,8 @@ describe("camper rib atlas (ADR 0190)", () => {
             expect(edge).toBe(side === "west" ? -24 : 24);
             expect(cube.rotation).toBeUndefined();
             for (const [other, f] of Object.entries(cube.uv)) {
-              if (f.uv[1] === baseOrigin[1])
-                expect(f).toEqual({ uv: swatchUv("white"), uv_size: [1, 1] });
+              if (swatchName(f) !== undefined)
+                expect(f).toEqual(swatchFace("white"));
               else expect(["east", "west"]).toContain(other);
             }
           }
@@ -352,22 +354,20 @@ describe("camper aluminium roof edges", () => {
         expect(uv).toEqual(
           face === outer
             ? { uv: [boltX, boltY], uv_size: [width, 1] }
-            : { uv: [ALUMINIUM_SLOT, baseOrigin[1]], uv_size: [1, 1] },
+            : swatchFace("aluminium"),
         );
     }
     for (const [name, slots] of [
-      ["headlights", [14, 34, 35]],
-      ["ceiling_lights", [10, 33]],
+      ["headlights", ["lens", "marker_amber", "marker_red"]],
+      ["ceiling_lights", ["chrome", "dome"]],
     ] as const) {
       const lamps = bone(name).cubes ?? [];
       expect(lamps.length).toBeGreaterThan(0);
       for (const c of lamps)
         for (const face of Object.values(c.uv)) {
-          expect(slots as readonly number[]).toContain(
-            (face.uv[0] ?? -1) - baseOrigin[0],
-          );
-          expect(face.uv[1]).toBe(baseOrigin[1]);
-          expect(face.uv_size).toEqual([1, 1]);
+          const color = defined(swatchName(face), "lamp swatch");
+          expect(slots).toContain(color);
+          expect(face).toEqual(swatchFace(color));
         }
     }
     const bezels = cubes.filter(
@@ -376,7 +376,7 @@ describe("camper aluminium roof edges", () => {
     expect(bezels).toHaveLength(5);
     for (const c of bezels)
       for (const face of Object.values(c.uv))
-        expect(face).toEqual({ uv: swatchUv("chrome"), uv_size: [1, 1] });
+        expect(face).toEqual(swatchFace("chrome"));
     const texture = readPng("textures/entity/yasu_ride/camper");
     expect(texture.height).toBeGreaterThanOrEqual(boltY + boltHeight);
     expect(boltWidth).toBe(base[2]);

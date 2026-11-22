@@ -57,12 +57,19 @@ export const end = (cube: Cube, axis: number) =>
 
 export const readPng = (path: string) => readRgbaPng(`${RP}/${path}.png`);
 
-const registry: {
+export const registry: {
   base: [number, number];
-  baseSize: [number, number];
-  size: [number, number];
-  slots: string[];
-  faces: Record<string, [number, number]>;
+  layoutSize: [number, number];
+  atlasWidth: number;
+  swatchRows: number;
+  cell: number;
+  inset: number;
+  columns: number;
+  faces: Record<string, Cube["uv"][string]>;
+  swatches: Record<
+    string,
+    { origin: [number, number]; sampleRect: [number, number, number, number] }
+  >;
 } = JSON.parse(
   execFileSync(
     "python3",
@@ -73,24 +80,39 @@ const registry: {
 sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 kit = load_tool('camper_kit')
-print(json.dumps(dict(base=kit.LAYOUT.origin('base'), baseSize=[kit.BASE_REF.region.width, kit.BASE_REF.region.height], size=kit.LAYOUT.size, slots=kit.SLOTS, faces={name: kit.ATLAS.face(name)['uv'] for name in kit.SLOTS})))`,
+layout = kit.LAYOUT
+grid = kit.ATLAS.grid
+print(json.dumps(dict(
+    base=layout.origin('base'), layoutSize=layout.size, atlasWidth=kit.ATLAS.width,
+    swatchRows=kit.ATLAS.swatch_rows, cell=kit.SWATCH_CELL, inset=kit.SWATCH_INSET,
+    columns=kit.SWATCH_COLUMNS, faces={name: kit.ATLAS.face(name) for name in kit.SLOTS},
+    swatches={name: dict(origin=grid.origin(index), sampleRect=grid.sample_rect(index))
+              for index, name in enumerate(kit.SLOTS)},
+)))`,
     ],
     { encoding: "utf8" },
   ),
 );
 export const baseOrigin = registry.base;
-export const baseSize = registry.baseSize;
-export const paletteSlots = registry.slots;
-export const swatchUv = (name: string): [number, number] => {
+export const swatchRows = registry.swatchRows;
+export const paletteSlots = Object.keys(registry.faces);
+export const swatchFace = (name: string) => {
   const face = registry.faces[name];
   if (!face) throw new Error(`Missing camper swatch: ${name}`);
   return face;
 };
-export const ALUMINIUM_SLOT = swatchUv("aluminium")[0];
-export const swatch = (c: Cube, name: string) => {
+export const swatchUv = (name: string) => swatchFace(name).uv;
+export const swatchCell = (name: string) => {
   const [u, v] = swatchUv(name);
-  return c.uv.north?.uv[0] === u && c.uv.north?.uv[1] === v;
+  return [u - registry.inset, v - registry.inset, registry.cell] as const;
 };
+const swatchesByUv = new Map(
+  Object.entries(registry.faces).map(([name, { uv }]) => [uv.join(","), name]),
+);
+export const swatchName = (face: Cube["uv"][string] | undefined) =>
+  face && swatchesByUv.get(face.uv.join(","));
+export const swatch = (c: Cube, name: string) =>
+  swatchName(c.uv.north) === name;
 export const cubeCenter = (c: Cube, axis: number) =>
   (c.origin[axis] ?? 0) + (c.size[axis] ?? 0) / 2;
 
@@ -169,7 +191,7 @@ export const loadAtlas = async (python: PythonWorker) =>
         "atlas = camper['ATLAS']",
         "ox, oy = camper['LAYOUT'].origin('base')",
         "regions = [[r.name, ox + r.x, oy + r.y, r.w, r.h] for r in atlas.regions]",
-        "print(json.dumps(dict(width=camper['LAYOUT'].size[0], height=camper['LAYOUT'].size[1], base=[ox, oy, atlas.width, atlas.height], regions=regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], slots=camper['SLOTS'], windows=[camper['right_windows'], camper['left_windows']])))",
+        "print(json.dumps(dict(width=camper['LAYOUT'].size[0], height=camper['LAYOUT'].size[1], base=[ox, oy, atlas.width, atlas.height], regions=regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], windows=[camper['right_windows'], camper['left_windows']])))",
       ].join("\n"),
     ),
   ) as {
@@ -179,7 +201,6 @@ export const loadAtlas = async (python: PythonWorker) =>
     regions: [string, number, number, number, number][];
     period: number;
     texelsPerPx: number;
-    slots: string[];
     windows: number[][][];
   };
 
