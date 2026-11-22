@@ -2,7 +2,7 @@ import { type Bone, type Triple, worldCorners } from "./geometry";
 
 export type FaceSide = "north" | "south" | "east" | "west" | "up" | "down";
 
-export const FACE_AXIS: Readonly<
+export const FACE_SIDES: Readonly<
   Record<FaceSide, { readonly axis: 0 | 1 | 2; readonly sign: -1 | 1 }>
 > = {
   north: { axis: 2, sign: -1 },
@@ -50,7 +50,7 @@ const unit = ([x, y, z]: Triple): Triple => {
   return [x / length || 0, y / length || 0, z / length || 0];
 };
 
-const sides = Object.keys(FACE_AXIS) as FaceSide[];
+const sides = Object.keys(FACE_SIDES) as FaceSide[];
 // Counterclockwise from outside, in the same bit order as worldCorners.
 const cornerOrder = {
   north: [0, 2, 3, 1],
@@ -76,7 +76,7 @@ export function modelFaces(geometry: { bones: Bone[] }): ModelFace[] {
       for (const side of sides) {
         const mapping = cube.uv[side];
         if (!mapping) continue;
-        const [i, j] = faceAxes[FACE_AXIS[side].axis];
+        const [i, j] = faceAxes[FACE_SIDES[side].axis];
         if (cube.size[i] + grow === 0 || cube.size[j] + grow === 0) continue;
 
         const [a, b, c, d] = cornerOrder[side];

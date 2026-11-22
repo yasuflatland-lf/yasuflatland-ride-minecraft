@@ -55,6 +55,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tool_loader import load_tool
 
 texture_io = load_tool("texture_io")
+face_sides = load_tool("face_sides")
 
 GEOMETRY = "models/entity/yasu_ride/suv.geo.json"
 TEXTURE = "textures/entity/yasu_ride/suv.png"
@@ -521,17 +522,10 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_pe
 def cube_faces(cube):
     (x, y, z), (w, h, d) = cube["origin"], cube["size"]
     x1, y1, z1 = x + w, y + h, z + d
-    corners = {
-        "north": [(x, y, z), (x, y1, z), (x1, y1, z), (x1, y, z)],
-        "south": [(x, y, z1), (x1, y, z1), (x1, y1, z1), (x, y1, z1)],
-        "west": [(x, y, z), (x, y, z1), (x, y1, z1), (x, y1, z)],
-        "east": [(x1, y, z), (x1, y1, z), (x1, y1, z1), (x1, y, z1)],
-        "down": [(x, y, z), (x1, y, z), (x1, y, z1), (x, y, z1)],
-        "up": [(x, y1, z), (x, y1, z1), (x1, y1, z1), (x1, y1, z)],
-    }
     pivot, rotation = cube.get("pivot", [0, 0, 0]), cube.get("rotation", [0, 0, 0])
-    for name, quad in corners.items():
-        yield name, [rotate(p, pivot, rotation) for p in quad]
+    for name in ("north", "south", "west", "east", "down", "up"):
+        corners = face_sides.quad(face_sides.face_side(name), (x, y, z), (x1, y1, z1))
+        yield name, [rotate(p, pivot, rotation) for p in corners]
 
 
 @dataclass(frozen=True)
