@@ -34,7 +34,10 @@ export function routePress({
       return { kind: "undo" };
     case "pasteRotate":
       return {
-        kind: flow.kind === "selected" ? "rotateSelection" : "rotateClipboard",
+        kind:
+          flow.kind === "selected" || flow.kind === "baseHeight"
+            ? "rotateSelection"
+            : "rotateClipboard",
       };
     case "pastePlace":
       return { kind: "pasteAim" };

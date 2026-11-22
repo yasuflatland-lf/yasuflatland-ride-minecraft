@@ -17,11 +17,7 @@ import {
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { heldTypeId } from "../../../shared/heldItem";
-import {
-  BUILD_UNDO_TYPE,
-  PASTE_PLACE_TYPE,
-  PASTE_ROTATE_TYPE,
-} from "../../identifiers";
+import { buildItemRole } from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
 
 type ControlRole = Exclude<PressRole, "wand">;
@@ -69,8 +65,9 @@ export function registerPasteControls({
     if (pressFromBlockTap(ev.player, ev.isFirstEvent)) ev.cancel = true;
   });
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
+    const held = heldBuildItem(ev.player);
     if (
-      heldBuildItem(ev.player) === "pasteControl" &&
+      (held === "pastePlace" || held === "pasteRotate") &&
       repo.get(asPlayerId(ev.player.id))?.flow.kind === "pasteAim"
     )
       ev.cancel = true;
@@ -140,12 +137,6 @@ export function registerPasteControls({
 }
 
 function controlRole(typeId: string | undefined): ControlRole | undefined {
-  switch (typeId) {
-    case BUILD_UNDO_TYPE:
-      return "undo";
-    case PASTE_ROTATE_TYPE:
-      return "pasteRotate";
-    case PASTE_PLACE_TYPE:
-      return "pastePlace";
-  }
+  const role = buildItemRole(typeId);
+  return role === "wand" ? undefined : role;
 }
