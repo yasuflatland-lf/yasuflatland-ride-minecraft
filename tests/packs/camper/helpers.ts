@@ -142,7 +142,7 @@ export const slotXZ = (slot: DecorSlot) => {
 
 export const turn = (point: number[], pivot: number[], rotation: number[]) => {
   let [x = 0, y = 0, z = 0] = point.map((v, i) => v - (pivot[i] ?? 0));
-  // The game turns z the other way from right-handed math (mirror_x in tools/gen_camper.py).
+  // The game turns z the other way from right-handed math (to_game_frame in tools/camper_frames.py).
   const [rx = 0, ry = 0, rz = 0] = rotation;
   for (const [axis, degrees] of [
     ["x", rx],
