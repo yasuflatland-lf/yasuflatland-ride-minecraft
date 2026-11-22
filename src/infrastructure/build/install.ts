@@ -222,6 +222,7 @@ export function installBuild(deps: {
     tapAir: new TapAir(repo, feedback),
     pressPasteAim,
     pasteDebounce,
+    refresh: (id, tick) => preview.refresh(id, tick),
     pointOf: (playerId) => {
       const flow = repo.get(playerId)?.flow;
       return flow?.kind === "point1" ? flow.cell : undefined;

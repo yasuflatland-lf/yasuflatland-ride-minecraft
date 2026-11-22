@@ -6,7 +6,6 @@ import { beachChairLantern, beachChairOven } from "./beachChairHosting";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
   buildAimedPaste,
-  buildContinuousPaste,
   buildCopyEntersPasteAim,
   buildCopyShapes,
   buildCopyStructure,
@@ -42,6 +41,7 @@ import {
   buildPasteMenu,
   buildPasteRotate,
   buildPasteRotationDisplay,
+  buildPasteSelectsBox,
   buildPasteStructure,
   buildPasteStructureDecor,
   buildPasteUndoRepeat,
@@ -487,7 +487,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
 
   build_paste_structure: buildPasteStructure,
   build_paste_structure_decor: buildPasteStructureDecor,
-  build_continuous_paste: buildContinuousPaste,
+  build_paste_selects_box: buildPasteSelectsBox,
   build_copy_shapes: buildCopyShapes,
   build_copy_structure: buildCopyStructure,
   build_side_cylinder_x: buildSideCylinderX,

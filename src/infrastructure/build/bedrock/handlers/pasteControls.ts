@@ -115,6 +115,7 @@ export function registerPasteControls({
           intent: "place",
         });
         if (outcome === "aiming") refresh(playerId, tick, "resumePaste");
+        else if (outcome === "pasted") refresh(playerId, tick);
         break;
       }
     }

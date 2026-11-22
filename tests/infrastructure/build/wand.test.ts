@@ -143,6 +143,7 @@ it("preserves blocks and defers point taps out of before events", () => {
           aim,
           debounce: new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks),
           pasteDebounce: new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
+          refresh: () => {},
           pointOf: () => undefined,
         });
         const player = {
@@ -287,6 +288,7 @@ function setupAir() {
     feedback,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
   );
+  const refresh = vi.fn();
   registerWand({
     fixStairGoal: new FixStairGoal(repo, feedback, aim),
     confirmLiveHeight: new ConfirmLiveHeight(repo),
@@ -299,6 +301,7 @@ function setupAir() {
     aim,
     debounce,
     pasteDebounce: new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks),
+    refresh,
     pointOf: () =>
       session.flow.kind === "point1" ? session.flow.cell : undefined,
   });
@@ -322,6 +325,7 @@ function setupAir() {
     pointExecute,
     paste,
     pressPasteAim,
+    refresh,
     structures,
     feedback,
   };
@@ -586,8 +590,9 @@ it("routes paste aiming through itemUse with live aim and separate commit deboun
               turnBetween(clipboard.facing, "east"),
               "east",
             ),
-            tick: 0,
           });
+          expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 0);
+          expect(e.session.flow.kind).toBe("selected");
           expect(e.session.isEditing).toBe(false);
           expect(e.structures.calls.at(-1)).toMatchObject({
             kind: "place",
@@ -733,7 +738,7 @@ it("opens the paste menu even when the aim reader returns undefined", () => {
   expect(e.menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(e.player);
 });
 
-it("accepts a commit immediately after the menu and suppresses a second commit at another anchor", () => {
+it("accepts a commit immediately after the menu and opens the selection menu on a later press", () => {
   const e = setupAir();
   const block = { x: 0, y: 0, z: 0 };
   holdClipboard(
@@ -761,9 +766,12 @@ it("accepts a commit immediately after the menu and suppresses a second commit a
   engine.tick = BUILD_SPEC.pasteRepeatTicks;
   e.use();
   expect(paste).toHaveBeenCalledTimes(1);
-  engine.tick += BUILD_SPEC.pasteRepeatTicks;
+  expect(e.menus.showUtilityMenu).not.toHaveBeenCalled();
+  engine.tick += BUILD_SPEC.pressDebounceTicks;
+  e.player.isSneaking = false;
   e.use();
-  expect(paste).toHaveBeenCalledTimes(2);
+  expect(paste).toHaveBeenCalledTimes(1);
+  expect(e.menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(e.player);
 });
 
 it.each(["air", "block"] as const)(

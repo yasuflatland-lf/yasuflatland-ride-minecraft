@@ -4,8 +4,15 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import { recordPaste } from "../../../src/domain/build/flow/paste";
+import {
+  boxFromSize,
+  boxOf,
+  cellsOf,
+  volume,
+} from "../../../src/domain/build/box";
+import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { FACINGS } from "../../../src/domain/build/rotation/facing";
+import { rotatedSize } from "../../../src/domain/build/rotation/quarterTurn";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
@@ -63,10 +70,57 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
     playerId,
     dimensionId: overworld,
     target: { anchor, box, turn: 0 as const },
-    tick: 100,
   };
   return { repo, session, world, players, feedback, store, start, paste, cmd };
 }
+
+it("selects the pasted box at the root and keeps the clipboard", () => {
+  fc.assert(
+    fc.property(
+      origin,
+      origin,
+      fc.constantFrom(overworld, nether),
+      fc.constantFrom("minecraft:stone", "minecraft:oak_planks"),
+      fc.record({
+        x: fc.integer({ min: 1, max: 4 }),
+        y: fc.integer({ min: 1, max: 4 }),
+        z: fc.integer({ min: 1, max: 4 }),
+      }),
+      fc.constantFrom(...FACINGS),
+      fc.constantFrom(0, 1, 2, 3),
+      (source, anchor, dimensionId, materialId, size, facing, turn) => {
+        const e = setup(source);
+        const material = blockStateOf(materialId);
+        const sourceBox = boxFromSize(source, size);
+        const clipboard = {
+          material,
+          size,
+          blockCount: volume(sourceBox),
+          facing,
+          contents: { kind: "structure" as const, handle },
+        };
+        e.session.completeCopy(
+          selectionOf(overworld, sourceBox, material),
+          clipboard,
+        );
+        const box = boxFromSize(anchor, rotatedSize(size, turn));
+        const cmd = { ...e.cmd, dimensionId, target: { anchor, box, turn } };
+        expect(e.paste.execute(cmd)).toBe("pasted");
+        expect(e.session.flow).toEqual({
+          kind: "selected",
+          menuLevel: "root",
+          selection: { dimensionId, box, material },
+          from: box.min,
+          to: box.max,
+        });
+        expect(e.session.confirmedBox).toEqual({ dimensionId, box, material });
+        expect(e.session.clipboard).toBe(clipboard);
+        expect(e.store.live.has(handle)).toBe(true);
+        expect(e.paste.execute(cmd)).toBe("ignored");
+      },
+    ),
+  );
+});
 
 it("captures before replacement, records only after place, retains older snapshots and counts the clipboard", () => {
   fc.assert(
@@ -112,6 +166,7 @@ it("captures before replacement, records only after place, retains older snapsho
           dimensionId: overworld,
           box: e.cmd.target.box,
           handle: structureHandle("fake_paste_1"),
+          paste: true,
         },
       });
       expect(e.session.takeUndo()).toEqual({
@@ -143,25 +198,22 @@ it("refuses any protected cell before touching structures", () => {
       expect(e.paste.execute(e.cmd)).toBe("refused");
       expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
       expect(e.store.calls).toEqual([]);
+      expect(e.session.flow.kind).toBe("pasteAim");
       expect(e.session.hasHistory).toBe(false);
     }),
   );
 });
 
-it.each(["idle", "noClipboard", "repeat", "busy"] as const)(
+it.each(["idle", "noClipboard", "busy"] as const)(
   "does not touch structures for %s",
   (reason) => {
     const e = setup();
     if (reason === "idle") e.session.setFlow({ kind: "idle" });
     if (reason === "noClipboard") e.session.clearClipboard();
-    if (reason === "repeat" && e.session.flow.kind === "pasteAim")
-      e.session.setFlow(
-        recordPaste(e.session.flow, e.cmd.target.anchor, 0, e.cmd.tick),
-      );
     if (reason === "busy") e.session.beginEdit();
     const flow = e.session.flow;
     expect(e.paste.execute(e.cmd)).toBe(
-      reason === "idle" || reason === "repeat" ? "ignored" : "refused",
+      reason === "idle" ? "ignored" : "refused",
     );
     expect(e.store.calls).toEqual([]);
     expect(e.session.flow).toBe(flow);
@@ -254,19 +306,6 @@ it("lifts only an occupant buried by a non-open cell inside the pasted box", () 
   );
 });
 
-it("allows another paste after the repeat window without an air-press undo hint", () => {
-  const e = setup();
-  e.paste.execute(e.cmd);
-  expect(e.paste.execute({ ...e.cmd, tick: e.cmd.tick + 1 })).toBe("ignored");
-  expect(
-    e.paste.execute({
-      ...e.cmd,
-      tick: e.cmd.tick + BUILD_SPEC.pasteRepeatTicks,
-    }),
-  ).toBe("pasted");
-  expect(e.feedback.undoHints).toEqual([]);
-});
-
 it("restores blocks and entities after a partially failed placement", () => {
   const e = setup();
   const before = blockStateOf("minecraft:chest");
@@ -324,12 +363,8 @@ it("discards the clipboard and paste snapshot before removing the session, and t
 it("discards only the oldest snapshot on the eleventh paste", () => {
   const e = setup();
   for (let i = 0; i <= BUILD_SPEC.undoDepth; i++) {
-    expect(
-      e.paste.execute({
-        ...e.cmd,
-        tick: 100 + i * BUILD_SPEC.pasteRepeatTicks,
-      }),
-    ).toBe("pasted");
+    e.session.setFlow(beginPasteAim());
+    expect(e.paste.execute(e.cmd)).toBe("pasted");
     expect(e.store.calls.filter((call) => call.kind === "discard")).toEqual(
       i < BUILD_SPEC.undoDepth
         ? []

@@ -144,11 +144,10 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
         e.target.anchor,
         0,
       ]);
-      expect(e.session.flow).toEqual({
-        kind: "pasteAim",
-        manualTurn: 0,
-        facing: "east",
-        lastPaste: { anchor: e.target.anchor, turn: 0, tick },
+      expect(e.session.flow).toMatchObject({
+        kind: "selected",
+        menuLevel: "root",
+        selection: { dimensionId: nether, box: e.target.box },
       });
       e.jobs.step();
       for (const at of cellsOf(e.target.box))
@@ -211,7 +210,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
   );
 });
 
-it("refuses protected volumes and busy jobs without opening the repeat window or queuing", () => {
+it("refuses protected volumes and busy jobs without queuing", () => {
   fc.assert(
     fc.property(cell, face, tick, fc.boolean(), (block, face, tick, busy) => {
       const e = setup(block, face, tick);
@@ -238,7 +237,7 @@ it("refuses protected volumes and busy jobs without opening the repeat window or
   );
 });
 
-it("ignores a same-anchor repeat until undo clears the window while keeping clipboard and aiming", () => {
+it("can paste at the same anchor after undo returns the selection to aiming", () => {
   fc.assert(
     fc.property(
       cell,
@@ -280,7 +279,6 @@ it("ignores a same-anchor repeat until undo clears the window while keeping clip
         expect(e.session.flow).toEqual({
           kind: "pasteAim",
           manualTurn: 0,
-          facing: "east",
         });
         expect(e.session.clipboard).toBe(e.clipboard);
         e.jobs.step();
@@ -392,7 +390,7 @@ it("place hints without starting a paste during selection work or without a clip
   );
 });
 
-it("place and sneak wand share placement, refusals, missing targets and repeat behavior", () => {
+it("place and sneak wand share placement, refusals, and missing targets", () => {
   fc.assert(
     fc.property(
       cell,
@@ -406,7 +404,6 @@ it("place and sneak wand share placement, refusals, missing targets and repeat b
           "busy",
           "noGround",
           "noTarget",
-          "repeat",
           "limit",
         ] as const) {
           const wand = setup(block, face, tick);
@@ -420,14 +417,13 @@ it("place and sneak wand share placement, refusals, missing targets and repeat b
             if (scenario === "noTarget") e.aim.target = undefined;
             if (scenario === "limit")
               vi.spyOn(e.structures, "capture").mockReturnValue("tooLarge");
-            if (scenario === "repeat") expect(e.execute()).toBe("pasted");
           }
           const result = wand.execute(true, "wand");
           expect(place.execute(sneaking, "place")).toBe(result);
           expect(result).toBe(
             scenario === "pasted"
               ? "pasted"
-              : scenario === "noTarget" || scenario === "repeat"
+              : scenario === "noTarget"
                 ? "ignored"
                 : "refused",
           );
@@ -442,21 +438,18 @@ it("place and sneak wand share placement, refusals, missing targets and repeat b
   );
 });
 
-it("rotation permits another paste at the same anchor and keeps the manual turn", () => {
+it("applies the manual turn before selecting the box", () => {
   fc.assert(
     fc.property(cell, tick, (block, tick) => {
       const e = setup(block, "up", tick);
-      expect(e.execute(false, "place")).toBe("pasted");
-      expect(e.execute()).toBe("ignored");
       expect(e.session.rotatePaste()).toBe(true);
       expect(e.execute(false, "place")).toBe("pasted");
       expect(e.start.mock.calls.map((call) => call.slice(2))).toEqual([
-        [e.target.anchor, 0],
         [e.target.anchor, 1],
       ]);
       expect(e.session.flow).toMatchObject({
-        manualTurn: 1,
-        lastPaste: { turn: 1 },
+        kind: "selected",
+        menuLevel: "root",
       });
       expect(e.execute()).toBe("ignored");
     }),

@@ -56,7 +56,6 @@ export class PressPasteAim {
       playerId: cmd.playerId,
       dimensionId: cmd.dimensionId,
       target: result.target,
-      tick: cmd.tick,
     });
   }
 }

@@ -370,7 +370,6 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           e.structures,
           new FakeBuildPlayers(),
         ).execute({
-          tick: 0,
           playerId,
           dimensionId: nether,
           target: pasteTarget(
@@ -384,10 +383,10 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         expect(read.mock.calls).toEqual(
           [...cellsOf(box)].map((at) => [nether, at]),
         );
-        expect(e.session.flow).toEqual({
-          kind: "pasteAim",
-          manualTurn: 0,
-          lastPaste: { anchor, turn: 0, tick: 0 },
+        expect(e.session.flow).toMatchObject({
+          kind: "selected",
+          menuLevel: "root",
+          selection: { dimensionId: nether, box },
         });
         e.jobs.step();
         for (const [index, at] of [...cellsOf(box)].entries())
@@ -425,7 +424,6 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
       ),
       "east",
     ),
-    tick: 0,
   };
   paste.execute(cmd);
   expect(e.feedback.messages).toEqual([]);

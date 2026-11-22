@@ -103,6 +103,13 @@ export class BuildSession {
     );
   }
 
+  selectPasted(selection: Selection): void {
+    this.confirmBox(selection, "selected", {
+      from: selection.box.min,
+      to: selection.box.max,
+    });
+  }
+
   completeCopy(
     selection: Selection,
     clipboard: Clipboard,

@@ -13,8 +13,7 @@ import { pasteMenu, utilityMenu } from "../../../src/domain/build/flow/menu";
 import {
   beginPasteAim,
   followFacing,
-  isRepeat,
-  recordPaste,
+  type PasteAim,
   rotatePasteAim,
 } from "../../../src/domain/build/flow/paste";
 import {
@@ -35,70 +34,6 @@ const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimensionId = asDimensionId("minecraft:overworld");
 const stone = blockStateOf("minecraft:stone");
-
-it("following any facing keeps the immutable paste record", () => {
-  fc.assert(
-    fc.property(
-      cell,
-      fc.nat(),
-      fc.constantFrom("north", "east", "south", "west"),
-      (anchor, tick, facing) => {
-        const initial = recordPaste(beginPasteAim(), anchor, 2, tick);
-        const next = followFacing(initial, facing);
-        expect(next.facing).toBe(facing);
-        expect(next.lastPaste).toBe(initial.lastPaste);
-        expect(Object.isFrozen(next)).toBe(true);
-        expect(recordPaste(next, anchor, 3, tick + 1).facing).toBe(facing);
-        expect(initial.facing).toBeUndefined();
-      },
-    ),
-  );
-});
-
-it("records an immutable paste and suppresses only the same anchor within the window", () => {
-  fc.assert(
-    fc.property(
-      cell,
-      fc.nat({ max: 10000 }),
-      fc.integer({ min: 1, max: 100 }),
-      (anchor, tick, window) => {
-        const initial = beginPasteAim();
-        expect(Object.isFrozen(initial)).toBe(true);
-        expect(isRepeat(initial, anchor, 0, tick, window)).toBe(false);
-        const flow = recordPaste(initial, anchor, 0, tick);
-        expect(flow).toEqual({
-          kind: "pasteAim",
-          manualTurn: 0,
-          lastPaste: { anchor, turn: 0, tick },
-        });
-        expect(initial).toEqual({ kind: "pasteAim", manualTurn: 0 });
-        expect(Object.isFrozen(flow)).toBe(true);
-        expect(Object.isFrozen(flow.lastPaste)).toBe(true);
-        expect(Object.isFrozen(flow.lastPaste?.anchor)).toBe(true);
-        expect(flow.lastPaste?.anchor).not.toBe(anchor);
-        expect(
-          isRepeat(flow, { ...anchor }, 0, tick + window - 1, window),
-        ).toBe(true);
-        expect(isRepeat(flow, anchor, 0, tick + window, window)).toBe(false);
-        expect(isRepeat(flow, anchor, 0, tick + window + 1, window)).toBe(
-          false,
-        );
-        for (const turn of [1, 2, 3] as const)
-          expect(isRepeat(flow, anchor, turn, tick, window)).toBe(false);
-        for (const axis of ["x", "y", "z"] as const)
-          expect(
-            isRepeat(
-              flow,
-              { ...anchor, [axis]: anchor[axis] + 1 },
-              0,
-              tick,
-              window,
-            ),
-          ).toBe(false);
-      },
-    ),
-  );
-});
 
 it("offers ordered paste entries independent of history and never paste or endPaste in the utility menu", () => {
   fc.assert(
@@ -186,20 +121,30 @@ it("derives the session turn from copy and paste facings, and ignores following 
 
 const quarterTurn = fc.constantFrom(0, 1, 2, 3);
 
-it("rotates immutably through four turns while keeping facing and the paste record", () => {
+it("updates facing without changing the manual turn", () => {
   fc.assert(
     fc.property(
-      cell,
       quarterTurn,
       fc.constantFrom(...FACINGS),
-      (anchor, manualTurn, facing) => {
-        const initial = recordPaste(
-          { ...beginPasteAim(), manualTurn, facing },
-          anchor,
-          manualTurn,
-          10,
-        );
-        let aim = initial;
+      (manualTurn, facing) => {
+        const initial = { ...beginPasteAim(), manualTurn };
+        const next = followFacing(initial, facing);
+        expect(next).toEqual({ ...initial, facing });
+        expect(Object.isFrozen(next)).toBe(true);
+        expect(initial).not.toHaveProperty("facing");
+      },
+    ),
+  );
+});
+
+it("rotates immutably through four turns while keeping facing", () => {
+  fc.assert(
+    fc.property(
+      quarterTurn,
+      fc.constantFrom(...FACINGS),
+      (manualTurn, facing) => {
+        const initial = { ...beginPasteAim(), manualTurn, facing };
+        let aim: PasteAim = initial;
         for (let i = 1; i <= 4; i++) {
           const previous = aim;
           aim = rotatePasteAim(aim);
@@ -207,7 +152,6 @@ it("rotates immutably through four turns while keeping facing and the paste reco
           expect(Object.isFrozen(aim)).toBe(true);
           expect(aim.manualTurn).toBe((manualTurn + i) % 4);
           expect(aim.facing).toBe(facing);
-          expect(aim.lastPaste).toBe(initial.lastPaste);
         }
         expect(aim).toEqual(initial);
         expect(initial.manualTurn).toBe(manualTurn);

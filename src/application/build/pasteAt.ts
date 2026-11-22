@@ -2,9 +2,8 @@ import { cellsOf } from "../../domain/build/box";
 import type { PasteTarget } from "../../domain/build/clipboard/clipboard";
 import { completionMessage } from "../../domain/build/edit/completion";
 import { airPressOffersUndo } from "../../domain/build/flow/flow";
-import { isRepeat, recordPaste } from "../../domain/build/flow/paste";
+import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
@@ -26,20 +25,16 @@ export class PasteAt {
     playerId: PlayerId;
     dimensionId: DimensionId;
     target: PasteTarget;
-    tick: number;
   }): "pasted" | "refused" | "ignored" {
     const { playerId } = cmd;
     const session = this.repo.getOrCreate(playerId);
-    const flow = session.flow;
-    if (flow.kind !== "pasteAim") return "ignored";
+    if (session.flow.kind !== "pasteAim") return "ignored";
     const clipboard = session.clipboard;
     if (!clipboard) {
       this.feedback.showMessage(playerId, "noClipboard");
       return "refused";
     }
     const { anchor, box, turn } = cmd.target;
-    if (isRepeat(flow, anchor, turn, cmd.tick, BUILD_SPEC.pasteRepeatTicks))
-      return "ignored";
     for (const cell of cellsOf(box)) {
       if (!this.world.mayEdit(cmd.dimensionId, cell)) {
         this.feedback.showMessage(playerId, "pasteBlocked");
@@ -66,7 +61,7 @@ export class PasteAt {
         clipboard.contents.handle,
         cmd.dimensionId,
         anchor,
-        cmd.target.turn,
+        turn,
       )
     ) {
       // A refused engine placement may already have placed some entities.
@@ -83,9 +78,10 @@ export class PasteAt {
         dimensionId: cmd.dimensionId,
         box,
         handle: snapshot,
+        paste: true,
       }),
     );
-    session.setFlow(recordPaste(flow, anchor, turn, cmd.tick));
+    session.selectPasted(selectionOf(cmd.dimensionId, box, clipboard.material));
     const { message, takesUndoHint } = completionMessage({
       kind: "undoable",
       skipped: 0,

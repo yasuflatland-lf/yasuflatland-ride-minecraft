@@ -33,6 +33,7 @@ type PressContext = {
   confirmLiveHeight: ConfirmLiveHeight;
   fixStairGoal: FixStairGoal;
   menus: BuildMenus;
+  refresh(playerId: PlayerId, tick: number): void;
   pointOf(playerId: PlayerId): Cell | undefined;
   tapAir: TapAir;
 };
@@ -49,16 +50,18 @@ export type BlockPressContext = {
 type Target = NonNullable<ReturnType<AimReader["aim"]>>;
 
 function pasteAimPress(
-  { source, playerId, pressPasteAim, menus }: PressContext,
+  { source, playerId, pressPasteAim, menus, refresh }: PressContext,
   target: Target | undefined,
 ): void {
+  const tick = system.currentTick;
   const result = pressPasteAim.execute({
     playerId,
     dimensionId: asDimensionId(source.dimension.id),
     aim: target,
-    tick: system.currentTick,
+    tick,
     sneaking: source.isSneaking,
   });
+  if (result === "pasted") refresh(playerId, tick);
   if (result === "menu") void menus.showPasteMenu(source);
 }
 

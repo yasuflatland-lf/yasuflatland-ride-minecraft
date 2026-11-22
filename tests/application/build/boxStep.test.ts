@@ -167,7 +167,7 @@ it("refuses Copy when the selection is not confirmed", () => {
 
 it("utility Copy enters paste aiming from every prior flow and an oversized copy preserves them", () => {
   fc.assert(
-    fc.property(cell, fc.nat(), (from, tick) => {
+    fc.property(cell, (from) => {
       const e = setup();
       const box = boxOf(from, { ...from, x: from.x + 1, z: from.z + 1 });
       const selected = endpoint(box.min, box.max);
@@ -178,8 +178,8 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         chooseHeighted(selected, "hip"),
         {
           kind: "pasteAim",
-          manualTurn: 0,
-          lastPaste: { anchor: from, turn: 0, tick },
+          manualTurn: 1,
+          facing: "north",
         },
       ];
       const copy = new CopySelection(
