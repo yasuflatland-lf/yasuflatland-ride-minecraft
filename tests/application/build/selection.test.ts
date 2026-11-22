@@ -50,7 +50,12 @@ describe("UpdateBuildModes", () => {
     fc.assert(
       fc.property(
         fc.array(
-          fc.constantFrom<HeldBuildItem>("wand", "none", "pasteControl"),
+          fc.constantFrom<HeldBuildItem>(
+            "wand",
+            "none",
+            "pasteRotate",
+            "pastePlace",
+          ),
         ),
         (heldItems) => {
           const create = () => {
@@ -70,17 +75,23 @@ describe("UpdateBuildModes", () => {
           const control = create();
           const baseline = create();
           const sequence: HeldBuildItem[] = [
-            "pasteControl",
+            "pasteRotate",
             ...Array<HeldBuildItem>(BUILD_SPEC.modeEnterTicks).fill("wand"),
             ...Array<HeldBuildItem>(BUILD_SPEC.modeLeaveTicks).fill(
-              "pasteControl",
+              "pasteRotate",
             ),
             ...heldItems,
           ];
           for (const held of sequence) {
             control.modes.execute([{ playerId: alex, held }]);
             baseline.modes.execute([
-              { playerId: alex, held: held === "pasteControl" ? "none" : held },
+              {
+                playerId: alex,
+                held:
+                  held === "pasteRotate" || held === "pastePlace"
+                    ? "none"
+                    : held,
+              },
             ]);
             expect(control.repo.get(alex)).toEqual(baseline.repo.get(alex));
             expect(control.modes.isInBuildMode(alex)).toBe(
@@ -136,9 +147,17 @@ it("retains the selection across build tool swaps and resets the leave grace", (
     fc.property(
       cell,
       cell,
-      fc.array(fc.constantFrom<HeldBuildItem>("wand", "pasteControl", "undo"), {
-        minLength: 1,
-      }),
+      fc.array(
+        fc.constantFrom<HeldBuildItem>(
+          "wand",
+          "pasteRotate",
+          "pastePlace",
+          "undo",
+        ),
+        {
+          minLength: 1,
+        },
+      ),
       fc.boolean(),
       (a, b, tools, active) => {
         const { repo } = setup();
@@ -173,3 +192,28 @@ it("retains the selection across build tool swaps and resets the leave grace", (
     ),
   );
 });
+
+it.each(["pasteRotate", "pastePlace"] as const)(
+  "handles holding %s during live height",
+  (held) => {
+    const { repo } = setup();
+    const modes = new UpdateBuildModes(
+      repo,
+      new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+    );
+    const session = repo.getOrCreate(alex);
+    const material = blockStateOf("minecraft:stone");
+    const first = tapBlock(
+      session.flow,
+      overworld,
+      { x: 0, y: 0, z: 0 },
+      material,
+    );
+    session.setFlow(tapBlock(first, overworld, { x: 2, y: 1, z: 2 }, material));
+    for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++)
+      modes.execute([{ playerId: alex, held }]);
+    expect(session.flow.kind).toBe(
+      held === "pasteRotate" ? "baseHeight" : "idle",
+    );
+  },
+);

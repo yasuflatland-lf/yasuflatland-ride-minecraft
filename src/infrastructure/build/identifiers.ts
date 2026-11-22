@@ -1,5 +1,7 @@
 import type { BuildMessage } from "../../application/build/ports/feedback";
 
+import type { PressRole } from "../../domain/build/flow/press";
+
 export const BUILD_NAMESPACE = "yasu_build";
 export const buildId = (name: string): string => `${BUILD_NAMESPACE}:${name}`;
 export const TAP_TARGET_TYPE = buildId("tap_target");
@@ -10,11 +12,11 @@ export const BUILD_UNDO_TYPE = buildId("build_undo");
 
 export function buildItemRole(
   typeId: string | undefined,
-): "wand" | "pasteControl" | "undo" | undefined {
+): PressRole | undefined {
   if (typeId === SELECTION_WAND_TYPE) return "wand";
   if (typeId === BUILD_UNDO_TYPE) return "undo";
-  if (typeId === PASTE_ROTATE_TYPE || typeId === PASTE_PLACE_TYPE)
-    return "pasteControl";
+  if (typeId === PASTE_ROTATE_TYPE) return "pasteRotate";
+  if (typeId === PASTE_PLACE_TYPE) return "pastePlace";
 }
 
 // Copy of the vehicle protection tag; build cannot import that feature (ADR 0046, 0178).

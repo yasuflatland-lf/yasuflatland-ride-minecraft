@@ -5,7 +5,9 @@ import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import type { AimReader } from "../../../src/application/build/ports/aim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
+import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
+import { RotateSelection } from "../../../src/application/build/rotateSelection";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
@@ -28,6 +30,7 @@ import {
 } from "../../support/buildClipboard";
 import {
   FakeAimReader,
+  FakeBuildPlayers,
   FakeFeedback,
   FakeGroundProbe,
   FakeSessions,
@@ -842,4 +845,43 @@ it("shows the live size while aiming the base height, once per change", () => {
   expect(feedback.sizes).toHaveLength(1);
   expect(feedback.sizes[0]?.size).toMatchObject({ x: 5, z: 3 });
   expect(feedback.aimingSizes).toEqual([true]);
+});
+
+it("redraws the turned tapped span on the next outline tick", () => {
+  const { repo, feedback, session, preview } = setup();
+  const base = tapAir(
+    { kind: "point1", dimensionId: nether, cell, material },
+    end,
+  );
+  if (base.kind !== "baseHeight") throw new Error("Expected baseHeight");
+  session.setFlow({ ...base, previous: 7 });
+  preview.execute(0);
+  const world = new FakeWorld();
+  const core = new RotateBox(
+    repo,
+    world,
+    new FakeBuildPlayers(),
+    new FakeStructureStore(world),
+    feedback,
+    { warn: vi.fn() },
+  );
+  new RotateSelection(repo, core, feedback).execute({
+    playerId: alex,
+    dimensionId: nether,
+  });
+  preview.execute(interval);
+  const turned = boxOf({ x: -1, y: 64, z: 1 }, { x: 2, y: 66, z: 1 });
+  expect(feedback.previews).toHaveLength(2);
+  expect(feedback.previews[1]?.set).toEqual(
+    previewPoints(
+      {
+        kind: "selected",
+        menuLevel: "root",
+        from: cell,
+        to: end,
+        selection: selectionOf(nether, turned, material),
+      },
+      { blink: false },
+    ),
+  );
 });
