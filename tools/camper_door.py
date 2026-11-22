@@ -39,7 +39,7 @@ def _build_exterior() -> AreaCubes:
                                          (DW1, DW1 + 0.6, *WIN_Y, DOOR_LATCH_REGION)):
         door_frame = box(HW, fy0, fz0, HW + 0.18, fy1, fz1, "aluminium")
         if hardware is not None:
-            # The build's +x face is named east; mirror_x swaps it to the outward west face.
+            # The build's +x face is named east; mirror_x moves it to the outward minimum-x side.
             door_frame["uv"]["east"] = ATLAS.face(hardware)
         door.append(door_frame)
     door.append(box(HW, STRIPE_Y[0], DZ0 + 0.1, HW + 0.12, STRIPE_Y[1], DZ1 - 0.1, "stripe"))
@@ -243,7 +243,8 @@ def build_shower_door(registry: RegionRegistry) -> AreaCubes:
     scale = TEXELS_PER_PX
     v = (WOOD_HEIGHT - height) * scale
     for side in ("east", "west"):
-        # The final west face reverses u after the generator mirrors the building frame.
+        # The east face reverses u. Bedrock's u direction on x faces is unverified (camper spec
+        # Open issues), so this stays as first built.
         reverse = side == "east"
         panel["uv"][side] = _face(registry, "door wood", depth * scale if reverse else 0,
                                   v, depth * scale * (-1 if reverse else 1), height * scale)
