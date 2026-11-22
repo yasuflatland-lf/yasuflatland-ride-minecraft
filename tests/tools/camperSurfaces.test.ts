@@ -280,7 +280,7 @@ body = next(b['cubes'] for b in geometry['bones'] if b['name'] == 'body')
 faces = []
 inward_counts = {'east': 0, 'west': 0}
 for c in lining(body):
-    inward, outward = ('east', 'west') if c['origin'][0] < 0 else ('west', 'east')
+    inward, outward = ('west', 'east') if c['origin'][0] < 0 else ('east', 'west')
     broad_faces = [c['uv'][inward]]
     inward_counts[inward] += 1
     # The outer body panels bury the outward face of the lining.
@@ -299,7 +299,7 @@ for c in lining(body):
       faces: [boolean, boolean][];
       inwardCounts: { east: number; west: number };
     };
-    expect(inwardCounts).toEqual({ east: 10, west: 9 });
+    expect(inwardCounts).toEqual({ east: 9, west: 10 });
     for (const [valid, opaque] of faces) {
       expect(valid).toBe(true);
       expect(opaque).toBe(true);

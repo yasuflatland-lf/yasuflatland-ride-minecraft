@@ -7,8 +7,8 @@ export const FACE_SIDES: Readonly<
 > = {
   north: { axis: 2, sign: -1 },
   south: { axis: 2, sign: 1 },
-  east: { axis: 0, sign: 1 },
-  west: { axis: 0, sign: -1 },
+  east: { axis: 0, sign: -1 },
+  west: { axis: 0, sign: 1 },
   up: { axis: 1, sign: 1 },
   down: { axis: 1, sign: -1 },
 };
@@ -55,8 +55,8 @@ const sides = Object.keys(FACE_SIDES) as FaceSide[];
 const cornerOrder = {
   north: [0, 2, 3, 1],
   south: [4, 5, 7, 6],
-  east: [1, 3, 7, 5],
-  west: [0, 4, 6, 2],
+  east: [0, 4, 6, 2],
+  west: [1, 3, 7, 5],
   up: [2, 6, 7, 3],
   down: [0, 1, 5, 4],
 } as const;

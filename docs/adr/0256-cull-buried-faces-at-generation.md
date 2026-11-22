@@ -15,7 +15,7 @@ The original cull used the opposite x convention, with `east` on the maximum x s
 
 ## Decision
 
-Remove a face only when all four rules hold.
+Locate named faces using [ADR 0259](0259-bedrock-draws-east-on-the-minimum-x-side.md): `east` is minimum x and `west` is maximum x. Remove a face only when all four rules hold.
 
 1. The target and occluder are distinct cubes in the same bone. A bone moves
    both together. Its scale is affine, including non-uniform and zero scale,
@@ -54,18 +54,20 @@ regeneration.
 
 Date: 2026-11-21. Face counts come from the `tests/packs/fixtures/render-budget/*.json` fixtures, compared between commit `a4c2c82a4` (unculled, Resource Pack 0.1.445) and `main` with all culling pull requests (Resource Pack 0.1.452). Small items (camping gear singles) also lose faces; the largest changes are below.
 
-| Geometry                        | Faces before | Faces after | Change |
-| ------------------------------- | ------------ | ----------- | ------ |
-| camper                          | 64,974       | 50,154      | -22.8% |
-| bulldozer                       | 22,164       | 19,011      | -14.2% |
-| suv                             | 12,654       | 11,197      | -11.5% |
-| tent                            | 10,254       | 9,096       | -11.3% |
-| sportsboat                      | 8,508        | 7,555       | -11.2% |
-| scooter                         | 15,363       | 14,940      | -2.8%  |
-| scooter_paint                   | 3,038        | 3,034       | -0.1%  |
-| camper drawer items             | 12,012       | 11,334      | -5.6%  |
-| board / table decor pair (each) | 28,608       | 27,091      | -5.3%  |
-| drawers decor pair              | 14,310       | 13,548      | -5.3%  |
+| Geometry                        | Faces before | Before the convention fix | Faces after | Change |
+| ------------------------------- | ------------ | ------------------------- | ----------- | ------ |
+| camper                          | 64,974       | 50,154                    | 50,154      | -22.8% |
+| bulldozer                       | 22,164       | 19,011                    | 19,011      | -14.2% |
+| suv                             | 12,654       | 11,197                    | 11,197      | -11.5% |
+| tent                            | 10,254       | 9,096                     | 9,096       | -11.3% |
+| sportsboat                      | 8,508        | 7,555                     | 7,555       | -11.2% |
+| scooter                         | 15,363       | 14,940                    | 14,940      | -2.8%  |
+| scooter_paint                   | 3,038        | 3,034                     | 3,034       | -0.1%  |
+| camper drawer items             | 12,012       | 11,334                    | 11,334      | -5.6%  |
+| board / table decor pair (each) | 28,608       | 27,091                    | 27,091      | -5.3%  |
+| drawers decor pair              | 14,310       | 13,548                    | 13,548      | -5.3%  |
+
+After the convention fix (2026-11-22, issue #2244), regenerating every geometry leaves these face totals unchanged. The camper still removes 14,820 faces: the fix changes which x face survives rather than the total removed. The regenerated render-budget and face-cull fixtures match their previous counts.
 
 Client frame rate was observed on an iPad with no FPS counter, so the result is qualitative ([ADR 0247](0247-precise-camping-gear-rotations-textures-and-cube-budget.md)). Camper 10, SUV 10 and gear 64 were smooth both before and after, with the same device, settings, position and heading. Vehicle counts are 10 rather than 16 because unowned vehicles are capped at 10 world-wide ([ADR 0066](0066-limit-vehicles-per-player-and-kind.md)).
 

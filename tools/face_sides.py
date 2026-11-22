@@ -1,4 +1,4 @@
-"""Shared cube faces; the x mapping is corrected in part 3/3 (issue #2244)."""
+"""Shared cube face locations and outward corner order (ADR 0259)."""
 
 from dataclasses import dataclass
 
@@ -21,8 +21,8 @@ class FaceSide:
 FACE_SIDES = (
     FaceSide("north", 2, 0),
     FaceSide("south", 2, 1),
-    FaceSide("east", 0, 1),
-    FaceSide("west", 0, 0),
+    FaceSide("east", 0, 0),
+    FaceSide("west", 0, 1),
     FaceSide("up", 1, 1),
     FaceSide("down", 1, 0),
 )
@@ -30,8 +30,8 @@ _BY_NAME = {side.name: side for side in FACE_SIDES}
 _CORNER_ORDER = {
     "north": (0, 2, 3, 1),
     "south": (4, 5, 7, 6),
-    "east": (1, 3, 7, 5),
-    "west": (0, 4, 6, 2),
+    "east": (0, 4, 6, 2),
+    "west": (1, 3, 7, 5),
     "up": (2, 6, 7, 3),
     "down": (0, 1, 5, 4),
 }

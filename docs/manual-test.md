@@ -874,3 +874,11 @@ A failing row gets a follow-up issue; do not fix it in this PR.
 | iPad   | gear   | 64    | smooth     | smooth    | 2026-11-21 |
 
 The iPad has no FPS counter, so its rows are qualitative. Before is the unculled build at commit `a4c2c82a4` (Resource Pack 0.1.445) and after is `main` with every culling pull request (Resource Pack 0.1.452), with the same device, settings, position and heading. The iPad could not tell the two builds apart (likely capped at its refresh rate or under too little load), so these rows do not settle the 10 percent criterion of [ADR 0256](adr/0256-cull-buried-faces-at-generation.md). A device with a numeric FPS readout (Windows Game Bar or the Mac Metal HUD) is still needed.
+
+## Face convention after regeneration
+
+After `pnpm server:restart`, the owner checks the regenerated pack on an iPad. Record the served Resource Pack version and date with the result; the diagnostic builds in ADR 0259 confirmed the convention but do not replace this full-pack check.
+
+| Check | Steps                                                                                                                  | Pass condition                                                                                                                                                                                            | iPad result         |
+| ----- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| FC1   | Inspect the camper at 5, 15 and 30 blocks, then look once at each of the bulldozer, SUV, tent, sportsboat and scooter. | The camper shows the olive band, brown "W" fill, tan skirt, white rim discs and body siding grooves, with no hole behind the front wheel. None of the other five models has missing or see-through faces. | Pending owner check |
