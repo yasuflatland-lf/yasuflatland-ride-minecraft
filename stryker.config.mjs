@@ -6,6 +6,19 @@ export default {
     "@stryker-mutator/typescript-checker",
     "@stryker-mutator/vitest-runner",
   ],
+  // Stryker copies the whole working tree into its sandbox. The pnpm store, other
+  // worktrees and the dev server's world data are large, change while it copies,
+  // and no test reads them, so a run failed with ENOENT on the store.
+  ignorePatterns: [
+    ".pnpm-store",
+    ".claude",
+    "server/data",
+    "spike",
+    "dist",
+    "coverage",
+    "reports",
+    ".cache",
+  ],
   testRunner: "vitest",
   vitest: { configFile: "vitest.config.ts" },
   checkers: ["typescript"],
