@@ -758,3 +758,38 @@ it("redraws the live selection outline and retains its last height for a vertica
   ).toEqual([64.5, 67.5, 67.5]);
   expect(session.flow).toMatchObject({ kind: "baseHeight", previous: 4 });
 });
+
+it("redraws faster while the gaze sets the height and at the usual pace otherwise", () => {
+  const { session, preview, feedback, aim } = setup(false);
+  const from = { x: 0, y: 64, z: 0 };
+  const to = { x: 4, y: 64, z: 4 };
+  const origin = { x: -1.5, y: 80, z: 2.5 };
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { origin, direction: { x: 1, y: 0, z: 0 } },
+  });
+  session.setFlow(
+    tapAir(
+      { kind: "point1", dimensionId: overworld, cell: from, material },
+      to,
+    ),
+  );
+  expect(session.flow.kind).toBe("baseHeight");
+  const live = BUILD_SPEC.liveOutlineInterval;
+  expect(live).toBeLessThan(interval);
+  preview.execute(live);
+  preview.execute(2 * live);
+  expect(feedback.previews).toHaveLength(2);
+
+  feedback.previews.length = 0;
+  session.setFlow({
+    kind: "point1",
+    dimensionId: overworld,
+    cell: from,
+    material,
+  });
+  preview.execute(live);
+  expect(feedback.previews).toHaveLength(0);
+  preview.execute(interval);
+  expect(feedback.previews).toHaveLength(1);
+});
