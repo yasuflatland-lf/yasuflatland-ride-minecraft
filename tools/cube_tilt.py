@@ -96,7 +96,7 @@ def panel_matrix(lean, yaw):
 def rotation_of(matrix, inner_z=0):
     """The build-frame `rotation` of `matrix` applied after a math-sense z turn of `inner_z` degrees.
 
-    The camper's build frame turns z in the math sense; camper_frames.to_game_frame keeps that value for the game."""
+    The camper's build frame turns z in the math sense; mirror_x keeps that value for the game."""
     rx, ry, rz = _rotation_of(_mul(matrix, _rz(inner_z)))
     return [rx, ry, _clean(-rz)]
 

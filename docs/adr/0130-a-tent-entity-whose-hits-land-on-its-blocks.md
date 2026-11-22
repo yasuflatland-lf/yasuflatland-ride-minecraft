@@ -30,7 +30,7 @@ Local cells use the camper's convention (`src/domain/vehicle/kinds/camper/room.t
 - The origin `(0, 0, 0)` is **the entity's own cell**, the middle of the rear wall.
 - For 9/13's frame mapping, `depth = 11 - z` (depth 0 is the front row z 11, depth 11 the rear row z 0).
 
-The model frame follows ADR 0009 (front at -z) and the game frame (+x is the entity's left, as `to_game_frame` in `tools/camper_frames.py` documents). So model px = `(16 * x, 16 * layer, -16 * z)`, a cell spans +-8 px around its center, and model y 0 is the ground's top.
+The model frame follows ADR 0009 (front at -z) and the game frame (+x is the entity's left, as `mirror_x` in `tools/gen_camper.py` documents). So model px = `(16 * x, 16 * layer, -16 * z)`, a cell spans +-8 px around its center, and model y 0 is the ground's top.
 
 Footprint: 7 wide x 12 deep, `x -3..3`, `z 0..11`.
 

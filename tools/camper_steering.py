@@ -202,7 +202,7 @@ def build_steering(dash: 'DashGeometry', registry: 'RegionRegistry') -> 'AreaCub
         c['origin'][0] = -c['origin'][0]-c['size'][0]
         c['pivot'][0] = -c['pivot'][0]
         c['rotation'][1] = -c['rotation'][1]
-        # Traced in the game frame with the +x face named east; to_game_frame keeps names (ADR 0259).
+        # Traced in the game frame with the +x face named east; mirror_x keeps names (ADR 0259).
         c['uv']['east'],c['uv']['west'] = c['uv']['west'],c['uv']['east']
         return c
     return b.kit.AreaCubes({'steering':[build_frame(c) for c in wheel],

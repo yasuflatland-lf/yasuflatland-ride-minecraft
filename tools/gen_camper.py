@@ -18,7 +18,6 @@ from tool_loader import load_tool
 region_atlas = load_tool("region_atlas")
 
 cube_tilt = load_tool("cube_tilt")
-camper_frames = load_tool("camper_frames")
 assert_axes, compound_cubes = cube_tilt.assert_axes, cube_tilt.compound_cubes
 STEERING = load_tool("camper_steering")
 ASSEMBLIES = {"slanted": {"owner": "camper", "cubes": 0}, "front_panels": {"owner": "camper", "cubes": 518}, "cab_seats": {"owner": "camper", "cubes": 464}, **STEERING.ASSEMBLIES}
@@ -164,6 +163,29 @@ camper_bones = [
 ]
 
 
+def mirror_x(bones):
+    """Mirror the building frame (+x right) into the game's frame (+x left)."""
+    for bone in bones:
+        bone["pivot"] = [-bone["pivot"][0], *bone["pivot"][1:]]
+        for name, (x, y, z) in bone.get("locators", {}).items():
+            bone["locators"][name] = [-x, y, z]
+        if "rotation" in bone:
+            rx, ry, rz = bone["rotation"]
+            bone["rotation"] = [rx, -ry, -rz]
+        for c in bone.get("cubes", []):
+            c["origin"] = [-(c["origin"][0] + c["size"][0]), *c["origin"][1:]]
+            # Face names stay as written: builders name the build frame's maximum-x face east,
+            # and the mirror moves it to the minimum-x side, where Bedrock draws east (ADR 0259).
+            if "pivot" in c:
+                c["pivot"] = [-c["pivot"][0], *c["pivot"][1:]]
+                rx, ry, rz = c["rotation"]
+                # A mirror negates y and z turns, but the game turns z the other way from
+                # the right-handed math these cubes are built with, so z stays as written
+                # (the sports boat generator keeps z for the same reason, ADR 0058).
+                c["rotation"] = [rx, -ry, rz]
+    return bones
+
+
 CAB_BODY_IDS = {id(c) for c in body if owners.get(id(c)) == "cab"}
 
 
@@ -200,7 +222,7 @@ def rounded(value):
     return value
 
 
-camper_frames.to_game_frame(camper_bones)
+mirror_x(camper_bones)
 geo = {
     "format_version": "1.12.0",
     "minecraft:geometry": [{
