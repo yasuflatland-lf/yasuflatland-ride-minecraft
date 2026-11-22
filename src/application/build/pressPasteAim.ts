@@ -20,10 +20,14 @@ export class PressPasteAim {
     tick: number;
     sneaking: boolean;
     intent?: "wand" | "place";
-  }): "pasted" | "refused" | "menu" | "ignored" {
+  }): "aiming" | "pasted" | "refused" | "menu" | "ignored" {
     const session = this.repo.get(cmd.playerId);
     const placing = cmd.intent === "place";
     if (session?.flow.kind !== "pasteAim") {
+      if (placing && session?.resumePasteAim()) {
+        this.feedback.showMessage(cmd.playerId, "pasteChoosePosition");
+        return "aiming";
+      }
       if (placing) this.feedback.showMessage(cmd.playerId, "pasteInactive");
       return "ignored";
     }

@@ -3301,6 +3301,42 @@ export function buildPasteControlPlace(a: Arena): Promise<Outcome> {
   return pasteControlOnce(a, false);
 }
 
+export function buildPasteControlReaim(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(2, 1, 1);
+    const ground = f.region(15, 1, 11, f.cell(8, -1, 8));
+    const air = f.region(15, 4, 11, f.cell(8, 0, 8));
+    try {
+      await copyLine(f);
+      await f.menu("paste", "newCopy");
+      await f.select(f.cell(0, 0, 1));
+      await checkState(f, "selected", true);
+      await aimControlTarget(f, ground, air);
+      await holdPasteControl(f, PASTE_PLACE_TYPE);
+      const resumed = await f.press("itemUse");
+      check(
+        resumed.flow.kind === "pasteAim" &&
+          resumed.message === "pasteChoosePosition",
+        "First Place did not resume aiming with the position prompt",
+      );
+      check(
+        f.count(air, "minecraft:air") === air.length,
+        "First Place wrote blocks",
+      );
+      await wait(BUILD_SPEC.pasteRepeatTicks + 2);
+      const placed = await f.press("itemUse");
+      check(placed.message === "editDoneCount", "Second Place did not finish");
+      check(
+        f.block(f.cell(16, 0, 12)).typeId === "minecraft:stone" &&
+          f.block(f.cell(17, 0, 12)).typeId === "minecraft:oak_log",
+        "Second Place did not paste the copied line",
+      );
+    } finally {
+      await releaseControlFixture(f, [...source, ...ground, ...air]);
+    }
+  });
+}
+
 export function buildPasteControlRoutesOnce(a: Arena): Promise<Outcome> {
   return pasteControlOnce(a, true);
 }

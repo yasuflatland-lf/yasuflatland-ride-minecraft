@@ -15,6 +15,7 @@ import {
   type UndoHistory,
   withEntry,
 } from "../../../src/domain/build/history/history";
+import { NO_TURN } from "../../../src/domain/build/rotation/quarterTurn";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
@@ -28,6 +29,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { selectionFlows } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 
 const dim = asDimensionId("minecraft:overworld");
@@ -311,6 +313,41 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
     ),
   }),
 );
+
+it("resumes only idle and selected clipboards at the copied facing", () => {
+  fc.assert(
+    fc.property(cellArb, dimensionArb, (from, dimensionId) => {
+      const { selected, inProgress } = selectionFlows(from, dimensionId, stone);
+      const flows: BuildFlow[] = [
+        { kind: "idle" },
+        selected,
+        ...inProgress,
+        { kind: "pasteAim", manualTurn: 3, facing: "west" },
+      ];
+      const selection = selectionOf(dimensionId, boxOf(from, from), stone);
+      const clipboard = structureClipboard(selection.box);
+      for (const held of [false, true]) {
+        for (const flow of flows) {
+          const session = new BuildSession(asPlayerId("builder"));
+          session.confirmBox(selection);
+          if (held) holdClipboard(session, clipboard);
+          session.setFlow(flow);
+          const allowed =
+            held && (flow.kind === "idle" || flow.kind === "selected");
+          expect(session.resumePasteAim()).toBe(allowed);
+          if (allowed)
+            expect(session.flow).toEqual({
+              kind: "pasteAim",
+              manualTurn: NO_TURN,
+            });
+          else expect(session.flow).toBe(flow);
+          expect(session.confirmedBox).toBe(selection);
+          expect(session.clipboard).toBe(held ? clipboard : undefined);
+        }
+      }
+    }),
+  );
+});
 
 it("completeCopy replaces the clipboard and box and enters paste aiming from any flow without changing history", () => {
   fc.assert(

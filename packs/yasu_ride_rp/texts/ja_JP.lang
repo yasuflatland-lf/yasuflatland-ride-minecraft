@@ -136,6 +136,7 @@ yasu_build.message.rotate_blocked=回転範囲に保護されたブロックが�
 yasu_build.message.rotate_failed=回転に失敗したため、復元を試みました。
 yasu_build.message.rotate_done=%s ブロックを回転しました。
 yasu_build.message.paste_ready=貼り付け準備完了 %sx%sx%s（%sブロック） | 回転 %s° | 押す：メニュー | スニーク＋押す：貼り付け | 回転・配置アイテム
+yasu_build.message.paste_choose_position=貼り付け位置を確定してください。
 yasu_build.message.paste_inactive=先に何かをコピーしてください。
 yasu_build.message.sneaking_prefix=［スニーク中］
 yasu_build.message.paste_no_target=ブロックを狙って貼り付けてください。

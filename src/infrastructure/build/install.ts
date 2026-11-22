@@ -205,7 +205,7 @@ export function installBuild(deps: {
     rotateSelection: new RotateSelection(repo, rotateBox, feedback),
     pasteDebounce,
     rotateDebounce,
-    refresh: (id, tick) => preview.refresh(id, tick),
+    refresh: (id, tick, reason) => preview.refresh(id, tick, reason),
   });
   const blockPressContext: BlockPressContext = {
     setPoint: new SetPoint(repo, blocks, feedback),

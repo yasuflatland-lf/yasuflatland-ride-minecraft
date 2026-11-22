@@ -90,7 +90,7 @@ export class ShowPreview {
     );
   }
 
-  refresh(id: PlayerId, tick: number): void {
+  refresh(id: PlayerId, tick: number, reason?: "resumePaste"): void {
     const blink = Math.floor(tick / BUILD_SPEC.outlineInterval) % 2 === 0;
     const session = this.repo.get(id);
     if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
@@ -154,12 +154,17 @@ export class ShowPreview {
       const result = this.resolveTarget.execute({
         playerId: id,
         dimensionId: playerDimension,
+        facing: reason === "resumePaste" ? session.clipboard.facing : undefined,
         aim,
         tick,
       });
       if (result.kind === "target") preview.pasteBox = result.target.box;
     }
-    if (flow.kind === "pasteAim" && session.clipboard)
+    if (
+      flow.kind === "pasteAim" &&
+      session.clipboard &&
+      reason !== "resumePaste"
+    )
       this.feedback.showMode(id, {
         kind: "pasteReady",
         size: session.clipboard.size,

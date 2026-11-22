@@ -114,6 +114,16 @@ export class BuildSession {
     return previous !== structureOf(clipboard) ? previous : undefined;
   }
 
+  resumePasteAim(): boolean {
+    if (
+      !this.currentClipboard ||
+      (this.currentFlow.kind !== "idle" && this.currentFlow.kind !== "selected")
+    )
+      return false;
+    this.currentFlow = beginPasteAim();
+    return true;
+  }
+
   followPasteFacing(facing: Facing): void {
     if (this.currentFlow.kind !== "pasteAim") return;
     this.currentFlow = followFacing(this.currentFlow, facing);

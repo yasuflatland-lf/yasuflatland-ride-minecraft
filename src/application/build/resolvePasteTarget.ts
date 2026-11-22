@@ -4,7 +4,10 @@ import {
   type PasteTarget,
 } from "../../domain/build/clipboard/clipboard";
 import { snapToGround } from "../../domain/build/clipboard/ground";
-import { facingFromDirection } from "../../domain/build/rotation/facing";
+import {
+  type Facing,
+  facingFromDirection,
+} from "../../domain/build/rotation/facing";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -40,6 +43,7 @@ export class ResolvePasteTarget {
     dimensionId: DimensionId;
     tick: number;
     fresh?: boolean;
+    facing?: Facing;
   }): PasteTargetResult {
     const session = this.repo.get(command.playerId);
     if (!session?.clipboard) {
@@ -49,6 +53,7 @@ export class ResolvePasteTarget {
     const flow = session.flow;
     const previous = flow.kind === "pasteAim" ? flow.facing : undefined;
     const facing =
+      command.facing ??
       facingFromDirection(command.aim.ray.direction, previous) ??
       previous ??
       session.clipboard.facing;

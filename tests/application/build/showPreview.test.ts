@@ -651,6 +651,33 @@ it("outlines the rotated paste box at each heading", () => {
   );
 });
 
+it("shows the copied orientation on resume and leaves the position prompt visible", () => {
+  const e = setup();
+  const box = boxOf(cell, end);
+  e.session.completeCopy(
+    selectionOf(overworld, box, AIR),
+    structureClipboard(box),
+  );
+  e.session.startNewCopy();
+  e.session.resumePasteAim();
+  e.aim.mockReturnValue({
+    input: "pointer",
+    ray: { ...ray, direction: facingVector("south") },
+    block: { cell, face: "up" },
+  });
+  e.preview.refresh(alex, 1, "resumePaste");
+  expect(e.feedback.previews[0]?.set).toEqual(
+    previewPoints(e.session.flow, {
+      blink: true,
+      pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
+    }),
+  );
+  expect(e.feedback.modes).toEqual([]);
+  e.preview.execute(BUILD_SPEC.outlineInterval);
+  expect(e.session.pasteTurn).toBe(1);
+  expect(e.feedback.modes).toHaveLength(1);
+});
+
 it("refreshes only the requested player's rotated paste between outline ticks", () => {
   const e = setup();
   e.session.completeCopy(
