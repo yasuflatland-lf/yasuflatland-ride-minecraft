@@ -1358,8 +1358,8 @@ export function buildUndoItemShape(a: Arena): Promise<Outcome> {
 export function buildUndoItemEnd(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const start = f.cell();
-    const material = blockStateOf("minecraft:stone");
-    f.block(start).setType(material.typeId);
+    f.block(start).setType("minecraft:stone");
+    const material = snapshot(f, [start])[0] as BlockState;
     for (const line of [false, true]) {
       await f.tap("clear");
       check((await f.tap("block")).flow.kind === "point1", "Start tap failed");
