@@ -191,10 +191,11 @@ export const loadAtlas = async (python: PythonWorker) =>
         "atlas = camper['ATLAS']",
         "ox, oy = camper['LAYOUT'].origin('base')",
         "regions = [[r.name, ox + r.x, oy + r.y, r.w, r.h] for r in atlas.regions]",
-        "print(json.dumps(dict(width=camper['LAYOUT'].size[0], height=camper['LAYOUT'].size[1], base=[ox, oy, atlas.width, atlas.height], regions=regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], windows=[camper['right_windows'], camper['left_windows']])))",
+        "print(json.dumps(dict(sourceBones=camper['camper_bones'], width=camper['LAYOUT'].size[0], height=camper['LAYOUT'].size[1], base=[ox, oy, atlas.width, atlas.height], regions=regions, period=camper['RIB_PERIOD_TEXELS'], texelsPerPx=camper['RIB_TEXELS_PER_PX'], windows=[camper['right_windows'], camper['left_windows']])))",
       ].join("\n"),
     ),
   ) as {
+    sourceBones: Bone[];
     width: number;
     height: number;
     base: [number, number, number, number];

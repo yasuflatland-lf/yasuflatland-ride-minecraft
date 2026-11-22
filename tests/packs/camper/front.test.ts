@@ -163,7 +163,7 @@ describe("camper front panels (ADR 0226)", () => {
         (cube.origin[1] ?? 0) >= 10 &&
         end(cube, 1) <= 26,
     );
-    const colour = (cube: Cube) => swatchName(cube.uv.west);
+    const colour = (cube: Cube) => swatchName(cube.uv.east);
     expect(new Set(parts.map(colour))).toEqual(
       new Set(["panel", "grille", "slat", "chrome"]),
     );

@@ -360,8 +360,8 @@ interleaved cubes. No ownership field enters a cube.
 - Rule: `east` is the minimum x side, `west` the maximum x side, `north` the minimum z side, `south` the maximum z side, `down` the minimum y side and `up` the maximum y side. Generators that only name faces in UV maps are unaffected.
 - Agreement: Accepted
 - Basis: [0259](../adr/0259-bedrock-draws-east-on-the-minimum-x-side.md).
-- Implementation: Not yet implemented. A single shared face-side value object for the tools, a mirror for the tests and a parity test are planned follow-up changes; the cull, preview renderer and pack tests still use the opposite x convention until then.
-- Verification: confirmed in game on an iPad with diagnostic camper builds (0259 table). Not verified offline, because a wrong convention cannot be detected without the game.
+- Implementation: `tools/face_sides.py` supplies the cull and preview renderer. `tests/support/modelFaces.ts` mirrors its axes, signs and corner order. Preview UV vertex order stays position-based: maximum x uses the `west` order; `flip_side_u` and poses are unchanged.
+- Verification: confirmed in game on an iPad with diagnostic camper builds (0259 table). `tests/tools/faceSides.test.ts` checks Python/TypeScript parity; `tests/packs/camperFaceSides.test.ts` pins the confirmed convention by checking outward `east` faces and buried `west` faces on left-wall trim at x = -24. The full regenerated pack still needs the owner's iPad check in [manual-test.md](../manual-test.md).
 
 ### Buried face culling
 
@@ -610,6 +610,8 @@ interleaved cubes. No ownership field enters a cube.
 - Verification: `tests/tools/scooterAnim.test.ts` checks steering matrices, axis invariance, clearance, stand feet, glow radius and locators, fold reversal and shared sounds. `tests/tools/scooterTextures.test.ts` checks lit masks. `tests/packs/scooterClient.test.ts` checks client references, paint variants, controller gates and overlays, and transformed fold, glow, steering and stand geometry. In-game appearance remains unverified.
 
 ## Open issues
+
+- `tools/monitor.py` still validates east/west viewer normals with the old x convention. This generator validator is outside issue #2244's cull/renderer/test scope and needs a follow-up correction to use `tools/face_sides.py`. Current layouts use `south` and `down`, so they are unaffected.
 
 Where an ADR and the implementation differ, this spec states the implementation and lists the difference here.
 

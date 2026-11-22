@@ -19,8 +19,16 @@ import {
 
 const python = startPythonWorker();
 afterAll(() => python.close());
-const { width, height, base, regions, period, texelsPerPx, windows } =
-  await loadAtlas(python);
+const {
+  width,
+  height,
+  base,
+  regions,
+  period,
+  texelsPerPx,
+  windows,
+  sourceBones,
+} = await loadAtlas(python);
 
 describe("camper rib atlas (ADR 0190)", () => {
   it("resolves the nested rib region through base with groove, highlight, and flat bands", () => {
@@ -82,7 +90,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     }
   });
 
-  it("maps only the outward white shell faces on both walls and the door to height-aligned ribs", () => {
+  it("keeps height-aligned rib UVs on retained shell faces", () => {
     const [, x, y, w, h] = defined(regions[0], "rib region");
     const roofHeight = h / texelsPerPx;
     const sampledRow = (cube: Cube, v: number, worldY: number) =>
@@ -97,13 +105,13 @@ describe("camper rib atlas (ADR 0190)", () => {
           .map(([side, face]) => ({ bone: b.name, cube: c, side, face })),
       ),
     );
-    // The side walls retain 294 of 396 west ribs and 279 of 363 east ribs after culling.
+    // These authored UVs include inward wall ribs; see the camper spec Open issues.
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "west"),
-    ).toHaveLength(294);
+    ).toHaveLength(352);
     expect(
       entries.filter((e) => e.bone === "body" && e.side === "east"),
-    ).toHaveLength(279);
+    ).toHaveLength(321);
     const roof = (bone("body").cubes ?? []).find(
       (c) => c.origin[1] === 61 && c.size[1] === 3 && c.size[0] === 48,
     );
@@ -155,11 +163,11 @@ describe("camper rib atlas (ADR 0190)", () => {
               expect(sampledRow(cube, v, worldY)).toBe(
                 Math.floor(y + (roofHeight - worldY) * texelsPerPx),
               );
-            const edge =
-              side === "west"
-                ? (cube.origin[0] ?? 0)
-                : (cube.origin[0] ?? 0) + (cube.size[0] ?? 0);
-            expect(edge).toBe(side === "west" ? -24 : 24);
+            const edge = side === "east" ? (cube.origin[0] ?? 0) : end(cube, 0);
+            if (cube.size[0] === 48)
+              expect(edge).toBe(side === "east" ? -24 : 24);
+            else if (side === "east") expect(edge).toBe(23);
+            else expect(edge).toBeCloseTo(cube.size[0] === 1 ? -23 : -23.8, 6);
             expect(cube.rotation).toBeUndefined();
             for (const [other, f] of Object.entries(cube.uv)) {
               if (swatchName(f) !== undefined)
@@ -174,7 +182,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     const overlaps = entries.flatMap((a, i) =>
       entries.slice(i + 1).flatMap((b) => {
         const plane = (entry: typeof a) =>
-          entry.side === "west"
+          entry.side === "east"
             ? (entry.cube.origin[0] ?? 0)
             : end(entry.cube, 0);
         if (a.side !== b.side || plane(a) !== plane(b)) return [];
@@ -208,7 +216,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     return { uv: [x, y], uv_size: [w, h] };
   };
 
-  it("uses aluminium door frames with head, hinge, and latch hardware on the outward face", () => {
+  it("authors door hardware on west faces before buried-face culling", () => {
     const frames = (bone("door_entry").cubes ?? []).filter(
       // The latch plate and the window's corner rows share this depth but are far smaller.
       (c) =>
@@ -227,7 +235,18 @@ describe("camper rib atlas (ADR 0190)", () => {
       const frame = required(
         frames.find((c) => c.origin[1] === y && c.origin[2] === z),
       );
-      expect(frame.uv.west).toEqual(regionFace(name));
+      const source = required(
+        sourceBones
+          .find((b) => b.name === "door_entry")
+          ?.cubes?.find(
+            (c) =>
+              c.origin.every((value, axis) => value === frame.origin[axis]) &&
+              c.size.every((value, axis) => value === frame.size[axis]),
+          ),
+      );
+      expect(source.uv.west).toEqual(regionFace(name));
+      expect(frame.uv.west).toBeUndefined();
+      expect(frame.uv.east).toEqual(swatchFace("aluminium"));
     }
   });
 
@@ -262,7 +281,7 @@ describe("camper rib atlas (ADR 0190)", () => {
     }
   });
 
-  it("puts a screw row on the aluminium vent upper rail", () => {
+  it("authors the vent screw row on the buried west face", () => {
     const rail = required(
       (bone("body").cubes ?? []).find(
         (c) =>
@@ -270,7 +289,18 @@ describe("camper rib atlas (ADR 0190)", () => {
       ),
     );
     expect(rail.uv.up?.uv).toEqual(swatchUv("aluminium"));
-    expect(rail.uv.west).toEqual(regionFace("vent_screws"));
+    const source = required(
+      sourceBones
+        .find((b) => b.name === "body")
+        ?.cubes?.find(
+          (c) =>
+            c.origin.every((value, axis) => value === rail.origin[axis]) &&
+            c.size.every((value, axis) => value === rail.size[axis]),
+        ),
+    );
+    expect(source.uv.west).toEqual(regionFace("vent_screws"));
+    expect(rail.uv.west).toBeUndefined();
+    expect(rail.uv.east).toEqual(swatchFace("aluminium"));
   });
 
   it("paints the exact dark hardware pattern over aluminium in each region", () => {
@@ -330,7 +360,7 @@ describe("camper rib atlas (ADR 0190)", () => {
 });
 
 describe("camper aluminium roof edges", () => {
-  it("maps bolts only to the three outer edge faces and preserves lamp swatches and bezels", () => {
+  it("maps bolts to authored inward rail faces and preserves lamp swatches and bezels", () => {
     const [, boltX, boltY, boltWidth, boltHeight] = defined(
       regions.find(([name]) => name === "bolt"),
       "bolt region",
@@ -345,14 +375,14 @@ describe("camper aluminium roof edges", () => {
     // No rail crosses the front: only the two side rails carry bolts.
     expect(edges.every((c) => c.size[0] === 0.4)).toBe(true);
     for (const c of edges) {
-      const outer = defined(c.origin[0], "edge x") < 0 ? "west" : "east";
+      const inward = defined(c.origin[0], "edge x") < 0 ? "west" : "east";
       const width = defined(c.size[2], "edge width");
       expect(c.origin[1]).toBe(63.4);
       expect(c.size.slice(0, 2)).toEqual([0.4, 0.6]);
-      expect(c.origin[0]).toBe(outer === "west" ? -24.4 : 24);
+      expect(c.origin[0]).toBe(inward === "west" ? -24.4 : 24);
       for (const [face, uv] of Object.entries(c.uv))
         expect(uv).toEqual(
-          face === outer
+          face === inward
             ? { uv: [boltX, boltY], uv_size: [width, 1] }
             : swatchFace("aluminium"),
         );

@@ -190,7 +190,7 @@ describe("camper rear-right vent lid (ADR 0146, 0157)", () => {
       expect(c.origin[0]).toBeCloseTo(-24.3, 4);
   });
   it("cuts two columns of twelve recessed slits above a plain lower part", () => {
-    const slits = lid().filter((c) => matchesSwatch(c.uv.west, "black"));
+    const slits = lid().filter((c) => matchesSwatch(c.uv.east, "black"));
     expect(slits).toHaveLength(24);
     for (const c of slits) {
       expect(c.origin[0]).toBeCloseTo(-24.2, 4);

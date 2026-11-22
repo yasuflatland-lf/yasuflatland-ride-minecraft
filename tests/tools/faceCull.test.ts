@@ -102,7 +102,7 @@ describe("cull_buried_faces", () => {
     const flush = cube([7, 1, 1], [1, 1, 1]);
     const { first } = await cull(geometry([outer, flush]));
     expect(first.geometry).toEqual(
-      geometry([outer, { ...flush, uv: { east: flush.uv.east } }]),
+      geometry([outer, { ...flush, uv: { west: flush.uv.west } }]),
     );
   });
 
@@ -117,7 +117,7 @@ describe("cull_buried_faces", () => {
   });
 
   it("treats the normal axis strictly and allows 1e-6 on lateral axes across grid cells", async () => {
-    const boundary = cube([7, 1, 1], [0, 1, 1], ["east"]);
+    const boundary = cube([7, 1, 1], [0, 1, 1], ["west"]);
     const lateral = cube([-5e-7, 1, 2], [1, 1, 0], ["north"]);
     const outside = cube([-2e-6, 1, 2], [1, 1, 0], ["north"]);
     const { first } = await cull(
@@ -166,9 +166,9 @@ describe("cull_buried_faces", () => {
           const { first } = await cull(geometry([large, small, protruding]));
           expect(first.index_map[1]).toEqual(["bone_0", 1, null]);
           const kept = first.geometry.bones[0]?.cubes[1];
-          expect(kept?.uv.east).toEqual(protruding.uv.east);
+          expect(kept?.uv.west).toEqual(protruding.uv.west);
           expect(kept?.uv.south).toEqual(protruding.uv.south);
-          expect(kept?.uv.west).toBeUndefined();
+          expect(kept?.uv.east).toBeUndefined();
         },
       ),
       { numRuns: 40 },
@@ -212,7 +212,7 @@ describe("cull_buried_faces", () => {
       rotation: [-47, 103, -60] as Vec,
     };
     const occluder = { ...outer, ...pose };
-    const target = { ...cube([7, 2, 2], [0, 0, 0], ["east"]), ...pose };
+    const target = { ...cube([7, 2, 2], [0, 0, 0], ["west"]), ...pose };
     const input = geometry([occluder, target]);
     expect((await cull(input, { epsilon: 1 })).first.geometry).toEqual(input);
   });
@@ -222,7 +222,7 @@ describe("cull_buried_faces", () => {
     expect(
       await run(
         `
-policy = CullPolicy((), lambda bone, cube: cube["origin"] != [0, 0, 0] or "west" not in cube["uv"])
+policy = CullPolicy((), lambda bone, cube: cube["origin"] != [0, 0, 0] or "east" not in cube["uv"])
 first = cull_buried_faces(data, policy)
 second = cull_buried_faces(first.geometry, policy)
 print(json.dumps([first.removed_faces, first.removed_cubes, second.removed_faces]))

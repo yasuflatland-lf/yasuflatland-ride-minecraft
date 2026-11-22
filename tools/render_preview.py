@@ -442,7 +442,7 @@ def textured_face(texture, face, quad, name, tex_w, tex_h, merge=False, cells_pe
         return sorted([0, 1, *[(n - start) / length for n in range(math.floor(lo) + 1, math.ceil(hi))]])
 
     # Bedrock up/down UVs run u along +x and v toward -z; side faces run v downward.
-    order = (1, 2, 3, 0) if name in ("north", "east", "up") else (3, 2, 1, 0)
+    order = (1, 2, 3, 0) if name in ("north", "west", "up") else (3, 2, 1, 0)
     tl, tr, br, bl = [quad[i] for i in order]
     us, vs = breaks(u, du), breaks(v, dv)
     capped = False
