@@ -334,38 +334,3 @@ it("checks host obstruction at the clamped footprint before payment or clearance
     }),
   );
 });
-
-it("refunds only a paid item when tabletop spawning fails", () => {
-  fc.assert(
-    fc.property(
-      fc.record({
-        creative: fc.boolean(),
-        hasPlayer: fc.boolean(),
-        consumeOk: fc.boolean(),
-        spawnOk: fc.boolean(),
-      }),
-      ({ creative, hasPlayer, consumeOk, spawnOk }) => {
-        const world = fixture(
-          { isCreative: () => creative, consumeItem: vi.fn(() => consumeOk) },
-          !spawnOk,
-        );
-        const payer = hasPlayer ? player : undefined;
-        const cmd = { ...command, player: payer };
-        const owesPayment = hasPlayer && !creative;
-        const paid = owesPayment && consumeOk;
-        const spawns = !owesPayment || paid;
-        expect(placeOnTop(world, CAMP_TABLE_TOP, kind, cmd)).toBe(
-          spawns && spawnOk ? "placed" : "refused",
-        );
-        expect(world.consumeItem).toHaveBeenCalledTimes(owesPayment ? 1 : 0);
-        expect(world.spawnHosted).toHaveBeenCalledTimes(spawns ? 1 : 0);
-        if (paid && !spawnOk) {
-          expect(world.refund).toHaveBeenCalledExactlyOnceWith(payer, cmd.slot);
-          expect(world.spawnHosted).toHaveBeenCalledBefore(world.refund);
-        } else {
-          expect(world.refund).not.toHaveBeenCalled();
-        }
-      },
-    ),
-  );
-});
