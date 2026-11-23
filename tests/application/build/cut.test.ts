@@ -182,8 +182,8 @@ it.each(["tooLarge", "unreadable"] as const)(
       );
       expect(e.world.writes).toBe(0);
       expect(e.feedback.messages.at(-1)).toMatchObject({
-        message: "tooLarge",
-        count: 1,
+        message: refusal === "tooLarge" ? "tooLarge" : "copyUnreadable",
+        count: refusal === "tooLarge" ? 1 : undefined,
       });
     }
   },
