@@ -158,6 +158,8 @@ it.each([
     event.itemStack.typeId = "yasu_ride:gas_lantern_item";
     f.interact(event);
     expect(event.cancel).toBe(false);
-    f.interact({ ...event, itemStack: undefined });
+    const emptyHand = { ...event, itemStack: undefined };
+    f.interact(emptyHand);
+    expect(emptyHand.cancel).toBe(false);
   },
 );

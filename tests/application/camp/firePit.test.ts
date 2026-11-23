@@ -64,7 +64,11 @@ it("places on clear ground outside vehicle space and folds back after three hits
   expect(actions.hit(pit, player, 1)).toBe(false);
   expect(actions.hit(pit, player, 2)).toBe(false);
   expect(actions.hit(pit, player, 3)).toBe(true);
-  expect(world.dropItem).toHaveBeenCalledOnce();
+  expect(world.showHitsLeft.mock.calls).toEqual([
+    [player, 2],
+    [player, 1],
+  ]);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
   expect(world.removeFirePit).toHaveBeenCalledOnce();
 });
 

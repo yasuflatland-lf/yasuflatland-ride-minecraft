@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import fc from "fast-check";
+import { expect, it, vi } from "vitest";
 import { BackToAiming } from "../../../src/application/build/backToAiming";
 import { ChooseStairs } from "../../../src/application/build/chooseStairs";
 import {
@@ -119,21 +120,47 @@ it("refuses a missing row, an unstable material, and a missing or invalid goal",
   expect(f.session.flow).toBe(aiming);
 });
 
-it("refuses writes above maxVolume before starting the job", () => {
-  const f = fixture();
-  f.select(stone, { ...from, x: from.x - BUILD_SPEC.maxVolume });
-  f.choose.execute({ ...command, op: "stairs" });
-  f.aimAt({ ...hit, z: 1 });
-  expect(f.fix.execute(command)).toBe(true);
-  f.confirm.execute({ ...command, contents: "stepsOnly" });
-  f.jobs.step();
-  expect(f.feedback.messages.at(-1)).toEqual({
-    message: "tooLarge",
-    count: (BUILD_SPEC.maxVolume + 1) * 2,
-  });
-  expect(f.world.writes).toBe(0);
-  expect(f.session.hasHistory).toBe(false);
-  expect(f.session.isEditing).toBe(false);
+it("starts stairs and terrace jobs exactly when their planned cells fit maxVolume", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("stepsOnly", "terrace", "passage"),
+      fc.integer({ min: -1, max: 1 }),
+      (contents, offset) => {
+        const f = fixture();
+        // A one-block rise and run has two steps, seven above cells, and six headroom cells per row position.
+        const cellsPerColumn = { stepsOnly: 2, terrace: 7, passage: 8 }[
+          contents
+        ];
+        const width =
+          Math.floor(BUILD_SPEC.maxVolume / cellsPerColumn) + offset;
+        const count = width * cellsPerColumn;
+        f.select(stone, { ...from, x: from.x + width - 1 });
+        f.choose.execute({
+          ...command,
+          op: contents === "terrace" ? "terrace" : "stairs",
+        });
+        f.aimAt({ ...hit, z: 1 });
+        expect(f.fix.execute(command)).toBe(true);
+        const start = vi.spyOn(f.jobs, "start");
+        if (contents === "terrace") f.terrace.execute(command);
+        else f.confirm.execute({ ...command, contents });
+        if (count > BUILD_SPEC.maxVolume) {
+          expect(f.feedback.messages.at(-1)).toEqual({
+            message: "tooLarge",
+            count,
+          });
+          expect(start).not.toHaveBeenCalled();
+          f.jobs.step();
+          expect(f.world.writes).toBe(0);
+          expect(f.session.hasHistory).toBe(false);
+          expect(f.session.isEditing).toBe(false);
+        } else {
+          expect(start).toHaveBeenCalledTimes(1);
+          expect(f.session.isEditing).toBe(true);
+        }
+      },
+    ),
+  );
 });
 
 it("builds the step cells, selects the goal row, and restores the original row and cells on Undo", () => {
@@ -253,23 +280,6 @@ it("terraces with sand selected and restores the stone and original taps on Undo
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
 });
 
-it("refuses an oversized terrace using its above-cell count", () => {
-  const f = fixture();
-  const width = Math.floor(BUILD_SPEC.maxVolume / 7) + 1;
-  f.select(stone, { ...from, x: from.x + width - 1 });
-  f.choose.execute({ ...command, op: "terrace" });
-  f.aimAt({ ...hit, z: 1 });
-  expect(f.fix.execute(command)).toBe(true);
-  f.terrace.execute(command);
-  f.jobs.step();
-  expect(f.feedback.messages.at(-1)).toEqual({
-    message: "tooLarge",
-    count: width * 7,
-  });
-  expect(f.session.hasHistory).toBe(false);
-  expect(f.world.writes).toBe(0);
-});
-
 it("counts Passage steps, fill and cleared headroom in the completed edit", () => {
   const f = fixture();
   const dirt = blockStateOf("minecraft:dirt");
@@ -286,22 +296,4 @@ it("counts Passage steps, fill and cleared headroom in the completed edit", () =
     message: "editDoneCount",
     count: 15 + 6 + 45,
   });
-});
-
-it("refuses Passage when headroom puts the edit over maxVolume", () => {
-  const f = fixture();
-  const width = Math.floor(BUILD_SPEC.maxVolume / 8) + 1;
-  f.select(stone, { ...from, x: from.x + width - 1 });
-  f.choose.execute({ ...command, op: "stairs" });
-  f.aimAt({ ...hit, z: 1 });
-  expect(f.fix.execute(command)).toBe(true);
-  f.confirm.execute({ ...command, contents: "passage" });
-  expect(f.feedback.messages.at(-1)).toEqual({
-    message: "tooLarge",
-    count: width * 8,
-  });
-  f.jobs.step();
-  expect(f.world.writes).toBe(0);
-  expect(f.session.isEditing).toBe(false);
-  expect(f.session.hasHistory).toBe(false);
 });

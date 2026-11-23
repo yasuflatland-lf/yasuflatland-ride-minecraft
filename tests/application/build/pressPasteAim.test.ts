@@ -161,21 +161,6 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
   );
 });
 
-it("returns menu on air without starting a job or changing the flow", () => {
-  fc.assert(
-    fc.property(cell, face, tick, (block, face, tick) => {
-      const e = setup(block, face, tick);
-      const flow = e.session.flow;
-      if (!e.aim.target) throw new Error("Expected aim");
-      e.aim.target = { input: e.aim.target.input, ray: e.aim.target.ray };
-      expect(e.execute(false)).toBe("menu");
-      expect(e.start).not.toHaveBeenCalled();
-      expect(e.session.isEditing).toBe(false);
-      expect(e.session.flow).toEqual(flow);
-    }),
-  );
-});
-
 it("ignores every selection flow and preserves noClipboard feedback in paste aiming", () => {
   fc.assert(
     fc.property(cell, face, tick, (block, face, tick) => {
@@ -310,7 +295,10 @@ it("never writes for a plain press with arbitrary aim and tick", () => {
         else if (kind === 1 && e.aim.target)
           e.aim.target = { input: e.aim.target.input, ray: e.aim.target.ray };
         const capture = vi.spyOn(e.structures, "capture");
+        const flow = e.session.flow;
         expect(e.execute(false)).toBe("menu");
+        expect(e.session.flow).toEqual(flow);
+        expect(e.session.isEditing).toBe(false);
         e.jobs.step();
         expect(e.start).not.toHaveBeenCalled();
         expect(capture).not.toHaveBeenCalled();

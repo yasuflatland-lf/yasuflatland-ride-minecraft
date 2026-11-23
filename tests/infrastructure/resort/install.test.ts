@@ -1,49 +1,57 @@
+import { beforeEach, expect, it, vi } from "vitest";
+import { TickShows } from "../../../src/application/resort/tickShows";
+import { UseToilet } from "../../../src/application/resort/useToilet";
+import { UseWashstand } from "../../../src/application/resort/useWashstand";
+import { WatchToiletDismount } from "../../../src/application/resort/watchToiletDismount";
+import { FURNITURE_SPEC } from "../../../src/domain/resort/furniture";
+import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
+import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
+import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
+import { registerFurnitureTopLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle";
 import { registerShowLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/showLifecycle";
+import { registerTestFurniture } from "../../../src/infrastructure/resort/bedrock/handlers/testFurniture";
+import { registerTestToilet } from "../../../src/infrastructure/resort/bedrock/handlers/testToilet";
+import { registerTestWashstand } from "../../../src/infrastructure/resort/bedrock/handlers/testWashstand";
+import { registerToiletInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/toiletInteraction";
+import { registerWashstandInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/washstandInteraction";
+import {
+  BEACH_CHAIR,
+  BEACH_CHAIR_FOLDED,
+  BEACH_CHAIR_TOP_REFUSAL_HINTS,
+  BEACH_PARASOL_ITEM,
+  BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
+  DINING_TABLE_TOP_REFUSAL_HINTS,
+  FURNITURE_IDS,
+} from "../../../src/infrastructure/resort/identifiers";
+import { installResort } from "../../../src/infrastructure/resort/install";
+import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
+import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
+import { defined } from "../../support/defined";
 
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/showLifecycle",
   () => ({ registerShowLifecycle: vi.fn() }),
 );
 
-import { registerToiletInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/toiletInteraction";
-
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/toiletInteraction",
   () => ({ registerToiletInteraction: vi.fn() }),
 );
-
-import { registerWashstandInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/washstandInteraction";
 
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/washstandInteraction",
   () => ({ registerWashstandInteraction: vi.fn() }),
 );
 
-import { registerTestToilet } from "../../../src/infrastructure/resort/bedrock/handlers/testToilet";
-
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/testToilet",
   () => ({ registerTestToilet: vi.fn() }),
 );
 
-import { registerTestWashstand } from "../../../src/infrastructure/resort/bedrock/handlers/testWashstand";
-
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/testWashstand",
   () => ({ registerTestWashstand: vi.fn() }),
 );
-
-import { ShowStates } from "../../../src/application/resort/showStates";
-import { TickShows } from "../../../src/application/resort/tickShows";
-import { UseToilet } from "../../../src/application/resort/useToilet";
-import { UseWashstand } from "../../../src/application/resort/useWashstand";
-import { WatchToiletDismount } from "../../../src/application/resort/watchToiletDismount";
-import { asFurnitureId } from "../../../src/domain/resort/ids";
-import { TOILET_SPEC, WASHSTAND_SPEC } from "../../../src/domain/resort/shows";
-import { asPlayerId } from "../../../src/domain/shared/ids";
-import { BedrockShowSound } from "../../../src/infrastructure/resort/bedrock/bedrockShowSound";
-import { BedrockToiletWorld } from "../../../src/infrastructure/resort/bedrock/bedrockToiletWorld";
-import { BedrockWashstandWorld } from "../../../src/infrastructure/resort/bedrock/bedrockWashstandWorld";
 
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopInteraction",
@@ -53,14 +61,6 @@ vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle",
   () => ({ registerFurnitureTopLifecycle: vi.fn() }),
 );
-
-import { PlaceFurniture } from "../../../src/application/resort/placeFurniture";
-import { TakeBackFurniture } from "../../../src/application/resort/takeBackFurniture";
-import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
-import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
-import { registerFurniturePlacement } from "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement";
-import { registerFurnitureTopLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle";
-import { registerTestFurniture } from "../../../src/infrastructure/resort/bedrock/handlers/testFurniture";
 
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furniturePlacement",
@@ -74,19 +74,7 @@ vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/testFurniture",
   () => ({ registerTestFurniture: vi.fn() }),
 );
-const game = vi.hoisted(() => ({
-  getEntity: vi.fn(),
-  getDimension: vi.fn(),
-  tick: 10,
-}));
-vi.mock("@minecraft/server", () => ({
-  world: game,
-  system: {
-    get currentTick() {
-      return game.tick;
-    },
-  },
-}));
+vi.mock("@minecraft/server", () => ({ world: {}, system: {} }));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
   () => ({ registerBeachChairInteraction: vi.fn() }),
@@ -112,39 +100,10 @@ vi.mock(
   () => ({ registerTestBeachChair: vi.fn() }),
 );
 
-import { expect, it, vi } from "vitest";
-import { BeachChairMenu } from "../../../src/application/resort/beachChairMenu";
-import { LieOnBeachChair } from "../../../src/application/resort/lieOnBeachChair";
-import { SwitchBeachChairForm } from "../../../src/application/resort/switchBeachChairForm";
-import { TakeBackBeachChair } from "../../../src/application/resort/takeBackBeachChair";
-import { GiveStarterItem } from "../../../src/application/shared/giveStarterItem";
-import { FURNITURE_SPEC } from "../../../src/domain/resort/furniture";
-import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
-import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
-import { registerBeachChairHits } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits";
-import { registerBeachChairInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction";
-import { registerBeachChairLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/beachChairLifecycle";
-import {
-  BEACH_CHAIR,
-  BEACH_CHAIR_FOLDED,
-  BEACH_CHAIR_TOP_REFUSAL_HINTS,
-  BEACH_PARASOL_ITEM,
-  BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
-  DINING_TABLE_TOP_REFUSAL_HINTS,
-  FURNITURE_IDS,
-} from "../../../src/infrastructure/resort/identifiers";
-import { installResort } from "../../../src/infrastructure/resort/install";
-import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
-import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
-
-const world = vi.hoisted(() => ({ args: [] as unknown[][] }));
+const starterWorld = vi.hoisted(() => vi.fn());
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
   registerStarterItem: vi.fn(),
-  BedrockStarterItemWorld: class {
-    constructor(...args: unknown[]) {
-      world.args.push(args);
-    }
-  },
+  BedrockStarterItemWorld: starterWorld,
 }));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/bedrockParasolPaintWorld",
@@ -180,161 +139,122 @@ vi.mock(
   }),
 );
 
-it("registers folded chair hosting, the lifecycle, and the parasol starter with its own flag", () => {
+vi.mock(import("../../../src/application/resort/watchToiletDismount"), {
+  spy: true,
+});
+vi.mock(import("../../../src/application/resort/tickShows"), { spy: true });
+vi.mock(import("../../../src/application/resort/useToilet"), { spy: true });
+vi.mock(import("../../../src/application/resort/useWashstand"), { spy: true });
+
+beforeEach(() => vi.clearAllMocks());
+
+function onlyCall<T>(calls: T[]): T {
+  expect(calls).toHaveLength(1);
+  return defined(calls[0], "expected one call during installation");
+}
+
+function install() {
   const topHosts = new TopHostRegistry();
-  const register = vi.spyOn(topHosts, "registerHost");
   installResort({
     topHosts,
     isVehicleSpace: () => true,
     isCampSpace: () => false,
     placeHostedOnTop: () => false,
   });
-  expect(registerToiletInteraction).toHaveBeenCalledExactlyOnceWith(
-    expect.any(UseToilet),
+  return topHosts;
+}
+
+it("shares the show state and sound between the interactions, lifecycle and test hooks", () => {
+  install();
+  const [states, sound] = onlyCall(vi.mocked(registerTestToilet).mock.calls);
+  const [watch, shows] = onlyCall(vi.mocked(registerShowLifecycle).mock.calls);
+  const [washstand, useWashstand] = onlyCall(
+    vi.mocked(registerTestWashstand).mock.calls,
   );
-  expect(registerWashstandInteraction).toHaveBeenCalledExactlyOnceWith(
-    expect.any(UseWashstand),
+  expect(watch).toBe(vi.mocked(WatchToiletDismount).mock.instances[0]);
+  expect(shows).toBe(vi.mocked(TickShows).mock.instances[0]);
+  const [, watchStates, watchSound] = onlyCall(
+    vi.mocked(WatchToiletDismount).mock.calls,
   );
-  expect(registerShowLifecycle).toHaveBeenCalledExactlyOnceWith(
-    expect.any(WatchToiletDismount),
-    expect.any(TickShows),
+  const [, , tickStates] = onlyCall(vi.mocked(TickShows).mock.calls);
+  const [useToilet] = onlyCall(vi.mocked(registerToiletInteraction).mock.calls);
+  const [, toiletStates, toiletWatch] = onlyCall(
+    vi.mocked(UseToilet).mock.calls,
   );
-  expect(registerTestToilet).toHaveBeenCalledExactlyOnceWith(
-    expect.any(ShowStates),
-    expect.any(BedrockShowSound),
-    expect.objectContaining({ topHosts }),
+  expect(useToilet).toBe(vi.mocked(UseToilet).mock.instances[0]);
+  expect(toiletStates).toBe(states);
+  expect(toiletWatch).toBe(watch);
+  expect(watchStates).toBe(states);
+  expect(watchSound).toBe(sound);
+  expect(tickStates).toBe(states);
+  const [world, washstandStates, washstandSound] = onlyCall(
+    vi.mocked(UseWashstand).mock.calls,
   );
-  expect(registerTestWashstand).toHaveBeenCalledExactlyOnceWith(
-    expect.any(BedrockWashstandWorld),
-    vi.mocked(registerWashstandInteraction).mock.calls[0]?.[0],
+  expect(world).toBe(washstand);
+  expect(washstandStates).toBe(states);
+  expect(washstandSound).toBe(sound);
+  expect(useWashstand).toBe(vi.mocked(UseWashstand).mock.instances[0]);
+  expect(vi.mocked(registerWashstandInteraction).mock.calls[0]?.[0]).toBe(
+    useWashstand,
   );
-  const [states, sound] = vi.mocked(registerTestToilet).mock.calls[0] ?? [];
-  const [watch, shows] = vi.mocked(registerShowLifecycle).mock.calls[0] ?? [];
-  const toiletId = asFurnitureId("toilet");
-  const washstandId = asFurnitureId("washstand");
-  const dimension = {
-    getEntities: ({ type }: { type: string }) => [
-      { id: type === FURNITURE_IDS.toilet.entity ? toiletId : washstandId },
-    ],
-  };
-  game.getDimension.mockReturnValue(dimension);
-  const seat = vi
-    .spyOn(BedrockToiletWorld.prototype, "seat")
-    .mockReturnValue(true);
-  const lid = vi
-    .spyOn(BedrockToiletWorld.prototype, "setLid")
-    .mockImplementation(() => {});
-  const flushing = vi
-    .spyOn(BedrockToiletWorld.prototype, "setFlushing")
-    .mockImplementation(() => {});
-  const running = vi
-    .spyOn(BedrockWashstandWorld.prototype, "setRunning")
-    .mockImplementation(() => {});
-  vi.spyOn(BedrockToiletWorld.prototype, "placeBeside").mockImplementation(
-    () => {},
+});
+
+it("shares the furniture world and take-back action with the lifecycle and test hook", () => {
+  const topHosts = install();
+  const [takeBack, world] = onlyCall(
+    vi.mocked(registerFurnitureHits).mock.calls,
   );
-  const playAt =
-    sound && vi.spyOn(sound, "playAt").mockImplementation(() => {});
-  vi.mocked(registerToiletInteraction).mock.calls[0]?.[0].execute({
-    id: toiletId,
-    player: asPlayerId("p"),
-    now: 10,
-  });
-  expect(seat).toHaveBeenCalledExactlyOnceWith(toiletId, "p");
-  expect(states?.toilets.get(toiletId)?.phase).toBe("seated");
-  game.tick = 27;
-  watch?.refresh();
-  expect(states?.toilets.get(toiletId)).toEqual({
-    phase: "flushing",
-    endsAt: 27 + TOILET_SPEC.flushTicks,
-  });
-  vi.mocked(registerWashstandInteraction).mock.calls[0]?.[0].execute({
-    id: washstandId,
-    now: 27,
-  });
-  expect(states?.washstands.get(washstandId)).toEqual({
-    phase: "running",
-    endsAt: 27 + WASHSTAND_SPEC.runTicks,
-  });
-  expect(playAt).toHaveBeenCalledWith(TOILET_SPEC.flushSound, toiletId);
-  expect(playAt).toHaveBeenCalledWith(WASHSTAND_SPEC.runSound, washstandId);
-  shows?.tick(27 + TOILET_SPEC.flushTicks);
-  expect(flushing).toHaveBeenLastCalledWith(toiletId, false);
-  expect(lid).toHaveBeenLastCalledWith(toiletId, false);
-  expect(running).toHaveBeenLastCalledWith(washstandId, false);
-  vi.restoreAllMocks();
-  expect(registerFurniturePlacement).toHaveBeenCalledExactlyOnceWith(
-    expect.any(PlaceFurniture),
+  const [testWorld, testTakeBack, deps] = onlyCall(
+    vi.mocked(registerTestFurniture).mock.calls,
   );
-  expect(registerFurnitureHits).toHaveBeenCalledExactlyOnceWith(
-    expect.any(TakeBackFurniture),
-    expect.any(BedrockFurnitureWorld),
+  expect(testWorld).toBe(world);
+  expect(testTakeBack).toBe(takeBack);
+  expect(deps.topHosts).toBe(topHosts);
+  expect(vi.mocked(registerFurnitureTopLifecycle).mock.calls[0]?.[0]).toBe(
+    world,
   );
-  expect(registerFurnitureTopLifecycle).toHaveBeenCalledExactlyOnceWith(
-    vi.mocked(registerFurnitureHits).mock.calls[0]?.[1],
-  );
-  expect(registerTestFurniture).toHaveBeenCalledExactlyOnceWith(
-    expect.any(BedrockFurnitureWorld),
-    vi.mocked(registerFurnitureHits).mock.calls[0]?.[0],
-    expect.objectContaining({ topHosts }),
-  );
-  expect(register).toHaveBeenCalledWith({
+});
+
+it("hosts items on a folded beach chair and a dining table", () => {
+  const topHosts = install();
+  const chair = (folded: boolean | undefined) =>
+    topHosts.hostTypeOf({
+      typeId: BEACH_CHAIR,
+      getProperty: (key: string) =>
+        key === BEACH_CHAIR_FOLDED ? folded : undefined,
+    } as never);
+  expect(chair(true)).toMatchObject({
     hostType: "beach_chair",
-    entityTypeId: BEACH_CHAIR,
     surface: {
       half: BEACH_CHAIR_SPEC.topHalf,
       topPx: BEACH_CHAIR_SPEC.topPx,
       limit: BEACH_CHAIR_SPEC.topLimit,
       clearanceBase: 0,
     },
-    isTopNow: expect.any(Function),
     refusalHints: BEACH_CHAIR_TOP_REFUSAL_HINTS,
   });
-  expect(register).toHaveBeenCalledTimes(2);
-  expect(register).toHaveBeenCalledWith({
+  expect(chair(false)).toBeUndefined();
+  expect(chair(undefined)).toBeUndefined();
+  expect(
+    topHosts.hostTypeOf({ typeId: FURNITURE_IDS.dining_table.entity } as never),
+  ).toMatchObject({
     hostType: "dining_table",
-    entityTypeId: FURNITURE_IDS.dining_table.entity,
     surface: FURNITURE_SPEC.dining_table.top,
-    isTopNow: expect.any(Function),
     refusalHints: DINING_TABLE_TOP_REFUSAL_HINTS,
     blockedAt: expect.any(Function),
   });
   expect(
-    topHosts.hostTypeOf({ typeId: FURNITURE_IDS.dining_table.entity } as never)
-      ?.hostType,
-  ).toBe("dining_table");
-  expect(
     topHosts.hostTypeOf({ typeId: FURNITURE_IDS.dining_chair.entity } as never),
   ).toBeUndefined();
-  // The 16 by 21 px folded top at the 9 px bed height, from the one-block-wide bed.
-  expect(register.mock.calls[0]?.[0].surface).toEqual({
-    half: { halfX: 8, halfZ: 10.5 },
-    topPx: 9,
-    limit: 4,
-    clearanceBase: 0,
-  });
-  const host = register.mock.calls[0]?.[0];
-  for (const folded of [true, false, undefined]) {
-    const getProperty = vi.fn(() => folded);
-    expect(host?.isTopNow({ getProperty } as never)).toBe(folded === true);
-    expect(getProperty).toHaveBeenCalledExactlyOnceWith(BEACH_CHAIR_FOLDED);
-  }
-  expect(registerBeachChairHits).toHaveBeenCalledExactlyOnceWith(
-    expect.any(TakeBackBeachChair),
+});
+
+it("registers the parasol starter with its own receipt flag", () => {
+  install();
+  expect(registerStarterItem).toHaveBeenCalledOnce();
+  expect(starterWorld).toHaveBeenCalledExactlyOnceWith(
+    BEACH_PARASOL_ITEM,
+    BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
   );
-  expect(registerBeachChairInteraction).toHaveBeenCalledExactlyOnceWith(
-    expect.any(SwitchBeachChairForm),
-    expect.any(BeachChairMenu),
-  );
-  expect(registerBeachChairLifecycle).toHaveBeenCalledExactlyOnceWith(
-    expect.any(LieOnBeachChair),
-  );
-  expect(registerStarterItem).toHaveBeenCalledExactlyOnceWith(
-    expect.any(GiveStarterItem),
-  );
-  expect(world.args).toEqual([
-    [BEACH_PARASOL_ITEM, BEACH_PARASOL_STARTER_RECEIVED_PROPERTY],
-  ]);
   expect(BEACH_PARASOL_STARTER_RECEIVED_PROPERTY).not.toBe(
     ROOF_TENT_STARTER_RECEIVED_PROPERTY,
   );

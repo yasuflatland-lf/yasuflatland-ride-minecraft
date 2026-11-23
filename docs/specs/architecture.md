@@ -96,7 +96,7 @@
 ### Shared primitives and feature-owned policies
 
 - Applies to: Shared modules and the vehicle and camp room-block adapters.
-- Rule: Domain shared primitives include `facing.ts` (`snapYaw`, `facePlayer`, `quarterOf`, `QUARTER_TURN`), `cells.ts`, `laidCells.ts` (`relayCells`), `sleep.ts`, `paint.ts`, `debounce.ts`, `tapToggle.ts`, `ticks.ts` (`Ticks`, `ticks`, `seconds`), and `syncedValue.ts`; application shared contains `sleepInBed.ts`, `repaint.ts`, and `ports/`. Infrastructure shared contains `identifiers.ts` (`AIR_BLOCK`, `messageKey`, `HEADLIGHT_SWITCH_TYPE`), `lightBlocks.ts`, `laidCells.ts` (`CellLayer`), `laidBlockGuard.ts`, `bedrockBedWorld.ts`, `dyes.ts` (`PAINT_VARIANT`, `paintEvent`), and `switchRouter.ts`; all these paths exist. `DockBlocks` and `createTentBlocks` construct separate `CellLayer` instances, while each feature retains its own block union, IDs, saved keys and policies such as camper door behavior and `PaintVehicle`. Dock laying rejects new camp cells but keeps cells it already owns, including saved cells recovered after reload.
+- Rule: Domain shared primitives include `facing.ts` (`snapYaw`, `facePlayer`, `quarterOf`, `QUARTER_TURN`), `cells.ts`, `laidCells.ts` (`relayCells`), `sleep.ts`, `paint.ts`, `debounce.ts`, `tapToggle.ts`, `ticks.ts` (`Ticks`, `ticks`, `seconds`), and `syncedValue.ts`; application shared contains `sleepInBed.ts`, `repaint.ts`, and `ports/`. Infrastructure shared contains `identifiers.ts` (`AIR_BLOCK`, `messageKey`, `HEADLIGHT_SWITCH_TYPE`), `lightBlocks.ts`, `laidCells.ts` (`CellLayer`), `laidBlockGuard.ts`, `bedrockBedWorld.ts`, `dyes.ts` (`paintEvent`), and `switchRouter.ts`; all these paths exist. `DockBlocks` and `createTentBlocks` construct separate `CellLayer` instances, while each feature retains its own block union, IDs, saved keys and policies such as camper door behavior and `PaintVehicle`. Dock laying rejects new camp cells but keeps cells it already owns, including saved cells recovered after reload.
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`shared/` holds kind-neutral primitives and parameterized engines only."; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Each feature keeps its own owner registry, a `CellLayer` instance per feature"; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Room laying keeps cells the vehicle already owns if a later camp answer claims them."
 - Implementation: `src/domain/shared`; `src/application/shared`; `src/infrastructure/shared`; `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/application/vehicle/paintVehicle.ts`
@@ -105,7 +105,7 @@
 ### Saved paint order
 
 - Applies to: Painted vehicles and tents.
-- Rule: `PAINTS` is the persisted variant order, and infrastructure derives `PAINT_VARIANT` and namespaced paint events from it. Paint events and render controllers use the same indices, including the tent. The complete order is pinned by a test.
+- Rule: `PAINTS` is the persisted variant order, and infrastructure derives namespaced paint events from it. Tests derive the expected variant indices in `src/test-pack/scenarios/support/paintContract.ts` from the same order. Paint events and render controllers use the same indices, including the tent. The complete order is pinned by a test.
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`PAINTS` order is the saved `minecraft:variant` of every painted entity, the tent included, so its order never changes."
 - Implementation: `src/domain/shared/paint.ts`; `src/infrastructure/shared/dyes.ts`; `packs/yasu_ride_bp/entities/yasu_ride`; `packs/yasu_ride_rp/render_controllers/yasu_ride`
@@ -174,7 +174,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "A throw skips the rest of that vehicle's tick"
 - Implementation: `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/isolated.ts`
-- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", and "keeps moving the other vehicles and logs the error when one vehicle throws". Not verified: every possible failure position in every world operation.
+- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", "dispatches the requested dock and movement ports in step order", and "isolates a vehicle tick when motion, a command, or cutting throws". Not verified: every possible failure position in every world operation.
 
 ### Release of vehicles that are no longer loaded
 
@@ -183,7 +183,7 @@
 - Agreement: Proposed
 - Basis: [0120](../adr/0120-choose-a-sports-boat-seat-by-aiming-at-it.md) Decision, "Fillers are removed when the boat is released (broken, removed by the vehicle limit, or no longer loaded)." The retry itself has no ADR (issue #1372).
 - Implementation: `src/application/vehicle/driveVehicles.ts`; `src/infrastructure/vehicle/bedrock/vehicleReleaser.ts`
-- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries a failed release on the next cycle and stops after success", "warns only once per vehicle across repeated release failures", "cancels a pending release when the vehicle is loaded again and resets its warning", and "releases every gone vehicle exactly once successfully across arbitrary failure counts". The existing test "releases each vehicle that is no longer loaded once, and logs a failed release without skipping the others" checks release isolation.
+- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries gone vehicles independently and warns once per failed release cycle" and "cancels a pending release when the vehicle is loaded again and resets its warning".
 
 ### Placement contract
 

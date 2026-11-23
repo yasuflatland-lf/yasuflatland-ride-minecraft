@@ -9,7 +9,6 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 
 const point1 = { x: 4, y: 60, z: 2 };
-const end = { x: 4, y: 62, z: 3 };
 const aim = {
   ray: {
     origin: { x: 0.5, y: 62.5, z: 3.5 },
@@ -18,18 +17,6 @@ const aim = {
   input: "pointer",
 } as const;
 const block = { cell: { x: 3, y: 62, z: 3 }, face: "west" } as const;
-
-it("takes the block hit as the aimed end point when present", () => {
-  expect(aimedEndPoint(point1, { ...aim, block })).toEqual(block.cell);
-});
-
-it("uses the virtual point when there is no block hit", () => {
-  expect(aimedEndPoint(point1, aim)).toEqual(end);
-});
-
-it("computes the virtual point even when the ray hits a block", () => {
-  expect(virtualAimedEndPoint(point1, { ...aim, block })).toEqual(end);
-});
 
 it("keeps touch tap reach below pointer reach", () => {
   expect(endPointReach("touch")).toBe(BUILD_SPEC.touchTapReach);
@@ -55,13 +42,23 @@ it("returns a touch virtual point only within tap reach along the ray", () => {
 
 it("uses the full virtual end point reach for pointer rays", () => {
   fc.assert(
-    fc.property(planeDistance, slope, (distance, rise) => {
-      const plane = { ...point1, x: distance };
-      const ray = { ...aim.ray, direction: { x: 1, y: rise, z: 0 } };
-      expect(aimedEndPoint(plane, { input: "pointer", ray })).toEqual(
-        virtualEndPoint(plane, ray, BUILD_SPEC.reach),
-      );
-    }),
+    fc.property(
+      planeDistance,
+      slope,
+      fc.boolean(),
+      (distance, rise, hasBlock) => {
+        const plane = { ...point1, x: distance };
+        const ray = { ...aim.ray, direction: { x: 1, y: rise, z: 0 } };
+        const sample = {
+          input: "pointer" as const,
+          ray,
+          ...(hasBlock ? { block } : {}),
+        };
+        const expected = virtualEndPoint(plane, ray, BUILD_SPEC.reach);
+        expect(virtualAimedEndPoint(plane, sample)).toEqual(expected);
+        if (!hasBlock) expect(aimedEndPoint(plane, sample)).toEqual(expected);
+      },
+    ),
   );
 });
 

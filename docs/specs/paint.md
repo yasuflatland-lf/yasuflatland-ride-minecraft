@@ -24,8 +24,8 @@
 - Applies to: Dyeable SUV, sports boat, scooter, bulldozer, and tent.
 - Rule: `PAINTS` defines the sixteen paints and their saved `minecraft:variant` indices: khaki, green, red, white, light_gray, gray, black, orange, yellow, lime, cyan, light_blue, blue, purple, magenta, pink. Preserve this order, including the early khaki, green, and red indices; append new paints.
 - Agreement: Proposed
-- Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "`PAINTS` in the domain holds this order, and the dye map and variant numbers in the scripts are derived from it."; [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "New paints go at the end"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "The `PAINTS` order now also binds the tent"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "New paints still go at the end."
-- Implementation: `src/domain/shared/paint.ts` (`PAINTS`); `src/infrastructure/shared/dyes.ts` (`PAINT_VARIANT`); the five painted entity definitions in `packs/yasu_ride_bp/entities/yasu_ride/`.
+- Basis: [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "`PAINTS` in the domain holds this order, and the dye map and the variant numbers used by the tests are derived from it."; [0031](../adr/0031-repaint-with-all-sixteen-dyes.md) Decision, "New paints go at the end"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "The `PAINTS` order now also binds the tent"; [0135](../adr/0135-repaint-the-tent-with-dyes.md) Decision, "New paints still go at the end."
+- Implementation: `src/domain/shared/paint.ts` (`PAINTS`); `src/test-pack/scenarios/support/paintContract.ts` (`PAINT_VARIANT`); the five painted entity definitions in `packs/yasu_ride_bp/entities/yasu_ride/`.
 - Verification: `tests/domain/shared/paint.test.ts` "preserves the saved variant order"; `tests/packs/paint.test.ts` "khaki, green, and red keep the variants ADR 0017 gave them" and the paintable entity table cover all paint event variants.
 
 ### Dye to paint
@@ -125,7 +125,7 @@
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision and beach parasol design Paint.
 - Implementation: `src/application/resort/paintParasol.ts`; `src/infrastructure/resort/bedrock/bedrockParasolPaintWorld.ts`; `src/infrastructure/resort/bedrock/handlers/hits.ts`; `src/domain/resort/spec.ts`.
-- Verification: `tests/application/resort/paintParasol.test.ts` and `tests/infrastructure/resort/hits.test.ts` check repaint and hit routing. Scenario `parasol_paint` checks each paint event; in-game execution remains unverified.
+- Verification: `tests/application/shared/repaint.test.ts` and `tests/infrastructure/resort/hits.test.ts` check repaint and hit routing. Scenario `parasol_paint` checks each paint event; in-game execution remains unverified.
 
 ## Open issues
 

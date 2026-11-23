@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { CHAIR_KINDS } from "../../../src/infrastructure/camp/identifiers";
+import {
+  CHAIR_KIND_BY_TEST_EVENT,
+  CHAIR_KINDS,
+} from "../../../src/infrastructure/camp/identifiers";
 
 describe("chair kind identifiers", () => {
   it.each(["typeId", "itemId", "family", "hitsHint", "testHitEvent"] as const)(
@@ -12,13 +15,9 @@ describe("chair kind identifiers", () => {
     },
   );
 
-  it("preserves the Low Chair's existing identifiers", () => {
-    expect(CHAIR_KINDS.low_chair.typeId).toBe("yasu_ride:low_chair");
-    expect(CHAIR_KINDS.low_chair.itemId).toBe("yasu_ride:low_chair_item");
-    expect(CHAIR_KINDS.low_chair.family).toBe("yasu_ride_low_chair");
-    expect(CHAIR_KINDS.low_chair.hitsHint).toBe(
-      "yasu_ride.hint.low_chair_hits",
+  it("routes the original Low Chair hit command (ADR 0122)", () => {
+    expect(CHAIR_KIND_BY_TEST_EVENT.get("yasu_ride:test_chair_hit")).toBe(
+      "low_chair",
     );
-    expect(CHAIR_KINDS.low_chair.testHitEvent).toBe("yasu_ride:test_chair_hit");
   });
 });

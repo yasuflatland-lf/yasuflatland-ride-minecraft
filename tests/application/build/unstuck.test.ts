@@ -23,12 +23,12 @@ const other = asPlayerId("other");
 const feet = { x: -2, y: 64, z: 3 };
 const head = { ...feet, y: feet.y + 1 };
 const stone = blockStateOf("minecraft:stone");
-function setup() {
+function setup(ownerFeet = feet) {
   const repo = new FakeSessions();
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const log = { warn: vi.fn() };
-  players.occupants.set(owner, { dimensionId: overworld, feet });
+  players.occupants.set(owner, { dimensionId: overworld, feet: ownerFeet });
   const jobs = new EditJobs(repo, world, new FakeFeedback(), log, players, {
     discard: () => {},
   });
@@ -80,36 +80,87 @@ it("escapes above the dimension ceiling when no air pair exists below it", () =>
   ]);
 });
 
-it.each(["minecraft:tall_grass", "minecraft:water", "minecraft:lava"])(
-  "leaves an untouched owner in %s",
-  (type) => {
-    const e = setup();
-    e.world.put(feet, blockStateOf(type));
-    e.start([{ cell: { ...feet, x: 10 }, after: stone }]);
-    e.jobs.step();
-    expect(e.players.moves).toEqual([]);
-  },
-);
-
-it.each(["unchanged", "refused", "protected", "conflict"])(
-  "ignores a %s write at the owner",
-  (reason) => {
-    const e = setup();
-    e.world.put(feet, stone);
-    const key = cellKey(feet);
-    if (reason === "refused") e.world.refusedCells.add(key);
-    if (reason === "protected") e.world.protectedCells.add(key);
-    e.start([
-      {
-        cell: feet,
-        after: reason === "unchanged" ? stone : blockStateOf("minecraft:dirt"),
-        ...(reason === "conflict" ? { expected: AIR } : {}),
+it("finishes without moving an owner who was not buried by the edit or no longer needs escape", () => {
+  const reason = fc.oneof(
+    fc
+      .constantFrom("minecraft:tall_grass", "minecraft:water", "minecraft:lava")
+      .map((block) => ({ kind: "untouched", block }) as const),
+    fc
+      .constantFrom("unchanged", "refused", "protected", "conflict")
+      .map((outcome) => ({ kind: "skipped", outcome }) as const),
+    fc
+      .constantFrom("absent", "dimension")
+      .map((occupant) => ({ kind: "at write", occupant }) as const),
+    fc
+      .constantFrom("absent", "dimension", "open", "unreadable")
+      .map((condition) => ({ kind: "at completion", condition }) as const),
+  );
+  const coordinate = fc.integer({ min: -128, max: 128 });
+  fc.assert(
+    fc.property(
+      reason,
+      fc.record({
+        x: coordinate,
+        y: fc.integer({ min: 0, max: 100 }),
+        z: coordinate,
+      }),
+      (reason, feet) => {
+        const e = setup(feet);
+        const key = cellKey(feet);
+        function* plan(): Generator<PlannedChange> {
+          if (reason.kind === "untouched") {
+            e.world.put(feet, blockStateOf(reason.block));
+            yield { cell: { ...feet, x: feet.x + 1 }, after: stone };
+          } else if (reason.kind === "skipped") {
+            e.world.put(feet, stone);
+            if (reason.outcome === "refused") e.world.refusedCells.add(key);
+            if (reason.outcome === "protected") e.world.protectedCells.add(key);
+            yield {
+              cell: feet,
+              after:
+                reason.outcome === "unchanged"
+                  ? stone
+                  : blockStateOf("minecraft:dirt"),
+              ...(reason.outcome === "conflict" ? { expected: AIR } : {}),
+            };
+          } else {
+            yield { cell: feet, after: stone };
+            if (reason.kind === "at completion") {
+              switch (reason.condition) {
+                case "absent":
+                  e.players.occupants.delete(owner);
+                  break;
+                case "dimension":
+                  e.players.occupants.set(owner, { dimensionId: nether, feet });
+                  break;
+                case "open":
+                  e.world.put(feet, blockStateOf("minecraft:water"));
+                  break;
+                case "unreadable":
+                  e.world.unreadableCells.add(key);
+                  break;
+              }
+            }
+          }
+        }
+        if (reason.kind === "at write")
+          vi.spyOn(e.players, "occupantOf").mockReturnValueOnce(
+            reason.occupant === "absent"
+              ? undefined
+              : { dimensionId: nether, feet },
+          );
+        e.start(plan());
+        e.jobs.step();
+        expect(e.world.writes).toBe(reason.kind === "skipped" ? 0 : 1);
+        if (reason.kind === "at write")
+          expect(e.world.stateAt(overworld, feet)).toEqual(stone);
+        expect(e.repo.get(owner)?.isEditing).toBe(false);
+        expect(e.players.moves).toEqual([]);
+        expect(e.log.warn).not.toHaveBeenCalled();
       },
-    ]);
-    e.jobs.step();
-    expect(e.players.moves).toEqual([]);
-  },
-);
+    ),
+  );
+});
 
 it("ignores an unreadable write even when the owner cell becomes readable at completion", () => {
   const e = setup();
@@ -124,47 +175,6 @@ it("ignores an unreadable write even when the owner cell becomes readable at com
   expect(e.repo.get(owner)?.isEditing).toBe(false);
   expect(e.log.warn).not.toHaveBeenCalled();
 });
-
-it("does not track an owner who is riding or disconnected", () => {
-  const e = setup();
-  e.players.occupants.delete(owner);
-  e.start([{ cell: feet, after: stone }]);
-  e.jobs.step();
-  expect(e.players.moves).toEqual([]);
-});
-
-it("does not track an owner in a different dimension even if they return at completion", () => {
-  const e = setup();
-  vi.spyOn(e.players, "occupantOf").mockReturnValueOnce({
-    dimensionId: nether,
-    feet,
-  });
-  e.start([{ cell: feet, after: stone }]);
-  e.jobs.step();
-  expect(e.world.stateAt(overworld, feet)).toEqual(stone);
-  expect(e.players.moves).toEqual([]);
-  expect(e.log.warn).not.toHaveBeenCalled();
-});
-
-it.each(["absent", "dimension", "open", "unreadable"])(
-  "rechecks the owner at completion: %s",
-  (condition) => {
-    const e = setup();
-    function* plan() {
-      yield { cell: feet, after: stone };
-      if (condition === "absent") e.players.occupants.delete(owner);
-      if (condition === "dimension")
-        e.players.occupants.set(owner, { dimensionId: nether, feet });
-      if (condition === "open")
-        e.world.put(feet, blockStateOf("minecraft:water"));
-      if (condition === "unreadable")
-        e.world.unreadableCells.add(cellKey(feet));
-    }
-    e.start(plan());
-    e.jobs.step();
-    expect(e.players.moves).toEqual([]);
-  },
-);
 
 it("does not move after a plan fails even after a successful owner write", () => {
   const e = setup();

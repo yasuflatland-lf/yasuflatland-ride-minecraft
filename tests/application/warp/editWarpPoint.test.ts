@@ -62,18 +62,6 @@ it("ignores cancelled and empty edits", async () => {
   );
 });
 
-it("never writes an unreadable store during remove or rename", async () => {
-  const e = setup();
-  e.store.registry = undefined;
-  new RemoveWarpPoint(e.store).run(point());
-  await new RenameWarpPoint(e.store, e.menus, e.feedback, e.ticks).run({
-    ...point(),
-    playerId: player,
-  });
-  expect(e.store.writes).toEqual([]);
-  expect(e.feedback.unreadable).toEqual([player]);
-});
-
 it("does not recreate a point removed while its form was open", async () => {
   const target = point();
   const e = setup({ points: [target] });

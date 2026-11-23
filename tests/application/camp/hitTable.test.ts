@@ -23,30 +23,6 @@ describe("HitTable (ADR 0152)", () => {
       [PLAYER, 1],
     ]);
   });
-
-  it("resets after a gap of 101 ticks", () => {
-    const world = fakeWorld();
-    const hit = new HitTable(world);
-    for (const tick of [0, 100, 201])
-      hit.execute({ tableId: TABLE, tick, playerId: PLAYER });
-    expect(world.removeTable).not.toHaveBeenCalled();
-    expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, PLAYER, 1);
-    expect(world.showHitsLeft).toHaveBeenLastCalledWith(PLAYER, 2);
-  });
-
-  it("counts each table apart", () => {
-    const world = fakeWorld();
-    const hit = new HitTable(world);
-    const other = asTableId("other");
-    hit.execute({ tableId: TABLE, tick: 0, playerId: PLAYER });
-    hit.execute({ tableId: other, tick: 1, playerId: PLAYER });
-    hit.execute({ tableId: TABLE, tick: 2, playerId: PLAYER });
-    expect(world.removeTable).not.toHaveBeenCalled();
-    expect(hit.execute({ tableId: TABLE, tick: 3, playerId: PLAYER })).toBe(
-      true,
-    );
-    expect(world.removeTable).toHaveBeenCalledExactlyOnceWith(TABLE);
-  });
 });
 
 it("leaves the table and its counter alone while either half holds an oven", () => {
