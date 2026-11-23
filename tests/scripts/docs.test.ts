@@ -216,43 +216,107 @@ describe("spec documentation checks", () => {
       "wrong header order",
       "- Scope: Vehicle rules.\n- Verified at: 1c67689e",
       "- Verified at: 1c67689e\n- Scope: Vehicle rules.",
+      4,
+      "Spec fields are out of order",
     ],
     [
       "wrong rule order",
       "- Applies to: Vehicles.\n- Rule: Drive every tick.",
       "- Rule: Drive every tick.\n- Applies to: Vehicles.",
+      12,
+      "Spec fields are out of order",
     ],
-    ["missing Open issues", "## Open issues", "## Other"],
-    ["empty Open issues", "- None.", ""],
-    ["invalid SHA", "1c67689e", "not-a-sha"],
-    ["missing Source", `- Source: ${specLink(1)}`, ""],
+    [
+      "missing Open issues",
+      "## Open issues",
+      "## Other",
+      1,
+      "Expected exactly Rules then Open issues sections",
+    ],
+    [
+      "empty Open issues",
+      "- None.",
+      "",
+      1,
+      "Open issues must contain a bullet",
+    ],
+    [
+      "invalid SHA",
+      "1c67689e",
+      "not-a-sha",
+      4,
+      "Verified at must be a 7-12 character hexadecimal SHA",
+    ],
+    ["missing Source", `- Source: ${specLink(1)}`, "", 1, "Missing Source"],
     [
       "Source after Excluded",
       `- Source: ${specLink(1)}`,
       `- Excluded: ${specLink(2)}: Other rules.\n- Source: ${specLink(1)}`,
+      6,
+      "Spec fields are out of order",
     ],
     [
       "duplicate Scope",
       "- Scope: Vehicle rules.",
       "- Scope: Vehicle rules.\n- Scope: More.",
+      4,
+      "Duplicate Scope",
     ],
-    ["missing rule", "### Driving", "Driving"],
-    ["missing field", "- Verification: Unit tests.", ""],
+    [
+      "missing rule",
+      "### Driving",
+      "Driving",
+      1,
+      "Expected at least one rule under Rules",
+    ],
+    [
+      "missing field",
+      "- Verification: Unit tests.",
+      "",
+      9,
+      "Missing Verification",
+    ],
     [
       "duplicate field",
       "- Rule: Drive every tick.",
       "- Rule: Drive every tick.\n- Rule: Again.",
+      13,
+      "Duplicate Rule",
     ],
-    ["invalid Agreement", "- Agreement: Accepted", "- Agreement: Rejected"],
-    ["unknown field", "- Verification: Unit tests.", "- Test: Unit tests."],
-    ["extra section", "## Open issues", "## Extra\n\n## Open issues"],
-  ])("rejects planted format violation: %s", (_name, before, after) => {
-    expect(
-      checkSpecFormat([
-        parseSpec(specPath, specDocument().replace(before, after)),
-      ]),
-    ).not.toEqual([]);
-  });
+    [
+      "invalid Agreement",
+      "- Agreement: Accepted",
+      "- Agreement: Rejected",
+      13,
+      "Agreement must be Accepted or Proposed",
+    ],
+    [
+      "unknown field",
+      "- Verification: Unit tests.",
+      "- Test: Unit tests.",
+      16,
+      "Unknown spec field: Test",
+    ],
+    [
+      "extra section",
+      "## Open issues",
+      "## Extra\n\n## Open issues",
+      1,
+      "Expected exactly Rules then Open issues sections",
+    ],
+  ] as const)(
+    "rejects planted format violation: %s",
+    (_name, before, after, line, message) => {
+      const fixture = specDocument();
+      expect(fixture.includes(before)).toBe(true);
+      const spec = parseSpec(specPath, fixture.replace(before, after));
+      expect(checkSpecFormat([spec])).toContainEqual({
+        path: specPath,
+        line,
+        message,
+      });
+    },
+  );
 
   it("checks every ADR link and only the first implementation path per item", () => {
     const adrs = parseAdrs({ ...files, [path(2)]: document(2) });
@@ -435,25 +499,49 @@ describe("spec documentation checks", () => {
       [path(1)]: document(1),
       [path(2)]: document(2, `- Supersedes: ${link(1)}\n`),
     });
-    const text = specDocument({ excluded: [3] }).replace(
+    const fixture = specDocument({ excluded: [3] });
+    expect(fixture.includes("Other rules.")).toBe(true);
+    const text = fixture.replace(
       "Other rules.",
       `Superseded by ${specLink(2)}.`,
     );
-    expect(checkSpecClosure([parseSpec(specPath, text)], adrs)).not.toEqual([]);
+    expect(checkSpecClosure([parseSpec(specPath, text)], adrs)).toEqual([
+      {
+        path: specPath,
+        line: 5,
+        message: "Source or Excluded must include superseding ADR: 0002",
+      },
+    ]);
   });
 
   it("rejects missing, duplicate, unknown, and stale README entries", () => {
     const specs = parseSpecs(files);
-    expect(checkSpecIndex({}, specs)).not.toEqual([]);
-    for (const text of [
-      "# Specs\n",
-      `${specEntry}\n${specEntry}\n`,
-      `${specEntry}\n- [Unknown](unknown.md): Unknown rules.\n`,
-      specEntry.replace("Vehicles", "Stale"),
-      specEntry.replace("Vehicle rules.", "Stale scope."),
-      "- [Vehicles](vehicle.md)",
-    ])
-      expect(checkSpecIndex({ [specIndexPath]: text }, specs)).not.toEqual([]);
+    expect(checkSpecIndex({}, specs)).toEqual([
+      { path: specIndexPath, line: 1, message: "Missing spec index" },
+    ]);
+    for (const [text, line, message] of [
+      ["# Specs\n", 1, "Missing spec entry: vehicle.md"],
+      [`${specEntry}\n${specEntry}\n`, 2, "Duplicate spec entry: vehicle.md"],
+      [
+        `${specEntry}\n- [Unknown](unknown.md): Unknown rules.\n`,
+        2,
+        "Unknown spec entry: unknown.md",
+      ],
+      [
+        specEntry.replace("Vehicles", "Stale"),
+        1,
+        "Stale spec title or Scope: vehicle.md",
+      ],
+      [
+        specEntry.replace("Vehicle rules.", "Stale scope."),
+        1,
+        "Stale spec title or Scope: vehicle.md",
+      ],
+      ["- [Vehicles](vehicle.md)", 1, "Stale spec title or Scope: vehicle.md"],
+    ] as const)
+      expect(checkSpecIndex({ [specIndexPath]: text }, specs)).toEqual([
+        { path: specIndexPath, line, message },
+      ]);
   });
 });
 

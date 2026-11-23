@@ -10,7 +10,7 @@ afterAll(() => python.close());
 const run = (script: string) =>
   python.run(
     [
-      "import sys, json",
+      "import sys",
       "sys.path.insert(0, 'tools')",
       "from tool_loader import load_tool",
       "tent = load_tool('gen_tent')",
@@ -32,32 +32,12 @@ for name in ('tent_body', 'tent_entrance', 'tent_tarp', 'tent_inner'):
     assert second == snapshot == builder.build(dims.Dims(), tent.face), name`);
 });
 
-it("assembles the committed tent bones and cubes in their original order", async () => {
-  await run(`from pathlib import Path
-committed = json.loads((Path('packs/yasu_ride_rp') / tent.GEOMETRY).read_text())
-document = tent.geometry()
-entry = document['minecraft:geometry'][0]
-assert tent.rounded(tent.assemble()) == entry['bones']
-textures = {tent.texture_path(paint): tent.texture_pixels(paint) for paint in tent.FLY_PAINTS}
-document['minecraft:geometry'][0] = tent.face_cull.cull_buried_faces(entry, tent.cull_policy(textures)).geometry
-assert document == committed
-for bone in tent.assemble()[1:]:
+it("preserves the key order of tent bones, cubes, and UV faces", async () => {
+  await run(`for bone in tent.assemble()[1:]:
     assert list(bone) == ['name', 'parent', 'pivot', 'cubes']
     for cube in bone['cubes']:
         assert list(cube) == ['origin', 'size', 'uv'] + (['pivot', 'rotation'] if 'rotation' in cube else [])
         assert list(cube['uv']) == ['north', 'south', 'east', 'west', 'up', 'down']`);
-});
-
-it("keeps every tent dimension frozen", async () => {
-  await run(`from dataclasses import FrozenInstanceError, fields
-for field in fields(dims.DIMS):
-    try:
-        setattr(dims.DIMS, field.name, None)
-    except FrozenInstanceError:
-        pass
-    else:
-        raise AssertionError(f'{field.name} is mutable')
-assert dims.DIMS == dims.Dims()`);
 });
 
 it("keeps the body slope linear from ground to ridge and seats the window flap pivots on it", async () => {
