@@ -136,7 +136,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`kinds/index.ts` maps each kind to its profile, entity contract, and drive factory in the frozen `KINDS` record, and exports `createVehicle` and `rebuildVehicle`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`Vehicle` takes `(id, profile, drive)` with no defaults."
 - Implementation: `src/domain/vehicle/kinds/index.ts`; `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`
-- Verification: `tests/domain/vehicle/profile.test.ts` "keeps the frozen vehicle tables and their frozen descendants" and "recognizes exactly the registered kinds and preserves kind when creating or rebuilding"; `tests/application/vehicle/driveVehicles.test.ts` "reads restored properties only when an aggregate is missing". Not verified: those runtime tests do not prove every caller supplies arguments; the signatures were read without running typecheck.
+- Verification: `tests/domain/vehicle/profile.test.ts` "keeps the frozen vehicle tables and their frozen descendants" and "recognizes exactly the registered kinds and preserves kind when creating or rebuilding"; `tests/application/vehicle/driveVehicles.test.ts` "keeps the rebuilt form on a second tick". Not verified: those runtime tests do not prove every caller supplies arguments; the signatures were read without running typecheck.
 
 ### Tuning and the core profile
 
