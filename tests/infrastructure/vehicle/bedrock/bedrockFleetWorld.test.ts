@@ -14,7 +14,6 @@ import {
   OWNER_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
-import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
 import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import {
@@ -23,6 +22,7 @@ import {
 } from "../../../support/bedrockVehicleMocks";
 import { blockGrid } from "../../../support/blockGrid";
 import { decorItemId } from "../../../support/decorIds";
+import { createDockBlocks } from "../../../support/dockBlocks";
 
 vi.mock("@minecraft/server", async () =>
   (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
@@ -37,7 +37,7 @@ function fixture() {
     inputs,
     new VehicleTestStore<string>(),
     noCampSpace,
-    new DockBlocks(noCampSpace),
+    createDockBlocks(noCampSpace),
     {},
     isStandableRoomBlock,
   );

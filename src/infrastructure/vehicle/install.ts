@@ -43,6 +43,12 @@ import { BedrockInventory } from "./bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
+import {
+  composeDockCodec,
+  DECK_CODEC,
+  DockBlocks,
+  LIGHT_CODEC,
+} from "./bedrock/dockBlocks";
 import { EntityIndex } from "./bedrock/entityIndex";
 import { registerCutDrops } from "./bedrock/handlers/cutDrops";
 import { registerDockGuard } from "./bedrock/handlers/dockGuard";
@@ -53,7 +59,7 @@ import {
 } from "./bedrock/identifiers";
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
-import { DockBlocks } from "./kinds/camper/dockBlocks";
+import { CAMPER_ROOM_CODEC } from "./kinds/camper/dockBlocks";
 import { isStandableRoomBlock } from "./kinds/camper/identifiers";
 import { installCamper } from "./kinds/camper/install";
 import { readCamperRestored } from "./kinds/camper/restored";
@@ -83,13 +89,18 @@ export function installVehicles(deps: {
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
+  const dockCodec = composeDockCodec({
+    ...DECK_CODEC,
+    ...LIGHT_CODEC,
+    ...CAMPER_ROOM_CODEC,
+  });
   const bedrock = new BedrockVehicleWorld(
     index,
     testInputs,
     testHeldItems,
     deps.isCampSpace,
-    new DockBlocks(deps.isCampSpace),
-    { camper: readCamperRestored },
+    new DockBlocks(deps.isCampSpace, dockCodec),
+    { camper: (vehicle) => readCamperRestored(vehicle, dockCodec) },
     isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
