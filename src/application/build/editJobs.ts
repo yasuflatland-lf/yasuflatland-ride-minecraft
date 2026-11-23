@@ -12,9 +12,7 @@ import {
   type PlanStep,
   SCAN_STEP,
 } from "../../domain/build/edit/change";
-import { completionMessage } from "../../domain/build/edit/completion";
 import { isKeptState } from "../../domain/build/edit/guard";
-import { airPressOffersUndo } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { cellKey } from "../../domain/shared/cells";
@@ -26,6 +24,7 @@ import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
 import type { BuildStructureStore } from "./ports/structures";
+import { reportEditCompletion } from "./snapshotEdit";
 import { unstuck } from "./unstuck";
 
 type EditSelection = Pick<
@@ -156,28 +155,15 @@ export class EditJobs {
           () => `build edit unstuck for ${job.playerId} failed`,
         );
         attempt(
-          () => {
-            // The job may finish after the player left the states where an air press offers Undo,
-            // and an empty edit with no earlier history leaves nothing to undo.
-            const { message, takesUndoHint } = completionMessage({
-              kind: job.kind,
-              skipped: job.skipped,
-              flowOffersUndo:
-                airPressOffersUndo(session.flow) && session.hasHistory,
-            });
-            if (message === "undoDonePartial") {
-              this.feedback.showMessage(
-                job.playerId,
-                message,
-                job.changed,
-                undefined,
-                job.skipped,
-              );
-            } else
-              this.feedback.showMessage(job.playerId, message, job.changed);
-            if (takesUndoHint && job.changed > 0 && session.takeUndoHint())
-              this.feedback.showUndoHint(job.playerId);
-          },
+          () =>
+            reportEditCompletion(
+              session,
+              this.feedback,
+              job.playerId,
+              job.kind,
+              job.changed,
+              job.skipped,
+            ),
           this.log,
           () => `build edit feedback for ${job.playerId} failed`,
         );
