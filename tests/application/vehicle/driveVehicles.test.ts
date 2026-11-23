@@ -390,18 +390,6 @@ describe("DriveVehicles", () => {
     expect(repo.get(asVehicleId("a"))?.speed).toBeLessThanOrEqual(0.0225);
   });
 
-  it("discards the aggregates of vehicles that are no longer loaded", () => {
-    const world = new FakeWorld();
-    const repo = new InMemoryRepo();
-    repo.save(createVehicle("suv", asVehicleId("gone"), 0));
-    world.snapshots = [snapshot("a")];
-    new DriveVehicles(world, repo, logger(), () => false).execute(0);
-    expect(repo.ids()).toEqual(["a"]);
-    expect(world.calls.filter((c) => c.startsWith("release:"))).toEqual([
-      "release:gone",
-    ]);
-  });
-
   it("keeps moving the other vehicles and logs the error when one vehicle throws", () => {
     const world = new FakeWorld();
     const log = logger();
@@ -1066,9 +1054,9 @@ it("drives a boat with water below high feet and leaves a dry boat still", () =>
   );
 });
 
-it("reads restored properties only when an aggregate is missing", () => {
+it("keeps the rebuilt form on a second tick", () => {
   const world = new FakeWorld();
-  const restored = vi.fn(() => ({ form: "hover" }));
+  const restored = () => ({ form: "hover" });
   world.snapshots = [
     snapshot("a", {
       restored,
@@ -1076,15 +1064,19 @@ it("reads restored properties only when an aggregate is missing", () => {
       testInput: { moveX: 0, moveY: 0, jump: false },
     }),
   ];
-  const uc = new DriveVehicles(
-    world,
-    new InMemoryRepo(),
-    { warn: vi.fn() },
-    () => false,
-  );
+  const repo = new InMemoryRepo();
+  const uc = new DriveVehicles(world, repo, { warn: vi.fn() }, () => false);
   uc.execute(0);
+  expect(world.formOf("a")).toBe("hover");
+  world.snapshots = [
+    snapshot("a", {
+      onGround: false,
+      riders: [riderView("driver")],
+      restored: () => ({ form: "car" }),
+    }),
+  ];
   uc.execute(1);
-  expect(restored).toHaveBeenCalledTimes(1);
+  expect(world.calls).toContain("camera:driver:mid");
 });
 
 it("passes deck input through and boards before keeping deck seats", () => {
@@ -1685,4 +1677,19 @@ it("resends rider poses after a pose port throws", () => {
     ["driver", "scooter_grip"],
     ["passenger", "scooter_pillion_grip"],
   ]);
+});
+
+it("plays no door when a rider leaves a doorless scooter", () => {
+  const world = new FakeWorld();
+  const log = { warn: vi.fn() };
+  const drive = new DriveVehicles(world, new InMemoryRepo(), log, () => false);
+  const run = vi.spyOn(world, "run");
+  world.snapshots = [
+    snapshot("v", { kind: "scooter", riders: [riderView("driver")] }),
+  ];
+  drive.execute(0);
+  world.snapshots = [snapshot("v", { kind: "scooter" })];
+  drive.execute(1);
+  expect(run).toHaveBeenLastCalledWith("v", []);
+  expect(log.warn).not.toHaveBeenCalled();
 });

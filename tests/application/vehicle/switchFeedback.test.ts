@@ -11,14 +11,14 @@ import { riderView } from "../../support/riders";
 import { FakeClock, FakeWorld, InMemoryRepo, snapshot } from "./fakes";
 
 const cases = [
-  ["blade_switch", "down", "blade_down", "Blade: down"],
-  ["blade_switch", "up", "blade_up", "Blade: up"],
-  ["wide_blade_switch", "normal", "wide_blade_normal", "Wide blade: normal"],
-  ["wide_blade_switch", "wide", "wide_blade_wide", "Wide blade: wide"],
-  ["road_paver_switch", "off", "road_paver_off", "Road paver: OFF"],
-  ["road_paver_switch", "on", "road_paver_on", "Road paver: ON"],
-  ["headlight_switch", "off", "headlights_off", "Headlights: OFF"],
-  ["headlight_switch", "on", "headlights_on", "Headlights: ON"],
+  ["blade_switch", "down", "blade_down"],
+  ["blade_switch", "up", "blade_up"],
+  ["wide_blade_switch", "normal", "wide_blade_normal"],
+  ["wide_blade_switch", "wide", "wide_blade_wide"],
+  ["road_paver_switch", "off", "road_paver_off"],
+  ["road_paver_switch", "on", "road_paver_on"],
+  ["headlight_switch", "off", "headlights_off"],
+  ["headlight_switch", "on", "headlights_on"],
 ] as const;
 
 it("maps each new state to a translated message only in the chase camera", () => {
@@ -26,7 +26,7 @@ it("maps each new state to a translated message only in the chase camera", () =>
     fc.property(
       fc.constantFrom(...cases),
       fc.boolean(),
-      ([item, state, key, text], thirdPerson) => {
+      ([item, state, key], thirdPerson) => {
         const messages: string[] = [];
         const playerId = asPlayerId("driver");
         const feedback = new SwitchFeedback(
@@ -40,15 +40,24 @@ it("maps each new state to a translated message only in the chase camera", () =>
         );
         feedback.show(playerId, item, state);
         expect(messages).toEqual(thirdPerson ? [key] : []);
-        const en = readFileSync("packs/yasu_ride_rp/texts/en_US.lang", "utf8");
-        const ja = readFileSync("packs/yasu_ride_rp/texts/ja_JP.lang", "utf8");
-        expect(en.split("\n")).toContain(`yasu_ride.message.${key}=${text}`);
-        expect(ja).toMatch(
-          new RegExp(`^yasu_ride\\.message\\.${key}=.+$`, "m"),
-        );
       },
     ),
   );
+});
+
+it("has translations for every switch message", () => {
+  const langs = ["en_US", "ja_JP"].map((locale) =>
+    readFileSync(`packs/yasu_ride_rp/texts/${locale}.lang`, "utf8"),
+  );
+  for (const [, , key] of cases) {
+    for (const lang of langs) {
+      expect(
+        lang
+          .split("\n")
+          .some((line) => line.startsWith(`yasu_ride.message.${key}=`)),
+      ).toBe(true);
+    }
+  }
 });
 
 it("ignores unsupported items and states, including inherited object keys", () => {

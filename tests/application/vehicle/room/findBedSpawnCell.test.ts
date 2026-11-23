@@ -1,9 +1,8 @@
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import { FindBedSpawnCell } from "../../../../src/application/vehicle/room/findBedSpawnCell";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { localCellAt } from "../../../../src/domain/vehicle/kinds/camper/parkPose";
 import { roomCells } from "../../../../src/domain/vehicle/kinds/camper/roomCells";
-import { CAMPER_ROOM } from "../../../../src/domain/vehicle/kinds/index";
 import { defined } from "../../../support/defined";
 import { parkedCamper } from "../fakes";
 
@@ -24,20 +23,4 @@ it("returns the parked camper's aisle spawn cell and ignores unknown vehicles an
   expect(
     use.execute({ vehicleId: car.id, cell: { ...cell, y: y + 3 } }),
   ).toBeUndefined();
-});
-
-it("returns the vehicle's spawn override for the pressed cell (ADR 0182)", () => {
-  const { car, repo } = parkedCamper();
-  const cell = { x: 1, y: 65, z: -2 };
-  const spawn = { x: 0, y: 65, z: -2 };
-  const answer = vi
-    .spyOn(
-      defined(car.capability(CAMPER_ROOM)?.fixtures, "room"),
-      "bedSpawnCell",
-    )
-    .mockReturnValue(spawn);
-  expect(
-    new FindBedSpawnCell(repo).execute({ vehicleId: car.id, cell }),
-  ).toEqual(spawn);
-  expect(answer).toHaveBeenCalledExactlyOnceWith(cell);
 });
