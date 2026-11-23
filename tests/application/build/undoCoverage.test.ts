@@ -141,7 +141,7 @@ it("keeps the filled box selected and restores its pre-build selection on Undo",
   });
   if (typeof entry === "string") throw new Error("Expected cell history");
   e.session.putBackUndo(entry);
-  expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+  e.undo.execute({ playerId });
   e.drain();
   expect(e.session.flow).toMatchObject(selected);
 });
@@ -190,7 +190,7 @@ it.each(["build", "paste"] as const)(
 );
 
 it.each(["endpoint", "heightStep"] as const)(
-  "undo reports the box selected at %s confirmation",
+  "undo restores the box selected at %s confirmation",
   (kind) => {
     const e = setup();
     const base = boxOf({ x: 1, y: 64, z: 2 }, { x: 3, y: 64, z: 5 });
@@ -205,7 +205,8 @@ it.each(["endpoint", "heightStep"] as const)(
       e.heighted.execute({ playerId, fill: "fill" });
     }
     e.drain();
-    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+    e.undo.execute({ playerId });
+    expect(e.session.confirmedBox?.box).toEqual(box);
   },
 );
 
@@ -239,7 +240,7 @@ it.each([
       selectionOf(overworld, built, stone),
     );
 
-    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: before });
+    e.undo.execute({ playerId });
     e.drain();
     expect(e.session.flow).toMatchObject({
       kind: "selected",
@@ -274,7 +275,7 @@ it.each(["frame", "gable"] as const)(
     );
     const flow = e.session.flow;
 
-    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: base });
+    e.undo.execute({ playerId });
     e.drain();
     expect(e.session.flow).toBe(flow);
     expect(e.session.confirmedBox).toBe(selection);

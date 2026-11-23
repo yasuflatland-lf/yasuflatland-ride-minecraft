@@ -1,26 +1,31 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
-import type { BuildFeedback } from "../../../src/application/build/ports/feedback";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { TestAimReader } from "../../../src/infrastructure/build/bedrock/handlers/testAim";
 import {
-  recordMessages,
-  registerTestEdit,
-} from "../../../src/infrastructure/build/bedrock/handlers/testEdit";
+  asDimensionId,
+  asPlayerId,
+  type PlayerId,
+} from "../../../src/domain/shared/ids";
+import {
+  type AimOverride,
+  BedrockAimReader,
+} from "../../../src/infrastructure/build/bedrock/bedrockAimReader";
+import { BedrockFeedback } from "../../../src/infrastructure/build/bedrock/bedrockFeedback";
 import {
   TEST_EDIT_EVENT,
   TEST_RESULT_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
+import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
+import { recordMessages } from "../../../src/infrastructure/build/testHooks/recordMessages";
+import { TestAimReader } from "../../../src/infrastructure/build/testHooks/testAim";
+import { registerTestEdit } from "../../../src/infrastructure/build/testHooks/testEdit";
 import {
-  FakeAimReader,
   FakeGroundProbe,
   FakeSessions,
   FakeTapTargets,
@@ -30,22 +35,22 @@ import { FakeStructureStore } from "../../application/build/fakes/structureStore
 
 vi.mock("@minecraft/server", () => ({
   ScriptEventSource: { Server: "Server" },
+  Direction: {},
+  MolangVariableMap: class {
+    setColorRGB() {}
+  },
+  InputMode: { Touch: "Touch" },
   system: {
     afterEvents: { scriptEventReceive: { subscribe: vi.fn() } },
     sendScriptEvent: vi.fn(),
     currentTick: 1,
   },
-  world: { getAllPlayers: vi.fn() },
+  world: { getAllPlayers: vi.fn(), getEntity: vi.fn() },
 }));
 
 function setup() {
-  const feedback = {
-    showMessage: vi.fn<BuildFeedback["showMessage"]>(),
-    showUndoHint: vi.fn<BuildFeedback["showUndoHint"]>(),
-    showSize: vi.fn<BuildFeedback["showSize"]>(),
-    showMode: vi.fn<BuildFeedback["showMode"]>(),
-    drawPreview: vi.fn<BuildFeedback["drawPreview"]>(),
-  };
+  vi.mocked(world.getEntity).mockReset();
+  const feedback = new BedrockFeedback();
   return { feedback, messages: recordMessages(feedback) };
 }
 
@@ -53,7 +58,7 @@ const player = asPlayerId("player");
 const other = asPlayerId("other");
 const optionalCount = fc.option(fc.nat(), { nil: undefined });
 
-it("forwards every message argument and records only the latest message per player", () => {
+it("records only the latest message per player", () => {
   fc.assert(
     fc.property(
       fc.constantFrom("undoDonePartial", "undoDone", "building"),
@@ -65,29 +70,16 @@ it("forwards every message argument and records only the latest message per play
           pillar_axis: "x",
         });
         expect(messages.last(player)).toBeUndefined();
-        messages.feedback.showMessage(player, "editDone", 12);
-        messages.feedback.showMessage(other, "copied", 7);
-        messages.feedback.showMessage(
-          player,
-          message,
-          count,
-          material,
-          skippedCount,
-        );
-        expect(feedback.showMessage).toHaveBeenLastCalledWith(
-          player,
-          message,
-          count,
-          material,
-          skippedCount,
-        );
+        feedback.showMessage(player, "editDone", 12);
+        feedback.showMessage(other, "copied", 7);
+        feedback.showMessage(player, message, count, material, skippedCount);
         expect(messages.last(player)).toEqual({ message, count, skippedCount });
         expect(messages.last(other)).toEqual({
           message: "copied",
           count: 7,
           skippedCount: undefined,
         });
-        messages.feedback.showMessage(player, "selectionCleared");
+        feedback.showMessage(player, "selectionCleared");
         expect(messages.last(player)).toEqual({
           message: "selectionCleared",
           count: undefined,
@@ -98,19 +90,15 @@ it("forwards every message argument and records only the latest message per play
   );
 });
 
-it("forwards undo hints, counts them per player, and forgets only that player's records", () => {
+it("counts undo hints per player and forgets only that player's records", () => {
   fc.assert(
     fc.property(fc.integer({ min: 1, max: 20 }), (count) => {
       const { feedback, messages } = setup();
       expect(messages.hints(player)).toBe(0);
-      messages.feedback.showMessage(player, "undoDonePartial", 3, undefined, 2);
-      messages.feedback.showMessage(other, "undoDone", 4);
-      messages.feedback.showUndoHint(other);
-      for (let i = 0; i < count; i++) messages.feedback.showUndoHint(player);
-      expect(feedback.showUndoHint.mock.calls).toEqual([
-        [other],
-        ...Array.from({ length: count }, () => [player]),
-      ]);
+      feedback.showMessage(player, "undoDonePartial", 3, undefined, 2);
+      feedback.showMessage(other, "undoDone", 4);
+      feedback.showUndoHint(other);
+      for (let i = 0; i < count; i++) feedback.showUndoHint(player);
       expect(messages.hints(player)).toBe(count);
       expect(messages.hints(other)).toBe(1);
       messages.forget(player);
@@ -118,7 +106,7 @@ it("forwards undo hints, counts them per player, and forgets only that player's 
       expect(messages.hints(player)).toBe(0);
       expect(messages.last(other)?.message).toBe("undoDone");
       expect(messages.hints(other)).toBe(1);
-      messages.feedback.showUndoHint(player);
+      feedback.showUndoHint(player);
       expect(messages.hints(player)).toBe(1);
     }),
   );
@@ -127,25 +115,28 @@ it("forwards undo hints, counts them per player, and forgets only that player's 
 function snapshotHook() {
   const repo = new FakeSessions();
   const structures = new FakeStructureStore();
-  const { messages } = setup();
+  const { feedback, messages } = setup();
   vi.mocked(system.sendScriptEvent).mockClear();
-  vi.mocked(world.getAllPlayers).mockReturnValue([
-    {
-      id: "player",
-      name: "Alex",
-      isValid: true,
-      dimension: { id: "minecraft:overworld" },
-    } as ReturnType<typeof world.getAllPlayers>[number],
-  ]);
-  const reader = new FakeAimReader();
-  reader.target = {
-    input: "pointer",
-    ray: { origin: { x: 0, y: 5, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-  };
-  const aim = new TestAimReader(reader);
+  const builder = {
+    id: "player",
+    name: "Alex",
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension: { id: "minecraft:overworld" },
+    inputInfo: { lastInputModeUsed: "KeyboardAndMouse" },
+    getHeadLocation: () => ({ x: 0, y: 5, z: 0 }),
+    getViewDirection: () => ({ x: 1, y: 0, z: 0 }),
+    getBlockFromViewDirection: () => undefined,
+    onScreenDisplay: { setActionBar: vi.fn() },
+    spawnParticle: vi.fn(),
+  } as unknown as ReturnType<typeof world.getAllPlayers>[number];
+  vi.mocked(world.getAllPlayers).mockReturnValue([builder]);
+  vi.mocked(world.getEntity).mockReturnValue(builder);
+  const overrides = new Map<PlayerId, AimOverride>();
+  const aim = new BedrockAimReader(overrides);
   const preview = new ShowPreview(
     repo,
-    messages.feedback,
+    feedback,
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
     fakeSyncTapTarget(),
@@ -165,8 +156,8 @@ function snapshotHook() {
     repo,
     new EndBuildSession(repo, structures, new FakeTapTargets()),
     structures,
-    new RotatePasteAim(repo, messages.feedback),
-    { aim, preview },
+    new RotatePasteAim(repo, feedback),
+    { aim: new TestAimReader(overrides), preview },
   );
   const callback = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
@@ -178,7 +169,17 @@ function snapshotHook() {
       id: TEST_EDIT_EVENT,
       message: `player ${command}`,
     } as Parameters<typeof callback>[0]);
-  return { repo, structures, send, execute, messages, aim, undo, undoItem };
+  return {
+    repo,
+    structures,
+    send,
+    execute,
+    feedback,
+    messages,
+    aim,
+    undo,
+    undoItem,
+  };
 }
 
 it("routes undoitem to the item use case and undo to edit history", () => {
@@ -346,7 +347,7 @@ it.each(["-1", "4", "1.5", "invalid"])(
   },
 );
 
-it("records and forwards the last mode independently per player and clears it on forget", () => {
+it("records the last mode independently per player and clears it on forget", () => {
   fc.assert(
     fc.property(fc.constantFrom(0, 90, 180, 270), (degrees) => {
       const { feedback, messages } = setup();
@@ -357,9 +358,8 @@ it("records and forwards the last mode independently per player and clears it on
         degrees,
       };
       expect(messages.lastMode(player)).toBeUndefined();
-      messages.feedback.showMode(other, { ...mode, degrees: 90 });
-      messages.feedback.showMode(player, mode);
-      expect(feedback.showMode).toHaveBeenLastCalledWith(player, mode);
+      feedback.showMode(other, { ...mode, degrees: 90 });
+      feedback.showMode(player, mode);
       expect(messages.lastMode(player)).toEqual(mode);
       expect(messages.lastMode(other)).toEqual({ ...mode, degrees: 90 });
       messages.forget(player);
@@ -371,7 +371,7 @@ it("records and forwards the last mode independently per player and clears it on
 
 it("returns the last shown paste-ready degrees in a state reply without clearing them", () => {
   const e = snapshotHook();
-  e.messages.feedback.showMode(player, {
+  e.feedback.showMode(player, {
     kind: "pasteReady",
     size: { x: 1, y: 2, z: 3 },
     blockCount: 6,

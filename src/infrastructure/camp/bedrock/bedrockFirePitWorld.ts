@@ -18,11 +18,7 @@ import {
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
 } from "../identifiers";
-import {
-  firePitEntity as firePit,
-  isFirePitCovered,
-  setFirePitCovered,
-} from "./firePitCovered";
+import { firePitEntity as firePit, isFirePitCovered } from "./firePitCovered";
 
 export class BedrockFirePitWorld
   extends BedrockPaidGroundCells
@@ -63,10 +59,6 @@ export class BedrockFirePitWorld
 
   isCovered(id: FirePitId): boolean {
     return isFirePitCovered(id);
-  }
-
-  setCovered(id: FirePitId, covered: boolean): void {
-    setFirePitCovered(id, covered);
   }
 
   showCoveredHint(player: PlayerId): void {

@@ -13,6 +13,7 @@ import {
   BUILD_MESSAGE,
   LAID_BLOCK_TAG,
 } from "../../../src/infrastructure/build/identifiers";
+import { recordMessages } from "../../../src/infrastructure/build/testHooks/recordMessages";
 
 const engine = vi.hoisted(() => ({
   getEntity: vi.fn(),
@@ -63,6 +64,108 @@ function preview(part: Partial<PreviewSet>): PreviewSet {
     ...part,
   };
 }
+
+it("keeps all production feedback calls identical with recording enabled", () => {
+  const size = fc.record({ x: fc.nat(), y: fc.nat(), z: fc.nat() });
+  fc.assert(
+    fc.property(
+      fc.record({
+        id: fc.string(),
+        message: fc.constantFrom("endSet", "building", "undoDonePartial"),
+        count: fc.option(fc.nat(), { nil: undefined }),
+        material: fc.option(fc.string().map(blockStateOf), { nil: undefined }),
+        skippedCount: fc.option(fc.nat(), { nil: undefined }),
+        size,
+        aiming: fc.option(fc.boolean(), { nil: undefined }),
+        blockCount: fc.nat(),
+        degrees: fc.constantFrom(0, 90, 180, 270),
+        isSneaking: fc.boolean(),
+        points: fc.array(cell, { maxLength: 4 }),
+        previewDimension: fc.option(fc.constant(dimension), { nil: undefined }),
+      }),
+      (input) => {
+        const calls = { actionBar: vi.fn(), chat: vi.fn(), particle: vi.fn() };
+        engine.getEntity.mockReturnValue({
+          typeId: "minecraft:player",
+          isValid: true,
+          dimension: { id: dimension },
+          isSneaking: input.isSneaking,
+          onScreenDisplay: { setActionBar: calls.actionBar },
+          sendMessage: calls.chat,
+          spawnParticle: calls.particle,
+        });
+        const id = asPlayerId(input.id);
+        const mode = {
+          kind: "pasteReady" as const,
+          size: input.size,
+          blockCount: input.blockCount,
+          degrees: input.degrees,
+        };
+        const showFeedback = (feedback: BedrockFeedback) => {
+          feedback.showMessage(
+            id,
+            input.message,
+            input.count,
+            input.material,
+            input.skippedCount,
+          );
+          feedback.showMode(id, mode);
+          feedback.showUndoHint(id);
+          feedback.showSize(id, input.size, input.aiming);
+          feedback.drawPreview(
+            id,
+            input.previewDimension,
+            preview({ startMarker: input.points, paste: input.points }),
+          );
+        };
+
+        showFeedback(new BedrockFeedback());
+        const productionCalls = [
+          calls.actionBar.mock.calls.slice(),
+          calls.chat.mock.calls.slice(),
+          calls.particle.mock.calls.slice(),
+        ];
+        for (const call of Object.values(calls)) call.mockClear();
+
+        const feedback = new BedrockFeedback();
+        const recorded = recordMessages(feedback);
+        const onMessage = vi.fn();
+        feedback.listeners.add({ onMessage });
+        showFeedback(feedback);
+
+        expect([
+          calls.actionBar.mock.calls,
+          calls.chat.mock.calls,
+          calls.particle.mock.calls,
+        ]).toEqual(productionCalls);
+        expect(calls.actionBar).toHaveBeenLastCalledWith({
+          translate: input.aiming
+            ? BUILD_MESSAGE.heightAimSize
+            : BUILD_MESSAGE.heightSize,
+          with: [
+            String(input.size.x),
+            String(input.size.y),
+            String(input.size.z),
+          ],
+        });
+        expect(onMessage).toHaveBeenCalledExactlyOnceWith(
+          id,
+          input.message,
+          input.count,
+          input.material,
+          input.skippedCount,
+        );
+        expect(recorded.last(id)).toEqual({
+          message: input.message,
+          count: input.count,
+          skippedCount: input.skippedCount,
+        });
+        expect(recorded.lastMode(id)).toEqual(mode);
+        expect(recorded.hints(id)).toBe(1);
+      },
+    ),
+  );
+});
 
 it("preserves permutation states and refuses protected or laid cells", () => {
   fc.assert(

@@ -87,7 +87,6 @@ export const CAMPER_SPEC = Object.freeze({
   // Bumper hitboxes (ADR 0084, 0116): 1 x 1 x 1 boxes side by side across the heading at
   // bodyFront, on the bumper stand-in entity, x from the row's middle
   bumperBoxXs: [-1, 0, 1],
-  bumperBoxY: 0.5, // the box center; the boxes span the bottom block of the body
   bumperBoxSize: 1,
   // Degrees past the 45-degree line before a turning camper's bumper stand-in swaps to the
   // other row axis, so steering along a diagonal does not respawn it every tick (ADR 0116)
@@ -98,9 +97,6 @@ export const CAMPER_SPEC = Object.freeze({
   // Parked, the middle box stands in the front end wall's column: parking accepts ground
   // only in its foot, and the dock's wall blocks above would read as more ground (ADR 0119)
   bumperParkedMaxLift: 1,
-  // The camper's own hitbox: a cube this wide and high on its feet, inside the parked floor
-  // block under its center, so no tap reaches the camper itself (ADR 0116)
-  hiddenHitboxSize: 0.1,
   // Midpoint of the front rideable seats at 1.5 and the dinette seats at 1.2 (ADR 0154).
   seatAimHeight: 1.35,
   // Below half the smallest seat gap, hypot(0.25, 1.1) = 1.128, so aim balls never overlap.

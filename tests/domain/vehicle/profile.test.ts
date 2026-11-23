@@ -63,6 +63,7 @@ import {
 } from "../../../src/domain/vehicle/motion/motion";
 import { stepLanes } from "../../../src/domain/vehicle/motion/stepUp";
 import { SPEC } from "../../../src/domain/vehicle/spec";
+import { SUV_PACK_CONTRACT } from "../../support/packContract";
 
 const NEUTRAL_GROUND: GroundInput = {
   throttle: 0,
@@ -155,12 +156,12 @@ describe("vehicle profiles (ADR 0050)", () => {
       SUV_SPEC.bodyHalfWidth + 0.9,
     );
     expect(SUV_SPEC.roofTentAnchorX).toBeLessThan(SUV_SPEC.bodyHalfWidth);
-    const shellHalfWidth = SUV_SPEC.roofTentShellHalfWidth;
+    const shellHalfWidth = SUV_PACK_CONTRACT.roofTentShellHalfWidth;
     expect(SUV_SPEC.roofTentAnchorX).toBeCloseTo(
-      shellHalfWidth - SUV_SPEC.roofTentHardtopHalfWidth,
+      shellHalfWidth - SUV_PACK_CONTRACT.roofTentHardtopHalfWidth,
     );
     expect(SUV_SPEC.roofTentAnchorX - shellHalfWidth).toBeCloseTo(
-      -SUV_SPEC.roofTentHardtopHalfWidth,
+      -SUV_PACK_CONTRACT.roofTentHardtopHalfWidth,
     );
     expect(
       SUV_SPEC.roofTentAnchorX + shellHalfWidth - SUV_SPEC.bodyHalfWidth,
