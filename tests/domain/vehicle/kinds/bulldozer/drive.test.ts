@@ -35,7 +35,6 @@ import {
   trackPhase,
   trackSpin,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/tracks";
-import { SuvDrive } from "../../../../../src/domain/vehicle/kinds/suv/drive";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { FORMS } from "../../../../../src/domain/vehicle/motion/forms";
 import { initialMotion } from "../../../../../src/domain/vehicle/motion/motion";
@@ -265,32 +264,6 @@ it("takes off on a second tap within 8 ticks", () => {
     }
   }
 });
-it("never steps up onto a block ahead with the blade lowered, where the SUV would", () => {
-  const d = new BulldozerDrive(0, { blade: 0 }),
-    suv = new SuvDrive(0, {});
-  let rises = false;
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  let s = b;
-  for (let tick = 0; tick < 30; tick++) {
-    const ctx = { ...context(), tick, solidAt: (o: { y: number }) => o.y < 1 };
-    const out = d.step(FORWARD, { ...ctx, velocity: { ...b.vel, y: 0 } });
-    const other = suv.step(FORWARD, { ...ctx, velocity: { ...s.vel, y: 0 } });
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-    s = engineStep(s, other.impulse, { mu: 0.69 }).body;
-    expect(out.impulse.y).toBe(0);
-    rises ||= other.impulse.y > 0;
-  }
-  expect(rises).toBe(true);
-});
-it("does not rise from the submarine step probe with the blade lowered", () => {
-  const a = new BulldozerDrive(0, { form: "submarine", blade: 0 }),
-    b = new BulldozerDrive(0, { form: "submarine", blade: 0 });
-  expect(
-    a.step(FORWARD, { ...context(3), solidAt: (o) => o.y < 1 }).impulse.y,
-  ).toBe(
-    b.step(FORWARD, { ...context(3), solidAt: (o) => o.y < -1 }).impulse.y,
-  );
-});
 it("never banks", () =>
   fc.assert(
     fc.property(unit, unit, (moveX, moveY) => {
@@ -303,129 +276,168 @@ it("never banks", () =>
       expect(v === undefined || v === 0).toBe(true);
     }),
   ));
-it("cuts from the feet to the sky in car form on the ground while moving forward (ADR 0137)", () => {
-  const d = new BulldozerDrive(0, { blade: 0 });
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 10; tick++) {
-    const ctx = {
-      ...context(),
-      tick,
-      location: { ...b.pos, y: 64 },
-      velocity: { ...b.vel, y: 0 },
-    };
-    const out = d.step(FORWARD, ctx);
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-    if (tick === 9)
-      expect(out.cut).toEqual(
-        bladeColumns(ctx.location, d.yaw, S.blade, { kind: "run" }),
-      );
-  }
-});
-it("cuts the body's height in takeoff, hover and landing", () => {
-  const d = new BulldozerDrive(0, { blade: 0 });
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  const seen = new Set<string>();
-  for (let tick = 0; tick < 100; tick++) {
-    const jump = tick === 50 || tick === 54 || tick === 80 || tick === 84;
-    const ground = tick < 51;
-    const ctx = {
-      ...context(),
-      tick,
-      location: { ...b.pos, y: 64.5 },
-      onGround: ground,
-      solidAt: () => false,
-      velocity: { ...b.vel, y: 0 },
-    };
-    const out = d.step({ ...FORWARD, jump }, ctx);
-    b = engineStep(
-      b,
-      out.impulse,
-      { mu: 0.69, drag: ground ? 0.69 : 0.91 },
-      ground,
-    ).body;
-    if (["takeoff", "hover", "landing"].includes(d.form)) {
-      seen.add(d.form);
-      expect(out.cut?.length).toBeGreaterThan(0);
-      for (const c of out.cut ?? [])
-        expect(c.bottom + (c.height ?? 0)).toBe(68);
-    }
-  }
-  expect([...seen].sort()).toEqual(["hover", "landing", "takeoff"]);
-});
-it("cuts nothing off a ledge, reversing, standing, pivoting, or without input", () => {
+it("cuts a full body tunnel at speed during flight and after a restart (ADRs 0137, 0155)", () => {
   fc.assert(
-    fc.property(
-      fc.constantFrom("ledge", "reverse", "standing", "pivot", "no input"),
-      yaw,
-      (condition, heading) => {
-        const d = new BulldozerDrive(heading, { blade: 0 });
-        let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-        for (let tick = 0; tick < 60; tick++) {
-          const checking = tick >= 50;
-          let raw: RawInput | undefined = FORWARD;
-          let onGround = true;
-          if (condition === "reverse") raw = { ...IDLE, moveY: -1 };
-          if (condition === "standing") raw = IDLE;
-          if (checking) {
-            if (condition === "ledge") onGround = false;
-            if (condition === "pivot") raw = { ...IDLE, moveX: 1 };
-            if (condition === "no input") raw = undefined;
-          }
+    fc.property(yaw, (heading) => {
+      for (const start of ["car", "takeoff", "hover", "landing"] as const) {
+        const d = new BulldozerDrive(heading, { form: start, blade: 0 });
+        let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        const seen = new Set<string>();
+        for (let tick = 0; tick < 100; tick++) {
+          const jump = start === "car" && [50, 54, 80, 84].includes(tick);
+          const onGround = start === "car" && tick <= 50;
           const ctx = {
             ...context(),
             tick,
+            location: { ...body.pos, y: 64.5 },
             onGround,
-            velocity: { ...b.vel, y: 0 },
+            solidAt: () => false,
+            velocity: { ...body.vel, y: 0 },
           };
-          const out = d.step(raw, ctx);
-          b = engineStep(b, out.impulse, { mu: 0.69 }, onGround).body;
-          if (checking) expect(out.cut ?? []).toEqual([]);
+          const out = d.step({ ...FORWARD, jump }, ctx);
+          body = engineStep(
+            body,
+            out.impulse,
+            { mu: 0.69, drag: onGround ? 0.69 : 0.91 },
+            onGround,
+          ).body;
+          if (d.form === "car" || d.speed <= S.blade.minSpeed) continue;
+          seen.add(d.form);
+          expect(out.cut?.length).toBeGreaterThan(0);
+          for (const column of out.cut ?? []) {
+            expect(column.bottom).toBe(64);
+            expect(column.bottom + (column.height ?? 0)).toBe(68);
+          }
+        }
+        // A restored takeoff has no carried speed and accelerates once it reaches hover.
+        const expected =
+          start === "car"
+            ? ["hover", "landing", "takeoff"]
+            : [start === "takeoff" ? "hover" : start];
+        expect([...seen].sort()).toEqual(expected);
+      }
+    }),
+  );
+});
+
+it("cuts at speed with a fully lowered blade, a driver, and no pivot, including on the grounded hop tick", () => {
+  const control = {
+    forward: FORWARD,
+    reverse: { ...IDLE, moveY: -1 },
+    idle: IDLE,
+    pivot: { ...IDLE, moveX: 1 },
+    absent: undefined,
+    ledge: FORWARD,
+    hop: { ...FORWARD, jump: true },
+  } satisfies Record<string, RawInput | undefined>;
+  type Action = keyof typeof control;
+  type Frame = { action: Action; blade?: "up" | "down" };
+  fc.assert(
+    fc.property(
+      yaw,
+      fc.integer({ min: 12, max: 30 }),
+      fc.array(
+        fc.record({
+          action: fc.constantFrom<Action>(
+            "forward",
+            "reverse",
+            "idle",
+            "pivot",
+            "absent",
+            "ledge",
+          ),
+          blade: fc.constantFrom("up", "down", undefined),
+        }),
+        { maxLength: 30 },
+      ),
+      (heading, warmup, schedule) => {
+        for (const form of ["car", "submarine"] as const) {
+          const d = new BulldozerDrive(heading, { form, blade: 0 });
+          const underwater = form === "submarine";
+          let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+          let bladeHeight = 0;
+          let bladeUp = false;
+          const controls: Frame[] = [
+            { action: "idle" },
+            { action: "reverse" },
+            ...Array.from(
+              { length: warmup },
+              (): Frame => ({ action: "forward" }),
+            ),
+            { action: underwater ? "forward" : "hop" },
+            { action: "ledge" },
+            { action: "pivot" },
+            { action: "absent" },
+            { action: "forward", blade: "up" },
+            ...Array.from(
+              { length: S.bladeLiftTicks },
+              (): Frame => ({
+                action: "forward",
+              }),
+            ),
+            { action: "forward", blade: "down" },
+            ...Array.from(
+              { length: S.bladeLiftTicks },
+              (): Frame => ({
+                action: "forward",
+              }),
+            ),
+            ...schedule,
+          ];
+          let cutForward = false;
+          for (const [tick, frame] of controls.entries()) {
+            if (frame.blade !== undefined) {
+              d.setToolState("blade_switch", frame.blade);
+              bladeUp = frame.blade === "up";
+            }
+            bladeHeight += Math.sign(
+              (bladeUp ? S.bladeLiftTicks : 0) - bladeHeight,
+            );
+            const onGround = !underwater && frame.action !== "ledge";
+            const ctx = {
+              ...context(underwater ? 3 : 0),
+              tick,
+              location: { ...body.pos, y: 64 },
+              onGround,
+              velocity: { ...body.vel, y: 0 },
+            };
+            const raw = control[frame.action];
+            const out = d.step(raw, ctx);
+            body = engineStep(
+              body,
+              out.impulse,
+              { mu: 0.69, drag: underwater ? 0.83 : 0.69 },
+              onGround,
+            ).body;
+            expect(d.form).toBe(form);
+            const shouldCut =
+              raw !== undefined &&
+              frame.action !== "pivot" &&
+              d.speed > S.blade.minSpeed &&
+              !bladeUp &&
+              bladeHeight === 0 &&
+              (underwater || onGround);
+            const reach = underwater
+              ? ({ kind: "fixed", grounded: false } as const)
+              : ({ kind: "run" } as const);
+            expect(out.cut ?? []).toEqual(
+              shouldCut
+                ? bladeColumns(ctx.location, d.yaw, S.blade, reach)
+                : [],
+            );
+            if (frame.action === "forward" && shouldCut) cutForward = true;
+            if (frame.action === "hop") {
+              expect(out.impulse.y).toBeGreaterThan(0);
+              expect(out.cut?.length).toBeGreaterThan(0);
+            }
+          }
+          expect(cutForward).toBe(true);
         }
       },
     ),
   );
 });
-it("cuts on the hop tick, still on the ground, but not in the air after it", () => {
-  const d = new BulldozerDrive(0, { blade: 0 });
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 60; tick++) {
-    const onGround = tick <= 50;
-    const ctx = {
-      ...context(),
-      tick,
-      location: { ...b.pos, y: 64 },
-      onGround,
-      velocity: { ...b.vel, y: 0 },
-    };
-    const out = d.step({ ...FORWARD, jump: tick === 50 }, ctx);
-    b = engineStep(b, out.impulse, { mu: 0.69 }, onGround).body;
-    if (tick === 50) {
-      expect(out.impulse.y).toBeGreaterThan(0);
-      expect(out.cut).toEqual(
-        bladeColumns(ctx.location, d.yaw, S.blade, { kind: "run" }),
-      );
-    }
-    if (tick > 50) expect(out.cut ?? []).toEqual([]);
-  }
-});
-it("cuts only above blade.minSpeed while driving forward", () => {
-  const d = new BulldozerDrive(0, { blade: 0 });
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  const speeds = { slow: 0, fast: 0 };
-  for (let tick = 0; tick < 10; tick++) {
-    const out = d.step(FORWARD, {
-      ...context(),
-      tick,
-      velocity: { ...b.vel, y: 0 },
-    });
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-    const fast = d.speed > S.blade.minSpeed;
-    if (d.speed > 0) speeds[fast ? "fast" : "slow"]++;
-    expect((out.cut ?? []).length > 0).toBe(fast);
-  }
-  expect(speeds.slow).toBeGreaterThan(0);
-  expect(speeds.fast).toBeGreaterThan(0);
-});
+
 it("maps forms to the cut reach", () => {
   expect(cutReach("car", true)).toEqual({ kind: "run" });
   expect(cutReach("car", false)).toBeUndefined();
@@ -475,15 +487,6 @@ it("keeps the seabed floor row when the submarine rests on the bottom (ADR 0155)
     expect(c.bottom + (c.height ?? 0)).toBe(43);
   }
 });
-it("cuts nothing under water while pivoting or without input", () => {
-  for (const raw of [{ ...IDLE, moveX: 1 }, undefined]) {
-    const { steps } = driveSubmarine(
-      (tick) => (tick < 5 ? FORWARD : raw),
-      false,
-    );
-    for (const { out } of steps.slice(5)) expect(out.cut ?? []).toEqual([]);
-  }
-});
 /** The cells of an axis-aligned square reaching `half` from `center`, counting every cell the open interval touches. */
 function cellsAcross(center: number, half: number): number[] {
   const cells: number[] = [];
@@ -508,17 +511,16 @@ it("digs the wide shaft only while rising with a solid block in the two cells ov
       fc.nat(8),
       fc.nat(8),
       fc.integer({ min: -1, max: 2 }),
-      (form, rising, fx, fy, fz, i, k, dy) => {
+      (form, centered, fx, fy, fz, i, k, dy) => {
         const location = { x: 10 + fx, y: 40 + fy, z: -3 + fz };
         const top = Math.floor(location.y + S.carHeight);
         const xs = cellsAcross(location.x, wide);
         const zs = cellsAcross(location.z, wide);
         const roof = {
-          x: xs[i % xs.length] ?? 0,
+          x: centered ? Math.floor(location.x) : (xs[i % xs.length] ?? 0),
           y: top + dy,
-          z: zs[k % zs.length] ?? 0,
+          z: centered ? Math.floor(location.z) : (zs[k % zs.length] ?? 0),
         };
-        const d = new BulldozerDrive(0, { form, blade: 0 });
         const ctx = {
           ...context(form === "submarine" ? 3 : 0),
           onGround: false,
@@ -528,56 +530,41 @@ it("digs the wide shaft only while rising with a solid block in the two cells ov
             Math.floor(location.y + o.y) === roof.y &&
             Math.floor(location.z + o.z) === roof.z,
         };
-        d.step({ ...IDLE, jump: rising }, ctx);
-        const out = d.step({ ...IDLE, jump: rising }, { ...ctx, tick: 1 });
         const overFootprint =
           cellsAcross(location.x, S.footprint / 2).includes(roof.x) &&
           cellsAcross(location.z, S.footprint / 2).includes(roof.z) &&
           dy >= 0 &&
           dy < S.shaft.reach;
-        if (!((form === "takeoff" || rising) && overFootprint)) {
-          expect(out.cut ?? []).toEqual([]);
-          return;
-        }
-        const expected = xs.flatMap((x) =>
+        const shaft = xs.flatMap((x) =>
           zs.map((z) => ({ x, z, bottom: top, height: S.shaft.reach })),
         );
         const key = (c: { x: number; z: number }) => `${c.x},${c.z}`;
-        const cut = out.cut ?? [];
-        expect(cut).toHaveLength(expected.length);
-        expect(new Set(cut.map(key)).size).toBe(expected.length);
-        expect([...cut].sort((a, b) => key(a).localeCompare(key(b)))).toEqual(
-          [...expected].sort((a, b) => key(a).localeCompare(key(b))),
-        );
+        const byCell = (
+          a: { x: number; z: number },
+          b: { x: number; z: number },
+        ) => key(a).localeCompare(key(b));
+        const scenarios = [
+          { blade: 0, raw: { ...IDLE, jump: true }, rising: true },
+          { blade: 0, raw: IDLE, rising: form === "takeoff" },
+          { blade: 1, raw: { ...IDLE, jump: true }, rising: true },
+          { blade: 0, raw: undefined, rising: form === "takeoff" },
+        ];
+        for (const { blade, raw, rising } of scenarios) {
+          const d = new BulldozerDrive(0, { form, blade });
+          const { cut } = d.step(raw, ctx);
+          const expected =
+            blade === 0 && raw !== undefined && rising && overFootprint
+              ? shaft
+              : [];
+          expect([...(cut ?? [])].sort(byCell)).toEqual(
+            [...expected].sort(byCell),
+          );
+        }
       },
     ),
   );
 });
-it("digs no shaft with the blade raised or with no driver under a roof in reach, nor under a roof out of reach (ADR 0155)", () => {
-  const ctx = {
-    ...context(3),
-    onGround: false,
-    location: { x: 0.5, y: 40, z: 0.5 },
-  };
-  // The body's top is in cell 42, so offsets 2.5 and 3.5 are the probed cells.
-  const inReach = (o: { y: number }) => o.y >= 2;
-  const outOfReach = (o: { y: number }) => o.y >= 4;
-  const up = { ...IDLE, jump: true };
-  const lowered = new BulldozerDrive(0, { form: "submarine", blade: 0 });
-  const raised = new BulldozerDrive(0, { form: "submarine", blade: 1 });
-  const idle = new BulldozerDrive(0, { form: "submarine", blade: 0 });
-  const far = new BulldozerDrive(0, { form: "submarine", blade: 0 });
-  for (let tick = 0; tick < 12; tick++) {
-    const near = { ...ctx, tick, solidAt: inReach };
-    expect(lowered.step(up, near).cut?.length).toBeGreaterThan(0);
-    expect(raised.step(up, near).cut ?? []).toEqual([]);
-    expect(idle.step(undefined, near).cut ?? []).toEqual([]);
-    expect(
-      far.step(up, { ...ctx, tick, solidAt: outOfReach }).cut ?? [],
-    ).toEqual([]);
-  }
-});
-it("runs the tracks opposite ways on a pivot", () => {
+it("sends track spin and phase from the travel on a pivot", () => {
   const d = new BulldozerDrive(0, {});
   const values: Record<string, unknown> = {};
   let travel = { r: 0, l: 0 };
@@ -587,12 +574,6 @@ it("runs the tracks opposite ways on a pivot", () => {
       .commands)
       if (c.type === "setProperty") values[c.name] = c.value;
   }
-  expect(values).toMatchObject({
-    spin_r: 64,
-    spin_l: 296,
-    track_r: 2,
-    track_l: 0,
-  });
   expect(values).toMatchObject({
     spin_r: trackSpin(travel.r, S.tracks.radius),
     spin_l: trackSpin(travel.l, S.tracks.radius),
@@ -691,35 +672,22 @@ it("keeps flying after a restart and resends its state", () => {
     expect(propertyValue(out.commands, key)).toBeDefined();
 });
 
-it("cuts a full body tunnel while moving after a restart", () => {
-  const d = new BulldozerDrive(0, { form: "hover", blade: 0 });
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 20; tick++) {
-    const out = d.step(FORWARD, {
-      ...context(),
-      tick,
-      location: { ...b.pos, y: 64.5 },
-      onGround: false,
-      velocity: { ...b.vel, y: 0 },
-    });
-    b = engineStep(b, out.impulse, { mu: 0.69, drag: 0.91 }, false).body;
-    if (tick >= 9) {
-      expect(out.cut?.length).toBeGreaterThan(0);
-      for (const c of out.cut ?? [])
-        expect(c.bottom + (c.height ?? 0)).toBe(68);
-    }
-  }
-});
-
 it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)", () =>
   fc.assert(
     fc.property(
-      fc.option(fc.double({ min: 0, max: 1, noNaN: true }), { nil: undefined }),
+      fc.option(
+        fc.oneof(
+          fc.double({ min: 0, max: 1, noNaN: true }),
+          fc.constant(0.4999),
+          fc.constantFrom(true, false, "1", "0"),
+        ),
+        { nil: undefined },
+      ),
       fc.constantFrom(...FORMS),
       (blade, form) => {
         const d = new BulldozerDrive(0, { blade, form });
         const raised =
-          blade === undefined ? S.bladeRaisedOnSpawn : blade >= 0.5;
+          typeof blade === "number" ? blade >= 0.5 : S.bladeRaisedOnSpawn;
         expect(d.toolState("blade_switch") === "up").toBe(raised);
         expect(propertyValue(d.step(IDLE, context()).commands, "blade")).toBe(
           raised ? 1 : 0,
@@ -728,17 +696,10 @@ it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)"
     ),
   ));
 
-it("reads a saved blade of exactly 0.5 as raised and a non-number as missing (ADR 0138)", () => {
+it("reads a saved blade of exactly 0.5 as raised (ADR 0138)", () => {
   expect(
     new BulldozerDrive(0, { blade: 0.5 }).toolState("blade_switch") === "up",
   ).toBe(true);
-  expect(
-    new BulldozerDrive(0, { blade: 0.4999 }).toolState("blade_switch") === "up",
-  ).toBe(false);
-  for (const blade of [true, "1"] as unknown as number[])
-    expect(
-      new BulldozerDrive(0, { blade }).toolState("blade_switch") === "up",
-    ).toBe(S.bladeRaisedOnSpawn);
 });
 
 const switchSchedule = fc.array(fc.option(fc.boolean(), { nil: undefined }), {
@@ -823,54 +784,41 @@ it.each([false, true])(
     ),
 );
 
-it("starts cutting on the tick the lowering blade reaches the bottom (ADR 0138)", () => {
-  const d = new BulldozerDrive(0, { blade: 1 });
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 20 + S.bladeLiftTicks; tick++) {
-    if (tick === 20) d.setToolState("blade_switch", "down");
-    const ctx = cutContext("car", tick, b);
-    const out = d.step(FORWARD, ctx);
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-    if (tick < 20 + S.bladeLiftTicks - 1) expect(out.cut).toBeUndefined();
-    else
-      expect(out.cut).toEqual(
-        bladeColumns(ctx.location, d.yaw, S.blade, { kind: "run" }),
-      );
-  }
-});
+it("steps up in car and submarine form only with a raised blade (ADR 0138)", () => {
+  fc.assert(
+    fc.property(yaw, fc.constantFrom(1, 2), (heading, height) => {
+      for (const blade of [0, 1, undefined]) {
+        const raised = blade !== 0;
+        const car = new BulldozerDrive(heading, { blade });
+        let body: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
+        const impulses: number[] = [];
+        for (let tick = 0; tick < 30; tick++) {
+          const out = car.step(FORWARD, {
+            ...context(),
+            tick,
+            solidAt: (o) => o.y < height,
+            velocity: { ...body.vel, y: 0 },
+          });
+          body = engineStep(body, out.impulse, { mu: 0.69 }).body;
+          impulses.push(out.impulse.y);
+          if (blade === undefined) expect(out.cut).toBeUndefined();
+        }
+        if (raised)
+          expect(impulses).toContain(
+            height === 1 ? MOTION.oneStepVelocity : MOTION.stepVelocity,
+          );
+        else expect(impulses.every((impulse) => impulse === 0)).toBe(true);
 
-function impulsesAgainstStep(d: BulldozerDrive, top: number): number[] {
-  const ys: number[] = [];
-  let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-  for (let tick = 0; tick < 30; tick++) {
-    const out = d.step(FORWARD, {
-      ...context(),
-      tick,
-      solidAt: (o) => o.y < top,
-      velocity: { ...b.vel, y: 0 },
-    });
-    b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-    ys.push(out.impulse.y);
-  }
-  return ys;
-}
-
-it("climbs one- and two-block steps with the blade raised, like the SUV (ADR 0138)", () => {
-  expect(impulsesAgainstStep(new BulldozerDrive(0, { blade: 1 }), 1)).toContain(
-    MOTION.oneStepVelocity,
-  );
-  expect(impulsesAgainstStep(new BulldozerDrive(0, { blade: 1 }), 2)).toContain(
-    MOTION.stepVelocity,
-  );
-});
-
-it("rises from the submarine step probe with the blade raised (ADR 0138)", () => {
-  const a = new BulldozerDrive(0, { form: "submarine", blade: 1 }),
-    b = new BulldozerDrive(0, { form: "submarine", blade: 1 });
-  expect(
-    a.step(FORWARD, { ...context(3), solidAt: (o) => o.y < 1 }).impulse.y,
-  ).toBeGreaterThan(
-    b.step(FORWARD, { ...context(3), solidAt: (o) => o.y < -1 }).impulse.y,
+        const impulseAt = (top: number) =>
+          new BulldozerDrive(heading, { form: "submarine", blade }).step(
+            FORWARD,
+            { ...context(3), solidAt: (o) => o.y < top },
+          ).impulse.y;
+        const baseline = impulseAt(-1);
+        if (raised) expect(impulseAt(height)).toBeGreaterThan(baseline);
+        else expect(impulseAt(height)).toBe(baseline);
+      }
+    }),
   );
 });
 
@@ -894,27 +842,6 @@ it("switches step-up on the tick the blade's target changes (ADR 0138)", () => {
   expect(rises.slice(40)).not.toContain(true);
 });
 
-it("a placed bulldozer starts raised: it steps up and never cuts", () => {
-  fc.assert(
-    fc.property(yaw, (heading) => {
-      const d = new BulldozerDrive(heading, {});
-      let rises = false;
-      let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
-      for (let tick = 0; tick < 30; tick++) {
-        const out = d.step(FORWARD, {
-          ...context(),
-          tick,
-          solidAt: (o) => o.y < 1,
-          velocity: { ...b.vel, y: 0 },
-        });
-        b = engineStep(b, out.impulse, { mu: 0.69 }).body;
-        expect(out.cut).toBeUndefined();
-        rises ||= out.impulse.y === MOTION.oneStepVelocity;
-      }
-      expect(rises).toBe(true);
-    }),
-  );
-});
 const toggles = fc.constantFrom(
   {
     property: "wide_blade",

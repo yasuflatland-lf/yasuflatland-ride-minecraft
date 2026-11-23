@@ -1,17 +1,19 @@
-import { ticks } from "./ticks";
+import { TICKS_PER_SECOND, ticks } from "./ticks";
 
 // Sleeping in a bed block laid by any feature: the camper bed, later the tent mattresses (ADR 0092).
+
+const fadeInSeconds = 0.5;
 
 export const SLEEP = Object.freeze({
   // The night window the camper spike slept through (docs/spikes/camper.md).
   nightStart: 12542,
   nightEnd: 23459,
   wakeTime: 0, // 6:00 in the morning
-  fadeInSeconds: 0.5,
+  fadeInSeconds,
   holdSeconds: 1,
   fadeOutSeconds: 0.5,
   // The end of the fade-in at 20 ticks per second, so the sky changes while the screen is black.
-  wakeDelayTicks: ticks(10),
+  wakeDelayTicks: ticks(fadeInSeconds * TICKS_PER_SECOND),
   dimension: "minecraft:overworld",
 });
 

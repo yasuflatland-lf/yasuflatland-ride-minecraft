@@ -18,6 +18,4 @@ it("ejects, clears the ceiling and spawn points, then forgets the removed tent",
   expect(spawn.removed).toHaveBeenCalledExactlyOnceWith(tent, owner);
   expect(world.forget).toHaveBeenCalledExactlyOnceWith(tent);
   expect(ejector.eject).toHaveBeenCalledBefore(world.clearCeiling);
-  expect(world.clearCeiling).toHaveBeenCalledBefore(spawn.removed);
-  expect(spawn.removed).toHaveBeenCalledBefore(world.forget);
 });

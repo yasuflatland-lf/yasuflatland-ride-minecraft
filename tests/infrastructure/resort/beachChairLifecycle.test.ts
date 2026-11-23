@@ -19,10 +19,17 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 function fixture() {
-  const dimension = {
-    getEntities: vi.fn((_query: unknown) => [{ id: "chair" }]),
-  };
-  game.getDimension.mockReturnValue(dimension);
+  const chairs = new Map([
+    ["overworld", "lounge chair"],
+    ["nether", "red chair"],
+    ["the_end", "purple chair"],
+  ]);
+  game.getDimension.mockImplementation((name: string) => ({
+    getEntities: ({ type }: { type: string }) => {
+      const id = chairs.get(name);
+      return type === BEACH_CHAIR && id ? [{ id }] : [];
+    },
+  }));
   const riders = new LieOnBeachChair(
     new BedrockBeachChairWorld({
       topHosts: new TopHostRegistry(),
@@ -32,7 +39,7 @@ function fixture() {
   );
   const refresh = vi.spyOn(riders, "refresh").mockImplementation(() => {});
   registerBeachChairLifecycle(riders);
-  return { refresh, dimension };
+  return { refresh, chairs };
 }
 
 it("scans all loaded dimensions at the pose interval after reload", () => {
@@ -42,18 +49,11 @@ it("scans all loaded dimensions at the pose interval after reload", () => {
     BEACH_CHAIR_SPEC.poseRefreshTicks,
   );
   game.interval.mock.calls[0]?.[0]();
-  expect(game.getDimension.mock.calls.map((call) => call[0])).toEqual([
-    "overworld",
-    "nether",
-    "the_end",
-  ]);
-  expect(f.dimension.getEntities).toHaveBeenCalledWith({ type: BEACH_CHAIR });
-  expect(f.refresh).toHaveBeenCalledExactlyOnceWith([
-    "chair",
-    "chair",
-    "chair",
-  ]);
-  f.dimension.getEntities.mockReturnValue([]);
+  expect(f.refresh).toHaveBeenCalledOnce();
+  expect(new Set(f.refresh.mock.calls[0]?.[0])).toEqual(
+    new Set(f.chairs.values()),
+  );
+  f.chairs.clear();
   game.interval.mock.calls[0]?.[0]();
   expect(f.refresh).toHaveBeenLastCalledWith([]);
 });

@@ -31,7 +31,6 @@ import {
   CAMPER_FURNITURE_BLOCK,
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
-  CAMPER_SHOWER_TOILET_COMPONENT,
   CAMPER_WALL_BLOCK,
   campingGearOfDecorBlock,
   campingGearOfItem,
@@ -47,21 +46,13 @@ import {
 import { decorItemId } from "../../../../support/decorIds";
 
 describe("camper identifiers", () => {
-  it("names an item's decor block", () => {
-    fc.assert(
-      fc.property(fc.stringMatching(/^[a-z][a-z0-9_]{0,20}$/), (item) => {
-        expect(decorBlockId(item)).toBe(`yasu_ride:${item}_decor`);
-      }),
-    );
-  });
   it("maps camping gear items and decor blocks to their gear ids and nothing else (ADR 0093)", () => {
     fc.assert(
       fc.property(fc.constantFrom(...CAMPING_GEAR_IDS), (gear) => {
-        expect(campingGearOfItem(`yasu_ride:${gear}`)).toBe(gear);
-        expect(campingGearOfDecorBlock(`yasu_ride:${gear}_decor`)).toBe(gear);
-        expect(campingGearItem(gear)).toBe(`yasu_ride:${gear}`);
-        expect(campingGearOfItem(`yasu_ride:${gear}_decor`)).toBeUndefined();
-        expect(campingGearOfDecorBlock(`yasu_ride:${gear}`)).toBeUndefined();
+        expect(campingGearOfItem(campingGearItem(gear))).toBe(gear);
+        expect(campingGearOfDecorBlock(decorBlockId(gear))).toBe(gear);
+        expect(campingGearOfItem(decorBlockId(gear))).toBeUndefined();
+        expect(campingGearOfDecorBlock(campingGearItem(gear))).toBeUndefined();
       }),
     );
     expect(campingGearOfItem(undefined)).toBeUndefined();
@@ -127,7 +118,6 @@ describe("camper identifiers", () => {
 
   it("names the pair blocks, the wall cabinet's too, the way the domain's slot check expects and counts them as decor blocks (ADR 0108, 0114)", () => {
     for (const kind of ["shelf", "table", "cabinet", "fridge"]) {
-      expect(pairDecorBlockId(kind)).toBe(`yasu_ride:${kind}_decor_pair`);
       expect(isDecorBlock(pairDecorBlockId(kind))).toBe(true);
     }
     for (const { cell, slots } of DECOR_CELLS) {
@@ -174,13 +164,7 @@ describe("camper identifiers", () => {
       expect(isStandableRoomBlock(typeId)).toBe(false);
   });
 
-  it("names the furniture block the way the domain's slot check expects (ADR 0097)", () => {
-    expect(CAMPER_FURNITURE_BLOCK).toBe("yasu_ride:camper_furniture");
+  it("recognizes camper furniture as an empty decor slot (ADR 0097)", () => {
     expect(ownSlotBlock(CAMPER_FURNITURE_BLOCK, undefined)).toBe(true);
-  });
-
-  it("names the shower-toilet block and its custom component (ADR 0098)", () => {
-    expect(CAMPER_SHOWER_TOILET_BLOCK).toBe("yasu_ride:camper_shower_toilet");
-    expect(CAMPER_SHOWER_TOILET_COMPONENT).toBe(CAMPER_SHOWER_TOILET_BLOCK);
   });
 });

@@ -1,7 +1,5 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { clamp } from "../../../src/domain/shared/vec";
-import type { RawInput } from "../../../src/domain/vehicle/driveInput";
 import {
   NEUTRAL_CONTROL,
   toDriveInput,
@@ -152,7 +150,7 @@ describe("toDriveInput (ADR 0018)", () => {
   it("throttle is full when the absolute forward/backward input is at least 0.5 (preserving the input sign)", () => {
     fc.assert(
       fc.property(
-        fc.double({ min: 0.5, max: 1, noNaN: true }),
+        fc.double({ min: 0.5, max: 2, noNaN: true }),
         fc.boolean(),
         (a, neg) => {
           const y = neg ? -a : a;
@@ -161,6 +159,54 @@ describe("toDriveInput (ADR 0018)", () => {
           ).toBe(neg ? -1 : 1);
         },
       ),
+    );
+  });
+
+  it("partial throttle is proportional to forward and backward stick travel", () => {
+    fc.assert(
+      fc.property(
+        fc.double({
+          min: SPEC.throttleDeadzone,
+          minExcluded: true,
+          max: SPEC.throttleFullAt,
+          noNaN: true,
+        }),
+        fc.constantFrom(-1, 1),
+        (magnitude, sign) => {
+          const moveY = magnitude * sign;
+          expect(
+            toDriveInput({ moveX: 0, moveY, jump: false }).throttle,
+          ).toBeCloseTo(moveY / SPEC.throttleFullAt, 12);
+        },
+      ),
+    );
+  });
+
+  it("clamps saturated steering before deciding whether the stick is sideways", () => {
+    const sidewaysLimit = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
+    fc.assert(
+      fc.property(
+        fc.double({
+          min: 1,
+          minExcluded: true,
+          noNaN: true,
+          noDefaultInfinity: true,
+        }),
+        fc.constantFrom(-1, 1),
+        axis,
+        fc.boolean(),
+        (magnitude, sign, moveY, jump) => {
+          const input = toDriveInput({ moveX: magnitude * sign, moveY, jump });
+          expect(input.steer).toBe(sign);
+          expect(input.sideways).toBe(Math.abs(moveY) <= sidewaysLimit);
+        },
+      ),
+      {
+        examples: [
+          [2, 1, 0.5, false],
+          [2, -1, -0.5, true],
+        ],
+      },
     );
   });
 
@@ -188,77 +234,11 @@ describe("toDriveInput (ADR 0018)", () => {
 
   it("left/right input maps directly to steering, and jump passes through", () => {
     fc.assert(
-      fc.property(axis, fc.boolean(), (x, jump) => {
-        const d = toDriveInput({ moveX: x, moveY: 0, jump });
+      fc.property(axis, axis, fc.boolean(), (x, y, jump) => {
+        const d = toDriveInput({ moveX: x, moveY: y, jump });
         expect(d.steer).toBe(x);
         expect(d.jump).toBe(jump);
       }),
     );
   });
-});
-
-// The mapping before ADR 0089, kept as an oracle.
-interface LegacyDriveInput {
-  throttle: number;
-  steer: number;
-  handbrake: boolean;
-  creep: boolean;
-}
-const LEGACY_NEUTRAL: LegacyDriveInput = {
-  throttle: 0,
-  steer: 0,
-  handbrake: false,
-  creep: false,
-};
-const LEGACY_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
-function legacyToDriveInput(raw: RawInput | undefined): LegacyDriveInput {
-  if (
-    raw === undefined ||
-    !Number.isFinite(raw.moveX) ||
-    !Number.isFinite(raw.moveY)
-  ) {
-    return LEGACY_NEUTRAL;
-  }
-  const steer = clamp(raw.moveX, -1, 1);
-  const sideways = Math.abs(steer);
-  // A phone stick pushed straight right reads about -0.2 forward/backward,
-  // which would otherwise reverse the vehicle and flip the steering.
-  if (
-    sideways > SPEC.throttleDeadzone &&
-    Math.abs(raw.moveY) <= sideways * LEGACY_SLOPE
-  ) {
-    return { throttle: 0, steer, handbrake: raw.jump, creep: true };
-  }
-  const magnitude = Math.abs(raw.moveY);
-  const throttle =
-    magnitude <= SPEC.throttleDeadzone
-      ? 0
-      : Math.sign(raw.moveY) * Math.min(1, magnitude / SPEC.throttleFullAt);
-  return { throttle, steer, handbrake: raw.jump, creep: false };
-}
-
-const anyAxis = fc.oneof(
-  fc.double({ min: -1.5, max: 1.5, noNaN: true }),
-  fc.double(),
-);
-const anyRaw: fc.Arbitrary<RawInput> = fc.record({
-  moveX: anyAxis,
-  moveY: anyAxis,
-  jump: fc.boolean(),
-});
-const anyRawOrNone = fc.option(anyRaw, { nil: undefined });
-
-it("the control input is the old drive input with jump and sideways in place of handbrake and creep (ADR 0089)", () => {
-  fc.assert(
-    fc.property(anyRawOrNone, (raw) => {
-      const o = legacyToDriveInput(raw);
-      expect(toDriveInput(raw)).toStrictEqual({
-        throttle: o.throttle,
-        steer: o.steer,
-        jump: o.handbrake,
-        sideways: o.creep,
-      });
-    }),
-    { numRuns: 100 },
-  );
 });

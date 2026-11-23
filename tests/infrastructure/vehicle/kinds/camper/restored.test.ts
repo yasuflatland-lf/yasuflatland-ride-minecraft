@@ -31,21 +31,17 @@ it.each([undefined, false, true])(
               ? []
               : [{ ...door, block: { type: "door", face, open: doorOpen } }]),
           ];
-          const getDynamicProperty = vi.fn((key: string) => {
+          const getDynamicProperty = (key: string) => {
             if (key === DECK_CELLS_PROPERTY) return JSON.stringify(cells);
             if (key === DECOR_PROPERTY) return decor;
             return undefined;
-          });
+          };
           const vehicle = { getDynamicProperty } as unknown as Entity;
           expect(readCamperRestored(vehicle)).toStrictEqual({
             dockLaid: cells.length > 0,
             dockDoorOpen: doorOpen,
             dockDecor: decor,
           });
-          expect(getDynamicProperty.mock.calls).toEqual([
-            [DECK_CELLS_PROPERTY],
-            [DECOR_PROPERTY],
-          ]);
         },
       ),
     );

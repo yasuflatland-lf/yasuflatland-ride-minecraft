@@ -14,7 +14,7 @@ export type FurnitureKind =
   | "washstand";
 
 /** A cell relative to the pressed column, seen by the placing player: `ahead` is away from them, `left` to their left. */
-export interface CellOffset {
+interface CellOffset {
   readonly ahead: number;
   readonly left: number;
 }

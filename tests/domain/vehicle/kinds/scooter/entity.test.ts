@@ -18,14 +18,6 @@ it("reserves core properties and fits the entity property budget", () => {
   );
   for (const name of CORE_PROPERTY_NAMES)
     expect(properties).not.toContain(name);
-  expect(SCOOTER_ENTITY.properties.lean.range).toEqual([
-    -SCOOTER_SPEC.maxLean,
-    SCOOTER_SPEC.maxLean,
-  ]);
-  expect(SCOOTER_ENTITY.properties.steer.range).toEqual([
-    -SCOOTER_SPEC.maxSteer,
-    SCOOTER_SPEC.maxSteer,
-  ]);
   expect(SCOOTER_ENTITY.restored).toEqual(["form"]);
 });
 

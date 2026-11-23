@@ -340,16 +340,18 @@ describe("Vehicle in flight (ADR 0021)", () => {
 });
 
 describe("Vehicle banking (ADR 0026)", () => {
+  const rawInput = fc.record({
+    moveX: fc.double({ min: -1, max: 1, noNaN: true }),
+    moveY: fc.double({ min: -1, max: 1, noNaN: true }),
+    jump: fc.boolean(),
+  });
+
   it("sends every changed bank angle and bounds the drive bank throughout random hover controls", () => {
-    const rawInput = fc.record({
-      moveX: fc.double({ min: -1, max: 1, noNaN: true }),
-      moveY: fc.double({ min: -1, max: 1, noNaN: true }),
-      jump: fc.boolean(),
-    });
     fc.assert(
       fc.property(
         fc.array(rawInput, { minLength: 1, maxLength: 200 }),
-        (inputs) => {
+        fc.constantFrom(-1, 1),
+        (inputs, steer) => {
           const drive = new SuvDrive(0, { form: "hover" });
           const sim = new FlightSim(
             new Vehicle(asVehicleId("car"), SUV_PROFILE, drive),
@@ -360,13 +362,15 @@ describe("Vehicle banking (ADR 0026)", () => {
           let intermediateChanges = 0;
           const controls = [
             ...Array<RawInput>(40).fill(FORWARD),
-            ...Array<RawInput>(12).fill({ ...FORWARD, moveX: 1 }),
-            ...Array<RawInput>(12).fill(FORWARD),
+            ...Array<RawInput>(20).fill({ ...FORWARD, moveX: steer }),
+            ...Array<RawInput>(20).fill(FORWARD),
             ...inputs,
           ];
-          for (const input of controls) {
+          for (const [tick, input] of controls.entries()) {
             const out = sim.step(input);
             const bankNow = drive.inspect().bank;
+            if (tick === 59) expect(Math.sign(bankNow)).toBe(-steer);
+            if (tick === 79) expect(bankNow).toBe(0);
             expect(Math.abs(bankNow)).toBeLessThanOrEqual(
               SUV_SPEC.maxBank + 1e-9,
             );
@@ -402,15 +406,6 @@ describe("Vehicle banking (ADR 0026)", () => {
     return banks;
   }
 
-  it("banks left while steering left in flight and levels out after", () => {
-    const sim = flying();
-    bankOver(sim, FORWARD, 40);
-    const left = bankOver(sim, { ...FORWARD, moveX: 1 }, 20);
-    expect(left.at(-1)).toBeLessThan(0);
-    const after = bankOver(sim, FORWARD, 20);
-    expect(after.at(-1)).toBe(0);
-  });
-
   it("loses altitude while banked and holds it in level flight", () => {
     const sim = flying();
     bankOver(sim, FORWARD, 40);
@@ -422,10 +417,28 @@ describe("Vehicle banking (ADR 0026)", () => {
   });
 
   it("stays level while steering on the ground", () => {
-    const sim = new FlightSim();
-    bankOver(sim, FORWARD, 20);
-    const turning = bankOver(sim, { ...FORWARD, moveX: 1 }, 20);
-    expect(turning.every((b) => b === 0)).toBe(true);
+    fc.assert(
+      fc.property(
+        fc.array(rawInput, { minLength: 1, maxLength: 80 }),
+        fc.constantFrom(-1, 1),
+        (inputs, steer) => {
+          const drive = new SuvDrive(0, {});
+          const sim = new FlightSim(
+            new Vehicle(asVehicleId("car"), SUV_PROFILE, drive),
+          );
+          sim.run(FORWARD, 20);
+          const controls = [
+            ...Array<RawInput>(20).fill({ ...FORWARD, moveX: steer }),
+            ...inputs.map((input) => ({ ...input, jump: false })),
+          ];
+          for (const input of controls) {
+            sim.step(input);
+            expect(drive.inspect().bank).toBe(0);
+            expect(sim.bankAngle).toBe(0);
+          }
+        },
+      ),
+    );
   });
 });
 
@@ -452,12 +465,6 @@ describe("Vehicle landing gear (ADR 0033)", () => {
     expect(new SuvDrive(0, {}).inspect().wheelsDown).toBe(true);
   });
 
-  it("keeps the wheels folded when rebuilt while landing high above the ground", () => {
-    const { wheelsDown, gearDown } = landOnce(0, () => false);
-    expect(gearDown).toBe(false);
-    expect(wheelsDown).toBe(false);
-  });
-
   it("lowers the wheels while landing over ground within gearDownHeight under the center or any corner, and keeps them up over deeper ground, in any heading", () => {
     const d = SUV_SPEC.gearProbeOffset;
     const spots = [
@@ -471,20 +478,25 @@ describe("Vehicle landing gear (ADR 0033)", () => {
       fc.property(
         fc.integer({ min: -180, max: 179 }),
         fc.constantFrom(...spots),
-        fc.integer({ min: 1, max: SUV_SPEC.gearDownHeight + 1 }),
+        fc.option(fc.integer({ min: 1, max: SUV_SPEC.gearDownHeight + 1 }), {
+          nil: undefined,
+        }),
         (yaw, [ahead, side], depth) => {
           const f = forward(yaw);
           const r = rightOf(f);
-          const { gearDown } = landOnce(
+          const { gearDown, wheelsDown } = landOnce(
             yaw,
             // A one-block slab 0.4 blocks around one probe spot, `depth` blocks down.
             (o) =>
+              depth !== undefined &&
               Math.abs(dot(o, f) - ahead) <= 0.4 &&
               Math.abs(dot(o, r) - side) <= 0.4 &&
               o.y <= -depth &&
               o.y > -depth - 1,
           );
-          expect(gearDown).toBe(depth <= SUV_SPEC.gearDownHeight);
+          const near = depth !== undefined && depth <= SUV_SPEC.gearDownHeight;
+          expect(gearDown).toBe(near);
+          expect(wheelsDown).toBe(near);
         },
       ),
     );
@@ -536,12 +548,33 @@ describe("Driver handover in flight (ADR 0078)", () => {
     it(`keeps hovering while a passenger moves up within the handover ticks, and the new driver climbs (${kind})`, () => {
       fc.assert(
         fc.property(
-          fc.integer({ min: 0, max: SPEC.driverHandoverTicks }),
-          (gap) => {
+          fc.integer({ min: 0, max: SPEC.driverHandoverTicks + 5 }),
+          fc.boolean(),
+          (gap, movesUp) => {
             const sim = riddenFlyingSim(kind);
             const before = sim.changes.length;
             sim.riders = [{ id: "Q", seat: 1 }];
-            sim.run(undefined, gap);
+            const wait = SPEC.driverHandoverTicks;
+            for (let tick = 1; tick <= gap; tick++) {
+              sim.step(undefined);
+              expect(sim.form).toBe(tick <= wait ? "hover" : "landing");
+            }
+            if (!movesUp || gap > wait) {
+              if (gap <= wait) {
+                sim.run(undefined, wait - gap);
+                expect(sim.form).toBe("hover");
+                sim.step(undefined);
+                expect(sim.form).toBe("landing");
+              }
+              if (movesUp) {
+                sim.riders = [{ id: "Q", seat: 0 }];
+                sim.step(HOLD_JUMP);
+                expect(sim.form).toBe("landing");
+              }
+              sim.run(undefined, 80);
+              expect(sim.form).toBe("car");
+              return;
+            }
             sim.riders = [{ id: "Q", seat: 0 }];
             const y0 = sim.y;
             const first = sim.step(HOLD_JUMP);

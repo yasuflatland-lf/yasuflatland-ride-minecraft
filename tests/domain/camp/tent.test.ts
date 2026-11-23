@@ -8,7 +8,6 @@ import {
   type GroundReading,
   insideTent,
   inTentFootprint,
-  lanternCell,
   PITCHED_STATE,
   type PitchSurvey,
   planPitch,
@@ -34,6 +33,7 @@ import {
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { dot, forward, normalizeYaw } from "../../../src/domain/shared/vec";
+import { lanternCell } from "../../../src/test-pack/scenarios/support/tentContract";
 import { defined } from "../../support/defined";
 import { TENT_PACK_CONTRACT } from "../../support/packContract";
 
@@ -272,14 +272,6 @@ describe("tentCells (ADR 0130, 0131)", () => {
   });
 
   it("pins the trapezoid footprint, stepped walls, entrance and anchor", () => {
-    expect(TRAPEZOID_LAYOUT.clear).toEqual({
-      halfWidth: 3,
-      depth: 9,
-      layers: 4,
-    });
-    expect(TRAPEZOID_LAYOUT.anchor).toEqual({ x: 0, depth: 8, layer: 0 });
-    expect(TRAPEZOID_LAYOUT.lantern).toEqual({ x: 0, depth: 4, layer: 3 });
-    expect(TENT_FLAPS.front).toHaveLength(6);
     const pose = tentPose({ x: 110, y: -61, z: 46 }, 0);
     expect(tentEntityLocation(pose)).toEqual({ x: 110.5, y: -60, z: 54.5 });
     expect(tentCells(pose, PITCHED_STATE)).toHaveLength(

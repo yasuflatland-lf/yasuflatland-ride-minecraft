@@ -52,7 +52,7 @@
 - Agreement: Accepted
 - Basis: [0087](../adr/0087-sports-boat-spec-table.md) Decision, "It is frozen and imports nothing"; [0051](../adr/0051-sports-boat.md) Decision, "Store these in its own profile (0050)"
 - Implementation: `src/domain/vehicle/kinds/sportsboat/spec.ts` (`SPORTSBOAT_SPEC`), `src/domain/vehicle/kinds/sportsboat/profile.ts` (`SPORTSBOAT_PROFILE`, `SPORTSBOAT_MOTION`), `src/domain/vehicle/kinds/sportsboat/drive.ts`, `src/domain/vehicle/kinds/sportsboat/attitude.ts`, `src/domain/vehicle/kinds/sportsboat/deck.ts`, `src/domain/vehicle/kinds/sportsboat/entity.ts`
-- Verification: `tests/domain/vehicle/profile.test.ts` "keeps the frozen vehicle tables and their frozen descendants"; `tests/domain/vehicle/kinds/sportsboat/spec.test.ts` "reads every motion limit from the spec", "reads the ram reach, water drag, attitude and deck from the spec"; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "is the sports boat's drive and keeps no form, gear, or bank whatever form it is given". Tests were read, not run for this spec.
+- Verification: `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "is the sports boat's drive and keeps no form, gear, or bank whatever form it is given". Tests were read, not run for this spec.
 
 ### Hull collision, paints, ram and beams
 
@@ -206,7 +206,7 @@
 - Agreement: Proposed
 - Basis: [0161](../adr/0161-smooth-sports-boat-hull-planking.md) Decision, "Keep `beam()` and all its existing callers unchanged."; [0161](../adr/0161-smooth-sports-boat-hull-planking.md) Decision, "Use `beam_plan(z)` only for the new hull: a monotone cubic Hermite through `BEAM`, with weighted harmonic-mean interior tangents, zero tangents beside flat runs or extrema, and endpoint secants."
 - Implementation: `tools/gen_sportsboat.py` (`beam_plan`, `hull_shell`, `rail`, `rails`, `plank`, `joint_overlap`, `joint_setback`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "keeps the outer plan outline at the rub rail on the half-breadth table and never wider toward the bow", "intercepts vertical rays throughout the outer plan, including both stem gaps", "keeps side rays on the V bands above the accepted stepped keel", "uses the shipped SUV bumper's inward y-turned corners". Not verified: device rotation sign, underwater closure, face sorting and visible seams (manual H1-H4 are empty).
+- Verification: `tests/packs/sportsboat.test.ts` "keeps the outer plan outline at the rub rail on the half-breadth table and never wider toward the bow", "intercepts vertical rays throughout the outer plan, including both stem gaps", "keeps side rays on the V bands above the accepted stepped keel", "uses the shipped SUV bumper wings' y-turn sign: +y turns +x toward -z". Not verified: device rotation sign, underwater closure, face sorting and visible seams (manual H1-H4 are empty).
 
 ### Bow lounge inner outline
 

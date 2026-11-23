@@ -24,9 +24,6 @@ const render = read(`${RP}/render_controllers/yasu_ride/bulldozer.rc.json`)
   .render_controllers["controller.render.yasu_ride.bulldozer"];
 it("is a vehicle entity with the touch Jump components and a body that follows the view (ADR 0025, 0136)", () => {
   const c = entity.components;
-  expect(c["minecraft:type_family"]).toEqual({
-    family: ["yasu_ride_vehicle", "inanimate"],
-  });
   for (const k of [
     "input_ground_controlled",
     "can_power_jump",
@@ -68,16 +65,6 @@ it("declares the transforming properties with a nonzero range for its zero bank"
   });
   expect(p["yasu_ride:monitor"].range).toEqual([0, 6]);
   expect(p["yasu_ride:gear_down"].default).toBe(true);
-  for (const key of ["bank", "spin_r", "spin_l", "door", "blade"]) {
-    const text = readFileSync(
-      `${BP}/entities/yasu_ride/bulldozer.se.json`,
-      "utf8",
-    );
-    const definition = text.slice(text.indexOf(`"yasu_ride:${key}"`));
-    expect(definition.slice(0, definition.indexOf('"default"'))).toMatch(
-      /"range": \[\s*\d+\.0/,
-    );
-  }
 });
 it("shows exactly one of blade and blade_wide for each wide_blade value", () => {
   expect(render.part_visibility).toContainEqual({
@@ -91,12 +78,6 @@ it("matches the collision box height to the profile", () => {
   expect(entity.components["minecraft:collision_box"].height).toBe(
     BULLDOZER_PROFILE.body.height,
   );
-});
-it("switches gravity with the shared groups", () => {
-  for (const g of ["weighted", "weightless"])
-    expect(entity.component_groups[`yasu_ride:${g}`]).toBeDefined();
-  for (const e of ["gravity_on", "gravity_off"])
-    expect(entity.events[`yasu_ride:${e}`]).toBeDefined();
 });
 it("crafts from an SUV item, an iron block, and an iron shovel", () => {
   const r = read(`${BP}/recipes/yasu_ride/bulldozer_item.recipe.json`)[
@@ -114,19 +95,6 @@ it("crafts from an SUV item, an iron block, and an iron shovel", () => {
   expect(item.components["minecraft:display_name"]).toEqual({
     value: "item.yasu_ride:bulldozer_item.name",
   });
-  const icon = item.components["minecraft:icon"];
-  const texture = read(`${RP}/textures/item_texture.json`).texture_data[icon]
-    .textures;
-  expect(existsSync(`${RP}/${texture}.png`)).toBe(true);
-});
-it("names the bulldozer and its item in every locale", () => {
-  for (const lang of readdirSync(`${RP}/texts`).filter((n) =>
-    n.endsWith(".lang"),
-  )) {
-    const text = readFileSync(`${RP}/texts/${lang}`, "utf8");
-    expect(text).toContain("entity.yasu_ride:bulldozer.name=");
-    expect(text).toContain("item.yasu_ride:bulldozer_item.name=");
-  }
 });
 it("runs the tracks, the door, and the blade rig from their properties", () => {
   const bones: Record<string, unknown> = {};

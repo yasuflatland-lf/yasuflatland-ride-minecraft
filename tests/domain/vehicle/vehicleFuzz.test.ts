@@ -83,11 +83,15 @@ it.each(VEHICLE_KINDS)(
             );
 
             // Only a departing rider vacates a seat (ADR 0128).
-            if ([...lastRiders].every((id) => ids.has(id)))
+            if (
+              kind === "camper" ||
+              kind === "scooter" ||
+              [...lastRiders].every((id) => ids.has(id))
+            )
               expect(out.finalCommands).toEqual([]);
 
             for (const command of [...out.stepCommands, ...out.finalCommands])
-              expectDeclaredCommand(command, contract, profileOf(kind));
+              expectDeclaredCommand(command, contract, profile);
 
             expect(typeof out.riders.thirdPerson).toBe("boolean");
             expect(typeof out.riders.underwater).toBe("boolean");

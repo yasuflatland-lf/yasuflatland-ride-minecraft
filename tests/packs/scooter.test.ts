@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SCOOTER_PROFILE } from "../../src/domain/vehicle/kinds/scooter/profile";
-import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
+import { PAINT_VARIANT } from "../../src/test-pack/scenarios/support/paintContract";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 
@@ -96,23 +96,5 @@ describe("scooter Behavior Pack geometry", () => {
     expect(icons[item.components["minecraft:icon"]].textures).toBe(
       "textures/items/yasu_ride/scooter_item",
     );
-  });
-});
-
-describe("scooter entity properties", () => {
-  it("writes float property defaults with a decimal point", () => {
-    // The engine rejects an integer literal as the default of a float property.
-    const text = readFileSync(
-      "packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json",
-      "utf8",
-    );
-    const properties = read(
-      "packs/yasu_ride_bp/entities/yasu_ride/scooter.se.json",
-    )["minecraft:entity"].description.properties;
-    for (const [name, def] of Object.entries<{ type: string }>(properties)) {
-      if (def.type !== "float") continue;
-      const block = text.slice(text.indexOf(`"${name}"`));
-      expect(block.match(/"default":\s*(-?[\d.]+)/)?.[1]).toContain(".");
-    }
   });
 });

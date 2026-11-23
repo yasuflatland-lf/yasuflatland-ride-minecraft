@@ -46,7 +46,7 @@
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "Seats 2 and 3 stay a facing dinette on the left, now behind the passenger"
 - Basis: [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "Both front seats of `minecraft:rideable` sit at 1.5 instead of 1.1, 0.4 blocks higher."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts` (`CAMPER_PROFILE.seats`); `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json` (`minecraft:rideable` `seats`)
-- Verification: `tests/packs/camper/seats.test.ts` "matches the camper's four seat positions and collision box to its profile" (x and z only); `tests/packs/camper/seats.test.ts` checks both cab bone counts and pivots; `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and exposed lap-belt clearance. `tests/packs/camper/steering.test.ts` checks wheel-to-cushion clearance; `tests/packs/camper/shell.test.ts` checks the red-line roll and plane/column angles. Not verified: the seat heights by any test; the view over the dashboard and new wheel (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
+- Verification: `tests/packs/entityContract.test.ts` checks the camper seat positions (x and z only); `tests/packs/camper/seats.test.ts` checks both cab bone counts and pivots; `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and exposed lap-belt clearance. `tests/packs/camper/steering.test.ts` checks wheel-to-cushion clearance; `tests/packs/camper/shell.test.ts` checks the red-line roll and plane/column angles. Not verified: the seat heights by any test; the view over the dashboard and new wheel (0070 Consequences says it is checked by hand, and no owner check with revision and device is recorded).
 
 ### Camper dinette upholstery
 
@@ -152,7 +152,7 @@
 - Agreement: Proposed
 - Basis: [0136](../adr/0136-bulldozer.md) Decision, "One driver sits at `[0, 1.4, -1.35]`."
 - Implementation: `src/domain/vehicle/kinds/bulldozer/profile.ts` (`BULLDOZER_PROFILE.seats`, `boarding`); `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json`; `src/domain/vehicle/seating.ts`; `src/domain/vehicle/crew.ts`
-- Verification: `tests/packs/entityContract.test.ts` checks the bulldozer seat position, count and driver slot; `tests/domain/vehicle/kinds/bulldozer/profile.test.ts` "preserves the bulldozer seat and placement clearance (ADR 0136)". Not verified: the manual Bulldozer checks on PC and mobile (0136 Acceptance condition, #533, #542).
+- Verification: `tests/packs/entityContract.test.ts` checks the bulldozer seat position, count and driver slot. Not verified: the manual Bulldozer checks on PC and mobile (0136 Acceptance condition, #533, #542).
 
 ### Bulldozer driver exit
 

@@ -42,7 +42,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Add the kind `camper`, entity `yasu_ride:camper`, item `yasu_ride:camper_item`"; [0067](../adr/0067-camper.md) Decision, "One camper per player (0066)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/items/yasu_ride/camper_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`
-- Verification: `tests/domain/vehicle/profile.test.ts` "sets the %s fleet limit and chase camera". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
+- Verification: `tests/domain/vehicle/fleet/fleet.test.ts` checks per-group limits and `tests/packs/chaseCamera.test.ts` checks the camper camera preset. Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
 
 ### Camper tuning
 
@@ -51,7 +51,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with its own `CAMPER_SPEC` (never `SUV_SPEC`)"
 - Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/drive.test.ts` "reaches 95 percent speed in 60 to 90 ticks and stays within its cap for 300 ticks"; `tests/domain/vehicle/profile.test.ts` "reads the camper's tyre values from its spec (ADR 0089)". Not verified: all flight, submarine, bank, and gear values on a client.
+- Verification: `tests/domain/vehicle/kinds/camper/drive.test.ts` "reaches 95 percent speed in 60 to 90 ticks and stays within its cap for 300 ticks". Not verified: all flight, submarine, bank, and gear values on a client.
 
 ### Body envelope and collision
 
@@ -69,7 +69,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "It looks ahead by the velocity the engine applies this tick, not the post-friction speed"; [0067](../adr/0067-camper.md) Decision, "In car form it checks from two blocks above the feet"
 - Implementation: `src/domain/vehicle/kinds/camper/bodyGuard.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/bodyGuard.test.ts` "gives the camper four lanes", "lets layers zero and one through in car form only", "samples every block from the front to this tick's applied move, not the internal speed", "makes no queries at rest and preserves the step"; `tests/domain/vehicle/kinds/camper/drive.test.ts` "cancels the step jump when a curb lies ahead and a wall stands at the front end". Not verified: body overlap against walls on clients.
+- Verification: `tests/domain/vehicle/kinds/camper/bodyGuard.test.ts` "are center-most first, at most one block apart, and reach both sides of any body", "lets layers zero and one through in car form only", "samples every block from the front to this tick's applied move, not the internal speed", "makes no queries at rest and preserves the step"; `tests/domain/vehicle/kinds/camper/drive.test.ts` "cancels the step jump when a curb lies ahead and a wall stands at the front end". Not verified: body overlap against walls on clients.
 
 ### Placement clearance
 
@@ -87,7 +87,7 @@
 - Agreement: Proposed
 - Basis: [0067](../adr/0067-camper.md) Decision, "The camper has fixed khaki paint through `CAMPER_PROFILE.paintPolicy = fixed("khaki")` (0031, 0076)."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Generate one khaki colour atlas, `camper.png`, from the fixed palette (0067, 0076)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride`
-- Verification: `tests/packs/camper/paints.test.ts` "generates exactly one colour atlas and no per-paint files"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
+- Verification: `tests/packs/camper/paints.test.ts` "generates exactly one colour atlas and no per-paint files". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
 
 ### Model bone contract
 
@@ -114,7 +114,7 @@
 - Agreement: Accepted
 - Basis: [0069](../adr/0069-camper-right-hand-drive.md) Decision, "The model moves every driver-side part to the right"; [0069](../adr/0069-camper-right-hand-drive.md) Decision, "The radio and the glovebox move to the passenger side on the left"; [0070](../adr/0070-raise-the-camper-front-seats.md) Decision, "The model retains the 6.4 px rise of both front seats and the raised cushion level with a pan base at 24.4 px and a dished top near 27.9 px"
 - Implementation: `tools/camper_cab_seats.py`; `tools/camper_seat_textures.py`; `tools/camper_cab.py`; `tools/camper_dash.py`; `tools/camper_steering.py`; `tools/render_preview.py`; `tools/gen_camper.py`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper/cab.test.ts` checks right-hand steering, wheel envelope and firewall column termination. `tests/packs/camper/steering.test.ts` checks rim clearance of at least 1.5 px from the dash face, 1 px from the cushion and 0.6 px from the side wall, and lever clearance of at least 0.3 px from wheel and dash. `tests/tools/camperSteering.test.ts` checks static lever ownership, dimensions, descriptor translation and registered UVs. `tests/packs/camper/shell.test.ts` covers the shell. `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and lap-belt clearance, deterministic texture regions, and independent builds. `tests/packs/camper/seats.test.ts` checks the 501-cube cab bones and unchanged profile/collision contract. Not verified: first-person windshield visibility on devices after the dashboard replacement. The detailed dashboard atlas uses the preview renderer's equal-texel merging and shares immutable face patches across the four camper poses, with shading still applied per pose. There is no camper steering animation.
+- Verification: `tests/packs/camper/cab.test.ts` checks right-hand steering, wheel envelope and firewall column termination. `tests/packs/camper/steering.test.ts` checks rim clearance of at least 1.5 px from the dash face, 1 px from the cushion and 0.6 px from the side wall, and lever clearance of at least 0.3 px from wheel and dash. `tests/tools/camperSteering.test.ts` checks static lever ownership, dimensions, descriptor translation and registered UVs. `tests/packs/camper/shell.test.ts` covers the shell. `tests/tools/camperCabSeats.test.ts` checks transformed wheel, armrest, and lap-belt clearance, deterministic texture regions, and independent builds. `tests/packs/camper/seats.test.ts` checks the 501-cube cab bones and undocked collision box; `tests/packs/entityContract.test.ts` checks the seat profile. Not verified: first-person windshield visibility on devices after the dashboard replacement. The detailed dashboard atlas uses the preview renderer's equal-texel merging and shares immutable face patches across the four camper poses, with shading still applied per pose. There is no camper steering animation.
 
 ### W mark exception
 

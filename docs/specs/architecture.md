@@ -96,7 +96,7 @@
 ### Shared primitives and feature-owned policies
 
 - Applies to: Shared modules and the vehicle and camp room-block adapters.
-- Rule: Domain shared primitives include `facing.ts` (`snapYaw`, `facePlayer`, `quarterOf`, `QUARTER_TURN`), `cells.ts`, `laidCells.ts` (`relayCells`), `sleep.ts`, `paint.ts`, `debounce.ts`, `tapToggle.ts`, `ticks.ts` (`Ticks`, `ticks`, `seconds`), and `syncedValue.ts`; application shared contains `sleepInBed.ts`, `repaint.ts`, and `ports/`. Infrastructure shared contains `identifiers.ts` (`AIR_BLOCK`, `messageKey`, `HEADLIGHT_SWITCH_TYPE`), `lightBlocks.ts`, `laidCells.ts` (`CellLayer`), `laidBlockGuard.ts`, `bedrockBedWorld.ts`, `dyes.ts` (`PAINT_VARIANT`, `paintEvent`), and `switchRouter.ts`; all these paths exist. `DockBlocks` and `createTentBlocks` construct separate `CellLayer` instances, while each feature retains its own block union, IDs, saved keys and policies such as camper door behavior and `PaintVehicle`. Dock laying rejects new camp cells but keeps cells it already owns, including saved cells recovered after reload.
+- Rule: Domain shared primitives include `facing.ts` (`snapYaw`, `facePlayer`, `quarterOf`, `QUARTER_TURN`), `cells.ts`, `laidCells.ts` (`relayCells`), `sleep.ts`, `paint.ts`, `debounce.ts`, `tapToggle.ts`, `ticks.ts` (`Ticks`, `ticks`, `seconds`), and `syncedValue.ts`; application shared contains `sleepInBed.ts`, `repaint.ts`, and `ports/`. Infrastructure shared contains `identifiers.ts` (`AIR_BLOCK`, `messageKey`, `HEADLIGHT_SWITCH_TYPE`), `lightBlocks.ts`, `laidCells.ts` (`CellLayer`), `laidBlockGuard.ts`, `bedrockBedWorld.ts`, `dyes.ts` (`paintEvent`), and `switchRouter.ts`; all these paths exist. `DockBlocks` and `createTentBlocks` construct separate `CellLayer` instances, while each feature retains its own block union, IDs, saved keys and policies such as camper door behavior and `PaintVehicle`. Dock laying rejects new camp cells but keeps cells it already owns, including saved cells recovered after reload.
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`shared/` holds kind-neutral primitives and parameterized engines only."; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Each feature keeps its own owner registry, a `CellLayer` instance per feature"; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Room laying keeps cells the vehicle already owns if a later camp answer claims them."
 - Implementation: `src/domain/shared`; `src/application/shared`; `src/infrastructure/shared`; `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/application/vehicle/paintVehicle.ts`
@@ -105,7 +105,7 @@
 ### Saved paint order
 
 - Applies to: Painted vehicles and tents.
-- Rule: `PAINTS` is the persisted variant order, and infrastructure derives `PAINT_VARIANT` and namespaced paint events from it. Paint events and render controllers use the same indices, including the tent. The complete order is pinned by a test.
+- Rule: `PAINTS` is the persisted variant order, and infrastructure derives namespaced paint events from it. Tests derive the expected variant indices in `src/test-pack/scenarios/support/paintContract.ts` from the same order. Paint events and render controllers use the same indices, including the tent. The complete order is pinned by a test.
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`PAINTS` order is the saved `minecraft:variant` of every painted entity, the tent included, so its order never changes."
 - Implementation: `src/domain/shared/paint.ts`; `src/infrastructure/shared/dyes.ts`; `packs/yasu_ride_bp/entities/yasu_ride`; `packs/yasu_ride_rp/render_controllers/yasu_ride`
@@ -136,7 +136,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`kinds/index.ts` maps each kind to its profile, entity contract, and drive factory in the frozen `KINDS` record, and exports `createVehicle` and `rebuildVehicle`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`Vehicle` takes `(id, profile, drive)` with no defaults."
 - Implementation: `src/domain/vehicle/kinds/index.ts`; `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`
-- Verification: `tests/domain/vehicle/profile.test.ts` "keeps the frozen vehicle tables and their frozen descendants" and "recognizes exactly the registered kinds and preserves kind when creating or rebuilding"; `tests/application/vehicle/driveVehicles.test.ts` "keeps the rebuilt form on a second tick". Not verified: those runtime tests do not prove every caller supplies arguments; the signatures were read without running typecheck.
+- Verification: `tests/domain/vehicle/profile.test.ts` "recognizes exactly the registered kinds and preserves kind when creating or rebuilding"; `tests/application/vehicle/driveVehicles.test.ts` "keeps the rebuilt form on a second tick". Not verified: those runtime tests do not prove every caller supplies arguments; the signatures were read without running typecheck.
 
 ### Tuning and the core profile
 
@@ -146,7 +146,7 @@
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "Each tuning value still lives in one place (0002): `SPEC` for values the core reads, `MOTION` in `motion/constants.ts` for the motion functions, and `SUV_SPEC` in `kinds/suv/spec.ts` for SUV tuning."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`VehicleProfile` keeps only what the core reads"; [0087](../adr/0087-sports-boat-spec-table.md) Decision, "It is frozen and imports nothing"; [0089](../adr/0089-per-kind-control-mapping.md) Decision, "The sports boat has no `handbrakeGrip`."
 - Basis: [0217](../adr/0217-derive-the-suv-spec-from-the-rubicon-body.md) Decision, "Keep every SUV gameplay value in `SUV_SPEC`; other kinds retain their own dimensions."
 - Implementation: `src/domain/vehicle/spec.ts`; `src/domain/vehicle/motion/constants.ts`; `src/domain/vehicle/profile.ts`; `src/domain/vehicle/kinds`
-- Verification: `tests/domain/vehicle/kinds/sportsboat/spec.test.ts` "reads every motion limit from the spec", and "reads the ram reach, water drag, attitude and deck from the spec"; `tests/domain/vehicle/profile.test.ts` "keeps the frozen vehicle tables and their frozen descendants", "keeps the SUV ladder foot at least 0.9 block outside its body and the anchor inside", and "matches the model roofs and keeps the camper anchor between its roof fixtures". Not verified: no identified test proves every tuning value is defined once or that every profile field has a core reader.
+- Verification: `tests/domain/vehicle/profile.test.ts` "keeps the SUV ladder foot at least 0.9 block outside its body and the anchor inside", and "matches the model roofs and keeps the camper anchor between its roof fixtures". Not verified: no identified test proves every tuning value is defined once or that every profile field has a core reader.
 
 ### Drive and sensor contracts
 
@@ -156,7 +156,7 @@
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "The drive owns its motion state and limits."; [0083](../adr/0083-ram-targets-are-a-core-sensor.md) Decision, "`TickContext` no longer has `targets()`."; [0083](../adr/0083-ram-targets-are-a-core-sensor.md) Decision, "`Vehicle.tick` removes `riders`, `testInput`, and `targets` from its input before it calls `Drive.step`, and passes `targets` to the ram step itself"
 - Basis: [0220](../adr/0220-separate-room-capability-from-drive.md) Decision
 - Implementation: `src/domain/vehicle/capability.ts`; `src/domain/vehicle/drive.ts`; `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/index.ts`; `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/ports/drive.ts`; `src/application/vehicle/driveVehicles.ts`
-- Verification: `tests/domain/vehicle/capability.test.ts` checks identity matching, including keys with equal names. `tests/domain/vehicle/kinds/camper/room.test.ts` checks availability across the registered kinds and the camper room hosts. `tests/domain/vehicle/drive.test.ts` "keeps the ram target query out of the drive's sensors (ADR 0083)" is a type assertion; `tests/domain/vehicle/vehicle.test.ts` "queries nearby targets only while faster than ramMinSpeed (ADR 0006)"; `tests/application/vehicle/driveVehicles.test.ts` "forwards lazy block queries with the vehicle id and world cells"; `tests/infrastructure/vehicle/bedrock/bedrockVehicleWorld.test.ts` checks restore-reader selection, laziness and entity-property precedence. Not verified: complete interface membership and laziness of every sensor have no single exhaustive test; the interfaces were read.
+- Verification: `tests/domain/vehicle/capability.test.ts` checks identity matching, including keys with equal names. `tests/domain/vehicle/vehicle.test.ts` "exposes a room only for kinds with the room capability" checks availability across the registered kinds and reuse of the frozen room. `tests/domain/vehicle/kinds/camper/room.test.ts` checks the camper room hosts. `tests/domain/vehicle/drive.test.ts` "keeps the ram target query out of the drive's sensors (ADR 0083)" is a type assertion; `tests/domain/vehicle/vehicle.test.ts` "queries nearby targets only while faster than ramMinSpeed (ADR 0006)"; `tests/application/vehicle/driveVehicles.test.ts` "forwards lazy block queries with the vehicle id and world cells"; `tests/infrastructure/vehicle/bedrock/bedrockVehicleWorld.test.ts` checks restore-reader selection, laziness and entity-property precedence. Not verified: complete interface membership and laziness of every sensor have no single exhaustive test; the interfaces were read.
 
 ### Engine commands and entity contracts
 
@@ -165,7 +165,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "Commands are `setProperty`, `triggerEvent`, `playAnimation`, and `playSound` (at the vehicle)."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "Commands are built by typed functions bound to the contract's keys"; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "A missing entity makes a command do nothing"
 - Implementation: `src/domain/vehicle/drive.ts`; `src/domain/vehicle/entityContract.ts`; `src/domain/vehicle/kinds`; `src/infrastructure/vehicle/bedrock/identifiers.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`
-- Verification: `tests/packs/entityContract.test.ts` `it.each` title "matches the %s entity contract to its packs and reserves core names" walks `VEHICLE_KINDS` through the registry; `tests/domain/vehicle/engineCommands.test.ts` `it.each` title "emits declared commands with valid values for %s over 200 random ticks"; `tests/domain/vehicle/entityContract.test.ts` "builds the commands a contract declares". Not verified: random ticks do not cover every optional interaction path or prove all sound names exist.
+- Verification: `tests/packs/entityContract.test.ts` `it.each` title "matches the %s entity contract to its packs and reserves core names" walks `VEHICLE_KINDS` through the registry; `tests/domain/vehicle/vehicleFuzz.test.ts` checks step and final commands against each kind's entity contract over random rides; `tests/domain/vehicle/entityContract.test.ts` "builds the commands a contract declares". Not verified: random ticks do not cover every optional interaction path or prove all sound names exist.
 
 ### Step and seat command order
 
@@ -174,7 +174,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "A throw skips the rest of that vehicle's tick"
 - Implementation: `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/isolated.ts`
-- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", and "keeps moving the other vehicles and logs the error when one vehicle throws". Not verified: every possible failure position in every world operation.
+- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", "dispatches the requested dock and movement ports in step order", and "isolates a vehicle tick when motion, a command, or cutting throws". Not verified: every possible failure position in every world operation.
 
 ### Release of vehicles that are no longer loaded
 
@@ -183,7 +183,7 @@
 - Agreement: Proposed
 - Basis: [0120](../adr/0120-choose-a-sports-boat-seat-by-aiming-at-it.md) Decision, "Fillers are removed when the boat is released (broken, removed by the vehicle limit, or no longer loaded)." The retry itself has no ADR (issue #1372).
 - Implementation: `src/application/vehicle/driveVehicles.ts`; `src/infrastructure/vehicle/bedrock/vehicleReleaser.ts`
-- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries a failed release on the next cycle and stops after success", "warns only once per vehicle across repeated release failures", "cancels a pending release when the vehicle is loaded again and resets its warning", and "releases every gone vehicle exactly once successfully across arbitrary failure counts". The existing test "releases each vehicle that is no longer loaded once, and logs a failed release without skipping the others" checks release isolation.
+- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries gone vehicles independently and warns once per failed release cycle" and "cancels a pending release when the vehicle is loaded again and resets its warning".
 
 ### Placement contract
 

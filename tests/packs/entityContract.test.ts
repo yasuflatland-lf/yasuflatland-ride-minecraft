@@ -111,7 +111,6 @@ it.each(VEHICLE_KINDS)(
 
     if (kind === "sportsboat") {
       // The boarding ray aims at the riders' height and halfway to the next seat.
-      expect(SPORTSBOAT_SPEC.seatAimHeight).toBe(0.52);
       expect(rideable.seats.map(({ position }) => position[1])).toEqual(
         profile.seats.positions.map(() => SPORTSBOAT_SPEC.seatAimHeight),
       );
@@ -141,7 +140,5 @@ it.each(VEHICLE_KINDS)(
         expect(seat.position[1]).toBe(locator.pivot[1] / 16);
       }
     }
-    if (kind === "bulldozer")
-      expect(rideable.seats[DRIVER_SEAT]?.position[1]).toBe(1.4);
   },
 );

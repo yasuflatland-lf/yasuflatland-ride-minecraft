@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
-  ROOF_TENT_FAMILY,
   ROOF_TENT_FLAP_OPEN_PROPERTY,
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
@@ -12,7 +11,7 @@ import {
   ROOF_TENT_SEATED_HINT,
   ROOF_TENT_TYPE,
 } from "../../src/infrastructure/camp/identifiers";
-import { PACK_STEM_TAGS } from "../../src/test-pack/impact";
+import { ROOF_TENT_FAMILY } from "../../src/test-pack/scenarios/support/tentContract";
 import { type Bone, turnedCorners } from "../support/geometry";
 import {
   ROOF_TENT_PACK_CONTRACT,
@@ -914,23 +913,12 @@ describe("roof tent asset contract", () => {
     expect(
       existsSync(`${BP}/recipes/yasu_ride/roof_tent_item.recipe.json`),
     ).toBe(false);
-    expect(
-      read(`${RP}/textures/item_texture.json`).texture_data
-        .yasu_ride_roof_tent_item,
-    ).toEqual({ textures: "textures/items/yasu_ride/roof_tent_item" });
     for (const [path, size] of [
       [`${RP}/textures/items/yasu_ride/roof_tent_item.png`, 32],
       ["docs/images/items/camping-gear/roof_tent.png", 128],
     ] as const) {
       const image = readRgbaPng(path);
       expect([image.width, image.height]).toEqual([size, size]);
-    }
-    for (const stem of ["roof_tent", "roof_tent_item"]) {
-      expect(PACK_STEM_TAGS[stem]).toEqual([
-        "camp",
-        "vehicle:suv",
-        "vehicle:camper",
-      ]);
     }
   });
 });

@@ -7,6 +7,4 @@ describe("SPEC", () => {
       SPEC.waterBreathingInterval,
     );
   });
-
-  it("matches the values in the ADRs", () => {});
 });

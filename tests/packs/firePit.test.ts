@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { FIRE_PIT_TOP_PX } from "../../src/domain/camp/spec";
 
 const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
@@ -63,10 +64,6 @@ it("syncs grill visibility and keeps the oven standing surface at 12.5 px", () =
     (bone: { name: string }) => bone.name === "grill",
   );
   expect(grill).toMatchObject({ parent: "root", pivot: [0, 0, 0] });
-  const GRILL_TOP = 12.5;
-  expect(readFileSync("tools/gen_fire_pit.py", "utf8")).toContain(
-    `GRILL_TOP = ${GRILL_TOP}`,
-  );
   const tops = grill.cubes.map(
     (cube: {
       origin: [number, number, number];
@@ -82,5 +79,5 @@ it("syncs grill visibility and keeps the oven standing surface at 12.5 px", () =
       return cube.origin[1] + cube.size[1];
     },
   );
-  expect(Math.max(...tops)).toBe(GRILL_TOP);
+  expect(Math.max(...tops)).toBe(FIRE_PIT_TOP_PX);
 });

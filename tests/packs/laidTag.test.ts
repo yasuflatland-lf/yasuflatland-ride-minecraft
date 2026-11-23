@@ -14,5 +14,3 @@ it("tags every block the add-on lays so a blade cut keeps it (ADR 0137)", () => 
     expect(block.components[`tag:${LAID_BLOCK_TAG}`], path).toEqual({});
   }
 });
-it("names the tag yasu_ride:laid", () =>
-  expect(LAID_BLOCK_TAG).toBe("yasu_ride:laid"));

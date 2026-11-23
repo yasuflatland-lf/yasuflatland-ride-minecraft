@@ -75,7 +75,6 @@ describe("camping gear box (ADR 0093)", () => {
     const lang = readLang(`${RP}/texts/en_US.lang`);
     expect(lang.get(`item.${BOX}.name`)).toBe("Camping Gear Box");
     expect(lang.get(GIFT_LORE.camping_gear_box)).toBe("Camping gear");
-    expect(GIFT_LORE.camping_gear_box).toBe("yasu_ride.lore.camping_gear");
   });
 
   it.each([

@@ -154,7 +154,7 @@ it("folds unversioned tunnel and version-2 trapezoid tents and preserves current
 });
 
 it.each([false, true])(
-  "folds in order when the anchor is loaded (%s)",
+  "folds a loaded legacy tent and defers an unloaded one (loaded %s)",
   (loaded) => {
     const entry: TentEntry = {
       id: asTentId("legacy"),
@@ -170,7 +170,6 @@ it.each([false, true])(
     expect(world.clearBlocksByPose).not.toHaveBeenCalled();
 
     const steps = [
-      world.anchorLoaded,
       world.ejectPlayers,
       world.returnTentItem,
       world.entityLoaded,
@@ -179,7 +178,7 @@ it.each([false, true])(
       world.removeTent,
     ];
     if (!loaded) {
-      for (const step of steps.slice(1)) expect(step).not.toHaveBeenCalled();
+      for (const step of steps) expect(step).not.toHaveBeenCalled();
       return;
     }
 
@@ -200,7 +199,8 @@ it.each([false, true])(
       cells,
     );
     expect(world.removeTent).toHaveBeenCalledExactlyOnceWith(entry.id);
-    for (const [index, step] of steps.slice(1).entries())
-      expect(steps[index]).toHaveBeenCalledBefore(step);
+    expect(world.ejectPlayers).toHaveBeenCalledBefore(world.unlayBlocks);
+    expect(world.ejectPlayers).toHaveBeenCalledBefore(world.clearTentBlocks);
+    expect(world.returnTentItem).toHaveBeenCalledBefore(world.removeTent);
   },
 );

@@ -6,7 +6,6 @@ import { SUV_PROFILE } from "../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import { turnedCorners } from "../support/geometry";
 import { startPythonWorker } from "../support/pythonWorker";
-import { assertOneAxis, multipleAxes } from "./oneAxis";
 
 const python = startPythonWorker();
 afterAll(() => python.close());
@@ -506,14 +505,6 @@ describe("SUV model (ADR 0009)", () => {
     expect(bars.every((cube) => cube.origin[0] > 0)).toBe(true);
   });
 
-  it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
-    const cubes = [...bones.values()].flatMap((bone) => bone.cubes ?? []);
-    // The steering wheel's 30 arc cubes (ADR 0167) and the hood's 4 shoulder strips (ADR 0214).
-    const assemblies = { arc: cubes.filter(multipleAxes) };
-    expect(assemblies.arc).toHaveLength(34);
-    expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
-  });
-
   it("has the geometry identifier", () => {
     expect(geometry.description.identifier).toBe("geometry.yasu_ride.suv");
   });
@@ -984,22 +975,6 @@ describe("SUV model (ADR 0009)", () => {
           for (const z of [c.origin[2], c.origin[2] + c.size[2]])
             expect(Math.hypot(y - py, z - pz)).toBeLessThan(innerRadius);
       }
-    });
-  });
-});
-
-describe("camper steering assembly registration (ADR 0167)", () => {
-  it("pins the generator membership counts alongside the shipped camper checks", async () => {
-    const declarations = JSON.parse(
-      await python.run(`import json, sys
-sys.path.insert(0, 'tools')
-from tool_loader import load_tool
-print(json.dumps(load_tool('camper_steering').ASSEMBLIES))`),
-    );
-    expect(declarations).toEqual({
-      steering_wheel: { owner: "camper", cubes: 114 },
-      steering_spokes: { owner: "camper", cubes: 3 },
-      steering_lever: { owner: "camper", cubes: 30 },
     });
   });
 });

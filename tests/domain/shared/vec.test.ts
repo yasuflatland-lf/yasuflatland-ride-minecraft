@@ -117,24 +117,17 @@ describe("vec", () => {
     );
   });
 
-  it("localPoint matches the inline origin-first sum bit for bit", () => {
+  it("localPoint translates right-handed offsets and left-handed seat coordinates", () => {
     fc.assert(
-      fc.property(point, unit, reach, reach, (o, f, a, s) => {
-        const r = rightOf(f);
-        const p = localPoint(o, f, a, s);
-        expect(p.x + 0).toBe(o.x + f.x * a + r.x * s + 0);
-        expect(p.z + 0).toBe(o.z + f.z * a + r.z * s + 0);
-      }),
-    );
-  });
-
-  it("localPoint with a negated seat x matches the old left-handed seat sum bit for bit", () => {
-    fc.assert(
-      fc.property(point, unit, reach, reach, (o, f, a, s) => {
-        const l = leftOf(f);
-        const p = localPoint(o, f, a, -s);
-        expect(p.x + 0).toBe(o.x + f.x * a + l.x * s + 0);
-        expect(p.z + 0).toBe(o.z + f.z * a + l.z * s + 0);
+      fc.property(point, unit, reach, reach, (origin, facing, ahead, right) => {
+        const world = localPoint(origin, facing, ahead, right);
+        const local = toLocal(
+          { x: world.x - origin.x, z: world.z - origin.z },
+          facing,
+        );
+        // World coordinates near 30 million have a floating-point spacing of about 4e-9 blocks.
+        expect(Math.abs(local.x + right)).toBeLessThanOrEqual(1e-8);
+        expect(Math.abs(local.z - ahead)).toBeLessThanOrEqual(1e-8);
       }),
     );
   });
