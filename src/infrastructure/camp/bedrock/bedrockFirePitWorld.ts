@@ -14,6 +14,7 @@ import {
 import {
   DUTCH_OVEN_ON_TOP_HINT,
   FIRE_PIT_HITS_LEFT_HINT,
+  FIRE_PIT_IGNITER_ITEM,
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
@@ -80,7 +81,7 @@ export class BedrockFirePitWorld
       "minecraft:inventory",
     )?.container;
     const item = inventory?.getItem(slot);
-    if (item?.typeId !== "minecraft:flint_and_steel") return;
+    if (item?.typeId !== FIRE_PIT_IGNITER_ITEM) return;
     const durability = item.getComponent("minecraft:durability");
     if (!durability || durability.unbreakable) return;
     if (durability.damage + 1 >= durability.maxDurability)

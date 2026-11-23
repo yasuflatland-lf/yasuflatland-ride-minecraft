@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, expect, expectTypeOf, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import type { FirePitActions } from "../../../src/application/camp/firePit";
 import type { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
@@ -8,6 +8,7 @@ import {
   DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,
 } from "../../../src/domain/camp/spec";
+import type { SoundId } from "../../../src/domain/shared/soundId";
 import { BedrockDutchOvenWorld } from "../../../src/infrastructure/camp/bedrock/bedrockDutchOvenWorld";
 import { BedrockFirePitWorld } from "../../../src/infrastructure/camp/bedrock/bedrockFirePitWorld";
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
@@ -27,8 +28,10 @@ import {
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
+  TEST_FIRE_PIT_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import { registerTestDutchOven } from "../../../src/infrastructure/camp/testHooks/dutchOven";
+import { registerTestFirePit } from "../../../src/infrastructure/camp/testHooks/firePit";
 import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
 
@@ -149,13 +152,30 @@ it("oven interactions win over pit interactions and dedupe before deferred place
 
 it("keeps fire pit interactions for every other held item and empty hands", () => {
   const { press, flush, placeOnFirePit, toggle } = handlers();
-  for (const held of ["minecraft:flint_and_steel", "minecraft:stick", ""]) {
+  for (const [held, holdsIgniter] of [
+    ["minecraft:flint_and_steel", true],
+    ["minecraft:fire_charge", false],
+    ["", false],
+  ] as const) {
     game.tick++;
     press(held);
     flush();
+    expect(toggle).toHaveBeenLastCalledWith("pit", "p", holdsIgniter, 3);
   }
   expect(toggle).toHaveBeenCalledTimes(3);
   expect(placeOnFirePit).not.toHaveBeenCalled();
+});
+
+it("simulates a flint and steel press without a player in the fire pit hook", () => {
+  const toggle = vi.fn();
+  registerTestFirePit({ toggle } as unknown as FirePitActions);
+  game.entity.mockReturnValue({ id: "pit", typeId: FIRE_PIT_TYPE });
+  const handler = defined(
+    game.script.mock.calls[0],
+    "fire pit script handler",
+  )[0];
+  handler({ sourceType: "Server", id: TEST_FIRE_PIT_EVENT, message: "pit" });
+  expect(toggle).toHaveBeenCalledExactlyOnceWith("pit", undefined, true, 0);
 });
 
 it("schedules host checks at the spec interval and exposes server-only test placement", () => {
@@ -582,8 +602,9 @@ it("reads the persisted lid property and writes it with sound without changing t
     DUTCH_OVEN_SIMMERING_PROPERTY,
     false,
   );
+  expectTypeOf(DUTCH_OVEN_SPEC.lidSound).toEqualTypeOf<SoundId>();
   expect(entity.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
-    DUTCH_OVEN_SPEC.lidSound,
+    "open.iron_trapdoor",
     entity.location,
   );
   expect(entity.setDynamicProperty).not.toHaveBeenCalled();
