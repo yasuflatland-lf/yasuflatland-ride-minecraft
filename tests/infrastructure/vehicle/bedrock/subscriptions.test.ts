@@ -1208,7 +1208,6 @@ function decorFixture() {
     useCases: { placeDecor, removeDecor, storage } as unknown as UseCases,
     cellOwner: owner,
   });
-  // registerDecor subscribes first.
   const handler = defined(game.before.mock.calls[before], "decor handler")[0];
   game.run.mockClear();
   const event = (overrides: Record<string, unknown> = {}) => ({
@@ -1297,6 +1296,92 @@ it("places held camping gear on a camper room, furniture, decor, or pair block o
   }
 });
 
+it.each(["Touch", "KeyboardAndMouse"])(
+  "translates a drawer side face for %s before deferring the press",
+  (mode) => {
+    const { event, send, storage } = decorFixture();
+    const ev = event({
+      itemStack: undefined,
+      blockFace: "East",
+      faceLocation: { x: 0, y: 4.679 / 16, z: 0.5 },
+    });
+    ev.block.typeId = pairDecorBlockId("drawers");
+    ev.player.inputInfo.lastInputModeUsed = mode;
+    expect(send(ev).cancel).toBe(true);
+    expect(storage.execute).not.toHaveBeenCalled();
+    for (const [run] of game.run.mock.calls) run();
+    expect(storage.execute).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        cell: ev.block.location,
+        drawersSideFace: true,
+        point: {
+          x: mode === "Touch" ? 2 : 1,
+          y: 64 + (mode === "Touch" ? 1 - 4.679 / 16 : 4.679 / 16),
+          z: 2.5,
+        },
+      }),
+    );
+  },
+);
+
+it("uses the corrected touch ray to test a floor hit and the original x for ordinary placement", () => {
+  const { event, send, storage, placeDecor } = decorFixture();
+  const ev = event({ itemStack: { typeId: "yasu_ride:mug_pair" } });
+  ev.player.inputInfo.lastInputModeUsed = "Touch";
+  expect(send(ev).cancel).toBe(true);
+  const eye = ev.player.getHeadLocation();
+  expect(storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
+    "car",
+    eye,
+    { x: 1.75 - eye.x, y: 65 - eye.y, z: 2.5 - eye.z },
+    ev.block.location,
+  );
+  for (const [run] of game.run.mock.calls) run();
+  expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ point: { x: 1.25, y: 65, z: 2.5 } }),
+  );
+  game.run.mockClear();
+  // Another subscriber already cancelled this floor event, so a missed drawer gets no placement fallback.
+  send(ev);
+  expect(game.run).not.toHaveBeenCalled();
+});
+
+it("suppresses duplicate itemUse for one tick after a handled block press or itemUse", () => {
+  const before = game.use.mock.calls.length;
+  const { event, send, storage, placeDecor } = decorFixture();
+  const use = defined(game.use.mock.calls[before], "camper itemUse")[0];
+  const ev = event({ itemStack: { typeId: "yasu_ride:mug_pair" } });
+  const cell = ev.block.location;
+  storage.drawerTarget.mockReturnValue({
+    cell,
+    open: true,
+    slot: "drawer_bottom_0",
+    point: cell,
+  });
+  storage.execute.mockReturnValue(true);
+  const itemUse = {
+    source: {
+      ...ev.player,
+      dimension: ev.block.dimension,
+      getViewDirection: () => ({ x: 0, y: -1, z: 0 }),
+    },
+    itemStack: ev.itemStack,
+  } as unknown as ItemUseAfterEvent;
+  expect(send(ev).cancel).toBe(true);
+  for (let tap = 0; tap < 2; tap++) {
+    use(itemUse);
+    game.currentTick++;
+  }
+  expect(placeDecor.execute).not.toHaveBeenCalled();
+  for (const [run] of game.run.mock.calls) run();
+  expect(storage.execute).toHaveBeenCalledOnce();
+  use(itemUse);
+  use(itemUse);
+  game.currentTick++;
+  use(itemUse);
+  expect(placeDecor.execute).toHaveBeenCalledTimes(1);
+});
+
 it("leaves other items, other blocks, and cells no camper laid alone", () => {
   const cases: ((f: ReturnType<typeof decorFixture>) => {
     cancel: boolean;
@@ -1335,7 +1420,6 @@ function seatFixture(
   );
   const before = entitySubscribe.mock.calls.length;
   const f = decorFixture();
-  // registerDecor subscribes first.
   const handler = defined(
     entitySubscribe.mock.calls[before],
     "decor seat handler",
