@@ -9,6 +9,7 @@ import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
 import { installCampTestHooks } from "../../src/infrastructure/camp/testHooks/install";
 import { installResort } from "../../src/infrastructure/resort/install";
+import { installResortTestHooks } from "../../src/infrastructure/resort/testHooks/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { TopHostRegistry } from "../../src/infrastructure/shared/tableTop/registry";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
@@ -84,8 +85,11 @@ vi.mock("../../src/infrastructure/build/install", () => ({
 vi.mock("../../src/infrastructure/build/testHooks/install", () => ({
   installBuildTestHooks: vi.fn(),
 }));
+vi.mock("../../src/infrastructure/resort/testHooks/install", () => ({
+  installResortTestHooks: vi.fn(),
+}));
 vi.mock("../../src/infrastructure/resort/install", () => ({
-  installResort: vi.fn(),
+  installResort: vi.fn(() => ({ resort: true })),
 }));
 vi.mock("../../src/infrastructure/warp/install", () => ({
   installWarp: vi.fn(),
@@ -226,6 +230,9 @@ it("installs build last and passes both space checks", () => {
   expect(installBuild).toHaveBeenCalledTimes(1);
   expect(installVehicleTestHooks).toHaveBeenCalledExactlyOnceWith(testHooks);
   expect(installBuildTestHooks).toHaveBeenCalledExactlyOnceWith(build);
+  expect(installResortTestHooks).toHaveBeenCalledExactlyOnceWith({
+    resort: true,
+  });
   expect(installCampTestHooks).toHaveBeenCalledExactlyOnceWith(camp);
   const excluded =
     vi.mocked(installBuild).mock.lastCall?.[0].isExcludedEntityType;
