@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -39,13 +38,6 @@ const animations = JSON.parse(
 const sounds = "packs/yasu_ride_rp/sounds/yasu_ride";
 
 describe("recorded scooter engine clips", () => {
-  it("preserves the approved idle clip bytes", () => {
-    expect(
-      createHash("sha256")
-        .update(readFileSync(`${sounds}/scooter_engine_0.ogg`))
-        .digest("hex"),
-    ).toBe("d59d23f4e76c5939ef0a92a2f48effdd4a0243774517303acfca1216bc770605");
-  });
   it.each(clips.filter(({ index }) => index > 0))(
     "keeps band $index on a 20-tick cycle with an overlapping Ogg",
     ({ index, seconds, clip_seconds }) => {

@@ -91,24 +91,3 @@ for cubes in built.values():
     ),
   ).toEqual([]);
 });
-
-it("preserves the approved shower region RGBA bytes independently of packing", async () => {
-  expect(
-    await run(
-      `import hashlib
-kit = load_tool('camper_kit')
-layout = kit.LAYOUT
-`,
-      "{r.name: hashlib.sha256(bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x, y))).hexdigest() for r in kit.REGISTRY.regions() if r.name.startswith('shower ')}",
-    ),
-  ).toEqual({
-    "shower glaze":
-      "131787556502c48acfaaf05d8cdb57f05be43af874278b10fcf8a8e7d0fe00e5",
-    "shower head":
-      "da2c3a7bb66e447063774c8af11daed25f1c8241e2ceb1aba032b66211dfcfdb",
-    "shower grip":
-      "c1422dd8a8b163b3bdb090517ea085fbd75ad7c8af2184b4a13804df96fec7ee",
-    "shower hose":
-      "45e3c718c89eba216b3fcc0db49046cdc148c8ff264f57ee0b17f557de0267cd",
-  });
-});

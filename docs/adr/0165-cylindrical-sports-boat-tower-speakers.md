@@ -40,7 +40,7 @@ The two wake-tower speakers under the bimini read as octagonal stars: `disc()` b
 | 2/3, hollow sections with caps |           186 |          1,237 |
 | 3/3, final                     |           174 |          1,225 |
 
-- Enforce the final count of 174 speaker cubes, below the 186 budget. Tests check all sections' panel counts, z-only rotation spacing, tangent outer faces, shared vertices, silhouette bounds, spoke clearance, and swatch counts. Every speaker cube must be a section panel, spoke or mount; no two-square discs or separate caps remain.
+- The final model uses 174 speaker cubes within the 186-cube budget. Tests check the budget, cylindrical section panel counts, z-only rotation spacing, tangent outer faces, shared vertices, silhouette bounds, spoke clearance and materials on both speakers. Every speaker cube must be a section panel, spoke or mount; no two-square discs or separate caps remain.
 - Bump both Resource Pack manifest versions and the Behavior Pack's resource dependency to 0.1.156. Regenerate the model and previews; manual test B27 checks the result on PC and mobile.
 
 ## Consequences

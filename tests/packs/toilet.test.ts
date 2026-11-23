@@ -303,7 +303,7 @@ describe("Toilet pack contract", () => {
       expect(evaluate(flush[`swirl_${i}`].scale, 5)).toBe(0);
   });
 
-  it("binds the item, recipe ingredients, texture and previews", () => {
+  it("binds the item, texture and previews", () => {
     const item = read(`${BP}/items/yasu_ride/toilet_item.item.json`)[
       "minecraft:item"
     ];
@@ -312,16 +312,6 @@ describe("Toilet pack contract", () => {
       "minecraft:icon": "yasu_ride_toilet",
       "minecraft:max_stack_size": 1,
       "minecraft:display_name": { value: "item.yasu_ride:toilet_item.name" },
-    });
-    const recipe = read(`${BP}/recipes/yasu_ride/toilet_item.recipe.json`)[
-      "minecraft:recipe_shaped"
-    ];
-    expect(recipe.description.identifier).toBe(ids.item);
-    expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.pattern).toEqual(["QIQ", "Q Q", " Q "]);
-    expect(recipe.key).toEqual({
-      Q: { item: "minecraft:quartz" },
-      I: { item: "minecraft:iron_ingot" },
     });
     const gear: { name: string }[] = read("tools/resort_gear.json");
     const at = gear.findIndex((piece) => piece.name === "toilet");

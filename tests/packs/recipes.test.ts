@@ -20,6 +20,27 @@ const recipes = jsonFileEntries("packs/yasu_ride_bp/recipes").map(
   },
 );
 
+it("ships the shaped recipes for the vehicles and furniture checked by the pack suites", () => {
+  const shapedItems = recipes
+    .filter(({ shaped }) => shaped)
+    .map(({ identifier }) => identifier);
+  expect(shapedItems).toEqual(
+    expect.arrayContaining([
+      "yasu_ride:beach_chair_item",
+      "yasu_ride:beach_parasol_item",
+      "yasu_ride:dining_chair_item",
+      "yasu_ride:dutch_oven_item",
+      "yasu_ride:noga_chair_item",
+      "yasu_ride:scooter_item",
+      "yasu_ride:sofa_double_item",
+      "yasu_ride:sofa_single_item",
+      "yasu_ride:sportsboat_item",
+      "yasu_ride:toilet_item",
+      "yasu_ride:washstand_item",
+    ]),
+  );
+});
+
 it("covers at least 31 recipes across both namespaces", () => {
   expect(recipes.length).toBeGreaterThanOrEqual(31);
   expect(
@@ -33,6 +54,7 @@ it.each(recipes)(
   ({ recipe, identifier }) => {
     expect(recipe).toMatchObject({
       description: { identifier },
+      tags: ["crafting_table"],
       unlock: { context: "AlwaysUnlocked" },
       result: { item: identifier, count: 1 },
     });
@@ -41,6 +63,19 @@ it.each(recipes)(
 
 function signatures({ pattern, key }: ShapedRecipe): string[] {
   const width = Math.max(...pattern.map((row) => row.length));
+  expect(pattern.length).toBeGreaterThanOrEqual(1);
+  expect(pattern.length).toBeLessThanOrEqual(3);
+  expect(width).toBeGreaterThanOrEqual(1);
+  expect(width).toBeLessThanOrEqual(3);
+  const symbols = new Set(pattern.join("").replaceAll(" ", ""));
+  expect(symbols.size).toBeGreaterThan(0);
+  expect(Object.keys(key).sort()).toEqual([...symbols].sort());
+  for (const ingredient of Object.values(key)) {
+    expect(Object.hasOwn(ingredient, "item")).not.toBe(
+      Object.hasOwn(ingredient, "tag"),
+    );
+    expect(ingredient.item ?? ingredient.tag).toMatch(/^\w+:[a-z0-9_]+$/);
+  }
   const grid = pattern.map((row) =>
     [...row.padEnd(width)].map((symbol) =>
       symbol === " "

@@ -354,7 +354,7 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
     }
   });
 
-  it("appends the last catalog member after the double sofa and binds item, recipe, names and previews", () => {
+  it("appends the last catalog member after the double sofa and binds item, names and previews", () => {
     const index = RESORT_GEAR.findIndex((p) => p.name === "washstand");
     expect(index).toBe(RESORT_GEAR.length - 1);
     expect(index).toBeGreaterThan(
@@ -373,16 +373,6 @@ print(json.dumps({'lo':lo, 'hi':hi, 'corners':[p for c in parts for p in t.corne
     expect(
       read(`${RP}/textures/item_texture.json`).texture_data.yasu_ride_washstand,
     ).toEqual({ textures: "textures/items/yasu_ride/washstand_item" });
-    const recipe = read(`${BP}/recipes/yasu_ride/washstand_item.recipe.json`)[
-      "minecraft:recipe_shaped"
-    ];
-    expect(recipe.pattern).toEqual(["I I", "PQP", "III"]);
-    expect(recipe.key).toEqual({
-      I: { item: "minecraft:iron_ingot" },
-      P: { tag: "minecraft:planks" },
-      Q: { item: "minecraft:quartz" },
-    });
-    expect(recipe.tags).toEqual(["crafting_table"]);
     for (const [locale, name] of [
       ["en_US", "Washstand"],
       ["ja_JP", "\u6d17\u9762\u53f0"],

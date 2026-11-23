@@ -15,16 +15,14 @@ const sofas = [
   {
     kind: "sofa_single",
     name: "Sofa (Single)",
-    pattern: ["PWP", "WWW", "SPS"],
   },
   {
     kind: "sofa_double",
     name: "Sofa (Double)",
-    pattern: ["WWW", "WWW", "SPS"],
   },
 ] as const;
 
-describe.each(sofas)("$name pack contract", ({ kind, name, pattern }) => {
+describe.each(sofas)("$name pack contract", ({ kind, name }) => {
   const ids = FURNITURE_IDS[kind];
   const { seats } = FURNITURE_SPEC[kind];
   const { components, description } = read(
@@ -116,7 +114,7 @@ describe.each(sofas)("$name pack contract", ({ kind, name, pattern }) => {
     expect(png.width).toBe(model.description.texture_width);
   });
 
-  it("supplies an unstackable item, its recipe ingredients and preview", () => {
+  it("supplies an unstackable item and preview", () => {
     const item = read(`${BP}/items/yasu_ride/${kind}_item.item.json`)[
       "minecraft:item"
     ];
@@ -124,16 +122,6 @@ describe.each(sofas)("$name pack contract", ({ kind, name, pattern }) => {
     const iconKey = `yasu_ride_${kind}`;
     expect(item.components["minecraft:max_stack_size"]).toBe(1);
     expect(item.components["minecraft:icon"]).toBe(iconKey);
-    const recipe = read(`${BP}/recipes/yasu_ride/${kind}_item.recipe.json`)[
-      "minecraft:recipe_shaped"
-    ];
-    expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.pattern).toEqual(pattern);
-    expect(recipe.key).toEqual({
-      P: { tag: "minecraft:planks" },
-      W: { tag: "minecraft:wool" },
-      S: { item: "minecraft:stick" },
-    });
     expect(
       read(`${RP}/textures/item_texture.json`).texture_data[iconKey],
     ).toEqual({

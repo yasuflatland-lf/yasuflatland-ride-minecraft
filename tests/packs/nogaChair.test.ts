@@ -350,24 +350,6 @@ describe("Noga Chair (ADR 0169)", () => {
     expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
   });
 
-  it("uses a distinct wool-and-iron recipe", () => {
-    const recipe = read(`${BP}/recipes/yasu_ride/noga_chair_item.recipe.json`)[
-      "minecraft:recipe_shaped"
-    ];
-    expect(recipe.pattern).toEqual(["WW ", "WIW", "I I"]);
-    expect(recipe.key).toEqual({
-      W: { tag: "minecraft:wool" },
-      I: { item: "minecraft:iron_ingot" },
-    });
-    expect(recipe.result).toEqual({ item: profile.itemId, count: 1 });
-    for (const other of ["low_chair", "tent"])
-      expect(recipe.pattern).not.toEqual(
-        read(`${BP}/recipes/yasu_ride/${other}_item.recipe.json`)[
-          "minecraft:recipe_shaped"
-        ].pattern,
-      );
-  });
-
   it.each(["en_US", "ja_JP"])("formats the fold hint in %s", (locale) => {
     const lang = readLang(`${RP}/texts/${locale}.lang`);
     expect(lang.get("action.interact.yasu_ride.sit")).toBeTruthy();
