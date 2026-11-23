@@ -3,8 +3,6 @@ import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHo
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { playerById } from "../shared/players";
-import type { SwitchTarget } from "../shared/switchRouter";
-import type { PlaceHostedOnTop } from "../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { installCampGear } from "./gear/install";
 import { installRoofTents } from "./roofTent/install";
@@ -19,11 +17,7 @@ export function installCamp(deps: {
   topHosts: TopHostRegistry;
   isVehicleSpace: SpaceCheck;
   vehicleHost: VehicleHostLookup;
-}): {
-  isCampSpace: SpaceCheck;
-  switchTargets: readonly SwitchTarget[];
-  placeHostedOnTop: PlaceHostedOnTop;
-} {
+}) {
   const gear = installCampGear(deps);
   const beds = new BedrockBedWorld({ player: playerById });
   const sleep = new SleepInBed(beds);
@@ -31,13 +25,16 @@ export function installCamp(deps: {
   // The chair claims no space; the tents claim their footprints (ADR 0129).
   const isCampSpace: SpaceCheck = (d, c) => tents.world.isCampSpace(d, c);
   const roof = installRoofTents({ ...deps, isCampSpace, beds, sleep });
-  const { lanternSwitchTarget } = installTents(tents, {
+  const tent = installTents(tents, {
     sleep,
     laterLaidBlockOwners: [roof.ceilingOwner],
   });
   return {
     isCampSpace,
     placeHostedOnTop: gear.placeHostedOnTop,
-    switchTargets: [lanternSwitchTarget, gear.gasLanternSwitchTarget],
+    switchTargets: [tent.lanternSwitchTarget, gear.gasLanternSwitchTarget],
+    gear,
+    tent,
+    roof,
   };
 }

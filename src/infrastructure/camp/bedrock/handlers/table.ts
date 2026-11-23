@@ -1,11 +1,7 @@
 import type { HitTable } from "../../../../application/camp/hitTable";
 import type { PlaceTable } from "../../../../application/camp/placeTable";
 import { asTableId } from "../../../../domain/camp/table";
-import {
-  CAMP_TABLE_ITEM,
-  CAMP_TABLE_TYPE,
-  TEST_TABLE_HIT_EVENT,
-} from "../../identifiers";
+import { CAMP_TABLE_ITEM, CAMP_TABLE_TYPE } from "../../identifiers";
 import {
   type HitContext,
   type PlaceContext,
@@ -28,6 +24,5 @@ export function registerTable(place: PlaceTable, hit: HitTable): void {
       }),
     hit: ({ entity, player, tick }: HitContext) =>
       hit.execute({ tableId: asTableId(entity.id), playerId: player, tick }),
-    testHitEvent: TEST_TABLE_HIT_EVENT,
   });
 }

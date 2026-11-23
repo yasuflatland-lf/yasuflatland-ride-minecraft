@@ -1,22 +1,13 @@
-import {
-  type Entity,
-  type Player,
-  ScriptEventSource,
-  system,
-  world,
-} from "@minecraft/server";
+import { type Entity, type Player, system, world } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
 import type { HostedItemsGuard } from "../../../../application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../../domain/camp/firePit";
-import { DUTCH_OVEN_SPEC, TABLE_SPOTS } from "../../../../domain/camp/spec";
-import { asTableId, type TableId } from "../../../../domain/camp/table";
+import { DUTCH_OVEN_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
-import type { LocalPoint } from "../../../../domain/shared/tableTop";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { allDimensions } from "../../../shared/dimensions";
 import { heldTypeId } from "../../../shared/heldItem";
-import { id } from "../../../shared/identifiers";
 import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
 import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../../../shared/tableTop/registry";
@@ -25,27 +16,8 @@ import {
   DUTCH_OVEN_SIMMERING_PROPERTY,
   DUTCH_OVEN_TYPE,
   FIRE_PIT_TYPE,
-  TEST_DUTCH_OVEN_HIT_EVENT,
-  TEST_DUTCH_OVEN_HOST_EVENT,
-  TEST_DUTCH_OVEN_ON_PIT_EVENT,
-  TEST_DUTCH_OVEN_ON_TABLE_EVENT,
-  TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../identifiers";
-import { setOvenHost } from "../bedrockDutchOvenWorld";
-import { testTableTopRequest } from "../tableTopAim";
 import { registerPlaceableEntity } from "./placeable";
-
-/** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
-function testTableRequest(
-  message: string,
-): { table: TableId; aim: LocalPoint } | undefined {
-  const [table, spot, ...rest] = message.trim().split(/\s+/);
-  if (table && rest.length === 0 && /^[01]$/.test(spot ?? "")) {
-    const aim = TABLE_SPOTS[Number(spot)];
-    return aim ? { table: asTableId(table), aim } : undefined;
-  }
-  return testTableTopRequest(message);
-}
 
 export function registerDutchOven(
   actions: DutchOvenActions,
@@ -112,65 +84,6 @@ export function registerDutchOven(
     ev.cancel = true;
     const id = ev.target.id;
     system.run(() => actions.toggleLid(asDutchOvenId(id), system.currentTick));
-  });
-  system.afterEvents.scriptEventReceive.subscribe((ev) => {
-    if (ev.id === id("test_dutch_oven_on_top")) {
-      if (ev.sourceType !== ScriptEventSource.Server) return;
-      const [hostType, ...parts] = ev.message.trim().split(/\s+/);
-      const request = testTableTopRequest(parts.join(" "));
-      if (!hostType || !request) return;
-      const host = registry.host(hostType, request.table);
-      if (host)
-        actions.placeOnTop(host.type.surface, {
-          hostType,
-          host: request.table,
-          aim: request.aim,
-          slot: 0,
-        });
-      return;
-    }
-    if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {
-      if (ev.sourceType !== ScriptEventSource.Server) return;
-      const request = testTableRequest(ev.message);
-      if (request) actions.placeOnTable({ ...request, slot: 0 });
-      return;
-    }
-    if (ev.id === TEST_DUTCH_OVEN_HOST_EVENT) {
-      if (ev.sourceType !== ScriptEventSource.Server) return;
-      const parts = ev.message.trim().split(/\s+/);
-      const [ovenId, marker] = parts;
-      const oven = ovenId ? world.getEntity(ovenId) : undefined;
-      if (parts.length === 2 && marker && oven?.typeId === DUTCH_OVEN_TYPE)
-        setOvenHost(oven, marker, false);
-      return;
-    }
-    if (ev.id === TEST_DUTCH_OVEN_ON_PIT_EVENT) {
-      if (ev.sourceType !== ScriptEventSource.Server) return;
-      const pit = ev.message.trim();
-      if (pit) actions.placeOnFirePit({ pit: asFirePitId(pit), slot: 0 });
-      return;
-    }
-    if (
-      ev.id !== TEST_DUTCH_OVEN_SIMMER_EVENT &&
-      ev.id !== TEST_DUTCH_OVEN_HIT_EVENT
-    )
-      return;
-    if (
-      ev.id === TEST_DUTCH_OVEN_SIMMER_EVENT &&
-      ev.sourceType !== ScriptEventSource.Server
-    )
-      return;
-    const entity = world.getEntity(ev.message);
-    if (entity?.typeId !== DUTCH_OVEN_TYPE) return;
-    if (ev.id === TEST_DUTCH_OVEN_HIT_EVENT) {
-      actions.hit(
-        asDutchOvenId(entity.id),
-        asPlayerId("test"),
-        system.currentTick,
-      );
-    } else {
-      actions.toggleLid(asDutchOvenId(entity.id), system.currentTick);
-    }
   });
   system.runInterval(() => {
     hostedItems.check();

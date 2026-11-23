@@ -111,7 +111,7 @@ export class GasLanternActions {
     return true;
   }
 
-  hit(id: GasLanternId, player: PlayerId, tick: number): boolean {
+  hit(id: GasLanternId, player: PlayerId | undefined, tick: number): boolean {
     let taken = false;
     handleHit(this.hits, id, tick, {
       drop: () => {
@@ -122,7 +122,9 @@ export class GasLanternActions {
         this.world.removeGasLantern(id);
         taken = true;
       },
-      showRemaining: (left) => this.world.showHitsLeft(player, left),
+      showRemaining: (left) => {
+        if (player !== undefined) this.world.showHitsLeft(player, left);
+      },
     });
     return taken;
   }

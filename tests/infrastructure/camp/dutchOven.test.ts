@@ -22,11 +22,13 @@ import {
   DUTCH_OVEN_TYPE,
   FIRE_PIT_COVERED_PROPERTY,
   FIRE_PIT_TYPE,
+  TEST_DUTCH_OVEN_HIT_EVENT,
   TEST_DUTCH_OVEN_HOST_EVENT,
   TEST_DUTCH_OVEN_ON_PIT_EVENT,
   TEST_DUTCH_OVEN_ON_TABLE_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
+import { registerTestDutchOven } from "../../../src/infrastructure/camp/testHooks/dutchOven";
 import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
 
@@ -75,24 +77,29 @@ function handlers() {
   const checkHostedItems = vi.fn();
   const toggle = vi.fn();
   const toggleLid = vi.fn();
+  const hit = vi.fn();
+  const actions = {
+    hit,
+    toggleLid,
+    placeOnFirePit,
+    placeOnTable,
+    placeOnTop: (
+      _surface: unknown,
+      {
+        host,
+        hostType: _hostType,
+        ...cmd
+      }: import("../../../src/application/shared/placeOnTop").TopRequest,
+    ) => placeOnTable({ ...cmd, table: host }),
+    uncoverEmptyFirePits,
+  } as unknown as DutchOvenActions;
+  const topHosts = campTopHosts();
   registerDutchOven(
-    {
-      toggleLid,
-      placeOnFirePit,
-      placeOnTable,
-      placeOnTop: (
-        _surface: unknown,
-        {
-          host,
-          hostType: _hostType,
-          ...cmd
-        }: import("../../../src/application/shared/placeOnTop").TopRequest,
-      ) => placeOnTable({ ...cmd, table: host }),
-      uncoverEmptyFirePits,
-    } as unknown as DutchOvenActions,
+    actions,
     { check: checkHostedItems } as unknown as HostedItemsGuard,
-    campTopHosts(),
+    topHosts,
   );
+  registerTestDutchOven(actions, topHosts);
   registerFirePit({ toggle } as unknown as FirePitActions);
   const press = (held: string | undefined = DUTCH_OVEN_ITEM) => {
     const event = {
@@ -115,6 +122,7 @@ function handlers() {
     checkHostedItems,
     toggle,
     toggleLid,
+    hit,
     press,
     flush,
   };
@@ -530,6 +538,21 @@ it("routes only server oven simmer events through the lid action", () => {
     sourceType: "Server",
   });
   expect(toggleLid).toHaveBeenCalledExactlyOnceWith("oven", game.tick);
+});
+
+it("routes only server oven hit events through the playerless hit action", () => {
+  const { hit } = handlers();
+  const script = defined(game.script.mock.calls[0], "oven script")[0];
+  game.entity.mockReturnValue({ id: "oven", typeId: DUTCH_OVEN_TYPE });
+  for (const sourceType of ["Entity", "Block", "NPCDialogue"])
+    script({ id: TEST_DUTCH_OVEN_HIT_EVENT, message: "oven", sourceType });
+  expect(hit).not.toHaveBeenCalled();
+  script({
+    id: TEST_DUTCH_OVEN_HIT_EVENT,
+    message: "oven",
+    sourceType: "Server",
+  });
+  expect(hit).toHaveBeenCalledExactlyOnceWith("oven", undefined, game.tick);
 });
 
 it("reads the persisted lid property and writes it with sound without changing the host", () => {

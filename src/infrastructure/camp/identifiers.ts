@@ -12,8 +12,6 @@ export interface ChairProfile {
   readonly family: string;
   /** Action bar hint after a hit that does not take the chair back yet. */
   readonly hitsHint: string;
-  /** Lets in-game tests hit a chair without a player: the message is the chair's entity id. */
-  readonly testHitEvent: string;
 }
 
 export const CHAIR_KINDS: Readonly<Record<ChairKindId, ChairProfile>> = {
@@ -22,19 +20,17 @@ export const CHAIR_KINDS: Readonly<Record<ChairKindId, ChairProfile>> = {
     itemId: id("noga_chair_item"),
     family: "yasu_ride_noga_chair",
     hitsHint: "yasu_ride.hint.noga_chair_hits",
-    testHitEvent: "yasu_ride_test:test_noga_chair_hit",
   },
   low_chair: {
     typeId: id("low_chair"),
     itemId: id("low_chair_item"),
     family: "yasu_ride_low_chair",
     hitsHint: "yasu_ride.hint.low_chair_hits",
-    testHitEvent: id("test_chair_hit"),
   },
 };
 
 function chairKindsBy(
-  field: "typeId" | "itemId" | "testHitEvent",
+  field: "typeId" | "itemId",
 ): ReadonlyMap<string, ChairKindId> {
   return new Map(
     (Object.keys(CHAIR_KINDS) as ChairKindId[]).map((kind) => [
@@ -46,7 +42,10 @@ function chairKindsBy(
 
 export const CHAIR_KIND_BY_TYPE = chairKindsBy("typeId");
 export const CHAIR_KIND_BY_ITEM = chairKindsBy("itemId");
-export const CHAIR_KIND_BY_TEST_EVENT = chairKindsBy("testHitEvent");
+
+// The bundler can drop these id() calls when only dev hooks reference them.
+export const TEST_LOW_CHAIR_HIT_EVENT = /* @__PURE__ */ id("test_chair_hit");
+export const TEST_NOGA_CHAIR_HIT_EVENT = "yasu_ride_test:test_noga_chair_hit";
 
 export const CAMP_TABLE_TYPE = id("camp_table");
 export const CAMP_TABLE_ITEM = id("camp_table_item");
@@ -55,7 +54,12 @@ export const TEST_TABLE_HIT_EVENT = "yasu_ride_test:test_table_hit";
  * Server test hook: the message is the table entity id followed by an old spot
  * index 0 or 1, or by a local point `<x> <z>` in model pixels.
  */
-export const TEST_DUTCH_OVEN_ON_TABLE_EVENT = id("test_dutch_oven_on_table");
+export const TEST_DUTCH_OVEN_ON_TABLE_EVENT = /* @__PURE__ */ id(
+  "test_dutch_oven_on_table",
+);
+export const TEST_DUTCH_OVEN_ON_TOP_EVENT = /* @__PURE__ */ id(
+  "test_dutch_oven_on_top",
+);
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 /** Action bar hint for each refusal of the table top rule (ADR 0185). */
 export const TABLE_TOP_REFUSAL_HINTS: Readonly<Record<TopRefusal, string>> = {
@@ -68,7 +72,9 @@ export const DUTCH_OVEN_HOST_PROPERTY = id("host");
 export const DUTCH_OVEN_HOSTED_EVENT = id("oven_hosted");
 export const DUTCH_OVEN_GROUND_EVENT = id("oven_ground");
 /** Server test hook: the message is the pit entity id; no player or item is needed. */
-export const TEST_DUTCH_OVEN_ON_PIT_EVENT = id("test_dutch_oven_on_pit");
+export const TEST_DUTCH_OVEN_ON_PIT_EVENT = /* @__PURE__ */ id(
+  "test_dutch_oven_on_pit",
+);
 /**
  * Server test hook: the message is an oven entity id and a host marker. Dynamic
  * properties belong to the pack that wrote them, so the test pack cannot write
@@ -79,17 +85,21 @@ export const DUTCH_OVEN_TYPE = id("dutch_oven");
 export const DUTCH_OVEN_ITEM = id("dutch_oven_item");
 export const DUTCH_OVEN_SIMMERING_PROPERTY = id("simmering");
 export const DUTCH_OVEN_HITS_LEFT_HINT = "yasu_ride.hint.dutch_oven_hits";
-export const TEST_DUTCH_OVEN_SIMMER_EVENT = id("test_dutch_oven_simmer");
-export const TEST_DUTCH_OVEN_HIT_EVENT = id("test_dutch_oven_hit");
+export const TEST_DUTCH_OVEN_SIMMER_EVENT = /* @__PURE__ */ id(
+  "test_dutch_oven_simmer",
+);
+export const TEST_DUTCH_OVEN_HIT_EVENT = /* @__PURE__ */ id(
+  "test_dutch_oven_hit",
+);
 
 export const FIRE_PIT_TYPE = id("fire_pit");
 export const FIRE_PIT_ITEM = id("fire_pit_item");
 export const FIRE_PIT_COVERED_PROPERTY = id("covered");
 export const DUTCH_OVEN_ON_TOP_HINT = "yasu_ride.hint.dutch_oven_on_top";
-export const TEST_FIRE_PIT_HIT_EVENT = id("test_fire_pit_hit");
+export const TEST_FIRE_PIT_HIT_EVENT = /* @__PURE__ */ id("test_fire_pit_hit");
 export const FIRE_PIT_LIT_PROPERTY = id("lit");
 export const FIRE_PIT_HITS_LEFT_HINT = "yasu_ride.hint.fire_pit_hits";
-export const TEST_FIRE_PIT_EVENT = id("test_fire_pit");
+export const TEST_FIRE_PIT_EVENT = /* @__PURE__ */ id("test_fire_pit");
 
 export const TENT_TYPE = id("tent");
 export const TENT_ITEM = id("tent_item");
@@ -123,17 +133,19 @@ export const TENT_CELLS_PROPERTY = id("tent_cells");
 /** World dynamic property: the tent registry as JSON (serializeTents). */
 export const TENTS_PROPERTY = id("tents");
 /** Lets in-game tests hit a tent: the message is the tent's entity id. */
-export const TEST_TENT_HIT_EVENT = id("test_tent_hit");
+export const TEST_TENT_HIT_EVENT = /* @__PURE__ */ id("test_tent_hit");
 /** Lets in-game tests mark a tent as layout 0 and fold it as a reload would: the message is the tent's entity id. */
-export const TEST_TENT_FOLD_LEGACY_EVENT = id("test_tent_fold_legacy");
+export const TEST_TENT_FOLD_LEGACY_EVENT = /* @__PURE__ */ id(
+  "test_tent_fold_legacy",
+);
 /** Lets in-game tests pitch a tent: the message is "<x> <y> <z> <yaw>", the clicked block in the overworld and the player's yaw. */
-export const TEST_TENT_PITCH_EVENT = id("test_tent_pitch");
+export const TEST_TENT_PITCH_EVENT = /* @__PURE__ */ id("test_tent_pitch");
 /** Lets in-game tests tap a flap without a player: the message is "<tent entity id> <flap id>". */
-export const TEST_TENT_FLAP_EVENT = id("test_tent_flap");
+export const TEST_TENT_FLAP_EVENT = /* @__PURE__ */ id("test_tent_flap");
 /** Action bar hint when a flap cannot close on someone. */
 export const FLAP_BLOCKED_HINT = "yasu_ride.hint.tent_flap_blocked";
 /** Lets in-game tests switch a tent's lantern without a player: the message is the tent's entity id. */
-export const TEST_TENT_LANTERN_EVENT = id("test_tent_lantern");
+export const TEST_TENT_LANTERN_EVENT = /* @__PURE__ */ id("test_tent_lantern");
 /** The camper's switch click; camp cannot import the vehicle's constant (ADR 0046). */
 export const SWITCH_CLICK_SOUND = "random.click";
 export const TENT_HITS_LEFT_HINT = "yasu_ride.hint.tent_hits";
@@ -149,15 +161,22 @@ export const PITCH_REFUSAL_MESSAGE: Readonly<Record<PitchRefusal, string>> = {
 export const GAS_LANTERN_TYPE = id("gas_lantern");
 export const GAS_LANTERN_ITEM = id("gas_lantern_item");
 export const GAS_LANTERN_CELLS_PROPERTY = id("gas_lantern_cells");
-export const TEST_GAS_LANTERN_EVENT = id("test_gas_lantern");
+export const TEST_GAS_LANTERN_EVENT = /* @__PURE__ */ id("test_gas_lantern");
 export const GAS_LANTERN_LIT_PROPERTY = id("lit");
 export const GAS_LANTERN_HITS_LEFT_HINT = "yasu_ride.hint.gas_lantern_hits";
-export const TEST_GAS_LANTERN_HIT_EVENT = id("test_gas_lantern_hit");
+export const TEST_GAS_LANTERN_HIT_EVENT = /* @__PURE__ */ id(
+  "test_gas_lantern_hit",
+);
 /** Holds the lantern's host marker; absent or empty means a ground lantern (ADR 0185). */
 export const GAS_LANTERN_HOST_PROPERTY = id("host");
 export const GAS_LANTERN_HOSTED_EVENT = id("gas_lantern_hosted");
 /** Server test hook: the message is the table entity id and a local point `<x> <z>` in model pixels. */
-export const TEST_GAS_LANTERN_ON_TABLE_EVENT = id("test_gas_lantern_on_table");
+export const TEST_GAS_LANTERN_ON_TABLE_EVENT = /* @__PURE__ */ id(
+  "test_gas_lantern_on_table",
+);
+export const TEST_GAS_LANTERN_ON_TOP_EVENT = /* @__PURE__ */ id(
+  "test_gas_lantern_on_top",
+);
 
 export const ROOF_TENT_TYPE = id("roof_tent");
 export const ROOF_TENT_ITEM = id("roof_tent_item");
@@ -176,17 +195,20 @@ export const ROOF_TENT_SPAWN_SET_BY_PROPERTY = id("roof_tent_spawn_set_by");
 export const ROOF_TENT_CEILING_PROPERTY = id("roof_tent_ceiling");
 export const ROOF_TENT_EXIT_PROPERTY = id("roof_tent_exit");
 /** Server hooks: place takes `<x> <y> <z> <yaw>` or `<host id>`; hit takes a tent id. */
-export const TEST_ROOF_TENT_PLACE_EVENT = id("test_roof_tent_place");
-export const TEST_ROOF_TENT_HIT_EVENT = id("test_roof_tent_hit");
+export const TEST_ROOF_TENT_PLACE_EVENT = /* @__PURE__ */ id(
+  "test_roof_tent_place",
+);
+export const TEST_ROOF_TENT_HIT_EVENT =
+  /* @__PURE__ */ id("test_roof_tent_hit");
 /** Removes the host entity whose id is the message. */
-export const TEST_ROOF_TENT_HOST_REMOVE_EVENT = id(
+export const TEST_ROOF_TENT_HOST_REMOVE_EVENT = /* @__PURE__ */ id(
   "test_roof_tent_host_remove",
 );
 /** Seat hooks take `<tent or host id> <stand-in entity id>`. */
-export const TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT = id(
+export const TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT = /* @__PURE__ */ id(
   "test_roof_tent_occupant_seat",
 );
-export const TEST_ROOF_TENT_DRIVER_SEAT_EVENT = id(
+export const TEST_ROOF_TENT_DRIVER_SEAT_EVENT = /* @__PURE__ */ id(
   "test_roof_tent_driver_seat",
 );
 

@@ -103,12 +103,6 @@ vi.mock("@minecraft/server", () => ({
     run: game.run,
   },
 }));
-vi.mock(
-  "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern",
-  () => ({
-    registerTestTentLantern: vi.fn(),
-  }),
-);
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentHits", () => ({
   registerTentHits: registrations.handler("registerTentHits"),
 }));
@@ -124,20 +118,8 @@ vi.mock(
     registerTentLifecycle: vi.fn(),
   }),
 );
-vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testTent", () => ({
-  registerTestTent: vi.fn(),
-}));
-vi.mock(
-  "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap",
-  () => ({
-    registerTestTentFlap: vi.fn(),
-  }),
-);
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/hits", () => ({
   registerChairHits: registrations.handler("registerChairHits"),
-}));
-vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testHit", () => ({
-  registerTestChairHit: vi.fn(),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/table", () => ({
   registerTable: registrations.handler("registerTable"),
@@ -185,12 +167,6 @@ vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle",
   () => ({
     registerRoofTentLifecycle: vi.fn(),
-  }),
-);
-vi.mock(
-  "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent",
-  () => ({
-    registerTestRoofTent: vi.fn(),
   }),
 );
 

@@ -16,7 +16,6 @@ import type { VehicleHostLookup } from "../../../application/shared/ports/vehicl
 import type { SleepInBed } from "../../../application/shared/sleepInBed";
 import type { BedrockBedWorld } from "../../shared/bedrockBedWorld";
 import { consoleLogger } from "../../shared/consoleLogger";
-import type { LaidBlockOwner } from "../../shared/laidBlockGuard";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
@@ -29,7 +28,6 @@ import { registerRoofTentLifecycle } from "../bedrock/handlers/roofTentLifecycle
 import { createRoofTentMenu } from "../bedrock/handlers/roofTentMenu";
 import { registerRoofTentOccupantCleanup } from "../bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "../bedrock/handlers/roofTentPlacement";
-import { registerTestRoofTent } from "../bedrock/handlers/testRoofTent";
 import {
   createEntranceReach,
   createHostedTents,
@@ -46,7 +44,7 @@ export function installRoofTents(deps: {
   vehicleHost: VehicleHostLookup;
   beds: BedrockBedWorld;
   sleep: SleepInBed;
-}): { ceilingOwner: LaidBlockOwner } {
+}) {
   registerStarterItem(
     new GiveStarterItem(
       new BedrockStarterItemWorld(
@@ -55,7 +53,8 @@ export function installRoofTents(deps: {
       ),
     ),
   );
-  const roofHosts = new RoofTentHosts(deps.vehicleHost);
+  const driverOverrides = new Map<string, string>();
+  const roofHosts = new RoofTentHosts(deps.vehicleHost, driverOverrides);
   const roofOccupants = new BedrockRoofTentOccupantWorld(
     roofHosts.lookup,
     deps.isVehicleSpace,
@@ -99,13 +98,13 @@ export function installRoofTents(deps: {
     cleanup,
     (id) => roofTents.isRemoving(id),
   );
-  registerTestRoofTent(
+  return {
+    ceilingOwner: roofOccupants.ceilingOwner.bind(roofOccupants),
     placeRoofTent,
     foldRoofTent,
     roofGuard,
     roofOccupants,
-    roofHosts,
-  );
-
-  return { ceilingOwner: roofOccupants.ceilingOwner.bind(roofOccupants) };
+    lookup: roofHosts.lookup,
+    driverOverrides,
+  };
 }
