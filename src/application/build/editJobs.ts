@@ -1,18 +1,18 @@
 // Applies queued edit plans in chunks, one shared budget per tick (ADR 0178).
 
 import {
-  sameBlockState,
-  sameBlockStateIgnoringDerived,
-} from "../../domain/build/blockState";
-import {
-  type AppliedChange,
   type EditKind,
   type EditRecord,
   type PlannedChange,
   type PlanStep,
   SCAN_STEP,
 } from "../../domain/build/edit/change";
-import { isKeptState } from "../../domain/build/edit/guard";
+import {
+  decideWrite,
+  type EditTally,
+  tallyWrite,
+} from "../../domain/build/edit/decideWrite";
+import type { BuildSession } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { cellKey } from "../../domain/shared/cells";
@@ -38,16 +38,14 @@ interface Job {
   readonly selection: EditSelection;
   readonly plan: Iterator<PlanStep>;
   readonly kind: EditKind;
-  readonly applied: AppliedChange[];
+  readonly tally: EditTally;
   buriedOwner: boolean;
-  changed: number;
-  skipped: number;
 }
 
 function recordOf(job: Job): EditRecord {
   return {
     dimensionId: job.dimensionId,
-    changes: job.applied,
+    changes: job.tally.applied,
     ...job.selection,
   };
 }
@@ -78,10 +76,8 @@ export class EditJobs {
       plan: plan[Symbol.iterator](),
       kind,
       selection,
-      applied: [],
+      tally: { changed: 0, skipped: 0, applied: [] },
       buriedOwner: false,
-      changed: 0,
-      skipped: 0,
     });
   }
 
@@ -138,35 +134,7 @@ export class EditJobs {
     while (used < limit) {
       const next = job.plan.next();
       if (next.done) {
-        this.drop(job);
-        const evicted = session.finishEdit(recordOf(job), job.kind);
-        // A throwing discard must not skip unstuck and the completion feedback below.
-        attempt(
-          () => discardAll(this.structures, evicted),
-          this.log,
-          () => `build edit snapshot discard for ${job.playerId} failed`,
-        );
-        attempt(
-          () => {
-            if (job.buriedOwner)
-              unstuck(this.world, this.players, job.playerId, job.dimensionId);
-          },
-          this.log,
-          () => `build edit unstuck for ${job.playerId} failed`,
-        );
-        attempt(
-          () =>
-            reportEditCompletion(
-              session,
-              this.feedback,
-              job.playerId,
-              job.kind,
-              job.changed,
-              job.skipped,
-            ),
-          this.log,
-          () => `build edit feedback for ${job.playerId} failed`,
-        );
+        this.finishJob(job, session);
         return used;
       }
       used++;
@@ -175,35 +143,66 @@ export class EditJobs {
     return used;
   }
 
+  private finishJob(job: Job, session: BuildSession): void {
+    this.drop(job);
+    const evicted = session.finishEdit(recordOf(job), job.kind);
+    // A throwing discard must not skip unstuck and the completion feedback below.
+    attempt(
+      () => discardAll(this.structures, evicted),
+      this.log,
+      () => `build edit snapshot discard for ${job.playerId} failed`,
+    );
+    attempt(
+      () => {
+        if (job.buriedOwner)
+          unstuck(this.world, this.players, job.playerId, job.dimensionId);
+      },
+      this.log,
+      () => `build edit unstuck for ${job.playerId} failed`,
+    );
+    attempt(
+      () =>
+        reportEditCompletion(
+          session,
+          this.feedback,
+          job.playerId,
+          job.kind,
+          job.tally.changed,
+          job.tally.skipped,
+        ),
+      this.log,
+      () => `build edit feedback for ${job.playerId} failed`,
+    );
+  }
+
   private apply(
     job: Job,
     change: PlannedChange,
     occupiedCells: readonly string[],
   ): void {
-    const { dimensionId } = job;
-    const before = this.world.stateAt(dimensionId, change.cell);
-    if (!before) {
-      if (job.kind === "undo") job.skipped++;
-      return;
-    }
-    if (
-      change.expected &&
-      !sameBlockStateIgnoringDerived(before, change.expected)
-    ) {
-      if (!sameBlockState(before, change.after)) job.skipped++;
-      return;
-    }
-    if (sameBlockState(before, change.after)) return;
-    if (isKeptState(before) || !this.world.mayEdit(dimensionId, change.cell)) {
-      if (job.kind === "undo") job.skipped++;
-      return;
-    }
-    if (this.world.setState(dimensionId, change.cell, change.after)) {
-      job.changed++;
-      if (occupiedCells.includes(cellKey(change.cell))) job.buriedOwner = true;
-      if (job.kind === "undoable")
-        job.applied.push({ cell: change.cell, before, after: change.after });
-    } else if (job.kind === "undo") job.skipped++;
+    const { dimensionId, kind, tally } = job;
+    const { cell, after } = change;
+    const before = this.world.stateAt(dimensionId, cell);
+    const decision = decideWrite(before, change, kind, () =>
+      this.world.mayEdit(dimensionId, cell),
+    );
+    const outcome =
+      decision !== "write"
+        ? decision
+        : this.world.setState(dimensionId, cell, after)
+          ? "written"
+          : "skip";
+    const { changed, skipped, applied } = tallyWrite(
+      kind,
+      outcome,
+      change,
+      before,
+    );
+    tally.changed += changed;
+    tally.skipped += skipped;
+    if (changed && occupiedCells.includes(cellKey(cell)))
+      job.buriedOwner = true;
+    if (applied) tally.applied.push(applied);
   }
 
   private drop(job: Job): void {
