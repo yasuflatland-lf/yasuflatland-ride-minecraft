@@ -174,7 +174,7 @@
 - Agreement: Accepted
 - Basis: [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "`DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`."; [0055](../adr/0055-kind-neutral-vehicle-core.md) Decision, "A throw skips the rest of that vehicle's tick"
 - Implementation: `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/isolated.ts`
-- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", and "keeps moving the other vehicles and logs the error when one vehicle throws". Not verified: every possible failure position in every world operation.
+- Verification: `tests/domain/vehicle/vehicle.test.ts` "runs the taken seats' commands after the vacated seats' commands, ascending"; `tests/application/vehicle/driveVehicles.test.ts` the form and bank cases of "still writes $property when moving the vehicle throws", "stands each leaving rider at their exit after the final commands", "dispatches the requested dock and movement ports in step order", and "isolates a vehicle tick when motion, a command, or cutting throws". Not verified: every possible failure position in every world operation.
 
 ### Release of vehicles that are no longer loaded
 
@@ -183,7 +183,7 @@
 - Agreement: Proposed
 - Basis: [0120](../adr/0120-choose-a-sports-boat-seat-by-aiming-at-it.md) Decision, "Fillers are removed when the boat is released (broken, removed by the vehicle limit, or no longer loaded)." The retry itself has no ADR (issue #1372).
 - Implementation: `src/application/vehicle/driveVehicles.ts`; `src/infrastructure/vehicle/bedrock/vehicleReleaser.ts`
-- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries a failed release on the next cycle and stops after success", "warns only once per vehicle across repeated release failures", "cancels a pending release when the vehicle is loaded again and resets its warning", and "releases every gone vehicle exactly once successfully across arbitrary failure counts". The existing test "releases each vehicle that is no longer loaded once, and logs a failed release without skipping the others" checks release isolation.
+- Verification: `tests/application/vehicle/driveVehicles.test.ts` "retries gone vehicles independently and warns once per failed release cycle" and "cancels a pending release when the vehicle is loaded again and resets its warning".
 
 ### Placement contract
 
