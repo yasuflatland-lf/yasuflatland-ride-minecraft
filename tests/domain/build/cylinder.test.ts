@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { boxOf, contains } from "../../../src/domain/build/box";
+import { boxOf, cellBox, contains } from "../../../src/domain/build/box";
 import {
   cylinderPlacement,
   cylinderVolume,
@@ -55,10 +55,10 @@ describe("cylinder geometry", () => {
   it("counts distinct cells within the footprint and upward height layers", () => {
     fc.assert(
       fc.property(spec, (spec) => {
-        const bounds = {
-          min: spec.base.min,
-          max: { ...spec.base.max, y: spec.base.min.y + spec.height - 1 },
-        };
+        const bounds = cellBox(spec.base.min, {
+          ...spec.base.max,
+          y: spec.base.min.y + spec.height - 1,
+        });
         for (const fill of fillStylesFor("cylinder")) {
           const cells = [...cylinderPlacement.cells(spec, fill)];
           expect(cylinderPlacement.count(spec, fill)).toBe(cells.length);

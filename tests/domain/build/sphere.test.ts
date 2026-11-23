@@ -1,6 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { boxOf, type CellBox, contains } from "../../../src/domain/build/box";
+import {
+  boxOf,
+  type CellBox,
+  cellBox,
+  contains,
+} from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { HeightedSpec } from "../../../src/domain/build/volume/geometry";
 import {
@@ -30,10 +35,8 @@ const spec = fc
   .tuple(origin, size, size, size)
   .map(([min, width, height, depth]) => specOf(min, width, height, depth));
 
-const boundsOf = ({ base, height }: HeightedSpec): CellBox => ({
-  min: base.min,
-  max: { ...base.max, y: base.min.y + height - 1 },
-});
+const boundsOf = ({ base, height }: HeightedSpec): CellBox =>
+  cellBox(base.min, { ...base.max, y: base.min.y + height - 1 });
 const neighbours = ({ x, y, z }: Cell): Cell[] => [
   { x: x - 1, y, z },
   { x: x + 1, y, z },
@@ -171,10 +174,10 @@ describe("sphere geometry", () => {
         const { min, max } = boundsOf(spec);
         const shell = new Set(cellsOf(spec, "hollow").map(cellKey));
         const inside = new Set(cellsOf(spec, "fill").map(cellKey));
-        const margin = {
-          min: { x: min.x - 1, y: min.y - 1, z: min.z - 1 },
-          max: { x: max.x + 1, y: max.y + 1, z: max.z + 1 },
-        };
+        const margin = cellBox(
+          { x: min.x - 1, y: min.y - 1, z: min.z - 1 },
+          { x: max.x + 1, y: max.y + 1, z: max.z + 1 },
+        );
         const seen = new Set([cellKey(margin.min)]);
         const frontier = [margin.min];
         for (let cell = frontier.pop(); cell; cell = frontier.pop()) {

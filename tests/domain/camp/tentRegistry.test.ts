@@ -82,6 +82,7 @@ describe("tent registry (ADR 0131)", () => {
     const bad = [
       { ...good, pose: { ...good.pose, yaw: 45 } },
       { ...good, pose: { ...good.pose, x: 1.5 } },
+      { ...good, pose: { ...good.pose, y: Number.MAX_SAFE_INTEGER + 1 } },
       { ...good, pose: { ...good.pose, z: "3" } },
       { dimensionId: good.dimensionId, pose: good.pose },
       { ...good, id: "" },

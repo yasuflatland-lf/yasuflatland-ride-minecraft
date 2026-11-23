@@ -5,7 +5,7 @@ import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
-  createVehicle,
+  profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../src/domain/vehicle/spec";
@@ -22,52 +22,45 @@ const driver: RiderView = {
   raw: { moveX: 0, moveY: 0, jump: false },
 };
 
-function bulldozerRepo(): InMemoryRepo {
-  const repo = new InMemoryRepo();
-  repo.save(rebuildVehicle("bulldozer", vehicleId, 0, [driver], { blade: 0 }));
-  return repo;
-}
-
-it("forces the blade for the test hook, and nothing for an unknown vehicle or a kind without a blade", () => {
-  const repo = bulldozerRepo();
-  repo.save(createVehicle("suv", asVehicleId("suv"), 0));
-  const use = new SwitchTool(repo, new FakeClock());
-  expect(use.force({ vehicleId, item: "blade_switch", state: "up" })).toBe(
-    true,
-  );
-  expect(
-    use.force({
-      vehicleId: asVehicleId("unknown"),
-      item: "blade_switch",
-      state: "up",
-    }),
-  ).toBe(false);
-  expect(
-    use.force({
-      vehicleId: asVehicleId("suv"),
-      item: "blade_switch",
-      state: "up",
-    }),
-  ).toBe(false);
-});
-
 it("reports the new tool state only for successful chase-camera switches", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(
-        ["blade_switch", "up", "down", "blade_up", "blade_down"],
+        ["bulldozer", "blade_switch", "up", "down", "blade_up", "blade_down"],
         [
+          "bulldozer",
           "wide_blade_switch",
           "wide",
           "normal",
           "wide_blade_wide",
           "wide_blade_normal",
         ],
-        ["road_paver_switch", "on", "off", "road_paver_on", "road_paver_off"],
+        [
+          "bulldozer",
+          "road_paver_switch",
+          "on",
+          "off",
+          "road_paver_on",
+          "road_paver_off",
+        ],
+        [
+          "sportsboat",
+          "icebreaker_switch",
+          "on",
+          "off",
+          "icebreaker_on",
+          "icebreaker_off",
+        ],
       ),
       fc.boolean(),
-      ([item, first, second, firstKey, secondKey], thirdPerson) => {
-        const repo = bulldozerRepo();
+      ([kind, item, first, second, firstKey, secondKey], thirdPerson) => {
+        const repo = new InMemoryRepo();
+        const offset = defined(profileOf(kind).seats.positions[0], "seat 0");
+        repo.save(
+          rebuildVehicle(kind, vehicleId, 0, [{ ...driver, offset }], {
+            blade: 0,
+          }),
+        );
         const clock = new FakeClock();
         const messages: string[] = [];
         const feedback = new SwitchFeedback(
@@ -93,8 +86,6 @@ it("reports the new tool state only for successful chase-camera switches", () =>
         expect(use.execute(cmd)).toBe(true);
         expect(repo.get(vehicleId)?.toolState(item)).toBe(second);
         expect(messages).toEqual(thirdPerson ? [firstKey, secondKey] : []);
-        use.force({ vehicleId, item, state: first });
-        expect(messages).toHaveLength(thirdPerson ? 2 : 0);
       },
     ),
   );

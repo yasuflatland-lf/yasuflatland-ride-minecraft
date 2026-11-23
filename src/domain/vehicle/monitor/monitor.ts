@@ -1,7 +1,14 @@
-/** A tool the cab monitor shows: its bare item id and its state names, in screen order (ADR 0139). */
+/** A cab monitor tool with its states in screen order (ADR 0139). */
 interface MonitorTool {
   readonly item: string;
   readonly states: readonly [string, ...string[]];
+  /** Prefix of the action-bar message name, before the state suffix (ADR 0224). */
+  readonly feedback?: string;
+}
+
+interface ToolBinding {
+  readonly get: () => string;
+  readonly set: (state: string) => void;
 }
 
 /** What a kind's cab monitor shows (ADR 0139). */
@@ -48,4 +55,30 @@ export function monitorTool(
   item: string,
 ): MonitorTool | undefined {
   return rule?.tools.find((tool) => tool.item === item);
+}
+
+export function toolBindings(
+  rule: MonitorRule,
+  bindings: Readonly<Partial<Record<string, ToolBinding>>>,
+) {
+  const bindingFor = (item: string) =>
+    Object.hasOwn(bindings, item) ? bindings[item] : undefined;
+
+  return {
+    toolState(item: string): string | undefined {
+      const tool = monitorTool(rule, item);
+      if (!tool) return undefined;
+      const state = bindingFor(item)?.get();
+      return state !== undefined && tool.states.includes(state)
+        ? state
+        : undefined;
+    },
+    setToolState(item: string, state: string): boolean {
+      if (!monitorTool(rule, item)?.states.includes(state)) return false;
+      const binding = bindingFor(item);
+      if (!binding) return false;
+      binding.set(state);
+      return true;
+    },
+  };
 }

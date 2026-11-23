@@ -10,6 +10,7 @@ import {
   fleetLimitOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
+import { SPEC } from "../../../src/domain/vehicle/spec";
 import { decorItemId, decorSlotId } from "../../support/decorIds";
 import {
   FakeClock,
@@ -48,6 +49,46 @@ describe("HitVehicle (ADR 0008)", () => {
     expect(repo.get(asVehicleId("a"))).toBeUndefined();
     // A broken vehicle no longer counts toward the limit (ADR 0038).
     expect(fleets.state.order).toEqual([{ id: "b", kind: "suv" }]);
+  });
+
+  it("takes three hits from the same player even when other players hit in between", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 2, max: SPEC.hitResetTicks }),
+        fc.integer({ min: 0, max: SPEC.hitResetTicks }),
+        (secondHitTick, lastGap) => {
+          const world = new FakeWorld();
+          const repo = new InMemoryRepo();
+          const vehicleId = asVehicleId("a");
+          repo.save(createVehicle("suv", vehicleId, 0));
+          const clock = new FakeClock();
+          const uc = new HitVehicle(
+            world,
+            repo,
+            new FakeFleetRepository(fleetLimitOf),
+            clock,
+          );
+          const hit = (player: string, tick: number) => {
+            clock.tick = tick;
+            return uc.execute({
+              playerId: asPlayerId(player),
+              vehicleId,
+              fromDeck: false,
+            });
+          };
+
+          expect([hit("p1", 0), hit("p2", 1), hit("p3", 2)]).toEqual([
+            false,
+            false,
+            false,
+          ]);
+          expect(hit("p1", secondHitTick)).toBe(false);
+          expect(world.calls).toEqual([]);
+          expect(hit("p1", secondHitTick + lastGap)).toBe(true);
+          expect(world.calls).toEqual(["drop:a", "remove:a"]);
+        },
+      ),
+    );
   });
 
   it("never counts hits from the deck toward breaking the vehicle", () => {

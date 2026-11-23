@@ -1,26 +1,21 @@
 import type { Cell } from "../../shared/cells";
+import type { Vec3 } from "../../shared/vec";
 import type { Face } from "../aim/face";
 import { boxOf, type CellBox, type Size } from "../box";
-import type { Facing } from "../rotation/facing";
+import {
+  FACINGS,
+  type Facing,
+  facingVector,
+  opposite,
+  rightOf,
+} from "../rotation/facing";
 
-type HorizontalDirection = { readonly x: number; readonly z: number };
-
-const DIRECTIONS: Record<
-  Facing,
-  { readonly forward: HorizontalDirection; readonly right: HorizontalDirection }
-> = {
-  north: { forward: { x: 0, z: -1 }, right: { x: 1, z: 0 } },
-  east: { forward: { x: 1, z: 0 }, right: { x: 0, z: 1 } },
-  south: { forward: { x: 0, z: 1 }, right: { x: -1, z: 0 } },
-  west: { forward: { x: -1, z: 0 }, right: { x: 0, z: -1 } },
-};
-
-const OPPOSITE: Record<Facing, Facing> = {
-  north: "south",
-  east: "west",
-  south: "north",
-  west: "east",
-};
+const DIRECTIONS = Object.fromEntries(
+  FACINGS.map((facing) => {
+    const forward = facingVector(facing);
+    return [facing, { forward, right: rightOf(forward) }];
+  }),
+) as Record<Facing, { forward: Vec3; right: Vec3 }>;
 
 export function placedPasteBox(
   anchor: Cell,
@@ -29,7 +24,7 @@ export function placedPasteBox(
   face: Face,
 ): CellBox {
   const vertical = face === "up" || face === "down";
-  const { forward, right } = DIRECTIONS[vertical ? facing : OPPOSITE[face]];
+  const { forward, right } = DIRECTIONS[vertical ? facing : opposite(face)];
   const forwardSign = vertical ? 1 : -1;
   return boxOf(anchor, {
     x: anchor.x + (right.x + forwardSign * forward.x) * (size.x - 1),

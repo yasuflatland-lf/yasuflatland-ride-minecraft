@@ -1,5 +1,5 @@
 import type { Cell } from "../../shared/cells";
-import { boxOf, type CellBox, cellsOf, contains, volume } from "../box";
+import { type CellBox, cellBox, cellsOf, contains, volume } from "../box";
 
 export type Shape =
   | { kind: "line"; from: Cell; to: Cell }
@@ -13,7 +13,7 @@ const axes = ["x", "y", "z"] as const;
 export function shapeOf(a: Cell, b: Cell): Shape {
   const differing = axes.filter((axis) => a[axis] !== b[axis]);
   if (differing.length === 1) return { kind: "line", from: a, to: b };
-  const box = boxOf(a, b);
+  const box = cellBox(a, b);
   if (differing.length === 2) {
     const flat = a.x === b.x ? "x" : a.y === b.y ? "y" : "z";
     return { kind: "rect", box, flat };
@@ -33,7 +33,7 @@ export function stylesFor(shape: Shape): ShapeStyle[] {
 }
 
 function boundsOf(shape: Shape): CellBox {
-  return shape.kind === "line" ? boxOf(shape.from, shape.to) : shape.box;
+  return shape.kind === "line" ? cellBox(shape.from, shape.to) : shape.box;
 }
 
 function interiorOf(shape: Shape, style: ShapeStyle): CellBox | undefined {
@@ -51,7 +51,7 @@ function interiorOf(shape: Shape, style: ShapeStyle): CellBox | undefined {
     max[axis]--;
     if (min[axis] > max[axis]) return undefined;
   }
-  return { min, max };
+  return cellBox(min, max);
 }
 
 export function* cellsOfShape(shape: Shape, style: ShapeStyle): Iterable<Cell> {

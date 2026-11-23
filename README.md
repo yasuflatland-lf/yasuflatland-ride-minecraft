@@ -62,7 +62,7 @@ pnpm install
 pnpm lint            # format and lint check with Biome
 pnpm test            # unit tests, property-based tests, and the layer dependency check
 pnpm build           # bundle the TypeScript into the Behavior Pack
-pnpm package         # zip the packs into dist/yasuflatland-ride-<version>.mcaddon (run after build)
+pnpm package         # package dist/yasuflatland-ride-<version>.mcaddon with build-tool test hooks disabled (run after build)
 pnpm generate        # produce ignored pack build outputs when missing or stale
 pnpm model           # generate the vehicle models and textures, the camping gear block models and atlas, the README and item previews, and pack icons
 pnpm model:check     # check previews and pack icons against freshly generated packs

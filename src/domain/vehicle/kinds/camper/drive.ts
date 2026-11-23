@@ -4,13 +4,14 @@ import type { Dock } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
-import { DOCK, heldStep, pushesStick } from "../../motion/dock";
+import { heldStep, pushesStick } from "../../motion/dock";
 import {
   DockedResend,
   dockCommands,
   undockCommands,
 } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
+import { SPEC } from "../../spec";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { decorCells, furnitureCells } from "./decorCells";
 import { CamperFixtures } from "./fixtures";
@@ -191,6 +192,12 @@ export class CamperDrive extends TransformingDrive {
     if (this.parking.recovering) {
       const pose = parkPose(ctx.location, this.yaw);
       const layNow = this.parking.recover(pose, ctx);
+      if (!this.parking.pose) {
+        this.fixtures.shutForDeparture();
+        this.storage.shutAll();
+        const step = this.withProperties(super.step(raw, ctx));
+        return { ...step, commands: [...undockCommands(), ...step.commands] };
+      }
       this.restartAt(pose.yaw);
       if (layNow) return this.parkedStep(pose, ctx);
     }
@@ -216,7 +223,7 @@ export class CamperDrive extends TransformingDrive {
       this.form === "car" &&
       ctx.onGround &&
       !pushed &&
-      Math.abs(this.speed) < DOCK.maxSpeed;
+      Math.abs(this.speed) < SPEC.stoppedSpeed;
     if (!this.parking.observe(still)) return this.withProperties(step);
     const pose = parkPose(ctx.location, this.yaw);
     const clear = this.parking.clearFor(pose, ctx);

@@ -4,10 +4,13 @@ import { excludedEntityType } from "./build/excludedEntityType";
 import { installBuild } from "./build/install";
 import { installBuildTestHooks } from "./build/testHooks/install";
 import { installCamp } from "./camp/install";
+import { installCampTestHooks } from "./camp/testHooks/install";
 import { installResort } from "./resort/install";
+import { installResortTestHooks } from "./resort/testHooks/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { TopHostRegistry } from "./shared/tableTop/registry";
 import { installVehicles } from "./vehicle/install";
+import { installVehicleTestHooks } from "./vehicle/testHooks/install";
 import { WARP_BLOCK_TYPE } from "./warp/identifiers";
 import { installWarp } from "./warp/install";
 
@@ -27,7 +30,7 @@ export function bootstrap(): void {
     isVehicleSpace: vehicles.isVehicleSpace,
     vehicleHost: vehicles.vehicleHost,
   });
-  installResort({
+  const resort = installResort({
     topHosts,
     isVehicleSpace: vehicles.isVehicleSpace,
     isCampSpace: camp.isCampSpace,
@@ -41,7 +44,12 @@ export function bootstrap(): void {
     // duplicate the block (docs/specs/warp.md, Registration).
     uncopyableBlockTypes: [WARP_BLOCK_TYPE],
   });
-  installBuildTestHooks(build);
+  if (__TEST_HOOKS__) {
+    installBuildTestHooks(build);
+    installResortTestHooks(resort);
+    installCampTestHooks(camp);
+    installVehicleTestHooks(vehicles.testHooks);
+  }
   installWarp();
   console.warn(`[${NAMESPACE}] loaded`);
 }

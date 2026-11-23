@@ -1,4 +1,5 @@
 // The world's pitched tents, saved as one JSON list (ADR 0131).
+import { parseCell } from "../shared/cells";
 import type { DimensionId } from "../shared/ids";
 import { TENT_LAYOUT_VERSION } from "./spec";
 import type { TentId, TentPose, TentYaw } from "./tent";
@@ -17,21 +18,10 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 
 function parsePose(v: unknown): TentPose | undefined {
   if (!isRecord(v)) return undefined;
-  const { x, y, z, yaw } = v;
-  if (
-    !Number.isInteger(x) ||
-    !Number.isInteger(y) ||
-    !Number.isInteger(z) ||
-    typeof yaw !== "number" ||
-    !YAWS.includes(yaw)
-  )
-    return undefined;
-  return {
-    x: x as number,
-    y: y as number,
-    z: z as number,
-    yaw: (yaw + 0) as TentYaw,
-  };
+  const cell = parseCell(v);
+  const { yaw } = v;
+  if (!cell || typeof yaw !== "number" || !YAWS.includes(yaw)) return undefined;
+  return { ...cell, yaw: (yaw + 0) as TentYaw };
 }
 
 function parseEntry(v: unknown): TentEntry | undefined {

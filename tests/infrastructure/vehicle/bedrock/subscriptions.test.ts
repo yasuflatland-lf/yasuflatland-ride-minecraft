@@ -42,10 +42,7 @@ import {
   STAND_IN_OF_PROPERTY,
   STAND_IN_PROPERTY,
   standInType,
-  TEST_DECOR_EVENT,
-  TEST_HELD_ITEM_EVENT,
   TEST_INPUT_EVENT,
-  TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { registerSubscriptions as registerCoreSubscriptions } from "../../../../src/infrastructure/vehicle/bedrock/subscriptions";
 import {
@@ -72,7 +69,6 @@ type UseCases = Parameters<typeof registerCoreSubscriptions>[0] &
 function register({
   useCases = {} as UseCases,
   testInputs = new VehicleTestStore<RawInput>(),
-  testHeldItems = new VehicleTestStore<string>(),
   doorOwner = () => undefined,
   cellOwner = () => undefined,
   blockOwner = () => undefined,
@@ -80,7 +76,6 @@ function register({
 }: {
   useCases?: UseCases;
   testInputs?: VehicleTestStore<RawInput>;
-  testHeldItems?: VehicleTestStore<string>;
   doorOwner?: Parameters<typeof installCamper>[1];
   cellOwner?: Parameters<typeof installCamper>[2];
   blockOwner?: Parameters<typeof registerDockGuard>[0];
@@ -89,7 +84,6 @@ function register({
   registerCoreSubscriptions(
     useCases,
     testInputs,
-    testHeldItems,
     cellOwner,
     () =>
       installCamper(useCases, doorOwner, cellOwner, () =>
@@ -1190,110 +1184,34 @@ it("gives the starter vehicle only on a player's initial spawn", () => {
   expect(starter.execute).toHaveBeenCalledExactlyOnceWith("player");
 });
 
-it.each([
-  {
-    eventId: TEST_INPUT_EVENT,
-    target: "input",
-    message: "car,1,-1,1",
-    expected: { moveX: 1, moveY: -1, jump: true },
-    invalid: "car,bad",
-    next: "car,clear",
-    nextExpected: undefined,
-  },
-  {
-    eventId: TEST_TOOL_EVENT,
-    target: "tool",
-    message: "car,blade_switch,up",
-    expected: { vehicleId: "car", item: "blade_switch", state: "up" },
-    invalid: "car,bad",
-    next: "car,blade_switch,down",
-    nextExpected: { vehicleId: "car", item: "blade_switch", state: "down" },
-  },
-  {
-    eventId: TEST_DECOR_EVENT,
-    target: "decor",
-    message: "car,table,potted_plant",
-    expected: { vehicleId: "car", slot: "table", item: "potted_plant" },
-    invalid: "car,bad",
-    next: "car,table,clear",
-    nextExpected: { vehicleId: "car", slot: "table", item: undefined },
-  },
-  {
-    eventId: TEST_HELD_ITEM_EVENT,
-    target: "held",
-    message: "car,yasu_ride:blade_switch",
-    expected: "yasu_ride:blade_switch",
-    invalid: "car,",
-    next: "car,clear",
-    nextExpected: undefined,
-  },
-] as const)(
-  "dispatches $eventId only from valid server events",
-  ({ eventId, target, message, expected, invalid, next, nextExpected }) => {
-    const testInputs = new VehicleTestStore<RawInput>();
-    const testHeldItems = new VehicleTestStore<string>();
-    const tool = { force: vi.fn() };
-    const decor = { execute: vi.fn() };
-    const subscriptions = vi.mocked(
-      system.afterEvents.scriptEventReceive.subscribe,
-    ).mock.calls;
-    const firstNew = subscriptions.length;
-    register({
-      useCases: { tool, decor } as unknown as UseCases,
-      testInputs,
-      testHeldItems,
-    });
-    const added = subscriptions.slice(firstNew);
-    const id = asVehicleId("car");
-    const read = () =>
-      ({
-        input: testInputs.get(id),
-        held: testHeldItems.get(id),
-        tool: tool.force.mock.lastCall?.[0],
-        decor: decor.execute.mock.lastCall?.[0],
-      })[target];
-    const expectCalls = (count: number) => {
-      expect(tool.force).toHaveBeenCalledTimes(target === "tool" ? count : 0);
-      expect(decor.execute).toHaveBeenCalledTimes(
-        target === "decor" ? count : 0,
-      );
-    };
-    const send = (
-      text: string,
-      sourceType = "Server",
-      id = eventId as string,
-    ) => {
-      for (const [receive] of added) {
-        receive({
-          id,
-          message: text,
-          sourceType,
-        } as unknown as ScriptEventCommandMessageAfterEvent);
-      }
-    };
-    if (target === "held")
-      expect(added.at(-1)?.[1]).toEqual({ namespaces: ["yasu_ride"] });
-    send(message, "Entity");
-    send(message, "Server", "minecraft:other");
-    expect(read()).toBeUndefined();
-    expectCalls(0);
-    send(message);
-    expect(read()).toEqual(expected);
-    expectCalls(1);
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    try {
-      send(invalid);
-      expect(warn).toHaveBeenCalledOnce();
-    } finally {
-      warn.mockRestore();
-    }
-    expect(read()).toEqual(expected);
-    expectCalls(1);
-    send(next);
-    expect(read()).toEqual(nextExpected);
-    expectCalls(2);
-  },
-);
+it("dispatches driving input only from valid server events", () => {
+  const testInputs = new VehicleTestStore<RawInput>();
+  register({ testInputs });
+  const calls = vi.mocked(system.afterEvents.scriptEventReceive.subscribe).mock
+    .calls;
+  expect(calls).toHaveLength(1);
+  const [receive] = defined(calls[0], "driving-input subscription");
+  const vehicleId = asVehicleId("car");
+  const send = (
+    message: string,
+    sourceType = "Server",
+    id = TEST_INPUT_EVENT,
+  ) =>
+    receive({ id, message, sourceType } as ScriptEventCommandMessageAfterEvent);
+
+  send("car,1,-1,1", "Entity");
+  send("car,1,-1,1", "Server", "minecraft:other");
+  expect(testInputs.get(vehicleId)).toBeUndefined();
+  send("car,1,-1,1");
+  const expected = { moveX: 1, moveY: -1, jump: true };
+  expect(testInputs.get(vehicleId)).toEqual(expected);
+  using warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  send("car,bad");
+  expect(warn).toHaveBeenCalledOnce();
+  expect(testInputs.get(vehicleId)).toEqual(expected);
+  send("car,clear");
+  expect(testInputs.get(vehicleId)).toBeUndefined();
+});
 
 function decorFixture() {
   const storage = { execute: vi.fn(), drawerTarget: vi.fn() };

@@ -1,7 +1,10 @@
 // An axis-aligned box of block cells, both corners inclusive (unlike dock WorldBox, whose max is exclusive).
 import type { Cell } from "../shared/cells";
 
+declare const cellBoxBrand: unique symbol;
+
 export interface CellBox {
+  readonly [cellBoxBrand]: true;
   readonly min: Cell;
   readonly max: Cell;
 }
@@ -21,52 +24,64 @@ export function sizeOf(box: CellBox): Size {
 }
 
 export function boxFromSize(min: Cell, size: Size): CellBox {
-  return {
-    min,
-    max: {
-      x: min.x + size.x - 1,
-      y: min.y + size.y - 1,
-      z: min.z + size.z - 1,
-    },
-  };
-}
-
-export function rotatedQuarter(size: Size): Size {
-  return { x: size.z, y: size.y, z: size.x };
+  assertPositiveInteger(size.x);
+  assertPositiveInteger(size.y);
+  assertPositiveInteger(size.z);
+  return cellBox(min, {
+    x: min.x + (size.x - 1),
+    y: min.y + (size.y - 1),
+    z: min.z + (size.z - 1),
+  });
 }
 
 export function unionOf(a: CellBox, b: CellBox): CellBox {
-  return {
-    min: {
+  return cellBox(
+    {
       x: Math.min(a.min.x, b.min.x),
       y: Math.min(a.min.y, b.min.y),
       z: Math.min(a.min.z, b.min.z),
     },
-    max: {
+    {
       x: Math.max(a.max.x, b.max.x),
       y: Math.max(a.max.y, b.max.y),
       z: Math.max(a.max.z, b.max.z),
     },
-  };
+  );
 }
 
 export function boxWithHeight(base: CellBox, height: number): CellBox {
-  return { min: base.min, max: { ...base.max, y: base.min.y + height - 1 } };
+  assertPositiveInteger(height);
+  return cellBox(base.min, { ...base.max, y: base.min.y + (height - 1) });
+}
+
+function assertPositiveInteger(extent: number): void {
+  if (!Number.isInteger(extent) || extent < 1)
+    throw new RangeError(
+      `Cell box dimensions must be positive integers, got ${extent}`,
+    );
+}
+
+export function cellBox(a: Cell, b: Cell): CellBox {
+  const min = {
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    z: Math.min(a.z, b.z),
+  };
+  const max = {
+    x: Math.max(a.x, b.x),
+    y: Math.max(a.y, b.y),
+    z: Math.max(a.z, b.z),
+  };
+  if (![min.x, min.y, min.z, max.x, max.y, max.z].every(Number.isFinite))
+    throw new RangeError("Cell box corners must be finite");
+  return Object.freeze({
+    min: Object.freeze(min),
+    max: Object.freeze(max),
+  }) as CellBox;
 }
 
 export function boxOf(a: Cell, b: Cell): CellBox {
-  return {
-    min: {
-      x: Math.min(a.x, b.x),
-      y: Math.min(a.y, b.y),
-      z: Math.min(a.z, b.z),
-    },
-    max: {
-      x: Math.max(a.x, b.x),
-      y: Math.max(a.y, b.y),
-      z: Math.max(a.z, b.z),
-    },
-  };
+  return cellBox(a, b);
 }
 
 export function sameBox(a: CellBox, b: CellBox): boolean {
@@ -97,7 +112,7 @@ export function contains(box: CellBox, cell: Cell): boolean {
 }
 
 /** Cells with y outermost, then z, then x. */
-export function* cellsOf(box: CellBox): Generator<Cell> {
+export function* cellsOf(box: Pick<CellBox, "min" | "max">): Generator<Cell> {
   for (let y = box.min.y; y <= box.max.y; y++) {
     for (let z = box.min.z; z <= box.max.z; z++) {
       for (let x = box.min.x; x <= box.max.x; x++) {

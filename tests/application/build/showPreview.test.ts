@@ -227,6 +227,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
     heightLocked: false,
     dimensionId: nether,
     from: cell,
+    to: { x: 8, y: 64, z: 4 },
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
     heightedKind: "hip",
     previous: 3,
@@ -398,6 +399,7 @@ it("reports height-step sizes only on changes and resets each player's memo on e
           material,
           dimensionId: overworld,
           from: cell,
+          to: { ...cell, x: cell.x + width - 1, z: cell.z + depth - 1 },
           base: boxOf(cell, {
             ...cell,
             x: cell.x + width - 1,
@@ -457,6 +459,7 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
     heightLocked: true,
     dimensionId: overworld,
     from: cell,
+    to: { x: 8, y: 64, z: 4 },
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
     heightedKind: "cylinder",
     previous: 12,
@@ -518,6 +521,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
       kind: "heightStep",
       dimensionId: overworld,
       from: cell,
+      to: end,
       base: boxOf(cell, end),
       heightedKind: "cube",
       previous: 3,
@@ -846,7 +850,7 @@ it("shows the live size while aiming the base height, once per change", () => {
   expect(feedback.aimingSizes).toEqual([true]);
 });
 
-it("redraws the turned tapped span on the next outline tick", () => {
+it("redraws the rotated outline and tap markers on the next outline tick", () => {
   const { repo, feedback, session, preview } = setup();
   const base = tapAir(
     { kind: "point1", dimensionId: nether, cell, material },
@@ -876,8 +880,8 @@ it("redraws the turned tapped span on the next outline tick", () => {
       {
         kind: "selected",
         menuLevel: "root",
-        from: cell,
-        to: end,
+        from: turned.min,
+        to: turned.max,
         selection: selectionOf(nether, turned, material),
       },
       { blink: false },

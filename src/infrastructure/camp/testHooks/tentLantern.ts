@@ -1,8 +1,8 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { SwitchLantern } from "../../../../application/camp/switchLantern";
-import { asTentId } from "../../../../domain/camp/tent";
-import { NAMESPACE } from "../../../shared/identifiers";
-import { TEST_TENT_LANTERN_EVENT } from "../../identifiers";
+import type { SwitchLantern } from "../../../application/camp/switchLantern";
+import { asTentId } from "../../../domain/camp/tent";
+import { NAMESPACE } from "../../shared/identifiers";
+import { TEST_TENT_LANTERN_EVENT } from "../identifiers";
 
 // Lets in-game tests switch a tent's lantern, which a test has no player to do (ADR 0010).
 export function registerTestTentLantern(lantern: SwitchLantern): void {

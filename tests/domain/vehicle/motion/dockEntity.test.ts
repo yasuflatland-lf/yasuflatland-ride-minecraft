@@ -30,7 +30,7 @@ it("resends once after resync when a drive has held and the step keeps its held 
         }
         const { wasHeld, held } = action;
         const command = resend.next(wasHeld, held);
-        heldOnce ||= held;
+        heldOnce ||= wasHeld || held;
         expect(command).toStrictEqual(
           resendDocked && held === wasHeld
             ? { type: "setProperty", name: "docked", value: held }
@@ -41,6 +41,24 @@ it("resends once after resync when a drive has held and the step keeps its held 
         if (command !== undefined) sends++;
         expect(sends).toBeLessThanOrEqual(1);
       }
+    }),
+  );
+});
+
+it("resends docked false after a failed send on the first step out of a restored hold", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 1, max: 20 }), (failedSends) => {
+      const resend = new DockedResend();
+      expect(resend.next(true, false)).toBeUndefined();
+      for (let i = 0; i < failedSends; i++) {
+        resend.resync();
+        expect(resend.next(false, false)).toStrictEqual({
+          type: "setProperty",
+          name: "docked",
+          value: false,
+        });
+      }
+      expect(resend.next(false, false)).toBeUndefined();
     }),
   );
 });

@@ -7,13 +7,6 @@ export type RotationPlan = {
   readonly union: CellBox;
 };
 
-function frozenBox({ min, max }: CellBox): CellBox {
-  return Object.freeze({
-    min: Object.freeze({ ...min }),
-    max: Object.freeze({ ...max }),
-  });
-}
-
 // Math.trunc yields -0 for a -1 / 2 difference, and toEqual tells -0 from 0.
 function halfTowardZero(difference: number): number {
   return Math.trunc(difference / 2) + 0;
@@ -30,7 +23,7 @@ export function planRotationAboutCenter(source: CellBox): RotationPlan {
     y: source.min.y,
     z: source.min.z + halfTowardZero(size.z - size.x),
   };
-  const target = frozenBox(boxFromSize(min, turned));
-  const union = frozenBox(unionOf(source, target));
+  const target = boxFromSize(min, turned);
+  const union = unionOf(source, target);
   return Object.freeze({ target, union });
 }

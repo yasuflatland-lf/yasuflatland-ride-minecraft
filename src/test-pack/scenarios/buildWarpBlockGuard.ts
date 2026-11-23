@@ -8,7 +8,7 @@ import type {
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateSelection } from "../../application/build/rotateSelection";
 import { blockStateOf } from "../../domain/build/blockState";
-import { cellsOf } from "../../domain/build/box";
+import { cellBox, cellsOf } from "../../domain/build/box";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
@@ -24,7 +24,7 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
   const repo = new InMemorySessionRepository();
   const playerId = asPlayerId(`warp_guard_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
-  const source = { min: a.at(20, a.gy, 20), max: a.at(22, a.gy, 21) };
+  const source = cellBox(a.at(20, a.gy, 20), a.at(22, a.gy, 21));
   const plan = planRotationAboutCenter(source);
   const world = new BedrockBlockWorld({ isProtected: () => false });
   const structures = new BedrockStructureStore(() => false, [WARP_BLOCK_TYPE]);

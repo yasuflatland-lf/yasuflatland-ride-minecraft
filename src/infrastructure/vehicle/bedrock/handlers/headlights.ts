@@ -10,10 +10,11 @@ import {
   type VehicleId,
 } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
+import { profileOf } from "../../../../domain/vehicle/kinds/index";
 import { DRIVER_SEAT } from "../../../../domain/vehicle/seats";
 import type { SwitchTarget } from "../../../shared/switchRouter";
 import { deckSeatRide } from "../deckSeats";
-import { ENTITY_TYPE } from "../identifiers";
+import { kindOfEntity } from "../identifiers";
 import { riddenVehicle } from "../riddenVehicle";
 import { vehicleOfTarget } from "../standIns";
 
@@ -25,9 +26,12 @@ export function vehicleSwitchTarget(
     cell: Vec3,
   ) => VehicleId | undefined,
 ): SwitchTarget {
-  const camperDeckRide = (player: Player) => {
+  const headlightDeckRide = (player: Player) => {
     const ride = deckSeatRide(player);
-    return ride?.vehicle.typeId === ENTITY_TYPE.camper ? ride : undefined;
+    const kind = kindOfEntity(ride?.vehicle.typeId);
+    return kind !== undefined && profileOf(kind).deckSeatDriverHeadlights
+      ? ride
+      : undefined;
   };
   // The room a player is in: the vehicle that laid the block under their feet, the floor or
   // whatever furniture they stand or sit on, or the cell of their feet itself. The drive then
@@ -56,7 +60,7 @@ export function vehicleSwitchTarget(
   // Other riders and players inside the room switch its ceiling lights (ADR 0115, 0149).
   const switchFor = (player: Player) => {
     const playerId = asPlayerId(player.id);
-    const vehicle = riddenVehicle(player) ?? camperDeckRide(player)?.vehicle;
+    const vehicle = riddenVehicle(player) ?? headlightDeckRide(player)?.vehicle;
     if (vehicle) {
       const vehicleId = asVehicleId(vehicle.id);
       if (headlights.execute({ playerId, vehicleId })) return;
@@ -75,7 +79,7 @@ export function vehicleSwitchTarget(
   return {
     claimsItemUse: (player) =>
       riddenVehicle(player) !== undefined ||
-      camperDeckRide(player) !== undefined ||
+      headlightDeckRide(player) !== undefined ||
       roomOf(player) !== undefined,
     claimsEntityPress: (player, target) => {
       const vehicle = vehicleOfTarget(target);
@@ -85,7 +89,7 @@ export function vehicleSwitchTarget(
       const room = roomOf(player);
       return (
         riddenVehicle(player)?.id === vehicle.id ||
-        camperDeckRide(player)?.vehicle.id === vehicle.id ||
+        headlightDeckRide(player)?.vehicle.id === vehicle.id ||
         (room === vehicle.id && inSwitchableRoom(player, room))
       );
     },
@@ -95,7 +99,7 @@ export function vehicleSwitchTarget(
     // opens a door or the cabinet. Riders of a vehicle keep the events they had (ADR 0115, 0149).
     claimsBlockPress: (player) =>
       riddenVehicle(player) === undefined &&
-      (camperDeckRide(player)?.seat === DRIVER_SEAT ||
+      (headlightDeckRide(player)?.seat === DRIVER_SEAT ||
         inSwitchableRoom(player, roomOf(player))),
     switchFor,
   };

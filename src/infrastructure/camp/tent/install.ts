@@ -9,7 +9,6 @@ import type { SleepInBed } from "../../../application/shared/sleepInBed";
 import { registerBedBlock } from "../../shared/bedBlock";
 import type { LaidBlockOwner } from "../../shared/laidBlockGuard";
 import { registerLaidBlockGuard } from "../../shared/laidBlockGuard";
-import type { SwitchTarget } from "../../shared/switchRouter";
 import { BedrockLanternWorld } from "../bedrock/bedrockLanternWorld";
 import { BedrockTentPaintWorld } from "../bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "../bedrock/bedrockTentWorld";
@@ -18,9 +17,6 @@ import { registerTentHits } from "../bedrock/handlers/tentHits";
 import { registerTentLifecycle } from "../bedrock/handlers/tentLifecycle";
 import { registerTentLoop } from "../bedrock/handlers/tentLoop";
 import { registerTentPlacement } from "../bedrock/handlers/tentPlacement";
-import { registerTestTent } from "../bedrock/handlers/testTent";
-import { registerTestTentFlap } from "../bedrock/handlers/testTentFlap";
-import { registerTestTentLantern } from "../bedrock/handlers/testTentLantern";
 import { lanternSwitchTarget } from "../bedrock/lanternSwitch";
 import { createTentBlocks } from "../bedrock/tentBlocks";
 import { TentFlapStore } from "../bedrock/tentFlapStore";
@@ -54,7 +50,7 @@ export function installTents(
     sleep: SleepInBed;
     laterLaidBlockOwners: readonly LaidBlockOwner[];
   },
-): { lanternSwitchTarget: SwitchTarget } {
+) {
   registerBedBlock(TENT_MATTRESS_COMPONENT, deps.sleep);
   const pitchTent = new PitchTent(world);
   const takeDownTent = new TakeDownTent(world);
@@ -67,15 +63,18 @@ export function installTents(
   for (const owner of deps.laterLaidBlockOwners) registerLaidBlockGuard(owner);
   registerTentLoop(registry, blocks, flaps, foldLegacy);
   registerTentLifecycle(registry, blocks);
-  registerTestTent(pitchTent, takeDownTent, registry, foldLegacy);
   const useFlap = new UseTentFlap(world);
   registerTentFlap(useFlap, (d, c) => world.flapAt(d, c));
-  registerTestTentFlap(useFlap);
   const lantern = new SwitchLantern(new BedrockLanternWorld());
-  registerTestTentLantern(lantern);
   return {
     lanternSwitchTarget: lanternSwitchTarget(lantern, (d, feet) =>
       world.tentContaining(d, feet),
     ),
+    pitchTent,
+    takeDownTent,
+    registry,
+    foldLegacy,
+    useFlap,
+    lantern,
   };
 }

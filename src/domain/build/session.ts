@@ -1,6 +1,8 @@
 // Everything one player has in the build feature. Every change to the
 // selection, clipboard, history, mode, or running edit goes through here.
 import type { PlayerId } from "../shared/ids";
+import { clamp } from "../shared/vec";
+import { boxWithHeight } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { type BuildFlow, cancel, type Taps } from "./flow/flow";
@@ -17,7 +19,7 @@ import {
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { effectiveTurn, type Facing } from "./rotation/facing";
 import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
-import { inDimension, type Selection } from "./selection";
+import { inDimension, type Selection, selectionHeightLimit } from "./selection";
 import { BUILD_SPEC } from "./spec";
 import type { StructureHandle } from "./structure/handle";
 
@@ -72,14 +74,19 @@ export class BuildSession {
     )
       this.currentMode = { active: true, streak: 0 };
   }
-  replaceSelection(selection: Selection, taps?: Taps): void {
+  replaceSelection(selection: Selection, taps: Taps): void {
     const flow = this.currentFlow;
-    if (flow.kind !== "selected") return;
-    this.currentFlow = Object.freeze({
-      ...flow,
-      ...taps,
-      selection,
-    });
+    if (flow.kind === "baseHeight") {
+      this.currentFlow = Object.freeze({
+        kind: "baseHeight",
+        selection,
+        ...taps,
+        baseBox: boxWithHeight(selection.box, 1),
+        previous: clamp(flow.previous, 1, selectionHeightLimit(selection.box)),
+      });
+    } else if (flow.kind === "selected") {
+      this.currentFlow = Object.freeze({ ...flow, ...taps, selection });
+    } else return;
     if (
       this.currentConfirmedBox &&
       inDimension(this.currentConfirmedBox, selection.dimensionId)

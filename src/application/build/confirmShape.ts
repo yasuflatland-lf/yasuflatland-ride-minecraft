@@ -1,6 +1,5 @@
 import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planShape } from "../../domain/build/edit/plan";
-import { cornerTaps, tapsOf } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import {
   type ShapeStyle,
@@ -27,6 +26,7 @@ export class ConfirmShape {
       return;
     }
     const { box } = flow.selection;
+    const taps = { from: flow.from, to: flow.to };
     const shape = shapeOf(box.min, box.max);
     if (!stylesFor(shape).includes(cmd.style)) return;
     const count = shapeCount(shape, cmd.style);
@@ -43,8 +43,9 @@ export class ConfirmShape {
             uniformPattern(flow.selection.material),
           ),
           selectionBefore: box,
+          selectionBeforeTaps: taps,
           after: flow.selection,
-          taps: tapsOf(flow) ?? cornerTaps(box),
+          taps,
         },
       )
     )
