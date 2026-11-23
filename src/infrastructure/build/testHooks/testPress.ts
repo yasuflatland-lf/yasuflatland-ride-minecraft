@@ -1,9 +1,10 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import type { DescribeBuild } from "../../../../application/build/describeBuild";
-import { asPlayerId } from "../../../../domain/shared/ids";
-import { BUILD_NAMESPACE, TEST_PRESS_EVENT } from "../../identifiers";
-import type { PasteControlRoutes } from "./pasteControls";
-import { type recordMessages, replyWhenSettled } from "./testEdit";
+import { asPlayerId } from "../../../domain/shared/ids";
+import type { PasteControlRoutes } from "../bedrock/handlers/pasteControls";
+import { BUILD_NAMESPACE, TEST_PRESS_EVENT } from "../identifiers";
+import type { DescribeBuild } from "./describeBuild";
+import type { recordMessages } from "./recordMessages";
+import { replyWhenSettled } from "./testEdit";
 
 export function registerTestPress(
   routes: PasteControlRoutes,

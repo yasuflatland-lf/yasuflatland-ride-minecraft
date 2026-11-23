@@ -1,32 +1,33 @@
 // Exercises the same tap use cases and feedback adapter with a named player (ADR 0010, 0178).
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import type { AimHeight } from "../../../../application/build/aimHeight";
-import { ClearSelection } from "../../../../application/build/clearSelection";
-import { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
-import { FixStairGoal } from "../../../../application/build/fixStairGoal";
-import type { OpenSelectionMenu } from "../../../../application/build/openSelectionMenu";
-import type { AimReader } from "../../../../application/build/ports/aim";
-import type { BuildBlockWorld } from "../../../../application/build/ports/blocks";
+import type { AimHeight } from "../../../application/build/aimHeight";
+import { ClearSelection } from "../../../application/build/clearSelection";
+import { ConfirmLiveHeight } from "../../../application/build/confirmLiveHeight";
+import { FixStairGoal } from "../../../application/build/fixStairGoal";
+import type { OpenSelectionMenu } from "../../../application/build/openSelectionMenu";
+import type { AimReader } from "../../../application/build/ports/aim";
+import type { BuildBlockWorld } from "../../../application/build/ports/blocks";
 import type {
   BuildFeedback,
   BuildMessage,
-} from "../../../../application/build/ports/feedback";
-import { SetPoint } from "../../../../application/build/setPoint";
-import { TapAir } from "../../../../application/build/tapAir";
-import { sizeOf } from "../../../../domain/build/box";
-import { setHeight } from "../../../../domain/build/flow/flow";
-import { routePress } from "../../../../domain/build/flow/press";
-import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { asDimensionId, asPlayerId } from "../../../../domain/shared/ids";
+} from "../../../application/build/ports/feedback";
+import { SetPoint } from "../../../application/build/setPoint";
+import { TapAir } from "../../../application/build/tapAir";
+import { sizeOf } from "../../../domain/build/box";
+import { setHeight } from "../../../domain/build/flow/flow";
+import { routePress } from "../../../domain/build/flow/press";
+import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
+import { asDimensionId, asPlayerId } from "../../../domain/shared/ids";
+import type { BedrockFeedback } from "../bedrock/bedrockFeedback";
 import {
   BUILD_NAMESPACE,
   TEST_RESULT_EVENT,
   TEST_TAP_EVENT,
-} from "../../identifiers";
+} from "../identifiers";
 
 export function registerTestTap(
   repo: BuildSessionRepository,
-  feedback: BuildFeedback,
+  feedback: BedrockFeedback,
   blocks: BuildBlockWorld,
   openSelectionMenu: OpenSelectionMenu,
   aim: AimReader,
@@ -76,18 +77,6 @@ export function registerTestTap(
       const cell = { x, y, z };
       let message: BuildMessage | undefined;
       let count: number | undefined;
-      const observed: BuildFeedback = {
-        showMessage: (id, name, volume) => {
-          message = name;
-          count = volume;
-          feedback.showMessage(id, name, volume);
-        },
-        showUndoHint: (id) => feedback.showUndoHint(id),
-        showSize: (id, size) => feedback.showSize(id, size),
-        showMode: (id, mode) => feedback.showMode(id, mode),
-        drawPreview: (id, dimension, set) =>
-          feedback.drawPreview(id, dimension, set),
-      };
       const session = repo.get(playerId);
       const flow = session?.flow;
       const press =
@@ -109,30 +98,42 @@ export function registerTestTap(
         press?.kind === "openUtilityMenu"
           ? openSelectionMenu.execute({ playerId })
           : undefined;
-      if (input.tap === "clear")
-        new ClearSelection(repo, observed).execute({ playerId });
-      else if (input.tap === "fixHeight") {
-        // Edit fixtures use the supplied corners independently of the client's gaze.
-        if (session && flow?.kind === "baseHeight")
-          session.setFlow(setHeight(flow, sizeOf(flow.selection.box).y));
-        new ConfirmLiveHeight(repo).execute({ playerId });
-      } else if (press?.kind === "confirmLiveHeight") {
-        const sample = aim.aim(playerId);
-        if (sample) {
-          aimHeight.execute({ playerId, ray: sample.ray });
+      const listener = {
+        onMessage: ((id, name, volume) => {
+          if (id !== playerId) return;
+          message = name;
+          count = volume;
+        }) satisfies BuildFeedback["showMessage"],
+      };
+      feedback.listeners.add(listener);
+      try {
+        if (input.tap === "clear")
+          new ClearSelection(repo, feedback).execute({ playerId });
+        else if (input.tap === "fixHeight") {
+          // Edit fixtures use the supplied corners independently of the client's gaze.
+          if (session && flow?.kind === "baseHeight")
+            session.setFlow(setHeight(flow, sizeOf(flow.selection.box).y));
           new ConfirmLiveHeight(repo).execute({ playerId });
+        } else if (press?.kind === "confirmLiveHeight") {
+          const sample = aim.aim(playerId);
+          if (sample) {
+            aimHeight.execute({ playerId, ray: sample.ray });
+            new ConfirmLiveHeight(repo).execute({ playerId });
+          }
+        } else if (press?.kind === "fixStairGoal")
+          new FixStairGoal(repo, feedback, aim).execute({ playerId });
+        else if (press?.kind !== "ignore" && menu === undefined) {
+          if (input.tap === "air")
+            new TapAir(repo, feedback).execute({ playerId, end: cell });
+          else
+            new SetPoint(repo, blocks, feedback).execute({
+              playerId,
+              dimensionId,
+              cell,
+            });
         }
-      } else if (press?.kind === "fixStairGoal")
-        new FixStairGoal(repo, observed, aim).execute({ playerId });
-      else if (press?.kind !== "ignore" && menu === undefined) {
-        if (input.tap === "air")
-          new TapAir(repo, observed).execute({ playerId, end: cell });
-        else
-          new SetPoint(repo, blocks, observed).execute({
-            playerId,
-            dimensionId,
-            cell,
-          });
+      } finally {
+        feedback.listeners.delete(listener);
       }
       system.sendScriptEvent(
         TEST_RESULT_EVENT,

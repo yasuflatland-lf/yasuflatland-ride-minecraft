@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CopyBox } from "../../../src/application/build/copyBox";
@@ -10,6 +9,7 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
+  cancel,
   chooseHeighted,
   tapAir,
   tapBlock,
@@ -101,7 +101,7 @@ it("keeps the old clipboard and selection on an oversized new copy, and keeps it
       expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
       expect(e.session.flow).toBe(selected);
       expect(e.session.clipboard).toBe(e.old);
-      new CancelFlow(e.repo).execute({ playerId });
+      e.session.setFlow(cancel(e.session.flow));
       expect(e.session.flow.kind).toBe("idle");
       expect(e.session.clipboard).toBe(e.old);
       new ClearSelection(e.repo, e.feedback).execute({ playerId });

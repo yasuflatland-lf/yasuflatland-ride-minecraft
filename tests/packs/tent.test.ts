@@ -27,6 +27,7 @@ import {
 } from "../../src/infrastructure/camp/identifiers";
 import { paintEvent } from "../../src/infrastructure/shared/dyes";
 import { readLang } from "../support/lang";
+import { TENT_PACK_CONTRACT } from "../support/packContract";
 
 const LEAN_WIDTH = TENT_SPEC.leanWidth * 16;
 const LEAN_DEPTH = TENT_SPEC.leanDepth * 16;
@@ -673,7 +674,11 @@ describe("tent geometry and texture", () => {
     );
     expect(roof).toHaveLength(Math.ceil(48 + LEAN_DEPTH));
     expect(Math.min(...roof.map((c) => bounds(c)[1]))).toBeCloseTo(43.5, 2);
-    expect(Math.max(...roof.map((c) => bounds(c)[4]))).toBeCloseTo(48, 2);
+    const tarpTopPx = TENT_PACK_CONTRACT.tarpTop * 16;
+    expect(Math.max(...roof.map((c) => bounds(c)[4]))).toBeCloseTo(
+      tarpTopPx,
+      2,
+    );
     const rear = roof.at(-1) as Cube;
     expect(
       corners(rear).some(
@@ -707,9 +712,10 @@ describe("tent geometry and texture", () => {
     expect(Math.min(...screens.map((c) => bounds(c)[1]))).toBeCloseTo(0, 2);
     expect(Math.max(...screens.map((c) => bounds(c)[4]))).toBeCloseTo(48, 2);
     const poles = bones.find((b) => b.name === "poles")?.cubes ?? [];
+    const tarpHalfWidthPx = TENT_PACK_CONTRACT.tarpHalfWidth * 16;
     expect(poles.map((c) => c.origin)).toEqual([
-      [54.5, 0, -136],
-      [-56, 0, -136],
+      [tarpHalfWidthPx - 1.5, 0, -136],
+      [-tarpHalfWidthPx, 0, -136],
     ]);
     for (const pole of poles) expect(pole.size).toEqual([1.5, 44, 1.5]);
   });
@@ -880,7 +886,7 @@ describe("tent shelter blocks (ADR 0131)", () => {
     expect(ceiling.components["minecraft:collision_box"]).toEqual(plate);
     expect(ceiling.components["minecraft:selection_box"]).toEqual(plate);
     expect(ceiling.components["minecraft:light_emission"]).toBe(
-      TENT_SPEC.ceilingLight,
+      TENT_PACK_CONTRACT.ceilingLight,
     );
   });
 
@@ -925,11 +931,15 @@ describe("tent shelter blocks (ADR 0131)", () => {
     expect(lantern.permutations).toEqual([
       {
         condition: `q.block_state('${TENT_LIT_STATE}') == false`,
-        components: { "minecraft:light_emission": TENT_SPEC.ceilingLight },
+        components: {
+          "minecraft:light_emission": TENT_PACK_CONTRACT.ceilingLight,
+        },
       },
       {
         condition: `q.block_state('${TENT_LIT_STATE}') == true`,
-        components: { "minecraft:light_emission": TENT_SPEC.lanternLight },
+        components: {
+          "minecraft:light_emission": TENT_PACK_CONTRACT.lanternLight,
+        },
       },
     ]);
   });

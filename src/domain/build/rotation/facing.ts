@@ -23,14 +23,14 @@ export function effectiveTurn(
 export function facingFromDirection(
   direction: Vec3,
   current?: Facing,
-  hysteresisDegrees = BUILD_SPEC.pasteFacingHysteresisDegrees,
 ): Facing | undefined {
   if (length(direction) < BUILD_SPEC.facingMinHorizontal) return undefined;
   const angle = (Math.atan2(direction.x, -direction.z) * 180) / Math.PI;
   if (current !== undefined) {
     const difference =
       ((angle - FACINGS.indexOf(current) * QUARTER_TURN + 540) % 360) - 180;
-    if (Math.abs(difference) <= 45 + hysteresisDegrees) return current;
+    if (Math.abs(difference) <= 45 + BUILD_SPEC.pasteFacingHysteresisDegrees)
+      return current;
   }
   return FACINGS[quarterOf(angle)];
 }
