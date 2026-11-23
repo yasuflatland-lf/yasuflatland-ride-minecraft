@@ -193,22 +193,34 @@ describe("chooseSeat (ADR 0120)", () => {
 });
 
 describe("settleSeats (ADR 0120)", () => {
-  it("seats every rider once, keeps each staying rider's seat, and seats requests only in free seats", () => {
+  it("settles handover and engine slots exactly, and boards requests only in available seats", () => {
     fc.assert(
       fc.property(
         assignmentArb,
+        fc.uniqueArray(
+          fc.record({
+            id: fc.constantFrom(...IDS),
+            slot: fc.option(fc.integer({ min: 0, max: SEATS.length }), {
+              nil: undefined,
+            }),
+          }),
+          { selector: ({ id }) => id, maxLength: SEATS.length },
+        ),
         fc.subarray(IDS),
         fc.array(fc.tuple(fc.constantFrom(...IDS), coord, coord), {
           maxLength: 4,
         }),
         assignmentArb,
-        (previous, aboardIds, asks, held) => {
-          const aboard = aboardIds.map((id, slot) => ({ id, slot }));
+        (previous, aboard, pending, asks, held) => {
+          const aboardIds = aboard.map(({ id }) => id);
+          const priorBoarding = new Set(
+            pending.filter((id) => previous.includes(id)),
+          );
           const requests = new Map(
             asks.map(([id, x, z]) => [id, { eye: { x, y: 1.6, z } }]),
           );
           const { seats, boarding } = settleSeats(
-            { seats: previous, boarding: new Set() },
+            { seats: previous, boarding: priorBoarding },
             aboard,
             requests,
             TARGETS,
@@ -237,13 +249,43 @@ describe("settleSeats (ADR 0120)", () => {
               continue;
             expect(previous[seat]).toBe(id);
           }
-          const driverLeft =
-            previous[0] !== undefined && !aboardIds.includes(previous[0]);
-          for (const [seat, id] of previous.entries()) {
-            if (id === undefined || !aboardIds.includes(id)) continue;
-            const handedOver = driverLeft && seat === 1 && seats[0] === id;
-            expect(handedOver || seats[seat] === id).toBe(true);
+          const expected = previous.map((id) =>
+            id !== undefined && aboardIds.includes(id) ? id : undefined,
+          );
+          const [driver] = previous;
+          const front = expected[1];
+          if (
+            driver !== undefined &&
+            !aboardIds.includes(driver) &&
+            !priorBoarding.has(driver) &&
+            front !== undefined &&
+            (held[0] === undefined || held[0] === front)
+          ) {
+            expected[0] = front;
+            expected[1] = undefined;
           }
+          // Consider engine slots in priority order, with missing slots last.
+          for (const slot of [...SEATS.keys(), SEATS.length, undefined]) {
+            for (const rider of aboard) {
+              if (rider.slot !== slot || expected.includes(rider.id)) continue;
+              const available = expected.flatMap((id, seat) =>
+                id === undefined &&
+                (held[seat] === undefined || held[seat] === rider.id)
+                  ? [seat]
+                  : [],
+              );
+              const seat =
+                slot !== undefined && available.includes(slot)
+                  ? slot
+                  : available[0];
+              if (seat !== undefined) expected[seat] = rider.id;
+            }
+          }
+          expect(
+            seats.map((id) =>
+              id !== undefined && boarding.has(id) ? undefined : id,
+            ),
+          ).toEqual(expected);
           // A request never moves anyone aboard, and only players not aboard board.
           for (const id of boarding) {
             expect(aboardIds.includes(id)).toBe(false);
@@ -289,21 +331,6 @@ describe("settleSeats (ADR 0120)", () => {
       TARGETS,
     );
     expect(after.seats).toEqual([undefined, front, undefined, undefined]);
-  });
-
-  it("seats a rider the engine seated by their slot when it is free, else in the lowest free seat", () => {
-    const [a, b, c] = IDS as [PlayerId, PlayerId, PlayerId];
-    const after = settleSeats(
-      { seats: [undefined, undefined, a], boarding: new Set() },
-      [
-        { id: a, slot: 1 },
-        { id: b, slot: 2 },
-        { id: c, slot: 3 },
-      ],
-      new Map(),
-      TARGETS,
-    );
-    expect(after.seats).toEqual([b, undefined, a, c]);
   });
 
   it("leaves a seat held for a deck-seat rider to them when the engine seats someone else (ADR 0063)", () => {
