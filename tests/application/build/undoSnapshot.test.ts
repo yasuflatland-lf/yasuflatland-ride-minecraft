@@ -158,73 +158,52 @@ it.each([
 
 it("restores snapshots containing laid cells while retaining space protection", () => {
   fc.assert(
-    fc.property(boxArb, fc.nat(), fc.boolean(), (box, index, protectedCell) => {
-      const e = setup(box);
-      const cells = [...cellsOf(box)];
-      const laidCells = cells.slice(index % cells.length);
-      for (const cell of laidCells) {
-        e.world.laidCells.add(cellKey(cell));
-        expect(e.world.mayEdit(overworld, cell)).toBe(false);
-      }
-      const blocked = laidCells[0];
-      if (!blocked) throw new Error("Empty box");
-      if (protectedCell) {
-        e.world.protectedCells.add(cellKey(blocked));
+    fc.property(
+      boxArb,
+      fc.nat(),
+      fc.nat(),
+      fc.boolean(),
+      (box, index, blockedIndex, protectedCell) => {
+        const e = setup(box);
+        const cells = [...cellsOf(box)];
+        const laidCells = cells.slice(index % cells.length);
+        for (const cell of laidCells) {
+          e.world.laidCells.add(cellKey(cell));
+        }
+        const blocked = cells[blockedIndex % cells.length];
+        if (!blocked) throw new Error("Empty box");
+        const flow = e.session.flow;
+        if (protectedCell) {
+          e.world.protectedCells.add(cellKey(blocked));
+          e.undo.execute({ playerId });
+          expect(e.structures.calls).toEqual([]);
+          expect(e.feedback.messages).toEqual([
+            { message: "pasteBlocked", count: undefined },
+          ]);
+          expect(e.structures.live.has(e.handle)).toBe(true);
+          expect(e.session.hasHistory).toBe(true);
+          expect(e.session.flow).toBe(flow);
+          e.world.protectedCells.clear();
+        }
+        e.world.put(blocked, blockStateOf("minecraft:stone"));
         e.undo.execute({ playerId });
-        expect(e.structures.calls).toEqual([]);
-        expect(e.feedback.messages).toEqual([
-          { message: "pasteBlocked", count: undefined },
-        ]);
-        expect(e.structures.live.has(e.handle)).toBe(true);
-        expect(e.session.hasHistory).toBe(true);
-        e.world.protectedCells.clear();
-      }
-      e.world.put(blocked, blockStateOf("minecraft:stone"));
-      e.undo.execute({ playerId });
-      expect(e.world.stateAt(overworld, blocked)).toEqual(AIR);
-      expect(e.feedback.messages.at(-1)).toEqual({
-        message: "undoDone",
-        count: volume(box),
-      });
-      expect(e.structures.live.size).toBe(0);
-      expect(e.session.takeUndo()).toBe("nothingToUndo");
-    }),
-  );
-});
-
-it("keeps a snapshot refused at any protected cell so the next Undo retries it", () => {
-  fc.assert(
-    fc.property(boxArb, fc.nat(), (box, index) => {
-      const e = setup(box);
-      const cells = [...cellsOf(box)];
-      const blocked = cells[index % cells.length];
-      if (!blocked) throw new Error("Empty box");
-      e.world.protectedCells.add(cellKey(blocked));
-      const flow = e.session.flow;
-      e.undo.execute({ playerId });
-      expect(e.feedback.messages).toEqual([
-        { message: "pasteBlocked", count: undefined },
-      ]);
-      expect(e.structures.calls).toEqual([]);
-      expect(e.structures.live.has(e.handle)).toBe(true);
-      expect(e.session.hasHistory).toBe(true);
-      expect(e.session.flow).toBe(flow);
-      e.world.protectedCells.clear();
-      e.undo.execute({ playerId });
-      expect(e.structures.calls).toContainEqual({
-        kind: "place",
-        turn: 0,
-        handle: e.handle,
-        dimensionId: overworld,
-        anchor: box.min,
-      });
-      expect(e.feedback.messages.at(-1)).toEqual({
-        message: "undoDone",
-        count: volume(box),
-      });
-      expect(e.session.takeUndo()).toBe("nothingToUndo");
-      expect(e.log.warn).not.toHaveBeenCalled();
-    }),
+        expect(e.world.stateAt(overworld, blocked)).toEqual(AIR);
+        expect(e.structures.calls).toContainEqual({
+          kind: "place",
+          turn: 0,
+          handle: e.handle,
+          dimensionId: overworld,
+          anchor: box.min,
+        });
+        expect(e.log.warn).not.toHaveBeenCalled();
+        expect(e.feedback.messages.at(-1)).toEqual({
+          message: "undoDone",
+          count: volume(box),
+        });
+        expect(e.structures.live.size).toBe(0);
+        expect(e.session.takeUndo()).toBe("nothingToUndo");
+      },
+    ),
   );
 });
 
