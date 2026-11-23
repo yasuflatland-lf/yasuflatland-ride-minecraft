@@ -167,7 +167,7 @@ function fire(name: string, event: unknown) {
   callback(event);
 }
 function registerLifecycle(
-  guard = new RoofTentHostGuard(tents, host, leave, cleanup),
+  guard = new RoofTentHostGuard(tents, host, leave),
   hosts = new RoofTentHosts(host),
 ) {
   registerRoofTentLifecycle(occupants, guard, hosts, cleanup, (id) =>
@@ -489,7 +489,7 @@ it("keeps unknown hosts and ejects, returns and clears spawn before removing a m
   occupants.setOccupant(asRoofTentId("tent"), asPlayerId("cow"));
   occupants.addSpawnSetter(asRoofTentId("tent"), PLAYER);
   expect(tent.getProperty(ids.ROOF_TENT_OCCUPIED_PROPERTY)).toBe(true);
-  const guard = new RoofTentHostGuard(tents, host, leave, cleanup);
+  const guard = new RoofTentHostGuard(tents, host, leave);
   state = { status: "unknown" };
   guard.check();
   expect(tent.remove).not.toHaveBeenCalled();
@@ -512,7 +512,7 @@ it("keeps unknown hosts and ejects, returns and clears spawn before removing a m
   );
 });
 it("runs the host guard at the specified interval and preserves unload bookkeeping", () => {
-  const guard = new RoofTentHostGuard(tents, host, leave, cleanup);
+  const guard = new RoofTentHostGuard(tents, host, leave);
   const check = vi.spyOn(guard, "check");
   registerLifecycle(guard);
   expect(game.runInterval).toHaveBeenCalledWith(
@@ -573,7 +573,7 @@ it.each(["fold", "host removal", "external removal"] as const)(
 it("restricts test hooks to the server and seats stand-ins through the adapters", () => {
   const place = new PlaceRoofTent(tents, host);
   const execute = vi.spyOn(place, "execute").mockReturnValue(true);
-  const guard = new RoofTentHostGuard(tents, host, leave, cleanup);
+  const guard = new RoofTentHostGuard(tents, host, leave);
   registerTestRoofTent(
     place,
     new FoldRoofTent(tents),
@@ -602,7 +602,7 @@ it("restricts test hooks to the server and seats stand-ins through the adapters"
 
 it("converts a positively loaded host removal into guard evidence without treating unloads as removals", () => {
   const hosts = new RoofTentHosts(host);
-  const guard = new RoofTentHostGuard(tents, hosts.lookup, leave, cleanup);
+  const guard = new RoofTentHostGuard(tents, hosts.lookup, leave);
   registerLifecycle(guard, hosts);
   const vehicle = entity("host", "yasu_ride:suv");
   const tent = spawn();
@@ -724,7 +724,7 @@ it.each(["moving", "driverPresent"] as const)(
   (flag) => {
     const tent = spawn();
     state = { ...state, [flag]: true } as VehicleHostState;
-    new RoofTentHostGuard(tents, host, leave, cleanup).check();
+    new RoofTentHostGuard(tents, host, leave).check();
     expect(tent.remove).toHaveBeenCalledOnce();
   },
 );

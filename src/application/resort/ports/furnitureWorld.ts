@@ -7,11 +7,13 @@ import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
+import type { ItemPayment } from "../../shared/ports/itemPayment";
 
 import type { FurnitureTopBlocksWorld } from "./furnitureTopBlocks";
 
 export interface FurnitureWorld
-  extends Omit<GroundCellsWorld, "consumeItem">,
+  extends GroundCellsWorld,
+    Pick<ItemPayment, "isCreative">,
     Pick<FurnitureTopBlocksWorld, "layTop"> {
   isCampSpace(dimension: DimensionId, cell: Cell): boolean;
   isSolidTop(dimension: DimensionId, cell: Cell): boolean;

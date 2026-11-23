@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
+import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
@@ -79,7 +79,7 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   },
 );
 
-it("does not announce building when copying or cancelling", () => {
+it("does not announce building when copying or clearing the selection", () => {
   const e = setup();
   e.session.confirmBox(selectionOf(overworld, boxOf(from, flat), AIR));
   new CopySelection(
@@ -88,7 +88,7 @@ it("does not announce building when copying or cancelling", () => {
     e.feedback,
     { facingOf: () => "east" },
   ).execute({ playerId });
-  new CancelFlow(e.repo).execute({ playerId });
+  new ClearSelection(e.repo, e.feedback).execute({ playerId });
   expect(
     e.feedback.messages.some(({ message }) => message === "building"),
   ).toBe(false);

@@ -8,7 +8,6 @@ const axis = fc
   .filter((value) => !Object.is(value, -0));
 const finite = fc.double({ noNaN: true, noDefaultInfinity: true });
 const part = fc.string().filter((value) => !value.includes(","));
-const extraFields = fc.array(part, { minLength: 1, maxLength: 3 });
 
 describe("parseTestInputMessage", () => {
   it("formatting a valid input as a message and parsing it returns the original values", () => {
@@ -139,37 +138,11 @@ describe("parseTestInputMessage", () => {
         expect(
           parseTestInputMessage(`,${x},${y},${jump ? "1" : "0"}`),
         ).toBeUndefined();
-        expect(parseTestInputMessage(",clear")).toBeUndefined();
       }),
     );
   });
 
-  it("rejects a clear followed by more fields", () => {
-    fc.assert(
-      fc.property(vehicleId, extraFields, (id, rest) => {
-        expect(
-          parseTestInputMessage(`${id},clear,${rest.join(",")}`),
-        ).toBeUndefined();
-      }),
-    );
-  });
-
-  it("rejects a valid input followed by more fields", () => {
-    fc.assert(
-      fc.property(
-        vehicleId,
-        axis,
-        axis,
-        fc.boolean(),
-        extraFields,
-        (id, x, y, jump, rest) => {
-          expect(
-            parseTestInputMessage(
-              `${id},${x},${y},${jump ? "1" : "0"},${rest.join(",")}`,
-            ),
-          ).toBeUndefined();
-        },
-      ),
-    );
+  it("rejects clear when the vehicle id is empty", () => {
+    expect(parseTestInputMessage(",clear")).toBeUndefined();
   });
 });

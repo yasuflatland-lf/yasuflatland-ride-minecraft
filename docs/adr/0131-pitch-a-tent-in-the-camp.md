@@ -126,7 +126,7 @@ in its place stays.
 
 ### Shelter
 
-The ceiling's `light_emission` is 4 (`TENT_SPEC.ceilingLight`): three layers below it the
+The ceiling block JSON sets `light_emission` to 4. Three layers below it the
 block light is still 1, so no hostile mob spawns inside. The value is tuned in game.
 Camping gear such as the oil lamp cannot be placed in the tent: no tent block has a
 decor slot, and the gear placement path is unchanged.

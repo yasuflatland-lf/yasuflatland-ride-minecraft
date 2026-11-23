@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
+import { BackToAiming } from "../../../src/application/build/backToAiming";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
@@ -12,6 +12,7 @@ import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
+  cancel,
   chooseTerrain,
   tapAir,
   tapBlock,
@@ -246,21 +247,20 @@ it("applies the limit to the chosen style rather than the bounding volume", () =
   expect(e.session.flow.kind).toBe("selected");
 });
 
-it("CancelFlow cancels or returns to aiming without clearing the confirmed box, while Clear clears both", () => {
+it("Cancellation and returning to aiming preserve the confirmed box until Clear", () => {
   const e = setup();
   e.session.confirmBox(selectionOf(nether, boxOf(from, to), stone));
   e.endpoint();
   const box = e.session.confirmedBox;
-  const cancel = new CancelFlow(e.repo);
   e.session.setFlow(chooseTerrain(e.session.flow, "removeAbove"));
-  cancel.backToAiming({ playerId });
+  new BackToAiming(e.repo).backToAiming({ playerId });
   expect(e.session.flow).toEqual({
     kind: "point1",
     dimensionId: overworld,
     cell: from,
     material: stone,
   });
-  cancel.execute({ playerId });
+  e.session.setFlow(cancel(e.session.flow));
   expect(e.session.flow.kind).toBe("idle");
   expect(e.session.confirmedBox).toBe(box);
   e.endpoint();

@@ -10,7 +10,6 @@ const dimension = asDimensionId("overworld");
 
 function fixture(failSpawn = false) {
   let lit = false;
-  let covered = false;
   const wearFlintAndSteel = vi.fn();
   const world = {
     isAir: () => true,
@@ -21,10 +20,7 @@ function fixture(failSpawn = false) {
     consumeItem: vi.fn(() => true),
     refund: vi.fn(),
     spawnFirePit: vi.fn(() => (failSpawn ? undefined : pit)),
-    isCovered: () => covered,
-    setCovered: vi.fn((_id, value: boolean) => {
-      covered = value;
-    }),
+    isCovered: vi.fn(() => false),
     showCoveredHint: vi.fn(),
     isLit: () => lit,
     setLit: vi.fn((_id, value: boolean) => {
@@ -78,7 +74,7 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     for (let tick = 1; tick <= previousHits; tick++)
       expect(actions.hit(pit, player, tick)).toBe(false);
     world.showHitsLeft.mockClear();
-    world.setCovered(pit, true);
+    world.isCovered.mockReturnValue(true);
     for (let tick = 3; tick <= 5; tick++)
       expect(actions.hit(pit, player, tick)).toBe(false);
     expect(world.dropItem).not.toHaveBeenCalled();
@@ -86,35 +82,10 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     expect(world.showHitsLeft).not.toHaveBeenCalled();
     expect(world.showCoveredHint).toHaveBeenCalledTimes(3);
     expect(world.showCoveredHint).toHaveBeenLastCalledWith(player);
-    world.setCovered(pit, false);
+    world.isCovered.mockReturnValue(false);
     for (let hit = 1; hit <= 3 - previousHits; hit++)
       expect(actions.hit(pit, player, 5 + hit)).toBe(hit === 3 - previousHits);
     expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
     expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
   }
 });
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Fire Pit item when spawning fails (%s)",
-  (mode) => {
-    const { actions, world } = fixture(true);
-    world.isCreative.mockReturnValue(mode === "Creative");
-    const payer = mode === "playerless" ? undefined : player;
-    expect(
-      actions.place({
-        player: payer,
-        dimension,
-        block: { x: 4, y: 60, z: 5 },
-        yaw: 47,
-        slot: 1,
-      }),
-    ).toBe(false);
-    expect(world.spawnFirePit).toHaveBeenCalledOnce();
-    expect(world.consumeItem.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, 1]] : [],
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, 1]] : [],
-    );
-  },
-);

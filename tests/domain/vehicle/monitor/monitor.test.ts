@@ -22,7 +22,7 @@ const ruleArbitrary = fc
     }),
     { selector: (tool) => tool.item, minLength: 1, maxLength: 5 },
   )
-  .map((tools): MonitorRule => ({ group: "tools", tools }));
+  .map((tools): MonitorRule => ({ tools }));
 
 describe("cab monitor screens", () => {
   it("assigns every tool state a distinct screen in property order and range", () => {
@@ -99,7 +99,6 @@ describe("cab monitor screens", () => {
 
   it("maps a bulldozer-shaped blade switch to down then up", () => {
     const rule: MonitorRule = {
-      group: "tools",
       tools: [{ item: "blade_switch", states: ["down", "up"] }],
     };
     expect(monitorScreen(rule, "blade_switch", () => "down")).toBe(1);

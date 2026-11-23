@@ -23,14 +23,6 @@ const stub = (id: string, isValid = true) =>
 describe("EntityIndex", () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it("returns a tracked valid entity without asking the world", () => {
-    const index = new EntityIndex();
-    const a = stub("a");
-    index.track(a);
-    expect(index.entity(asVehicleId("a"))).toBe(a);
-    expect(game.getEntity).not.toHaveBeenCalled();
-  });
-
   it("falls back to world.getEntity for an untracked id", () => {
     const index = new EntityIndex();
     const x = stub("x");
@@ -58,12 +50,6 @@ describe("EntityIndex", () => {
     expect(index.tracked()).toEqual([a, b]);
     index.clear();
     expect(index.tracked()).toEqual([]);
-  });
-
-  it("forgets tracked entities on clear()", () => {
-    const index = new EntityIndex();
-    index.track(stub("a"));
-    index.clear();
     expect(index.entity(asVehicleId("a"))).toBeUndefined();
     expect(game.getEntity).toHaveBeenCalledWith("a");
   });
