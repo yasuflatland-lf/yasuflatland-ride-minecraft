@@ -8,6 +8,20 @@ import {
 } from "../../../src/application/shared/groundPlacement";
 import type { GroundCellsWorld } from "../../../src/application/shared/ports/groundCells";
 import type { ItemPayment } from "../../../src/application/shared/ports/itemPayment";
+import {
+  CHAIR_SPEC,
+  DUTCH_OVEN_SPEC,
+  FIRE_PIT_SPEC,
+  GAS_LANTERN_SPEC,
+  ROOF_TENT_SPEC,
+  TABLE_SPEC,
+  TENT_SPEC,
+} from "../../../src/domain/camp/spec";
+import { FURNITURE_SPEC } from "../../../src/domain/resort/furniture";
+import {
+  BEACH_CHAIR_SPEC,
+  PARASOL_SPEC,
+} from "../../../src/domain/resort/spec";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -22,6 +36,7 @@ const position = fc.record({
 });
 const specArbitrary = fc.record({
   clearance: fc.integer({ min: 1, max: 3 }),
+  refuses: fc.shuffledSubarray(["vehicle", "camp"] as const),
   yawStep: fc.constantFrom(30, 45, 90, 180),
 });
 const commandArbitrary = fc.record({
@@ -36,10 +51,12 @@ function fixture(creative = false, consumeResult = true, failSpawn = false) {
   const nonAir = new Set<string>();
   const own = new Set<string>();
   const vehicle = new Set<string>();
+  const camp = new Set<string>();
   const world = {
     isAir: vi.fn((_dimension, at) => !nonAir.has(cellKey(at))),
     isOwnBlock: vi.fn((_dimension, at) => own.has(cellKey(at))),
     isVehicleSpace: vi.fn((_dimension, at) => vehicle.has(cellKey(at))),
+    isCampSpace: vi.fn((_dimension, at) => camp.has(cellKey(at))),
     isCreative: vi.fn(() => creative),
     consumeItem: vi.fn(() => consumeResult),
     refund: vi.fn(),
@@ -48,8 +65,47 @@ function fixture(creative = false, consumeResult = true, failSpawn = false) {
     isNear: vi.fn(() => false),
     spawn: vi.fn(() => (failSpawn ? undefined : "item")),
   };
-  return { world, nonAir, own, vehicle, item };
+  return { world, nonAir, own, vehicle, camp, item };
 }
+
+it("checks each gear spec against the protected spaces in a clearance cell", () => {
+  const campGear = [
+    CHAIR_SPEC,
+    TABLE_SPEC,
+    FIRE_PIT_SPEC,
+    DUTCH_OVEN_SPEC,
+    GAS_LANTERN_SPEC,
+    TENT_SPEC,
+    ROOF_TENT_SPEC,
+  ];
+  const resortGear = [
+    BEACH_CHAIR_SPEC,
+    PARASOL_SPEC,
+    ...Object.values(FURNITURE_SPEC),
+  ];
+  fc.assert(
+    fc.property(position, fc.boolean(), fc.boolean(), (cell, vehicle, camp) => {
+      for (const [specs, allowed] of [
+        [campGear, !vehicle],
+        [resortGear, !vehicle && !camp],
+      ] as const) {
+        for (const spec of specs) {
+          const fake = fixture();
+          if (vehicle) fake.vehicle.add(cellKey(cell));
+          if (camp) fake.camp.add(cellKey(cell));
+          expect(
+            placeOnCells(
+              { dimension, cells: fake.world, payment: fake.world },
+              { support: [], clear: [cell], refuses: spec.refuses },
+              { player, slot: 0 },
+              fake.item.spawn,
+            ).placed,
+          ).toBe(allowed);
+        }
+      }
+    }),
+  );
+});
 
 it("checks support, each clearance cell, and the extra check in order up to the first refusal", () => {
   fc.assert(
@@ -59,7 +115,7 @@ it("checks support, each clearance cell, and the extra check in order up to the 
       fc.integer({ min: 0, max: 5 }),
       fc.shuffledSubarray(["vehicle", "camp"] as const),
       fc.option(fc.nat()),
-      (base, supportCount, clearCount, protect, refusal) => {
+      (base, supportCount, clearCount, refuses, refusal) => {
         const support = Array.from({ length: supportCount }, (_, x) => ({
           ...base,
           x: base.x + x,
@@ -70,7 +126,7 @@ it("checks support, each clearance cell, and the extra check in order up to the 
           y: base.y + 1,
         }));
         const protectedChecks = (["vehicle", "camp"] as const).filter((space) =>
-          protect.includes(space),
+          refuses.includes(space),
         );
         const stages = [
           ...support.map((cell) => `support ${cellKey(cell)}`),
@@ -101,7 +157,7 @@ it("checks support, each clearance cell, and the extra check in order up to the 
         };
         const result = placeOnCells(
           { dimension, cells, payment },
-          { support, clear, protect, extraCheck: () => passes("extra") },
+          { support, clear, refuses, extraCheck: () => passes("extra") },
           { player, slot: 0 },
           item.spawn,
         );
@@ -138,7 +194,7 @@ it("spawns only after payment, refunds failed spawns, and runs the hook only wit
         const placed = spawnAttempted && !failSpawn;
         const result = placeOnCells(
           { dimension, cells: payment, payment },
-          { support: [], clear: [], protect: [] },
+          { support: [], clear: [], refuses: [] },
           { player: hasPlayer ? player : undefined, slot },
           spawn,
           after,
@@ -190,34 +246,39 @@ it("accepts exactly the up face of a block that is not own", () => {
   );
 });
 
-it("requires every clearance cell to be air outside vehicle space, ignoring the cell above", () => {
+it("checks only the requested column against the gear's refused spaces", () => {
+  const obstructions = fc.array(
+    fc.record({
+      nonAir: fc.boolean(),
+      vehicle: fc.boolean(),
+      camp: fc.boolean(),
+    }),
+    { minLength: 4, maxLength: 4 },
+  );
   fc.assert(
-    fc.property(
-      position,
-      fc.integer({ min: 1, max: 3 }),
-      fc.array(fc.boolean(), { minLength: 3, maxLength: 3 }),
-      fc.array(fc.boolean(), { minLength: 3, maxLength: 3 }),
-      (base, clearance, nonAir, vehicle) => {
-        const fake = fixture();
-        for (let dy = 0; dy < 3; dy++) {
-          const key = cellKey({ ...base, y: base.y + dy });
-          if (nonAir[dy]) fake.nonAir.add(key);
-          if (vehicle[dy]) fake.vehicle.add(key);
-        }
-        const expected =
-          nonAir.slice(0, clearance).every((blocked) => !blocked) &&
-          vehicle.slice(0, clearance).every((blocked) => !blocked);
-        expect(hasClearance(fake.world, dimension, base, clearance)).toBe(
-          expected,
-        );
-        const above = cellKey({ ...base, y: base.y + clearance });
-        fake.nonAir.add(above);
-        fake.vehicle.add(above);
-        expect(hasClearance(fake.world, dimension, base, clearance)).toBe(
-          expected,
-        );
-      },
-    ),
+    fc.property(position, specArbitrary, obstructions, (base, spec, layers) => {
+      const fake = fixture();
+      for (const [dy, layer] of layers.entries()) {
+        const key = cellKey({ ...base, y: base.y + dy });
+        if (layer.nonAir) fake.nonAir.add(key);
+        if (layer.vehicle) fake.vehicle.add(key);
+        if (layer.camp) fake.camp.add(key);
+      }
+      const column = layers.slice(0, spec.clearance);
+      expect(
+        hasClearance(fake.world, dimension, base, spec.clearance, spec.refuses),
+      ).toBe(
+        column.every(
+          ({ nonAir, vehicle, camp }) =>
+            !nonAir &&
+            !(vehicle && spec.refuses.includes("vehicle")) &&
+            !(camp && spec.refuses.includes("camp")),
+        ),
+      );
+      expect(hasClearance(fake.world, dimension, base, spec.clearance)).toBe(
+        column.every(({ nonAir, vehicle }) => !nonAir && !vehicle),
+      );
+    }),
   );
 });
 
@@ -228,13 +289,19 @@ it("rejects blocked clearance or nearby items before payment and spawn", () => {
       specArbitrary,
       fc.boolean(),
       (cmd, spec, creative) => {
-        for (const reason of ["nonAir", "vehicle", "near"] as const) {
+        for (const reason of ["nonAir", "vehicle", "camp", "near"] as const) {
           for (let dy = 1; dy <= spec.clearance; dy++) {
             const fake = fixture(creative);
             if (reason === "near") fake.item.isNear.mockReturnValue(true);
             else
               fake[reason].add(cellKey({ ...cmd.block, y: cmd.block.y + dy }));
-            expect(placeOnGround(fake.world, spec, cmd, fake.item)).toBe(false);
+            const allowed =
+              (reason === "camp" || reason === "vehicle") &&
+              !spec.refuses.includes(reason);
+            expect(placeOnGround(fake.world, spec, cmd, fake.item)).toBe(
+              allowed,
+            );
+            if (allowed) continue;
             expect(fake.world.consumeItem).not.toHaveBeenCalled();
             expect(fake.item.spawn).not.toHaveBeenCalled();
             if (reason !== "near")
