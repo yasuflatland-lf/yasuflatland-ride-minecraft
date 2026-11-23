@@ -28,7 +28,7 @@ export class HitVehicle {
     if (cmd.fromDeck) return false;
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
-    if (!vehicle.receiveHit(this.clock.now())) return false;
+    if (!vehicle.receiveHit(cmd.playerId, this.clock.now())) return false;
     const decor = (vehicle.capability(CAMPER_ROOM)?.decor.decor() ?? []).map(
       (d) => d.item,
     );
