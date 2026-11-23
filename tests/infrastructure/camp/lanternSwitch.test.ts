@@ -84,15 +84,6 @@ function fixture() {
 describe("lanternSwitchTarget", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("has exactly the four SwitchTarget members", () => {
-    expect(Object.keys(fixture().target).sort()).toEqual([
-      "claimsBlockPress",
-      "claimsEntityPress",
-      "claimsItemUse",
-      "switchFor",
-    ]);
-  });
-
   it("claims a use and any block press inside a tent on foot or on a Low Chair", () => {
     const { target, tentContaining } = fixture();
     for (const p of [

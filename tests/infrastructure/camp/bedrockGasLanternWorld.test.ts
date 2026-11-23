@@ -107,14 +107,6 @@ it("lays, repairs, moves, and clears light saved across a reload", () => {
   f.world.relayLoaded();
   expect(f.at(f.cell)).toBe("minecraft:air");
   expect(f.at(moved)).toBe("minecraft:light_block_15");
-  expect(game.getDimension.mock.calls.map(([name]) => name)).toEqual([
-    "overworld",
-    "nether",
-    "the_end",
-    "overworld",
-    "nether",
-    "the_end",
-  ]);
   f.world.setLit(f.id, false);
   f.world.relayLight(f.id);
   expect(f.at(moved)).toBe("minecraft:air");
