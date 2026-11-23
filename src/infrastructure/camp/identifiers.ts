@@ -93,8 +93,6 @@ export const TEST_FIRE_PIT_EVENT = id("test_fire_pit");
 
 export const TENT_TYPE = id("tent");
 export const TENT_ITEM = id("tent_item");
-/** Listed in tent.se.json's minecraft:type_family. */
-export const TENT_FAMILY = "yasu_ride_tent";
 /** The synced 0..1 roll of each flap, read by tent.anim.json. */
 export const TENT_FLAP_PROPERTY = Object.freeze({
   front: id("flap_front"),
@@ -166,7 +164,6 @@ export const ROOF_TENT_ITEM = id("roof_tent_item");
 export const ROOF_TENT_STARTER_RECEIVED_PROPERTY = id(
   "roof_tent_starter_received",
 );
-export const ROOF_TENT_FAMILY = id("roof_tent");
 export const ROOF_TENT_LADDER_PROPERTY = id("ladder");
 export const ROOF_TENT_FLAP_OPEN_PROPERTY = id("flap_open");
 export const ROOF_TENT_OCCUPIED_PROPERTY = id("occupied");
