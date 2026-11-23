@@ -1,8 +1,7 @@
 import { ticks } from "../../../shared/ticks";
 import type { CutRect } from "../../cutArea";
 import { MOTION } from "../../motion/constants";
-import type { Medium } from "../../motion/motion";
-import type { TransformingSpec } from "../../motion/transforming";
+import { transformingSpecOf } from "../../motion/transforming";
 export interface BladeRule extends CutRect {
   readonly bodyHeight: number;
   readonly minSpeed: number;
@@ -116,36 +115,7 @@ export const BULLDOZER_WIDE_BLADE: BladeRule = Object.freeze({
   ...BULLDOZER_SPEC.blade,
   halfWidth: 2 * BULLDOZER_SPEC.blade.halfWidth,
 });
-const BULLDOZER_AIR: Medium = Object.freeze({
-  drag: BULLDOZER_SPEC.flightDrag,
-  maxSpeed: BULLDOZER_SPEC.maxSpeed,
-});
-const BULLDOZER_WATER: Medium = Object.freeze({
-  drag: BULLDOZER_SPEC.waterDrag,
-  maxSpeed: BULLDOZER_SPEC.maxWaterSpeed,
-});
-export const BULLDOZER_TRANSFORMING: TransformingSpec = Object.freeze({
-  carHeight: BULLDOZER_SPEC.carHeight,
-  doubleTapTicks: BULLDOZER_SPEC.doubleTapTicks,
-  takeoffTicks: BULLDOZER_SPEC.takeoffTicks,
-  takeoffClimb: BULLDOZER_SPEC.takeoffClimb,
-  landingSink: BULLDOZER_SPEC.landingSink,
-  maxClimb: BULLDOZER_SPEC.maxClimb,
-  flightVerticalDrag: BULLDOZER_SPEC.flightVerticalDrag,
-  waterVerticalDrag: BULLDOZER_SPEC.waterVerticalDrag,
-  floatDraft: BULLDOZER_SPEC.floatDraft,
-  floatGain: BULLDOZER_SPEC.floatGain,
-  surfaceRise: BULLDOZER_SPEC.surfaceRise,
-  submarineStepProbeDrop: BULLDOZER_SPEC.submarineStepProbeDrop,
-  maxBank: BULLDOZER_SPEC.maxBank,
-  bankRate: BULLDOZER_SPEC.bankRate,
+export const BULLDOZER_TRANSFORMING = transformingSpecOf(BULLDOZER_SPEC, {
   bankEasing: "constant",
-  bankSink: BULLDOZER_SPEC.bankSink,
-  gearDownHeight: BULLDOZER_SPEC.gearDownHeight,
-  gearProbeOffset: BULLDOZER_SPEC.gearProbeOffset,
-  hitboxFront: BULLDOZER_SPEC.hitboxFront,
-  stepLaneOffset: BULLDOZER_SPEC.stepLaneOffset,
-  air: BULLDOZER_AIR,
-  water: BULLDOZER_WATER,
   waterPolicy: "submerge",
 });
