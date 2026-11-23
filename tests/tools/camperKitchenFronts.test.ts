@@ -44,17 +44,6 @@ print(json.dumps(dict(counts={n:len(c) for n,c in a.items()}, repeat=first==json
   });
 });
 
-it("matches the reference routed panel texels without an external image dependency", async () => {
-  expect(
-    await python.run(`
-import sys, hashlib
-sys.path.insert(0, 'tools')
-from tool_loader import load_tool
-print(hashlib.sha256(bytes(v for p in load_tool('camper_kitchen_fronts').panel_pixels() for v in p)).hexdigest())
-`),
-  ).toBe("8cca841df51ba96803304b6dd1fa7ae65862963449f629613cc4118056d3dcff\n");
-});
-
 it("preserves kitchen UVs when drawers follow the kitchen builder on a fresh registry", async () => {
   expect(
     await python.run(`

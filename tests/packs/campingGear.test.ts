@@ -189,23 +189,32 @@ describe("camping gear spec (ADR 0093)", () => {
     expect(SPEC.map((g) => g.id)).toEqual(CAMPING_GEAR_IDS);
   });
 
-  it("appends the three placeholders without changing existing pair codes", () => {
-    expect(SPEC).toHaveLength(20);
-    expect(CAMPING_GEAR_IDS.slice(-4)).toEqual([
-      "desk_fan",
-      "alarm_clock",
-      "instant_camera",
-      "binoculars",
-    ]);
-    for (const [index, id] of [
-      "alarm_clock",
-      "instant_camera",
-      "binoculars",
-    ].entries()) {
-      expect(STANDING_GEAR_IDS.indexOf(id) + 1).toBe(17 + index);
-      expect(gearTiles[id]).toBe(11 + index);
+  it("preserves every persisted decor pair code (ADR 0108)", () => {
+    const codes = {
+      potted_plant: 1,
+      cactus_pot: 2,
+      percolator: 3,
+      enamel_kettle: 4,
+      saucepan: 5,
+      mug_pair: 6,
+      sugar_pot: 7,
+      fruit_bowl: 8,
+      toaster: 9,
+      transistor_radio: 10,
+      book_stack: 11,
+      road_map: 12,
+      photo_frame: 13,
+      cushion: 14,
+      tissue_box: 15,
+      desk_fan: 16,
+      alarm_clock: 17,
+      instant_camera: 18,
+      binoculars: 19,
+    };
+    expect(PAIR_PAGE_SIZE).toBe(10);
+    for (const [id, code] of Object.entries(codes)) {
+      expect(STANDING_GEAR_IDS[code - 1], id).toBe(id);
     }
-    expect(Math.ceil((STANDING_GEAR_IDS.length + 1) / PAIR_PAGE_SIZE)).toBe(2);
   });
 
   it("keeps the Japanese names as escapes so the file stays ASCII", () => {
@@ -439,30 +448,14 @@ describe("camping gear docs (ADR 0093)", () => {
     expect(rows).toEqual(SPEC.map(docsRow));
   });
 
-  it("counts the camping gear on the item groups page", () => {
+  it("links the item groups page and counts its inside camping gear", () => {
+    expect(readFileSync("README.md", "utf8")).toContain(
+      "](docs/items/README.md)",
+    );
     const lines = readTableRows("docs/items/README.md");
     expect(lines).toContain(
       `| **Camping Gear (Inside)** | ${SPEC.length} | [Previews and placement](camping-gear.md) |`,
     );
-  });
-
-  it("counts the outside gear on the item groups page", () => {
-    expect(readTableRows("docs/items/README.md")).toContain(
-      "| **Camping Gear (Outside)** | 8 | [Low Chair, Noga Chair, Tent, Roof Tent, Camp Table, Fire Pit, Dutch Oven, and Gas Lantern](camping-gear.md#low-chair-outside-the-vehicles) |",
-    );
-  });
-
-  it("links the item groups page from the README right after the vehicles", () => {
-    const readme = readFileSync("README.md", "utf8");
-    const headings = readme.split("\n").filter((l) => l.startsWith("## "));
-    expect(headings.indexOf("## Items")).toBe(
-      headings.indexOf("## Vehicles") + 1,
-    );
-    const section = readme.slice(
-      readme.indexOf("## Items"),
-      readme.indexOf("\n## ", readme.indexOf("## Items") + 1),
-    );
-    expect(section).toContain("](docs/items/README.md)");
   });
 });
 

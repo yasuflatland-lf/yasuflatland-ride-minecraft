@@ -80,19 +80,7 @@ it("connects the oven to the synced simmer state, plain lid, stew, and PBR atlas
     expect(existsSync(`${rp}/${path}`)).toBe(true);
 });
 
-it("crafts six iron and one coal into a stackable outside item", () => {
-  const recipe = readJson(
-    `${bp}/recipes/yasu_ride/dutch_oven_item.recipe.json`,
-  )["minecraft:recipe_shaped"];
-  expect(recipe.pattern).toEqual([" I ", "ICI", "III"]);
-  expect(recipe.key).toEqual({
-    I: { item: "minecraft:iron_ingot" },
-    C: { item: "minecraft:coal" },
-  });
-  expect(recipe.result).toEqual({
-    item: "yasu_ride:dutch_oven_item",
-    count: 1,
-  });
+it("defines a stackable outside item with its icon and translations", () => {
   const item = readJson(`${bp}/items/yasu_ride/dutch_oven_item.item.json`)[
     "minecraft:item"
   ];

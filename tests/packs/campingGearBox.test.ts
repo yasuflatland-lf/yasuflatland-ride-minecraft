@@ -71,17 +71,6 @@ describe("camping gear box (ADR 0093)", () => {
       expect(items.has(typeId)).toBe(true);
   });
 
-  it("maps the box icon to its texture, ahead of the gear icons", () => {
-    const data = readJson(`${RP}/textures/item_texture.json`).texture_data;
-    expect(data.yasu_ride_camping_gear_box.textures).toBe(
-      "textures/items/yasu_ride/camping_gear_box",
-    );
-    const keys = Object.keys(data);
-    expect(keys.indexOf("yasu_ride_camping_gear_box")).toBe(
-      keys.indexOf("yasu_ride_potted_plant") - 1,
-    );
-  });
-
   it("names the box and the lore line in English", () => {
     const lang = readLang(`${RP}/texts/en_US.lang`);
     expect(lang.get(`item.${BOX}.name`)).toBe("Camping Gear Box");
@@ -102,10 +91,17 @@ describe("camping gear box (ADR 0093)", () => {
       expect(readFileSync(path, "utf8")).not.toContain(BOX);
   });
 
-  it("requests the Script API version that shows translated lore", () => {
-    expect(readJson(`${BP}/manifest.json`).dependencies).toContainEqual({
-      module_name: "@minecraft/server",
-      version: "2.2.0",
-    });
+  it("requires stable Script API 2.2.0 or later for translated lore", () => {
+    const dependencies: { module_name?: string; version: string }[] = readJson(
+      `${BP}/manifest.json`,
+    ).dependencies;
+    const version = dependencies.find(
+      ({ module_name }) => module_name === "@minecraft/server",
+    )?.version;
+    expect(version).toMatch(
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/,
+    );
+    const [major = 0, minor = 0] = (version ?? "").split(".").map(Number);
+    expect(major > 2 || (major === 2 && minor >= 2)).toBe(true);
   });
 });

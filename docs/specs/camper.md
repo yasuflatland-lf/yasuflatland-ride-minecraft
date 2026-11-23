@@ -33,7 +33,7 @@
 - Agreement: Proposed
 - Basis: [0067](../adr/0067-camper.md) Decision; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision.
 - Implementation: `tools/camper_surfaces.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `tests/packs/fixtures/camper-areas.json`.
-- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, native texture bytes and table dimensions. The camper pack tests retain the standing-slot surface and clearance checks. Ownership ranges separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
+- Verification: `tests/tools/camperSurfaces.test.ts` checks UV bounds, direction, fragment registration, backsplash coverage, sampling-order independence and table dimensions. `tests/tools/approvedAssets.test.ts` checks the approved native texture bytes. The camper pack tests retain the standing-slot surface and clearance checks. Ownership ranges separate `floor`, `walls`, `tile`, and `table`; golden comparisons retain placement differences while later regions await porting. Not verified: client texture filtering and PC/mobile appearance.
 
 ### Kind, item, and fleet limit
 

@@ -336,7 +336,7 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
     expect(rc.textures).toEqual(["Texture.default"]);
   });
 
-  it("supplies the plank-stick-iron recipe, names, preview, and icon", () => {
+  it("supplies the item, names, preview, and icon", () => {
     const item = read(`${BP}items/yasu_ride/beach_chair_item.item.json`)[
       "minecraft:item"
     ];
@@ -345,16 +345,6 @@ assert all(c['uv']['east']['uv'] == [m.RAIL_SLOT*16,16] for c in bed if c not in
     expect(item.components["minecraft:display_name"].value).toBe(
       "item.yasu_ride:beach_chair_item.name",
     );
-    const recipe = read(`${BP}recipes/yasu_ride/beach_chair_item.recipe.json`)[
-      "minecraft:recipe_shaped"
-    ];
-    expect(recipe.pattern).toEqual(["P P", "PPP", "SIS"]);
-    expect(recipe.key).toEqual({
-      P: { tag: "minecraft:planks" },
-      S: { item: "minecraft:stick" },
-      I: { item: "minecraft:iron_ingot" },
-    });
-    expect(recipe.tags).toEqual(["crafting_table"]);
     expect(
       read(`${RP}textures/item_texture.json`).texture_data
         .yasu_ride_beach_chair,

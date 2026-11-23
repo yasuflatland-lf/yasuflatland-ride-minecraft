@@ -188,7 +188,7 @@
 - Agreement: Proposed
 - Basis: [0158](../adr/0158-a-slanted-pane-sports-boat-windshield.md) Decision, "The `windshield` bone holds seven of them."; [0158](../adr/0158-a-slanted-pane-sports-boat-windshield.md) Decision, "Keep the top rail over the front glass, the mirror (its post now reaches the side pane's straight top), the material, the texture and its alpha, and the bone names (0009) unchanged."
 - Implementation: `tools/gen_sportsboat.py` (`raked`, `sided`, `CORNER_PANE_DEPTH`, `PANE`, `ALPHA`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`, `packs/yasu_ride_rp/entity/yasu_ride/sportsboat.ce.json`, `packs/yasu_ride_rp/render_controllers/yasu_ride/sportsboat.rc.json`
-- Verification: `tests/packs/sportsboat.test.ts` "is seven flat panes, each 0.5 px thick and tilted to its slope, so no stepped blocks remain", "frames the front glass with only the walk-through and corner posts, no dividers or corner pillars". The thickness test uses the smaller x/z dimension, not local z depth for every pane. Not verified: glass sorting, overlapping corner transparency and rider visibility on devices.
+- Verification: `tests/packs/sportsboat.test.ts` "uses thin flat panes tilted to their slope throughout the windshield", "frames the front glass with only the walk-through and corner posts, no dividers or corner pillars". The thickness test uses the smaller x/z dimension, not local z depth for every pane. Not verified: glass sorting, overlapping corner transparency and rider visibility on devices.
 
 ### Rear-view mirror
 
@@ -206,7 +206,7 @@
 - Agreement: Proposed
 - Basis: [0161](../adr/0161-smooth-sports-boat-hull-planking.md) Decision, "Keep `beam()` and all its existing callers unchanged."; [0161](../adr/0161-smooth-sports-boat-hull-planking.md) Decision, "Use `beam_plan(z)` only for the new hull: a monotone cubic Hermite through `BEAM`, with weighted harmonic-mean interior tangents, zero tangents beside flat runs or extrema, and endpoint secants."
 - Implementation: `tools/gen_sportsboat.py` (`beam_plan`, `hull_shell`, `rail`, `rails`, `plank`, `joint_overlap`, `joint_setback`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "keeps the outer plan outline at the rub rail on the half-breadth table and never wider toward the bow", "intercepts vertical rays throughout the outer plan, including both stem gaps", "keeps side rays on the V bands above the accepted stepped keel", "uses the shipped SUV bumper's inward y-turned corners". Not verified: device rotation sign, underwater closure, face sorting and visible seams (manual H1-H4 are empty).
+- Verification: `tests/packs/sportsboat.test.ts` "keeps the outer plan outline at the rub rail on the half-breadth table and never wider toward the bow", "intercepts vertical rays throughout the outer plan, including both stem gaps", "keeps side rays on the V bands above the accepted stepped keel", "uses the shipped SUV bumper wings' y-turn sign: +y turns +x toward -z". Not verified: device rotation sign, underwater closure, face sorting and visible seams (manual H1-H4 are empty).
 
 ### Bow lounge inner outline
 
@@ -242,7 +242,7 @@
 - Agreement: Proposed
 - Basis: [0165](../adr/0165-cylindrical-sports-boat-tower-speakers.md) Decision, "The speaker block no longer calls `disc()`."; [0165](../adr/0165-cylindrical-sports-boat-tower-speakers.md) Decision, "Make the back and hub solid."
 - Implementation: `tools/gen_sportsboat.py` (`speaker`, `cylinder`, `SPEAKER_SECTIONS`, `SPEAKER_SPOKES`, `SPEAKER_MOUNT`), `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "keeps both speakers within budget with 12 spokes and a mount each", "contains only section panels, spokes and mounts within the existing bounds", "splits the round sections by swatch". Not verified: roundness, LED visibility or whether the four pod steps interrupt the taper on PC/mobile; the boat-specific manual B27 row is empty (the table also contains unrelated rows with reused B numbers).
+- Verification: `tests/packs/sportsboat.test.ts` "keeps spokes and a mount on each speaker within the 186-cube budget", "contains only section panels, spokes and mounts within the existing bounds", "keeps the gloss, grille, LED and gunmetal swatches on both speakers". Not verified: roundness, LED visibility or whether the four pod steps interrupt the taper on PC/mobile; the boat-specific manual B27 row is empty (the table also contains unrelated rows with reused B numbers).
 
 ### Helm assemblies
 
@@ -251,7 +251,7 @@
 - Agreement: Proposed
 - Basis: [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md) Final state of the helm (#701), "The sports boat registers two compound-rotation assemblies, `wheel` and `throttle_lever` (0167)."; [0166](../adr/0166-tilted-two-axis-sports-boat-helm-assemblies.md) Final state of the helm (#701), "A right triangle of ten `gloss` strips, `SWITCH_TILT = -SCREEN_TILT = +45`, so its painted face leans toward the driver like the display."
 - Implementation: `tools/gen_sportsboat.py` (`ASSEMBLIES`, `WHEEL_TILT`, `RIM_SEGMENTS`, `SCREEN_PIVOT`, `SWITCH_STRIPS`, `DIAL_BOUNDS`, `LEVER_PIVOT`, `TILES`), `tools/cube_tilt.py`, `tools/tile_layout.py`, `packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json`
-- Verification: `tests/packs/sportsboat.test.ts` "composes every wheel cube rigidly and limits the rotation exception to exactly those cubes", "keeps every rim segment in a plane tilted 30 degrees away from the driver", "halves both console depths while retaining the driver faces, steps and walk-through", "registers exactly the compact grey lever with a chrome pivot and gently raised stepped grip", "uses ten adjoining x-only gloss strips forming a right triangle: wide base at the driver, point at the bow, outboard edge on the wall". 0166 records owner verification of the wheel/hub, dial and display on 2026-10-27. Not verified: boat B31 clear coat, B32 triangle, B35 throttle and B36 console depth on devices; their manual result cells are empty.
+- Verification: `tests/packs/sportsboat.test.ts` "composes every wheel cube rigidly and limits compound rotations to the registered assemblies", "keeps every rim segment in a plane tilted 30 degrees away from the driver", "halves both console depths while retaining the driver faces, steps and walk-through", "mounts a tilted grey lever with a chrome pivot and a raised stepped grip", "forms the switch triangle from adjoining gloss strips within the 12-strip budget". 0166 records owner verification of the wheel/hub, dial and display on 2026-10-27. Not verified: boat B31 clear coat, B32 triangle, B35 throttle and B36 console depth on devices; their manual result cells are empty.
 
 ### Headlight lenses
 

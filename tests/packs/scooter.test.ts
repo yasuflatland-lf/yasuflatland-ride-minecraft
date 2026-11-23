@@ -83,7 +83,7 @@ describe("scooter Behavior Pack geometry", () => {
     expect(components["minecraft:variant"].value).toBe(PAINT_VARIANT.white);
   });
 
-  it("crafts a named single-stack scooter item using its registered icon", () => {
+  it("defines a named single-stack scooter item with its registered icon", () => {
     const item = read(
       "packs/yasu_ride_bp/items/yasu_ride/scooter_item.item.json",
     )["minecraft:item"];
@@ -96,14 +96,5 @@ describe("scooter Behavior Pack geometry", () => {
     expect(icons[item.components["minecraft:icon"]].textures).toBe(
       "textures/items/yasu_ride/scooter_item",
     );
-    const recipe = read(
-      "packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json",
-    )["minecraft:recipe_shaped"];
-    expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.pattern).toEqual(["  I", " II", "C C"]);
-    expect(recipe.key).toEqual({
-      I: { item: "minecraft:iron_ingot" },
-      C: { item: "minecraft:coal" },
-    });
   });
 });

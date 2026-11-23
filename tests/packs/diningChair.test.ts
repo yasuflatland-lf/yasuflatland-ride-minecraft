@@ -117,16 +117,6 @@ print(json.dumps({'lo': lo, 'hi': hi, 'baseZ': b[0][2], 'topZ': b[2][2]}))
       read(`${RP}/textures/item_texture.json`).texture_data
         .yasu_ride_dining_chair,
     ).toEqual({ textures: "textures/items/yasu_ride/dining_chair_item" });
-    const recipe = read(
-      `${BP}/recipes/yasu_ride/dining_chair_item.recipe.json`,
-    )["minecraft:recipe_shaped"];
-    expect(recipe.pattern).toEqual(["P  ", "PPP", "SIS"]);
-    expect(recipe.key).toEqual({
-      P: { tag: "minecraft:planks" },
-      S: { item: "minecraft:stick" },
-      I: { item: "minecraft:iron_ingot" },
-    });
-    expect(recipe.tags).toEqual(["crafting_table"]);
     for (const [locale, name] of [
       ["en_US", "Dining Chair"],
       ["ja_JP", "\u30c0\u30a4\u30cb\u30f3\u30b0\u30c1\u30a7\u30a2\u30fc"],

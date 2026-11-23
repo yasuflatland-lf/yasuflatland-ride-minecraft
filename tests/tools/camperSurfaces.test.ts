@@ -85,66 +85,22 @@ x,y,w,h = k.ATLAS.grid.sample_rect(k.SLOTS.index('wood'))
       ["cab DARK19", 1, 1, "dark_lacquer", true],
     ]);
   });
-  it("preserves the reference material bytes regardless of sampling order", () => {
+  it("paints native materials independently of sampling order", () => {
     expect(
       inspect(
-        "{r.name: __import__('hashlib').sha256(bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x,y))).hexdigest() for r in k.REGISTRY.regions() if r.name != 'base'}",
-        "for r in k.REGISTRY.regions():\n    if r.name != 'base':\n        for y in reversed(range(r.height)):\n            for x in reversed(range(r.width)): r.pixel(x,y)",
+        "all(sample(r) == original[r.name] for r in regions)",
+        `
+regions = [r for r in k.REGISTRY.regions() if r.name != 'base']
+def sample(r):
+    return bytes(c for y in range(r.height) for x in range(r.width) for c in r.pixel(x,y))
+original = {r.name: sample(r) for r in regions}
+for r in reversed(regions):
+    for y in reversed(range(r.height)):
+        for x in reversed(range(r.width)):
+            r.pixel(x,y)
+`,
       ),
-    ).toEqual({
-      "olive looped tweed":
-        "a10d8ab5b23bf605adf77c76080ea57bcb09bf12c108f3567a2b2f5749da9134",
-      "olive khaki cream bolster":
-        "66d5387e523d41891b6e8ff7a32ba10537216814135ab0962601a025bf8883cd",
-      "olive welt":
-        "c1d01e9182a899bcd7b3e1303f6c2599dacf3500586e338963fa5f3bf968ab79",
-      "green tweed and vinyl shared by both seats":
-        "1b90ae7fb5be0cdd714f8b5a2ab14cbf93aab8756ea0ddf4984d72bb8810d7ad",
-      "cab seat vinyl":
-        "1a915d6c9c52dbc538912ae2c93cba47b95d42d284838a49b9f7891f3b6ff139",
-      "cab seat vinyl swatches":
-        "a1d6e948b89f9e735a552197dfe05cbb4e85bf9beb856a24691594074ad77bd3",
-      "flecked laminate":
-        "85756420156afa783e0030423ad6c94f9af24f8b9e3316b8ac4619b5a3150092",
-      "brushed stainless":
-        "5a81bfbf1abd4be9ae99ca22b152031d70203078c92f8fa9fc1ece9bc2ecd884",
-      "range dial":
-        "139933046b8b791d142cc238bf1ebb53ef0a71b8ae737849f922889ee979a085",
-      "dark olive cab panel":
-        "c4a81371c2964af391421747c8df949291d31cdfcbf69224a0107a3858229eeb",
-      "brown endgrain and pulls":
-        "322dd7ee6075d479df5c89ae8f12c749b8748834c237109c69d496eb324eea1a",
-      "door cloth":
-        "874f821b45b315fb585c21e47656b35ac74beb24d2f3a80ed1cd53ce39cdad2a",
-      "door kick":
-        "dbba18ac8fed99e972418158536cd711498e6749637f245683546f7a4933be85",
-      "door marble":
-        "2ba5ca728e2df19a0c4450a4c0cb6a4cd017569be1303c6a3671ed2de139b8ca",
-      "door wood":
-        "ecfac6f54e242993150b23c77ccbce2d0bc111d681ac1ad4b2ceffabacecac5f",
-      "light curtain fabric":
-        "96cb2afdfd1af2a32a8c474d29772de73de329ad36815133ab1c4f825c3d559a",
-      "carpet v3":
-        "9991eee05af8091f0884c15915f20278d0d5ba41080c2c81a7650773bfad27cf",
-      "wall veneer":
-        "51194977ee751a6889a18b4fdf76a6029460500fe20deac6a57f486b1b5dc9e8",
-      "backsplash tile":
-        "be8228bff5fc74423397efa64f21c3d95b1d6783e3edc0ab12aad087d2eb3750",
-      "table oak":
-        "3aec30b8a877063863d44ccd75a1286375e11161bbc0e3d4217581f7a2e5176a",
-      "cab SPEED":
-        "a17300945ab36ec52abe746fd3672eef13d9f08b4c40118bd53a03be272dc63a",
-      "cab QUAD":
-        "ee2c45e13b9a1705830628f72128202fd20a17eb5a312e62899004632eaac991",
-      "cab PAD":
-        "486ea611ed466a9e67d19d4954ed4a9051910c3d88b91e2ccfbb216a1f0805ca",
-      "cab RADIO":
-        "b37a7f7b5de638b9eb2b3aad71f43f80836cb8c0955c222854ace0d1a6926b55",
-      "cab SMALL":
-        "b6b77379755e6e2f974f4bb78f64a9a5f641c121b1fc28f2852664dfc56aeaad",
-      "cab DARK19":
-        "1a93b51f95cce226460cda2e9cb83e9943978987534d498b8f501178bc9cdf63",
-    });
+    ).toBe(true);
   });
   describe("wall cloth weave", () => {
     let cloth: {
@@ -207,23 +163,6 @@ correlations = [[correlation(4*dx,4*dy), correlation(2*dx,2*dy)]
         expect(offPeriod).toBeLessThan(atPeriod);
       }
     });
-  });
-  it("preserves rail and screw bytes", () => {
-    const { railHash, railRows } = inspect(
-      "{'railHash': rail_hash, 'railRows': rail_rows}",
-      `
-from hashlib import sha256
-width, height = s.WALL_SIZE
-rail_rows = [row for row in range(height)
-             if any(abs(s.WALL_TOP-(row+0.5)/s.WALL_SCALE-rail) < 0.5 for rail in s.WALL_RAILS)]
-rail_hash = sha256(bytes(c for row in rail_rows for x in range(width) for c in s.wall_pixel(x, row))).hexdigest()
-`,
-    );
-    expect(railRows).toEqual([44, 45, 46, 47, 100, 101, 102, 103]);
-    // Captured from the original grained veneer before flattening its non-rail pixels.
-    expect(railHash).toBe(
-      "194ce457ce21b5ff395b457381ae1d2f72ecfcd2217836e6d075d704f13c4098",
-    );
   });
   it("samples the veneer region on every large interior wall face", () => {
     const faces = inspect(

@@ -29,7 +29,7 @@
 - Agreement: Accepted
 - Basis: [0008](../adr/0008-vehicle-item-and-breaking.md) Decision, "The vehicle item is crafted. Using it on the ground consumes one item and places one vehicle"; [0023](../adr/0023-starter-vehicle-on-first-join.md) Decision, "Crafting (0008) stays, so more vehicles can still be crafted"
 - Implementation: `packs/yasu_ride_bp/recipes/yasu_ride/suv_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/suv_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/sportsboat_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/bulldozer_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/scooter_item.item.json`; `src/infrastructure/vehicle/bedrock/identifiers.ts` (`ITEM_TYPE`).
-- Verification: `tests/packs/references.test.ts` checks that vehicle item identifiers exist. `tests/packs/recipes.test.ts` checks its recipe result and unlock. Not verified: the SUV recipe's shape and crafting-table tag by these assertions, or crafting on a device. Test references throughout this spec describe existing coverage; no tests were run for this document.
+- Verification: `tests/packs/references.test.ts` "defines the identifiers the script uses" checks that the vehicle item identifiers exist. `tests/packs/recipes.test.ts` checks crafting-table binding, unlock, result, and shaped recipe validity and uniqueness. Device crafting remains unverified. Test references throughout this spec describe existing coverage.
 
 ### Placement from the before-event
 
@@ -56,7 +56,7 @@
 - Agreement: Accepted
 - Basis: [0024](../adr/0024-item-use-on-mobile-and-longer-headlights.md) Decision, "with the same filters (first event, vehicle item, top face)"; [0008](../adr/0008-vehicle-item-and-breaking.md) Decision, "Using it on the ground consumes one item and places one vehicle"
 - Implementation: `src/domain/vehicle/placement/placement.ts` (`placementCell`, `canPlaceAt`); `src/application/vehicle/placeVehicle.ts` (`cellFor`, `execute`); `src/domain/vehicle/kinds/suv/profile.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`; `src/domain/vehicle/kinds/sportsboat/profile.ts`.
-- Verification: `tests/application/vehicle/placeVehicle.test.ts` "places a land-only kind on the clicked block from the top face only, whatever the water"; `tests/domain/vehicle/placement/placement.test.ts` "tries surfaces in their declared order and has no implicit top fallback".
+- Verification: `tests/application/vehicle/placeVehicle.test.ts` "picks the same cell as the kind's placement rule with the world's liquids, querying only the given dimension"; `tests/domain/vehicle/placement/placement.test.ts` "tries surfaces in their declared order and has no implicit top fallback".
 
 ### Clearance box
 
@@ -74,7 +74,7 @@
 - Agreement: Accepted
 - Basis: [0023](../adr/0023-starter-vehicle-on-first-join.md) Decision, "When a player joins the world for the first time, put one vehicle item in their inventory. If it is full, drop the item at their feet"; [0023](../adr/0023-starter-vehicle-on-first-join.md) Decision, "Players who joined before this change get the item on their next join, and players in creative mode get it as well"; [0023](../adr/0023-starter-vehicle-on-first-join.md) Consequences, "A player who loses the item (for example by dying with it in a lava pit) does not get another one; they craft it or ask an operator for `/give`"
 - Implementation: `src/infrastructure/vehicle/bedrock/handlers/starter.ts` (`registerStarter`); `src/application/vehicle/giveStarterVehicle.ts` (`GiveStarterVehicle`); `src/domain/vehicle/placement/starter.ts` (`STARTER_KINDS`); `src/infrastructure/vehicle/bedrock/identifiers.ts` (`STARTER_RECEIVED_PROPERTY`); `src/infrastructure/vehicle/bedrock/bedrockInventory.ts`; `src/infrastructure/shared/players.ts` (`giveOrDrop`).
-- Verification: `tests/application/vehicle/giveStarterVehicle.test.ts` "gives each player one item of each starter kind, however many times they join", "gives exactly the starter kinds the player has not received yet", "marks each kind only after giving its item", and "gives a player who already got their SUV only the bulldozer"; `tests/domain/vehicle/placement/starter.test.ts`. Not verified in game: player joining and the inventory/drop path; 0023 Consequences records that the in-game tests have no players.
+- Verification: `tests/application/vehicle/giveStarterVehicle.test.ts` "gives each player one item of each starter kind, however many times they join", "gives exactly the starter kinds the player has not received yet", and "marks each kind only after giving its item"; `tests/domain/vehicle/placement/starter.test.ts`. Not verified in game: player joining and the inventory/drop path; 0023 Consequences records that the in-game tests have no players.
 
 ### Repeated hits pick up an empty vehicle
 

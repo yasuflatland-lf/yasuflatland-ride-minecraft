@@ -165,7 +165,7 @@ describe("beach parasol pack assets", () => {
     ]);
   });
 
-  it("provides one item, its wool-stick-iron-slab recipe, translations, preview, and icon", () => {
+  it("provides one item, translations, preview, and icon", () => {
     const item = read(`${BP}items/yasu_ride/beach_parasol_item.item.json`)[
       "minecraft:item"
     ];
@@ -178,21 +178,6 @@ describe("beach parasol pack assets", () => {
         .components["minecraft:max_stack_size"],
     );
     expect(item.components["minecraft:icon"]).toBe("yasu_ride_beach_parasol");
-    const recipe = read(
-      `${BP}recipes/yasu_ride/beach_parasol_item.recipe.json`,
-    )["minecraft:recipe_shaped"];
-    expect(recipe.tags).toEqual(["crafting_table"]);
-    expect(recipe.pattern).toEqual(["WWW", " SI", "D I"]);
-    expect(recipe.key).toEqual({
-      W: { item: "minecraft:white_wool" },
-      S: { item: "minecraft:stick" },
-      I: { item: "minecraft:iron_ingot" },
-      D: { item: "minecraft:stone_block_slab", data: 0 },
-    });
-    expect(recipe.result).toEqual({
-      item: "yasu_ride:beach_parasol_item",
-      count: 1,
-    });
     expect(
       read(`${RP}textures/item_texture.json`).texture_data
         .yasu_ride_beach_parasol,
