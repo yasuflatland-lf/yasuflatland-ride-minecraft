@@ -128,13 +128,6 @@ export function isAfloat(depth: number, below: () => boolean): boolean {
   return depth > 0 || below();
 }
 
-/** What a sports boat drive carries from one tick to the next. */
-interface SportsboatDriveState {
-  readonly motion: MotionState;
-  /** The water drag estimate (ADR 0053): undefined until the boat first floats, kept while beached. */
-  readonly waterDrag?: number;
-}
-
 export class SportsboatDrive implements Drive {
   private icebreakerOn: boolean;
   private readonly icebreakerSync: SyncedValue<boolean>;
@@ -151,12 +144,10 @@ export class SportsboatDrive implements Drive {
   private readonly trimSync = new SyncedValue<number>();
   private readonly rollSync = new SyncedValue<number>();
 
-  /** `limits` and `creepSpeed` other than the boat's own are for tests that vary one value. */
   constructor(
     yaw: number,
     restored: RestoredOf<typeof SPORTSBOAT_ENTITY>,
     private readonly limits: MotionLimits = SPORTSBOAT_MOTION,
-    private readonly creepSpeed: number = SPORTSBOAT_SPEC.creepSpeed,
   ) {
     this.motion = initialMotion(yaw);
     this.icebreakerOn = restored.icebreaker === true;
@@ -166,7 +157,7 @@ export class SportsboatDrive implements Drive {
     // stepMotion never reads these; the grip stands in for the handbrake grip.
     this.beachedTyres = Object.freeze({
       handbrakeGrip: limits.grip,
-      creepSpeed,
+      creepSpeed: SPORTSBOAT_SPEC.creepSpeed,
     });
   }
 
@@ -194,24 +185,6 @@ export class SportsboatDrive implements Drive {
       trim: this.trim,
       roll: this.roll,
     };
-  }
-
-  /**
-   * The state this drive carries to the next tick. Tests save it and hand it
-   * to restore() to start another drive mid-run.
-   */
-  get state(): SportsboatDriveState {
-    return { motion: this.motion, waterDrag: this.dragEstimate };
-  }
-
-  /**
-   * Starts the drive from a state saved with `state`. Only tests call it; a
-   * rebuilt vehicle starts from its RestoredValues instead.
-   */
-  restore(state: SportsboatDriveState): this {
-    this.motion = state.motion;
-    this.dragEstimate = state.waterDrag;
-    return this;
   }
 
   onDriverMounted(driverYaw: number): void {
@@ -330,7 +303,7 @@ export class SportsboatDrive implements Drive {
           wallDrag: currentWaterDrag(this.dragEstimate),
         },
         this.limits,
-        this.creepSpeed,
+        SPORTSBOAT_SPEC.creepSpeed,
       );
       this.dragEstimate = waterDrag;
     } else {

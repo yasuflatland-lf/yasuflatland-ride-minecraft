@@ -29,6 +29,7 @@ import {
   KITCHEN_DRAWERS,
   type LocalCell,
   STORAGE_DOORS,
+  type StorageDoorId,
   WALL_CABINET,
 } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import { parkCheckCells } from "../../../../../src/domain/vehicle/kinds/camper/groundCheck";
@@ -48,6 +49,7 @@ import {
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { decorItemId } from "../../../../support/decorIds";
+import { defined } from "../../../../support/defined";
 import { hingedOpening } from "../../../../support/storageOpening";
 
 const SWING = CAMPER_SPEC.doorSwingTicks;
@@ -55,7 +57,7 @@ const SWING = CAMPER_SPEC.doorSwingTicks;
 const looks: CompartmentLook[] = [];
 const plateLooks: PlateLook[] = [];
 // The real fridge, recording the looks the shared code asks it to lay.
-const FRIDGE_SPY: DooredStorage = {
+const FRIDGE_SPY: DooredStorage<StorageDoorId> = {
   ...FRIDGE,
   compartmentBlock: (look) => {
     looks.push(look);
@@ -66,8 +68,8 @@ const FRIDGE_SPY: DooredStorage = {
     return FRIDGE.plateBlock(look);
   },
 };
-const TWO_UNITS = storageDoors<string>([WALL_CABINET, FRIDGE_SPY]);
-const CABINET_ONLY = storageDoors<string>([WALL_CABINET]);
+const TWO_UNITS = storageDoors<StorageDoorId>([WALL_CABINET, FRIDGE_SPY]);
+const CABINET_ONLY = storageDoors<StorageDoorId>([WALL_CABINET]);
 const FURNITURE_BLOCK_CELLS = CAMPER_FURNITURE.flatMap((f) =>
   f.block ? f.cells : [],
 );
@@ -86,7 +88,7 @@ const pose = fc
     yaw: fc.constantFrom(0, 90, 180, -90),
   })
   .map((p) => ({ ...p, x: p.x + 0.5, z: p.z + 0.5 }));
-const openOf = (ids: readonly string[]) =>
+const openOf = <Id extends string>(ids: readonly Id[]) =>
   fc.subarray([...ids]).map((xs) => new Set(xs));
 const ALL_IDS = TWO_UNITS.map(({ id }) => id);
 const sameLocal = (a: LocalCell, b: LocalCell) =>
@@ -521,7 +523,9 @@ describe("cells", () => {
         for (const [i, c] of laid.entries()) {
           if (c.block.type !== "cabinet" && c.block.type !== "fridge")
             throw new Error("Expected a hinged storage compartment");
-          expect(c.block.open).toBe(shown.has(TWO_UNITS[i]?.id ?? ""));
+          expect(c.block.open).toBe(
+            shown.has(defined(TWO_UNITS[i], "storage door").id),
+          );
         }
         expect(looks).toEqual(
           FRIDGE.doors.map((d) => ({
@@ -535,7 +539,7 @@ describe("cells", () => {
   });
 
   it("lays the compartment of a door without slots with its floor at the cell bottom", () => {
-    const slotless = storageDoors<string>([
+    const slotless = storageDoors<StorageDoorId>([
       {
         ...FRIDGE_SPY,
         doors: FRIDGE.doors.map((d) => ({ ...d, slots: [] })),

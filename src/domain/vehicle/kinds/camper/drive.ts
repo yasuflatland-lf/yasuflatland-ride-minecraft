@@ -141,7 +141,7 @@ export class CamperDrive extends TransformingDrive {
           const pose = this.parking.pose;
           return (
             pose !== undefined &&
-            this.fixtures.pressShowerToilet(pose, feet, tick, this)
+            this.fixtures.pressShowerToilet(pose, feet, tick)
           );
         },
       },
@@ -165,14 +165,6 @@ export class CamperDrive extends TransformingDrive {
     // A parked body keeps its snapped yaw, so its room, seats, and headlights stay put.
     if (this.parking.pose || this.parking.recovering) return;
     super.alignToDriver(driverYaw);
-  }
-
-  useShowerDoor(tick: number): boolean {
-    return this.parking.pose !== undefined && this.fixtures.useShowerDoor(tick);
-  }
-
-  runShower(): boolean {
-    return this.parking.pose !== undefined && this.fixtures.runShower();
   }
 
   override resync(): void {

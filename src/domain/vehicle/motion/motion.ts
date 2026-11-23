@@ -75,7 +75,6 @@ export interface MotionResult {
   impulse: Vec2;
   /** Upward velocity to give for a step jump this tick, 0 when not jumping (ADR 0004, 0035). */
   jumpVelocity: number;
-  blocked: boolean; // Whether a wall collision was detected this tick
 }
 
 export function updateSpeed(
@@ -307,7 +306,6 @@ export function stepMotion(
     },
     forward: f,
     jumpVelocity,
-    blocked,
     impulse: { x: (given.x - v.x) * control, z: (given.z - v.z) * control },
   };
 }
@@ -369,7 +367,6 @@ export function stepMediumMotion(
     },
     forward: f,
     jumpVelocity: 0,
-    blocked,
     impulse: { x: given.x - v.x, z: given.z - v.z },
   };
 }

@@ -72,7 +72,6 @@ function repeat(input: GroundInput, ticks: number): GroundInput[] {
 interface Frame {
   state: MotionState;
   body: Body;
-  blocked: boolean;
   jumpVelocity: number;
   onGround: boolean;
   touching: boolean;
@@ -110,7 +109,6 @@ function simulate(
     frames.push({
       state,
       body,
-      blocked: r.blocked,
       jumpVelocity: r.jumpVelocity,
       onGround: t.onGround,
       touching: e.touching,
@@ -126,7 +124,6 @@ function lateral(v: Vec2, yaw: number): number {
 }
 
 interface WallFrame {
-  blocked: boolean;
   speed: number;
   friction: number | undefined;
   along: number;
@@ -159,7 +156,6 @@ function driveAtWall(
     const x = t >= free ? 0 : vel.x + r.impulse.x;
     vel = { x: x * k, z: (vel.z + r.impulse.z) * k };
     frames.push({
-      blocked: r.blocked,
       speed: r.state.speed,
       friction: r.state.friction,
       along: vel.z,
@@ -666,7 +662,14 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
             SUV_MOTION,
             SUV_TYRES.creepSpeed,
           );
-          expect(r.blocked).toBe(true);
+          const axes = groundWallAxes(
+            velocity,
+            expected,
+            (fr ?? MOTION.defaultFriction) * MOTION.blockedRatio,
+          );
+          expect(r.state.speed).toBe(
+            speedAfterWall(free, velocity, r.forward, axes),
+          );
           expect(Math.sign(r.state.speed) * Math.sign(free)).not.toBe(-1);
           expect(Math.abs(r.state.speed)).toBeLessThanOrEqual(Math.abs(free));
         },
@@ -689,15 +692,27 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
       SUV_MOTION,
       SUV_TYRES,
     );
-    expect(r.blocked).toBe(true);
     expect(r.state.speed).toBe(0);
   });
 
-  it("does not detect collisions without walls, including on landing", () => {
+  it("keeps the speed dictated by input without walls, including on landing", () => {
     fc.assert(
       fc.property(inputs, mu, terrain, (ins, m, ter) => {
-        for (const fr of simulate(ins, { mu: m }, 0, ter))
-          expect(fr.blocked).toBe(false);
+        const frames = simulate(ins, { mu: m }, 0, ter);
+        let speed = 0;
+        for (const [i, input] of ins.entries()) {
+          speed = updateSpeed(
+            speed,
+            input.throttle,
+            input.creep,
+            SUV_MOTION,
+            SUV_TYRES.creepSpeed,
+          );
+          const frame = defined(frames[i], "motion frame");
+          if (frame.jumpVelocity > 0)
+            speed = Math.max(speed, MOTION.stepMinSpeed);
+          expect(frame.state.speed).toBe(speed);
+        }
       }),
     );
   });
@@ -728,7 +743,6 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
         const frames = simulate(ins, { mu: m }, 0, ter);
         const [before, landing] = frames.slice(-2);
         expect(landing?.state.friction).toBe(before?.state.friction);
-        expect(landing?.blocked).toBe(false);
       }),
     );
   });
@@ -753,7 +767,6 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
       SUV_MOTION,
       SUV_TYRES,
     );
-    expect(r.blocked).toBe(false);
     expect(r.state.friction).toBeCloseTo(
       (1 - MOTION.frictionEma) * 0.7 + MOTION.frictionEma * 0.6,
       12,
@@ -836,7 +849,6 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
           SUV_TYRES,
         );
         expect(r.jumpVelocity).toBe(0);
-        expect(r.blocked).toBe(false);
         expect(r.state.friction).toBe(p.friction);
         const f = r.forward;
         const vLong = dot(v, f);
@@ -950,16 +962,10 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
           expect(first.along).toBeGreaterThan(0);
           for (let i = 61; i < 120; i++) {
             const fr = frameAt(frames, i);
-            expect(fr.blocked).toBe(true);
             expect(Math.abs(fr.along - first.along)).toBeLessThanOrEqual(1e-6);
             expect(fr.friction).toBe(first.friction);
             expect(fr.speed).toBeGreaterThan(0);
           }
-          let flips = 0;
-          for (let i = 1; i < frames.length; i++)
-            if (frameAt(frames, i).blocked !== frameAt(frames, i - 1).blocked)
-              flips++;
-          expect(flips).toBe(1);
         },
       ),
     );
@@ -1002,7 +1008,6 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
             SUV_MOTION,
             SUV_TYRES,
           );
-          expect(r.blocked).toBe(true);
           const after = {
             x: (v.x + r.impulse.x) * 0.69,
             z: (v.z + r.impulse.z) * 0.69,
@@ -1156,7 +1161,6 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
           expect(
             length(defined(frames[199], "tick 200").body.vel),
           ).toBeGreaterThanOrEqual(0.9 * SUV_SPEC.maxSpeed - 1e-9);
-          expect(frames.every((f) => !f.blocked)).toBe(true);
         },
       ),
     );
@@ -1177,9 +1181,6 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
           const first = frames.findIndex((f) => f.touching);
           expect(first).toBeGreaterThan(0);
           expect(first).toBeLessThan(198);
-          expect(defined(frames[first + 1], "tick after contact").blocked).toBe(
-            true,
-          );
           const frozen = defined(frames[first], "contact tick").state.friction;
           for (let i = first + 1; i < frames.length; i++)
             expect(defined(frames[i], `tick ${i}`).state.friction).toBe(frozen);
@@ -1327,7 +1328,6 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
       );
       state = r.state;
       body = engineStep(body, r.impulse, { mu: i < 200 ? k1 : k2 }, true).body;
-      expect(r.blocked).toBe(false);
       expect(length(body.vel)).toBeLessThanOrEqual(
         SUV_SPEC.maxSpeed / MOTION.frictionMin + 1e-9,
       );
@@ -1614,7 +1614,6 @@ describe("per-kind control mapping, transforming kinds (ADR 0089)", () => {
               expect(result.state.yaw).toBe(oracle.state.yaw);
               expect(result.impulse.x).toBe(oracle.impulse.x);
               expect(result.impulse.z).toBe(oracle.impulse.z);
-              expect(result.blocked).toBe(oracle.blocked);
               next = result.state;
               old = oracle.state;
             }

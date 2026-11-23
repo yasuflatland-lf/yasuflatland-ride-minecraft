@@ -8,10 +8,10 @@ import { cellTaken, DECOR_SLOTS } from "./decor";
 import { decorSlotCell, decorSpotOffset } from "./decorCells";
 import { usableBehindDoor } from "./dooredStorage";
 import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";
+import { NO_DOORS } from "./roomGeometry";
 import { storagePressTarget } from "./storagePlates";
 
 const PX_PER_BLOCK = 16;
-const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
 
 /**
  * The slots that accept `item`, in slot order; none for an unknown item. A standing

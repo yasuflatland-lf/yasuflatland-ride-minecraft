@@ -126,8 +126,8 @@ interface PaveInput {
 export function paveStep(
   input: PaveInput,
   classAt: (cell: Vec3) => CellClass,
-  rule: PaverRule = BULLDOZER_SPEC.paver,
 ): Pave | undefined {
+  const rule = BULLDOZER_SPEC.paver;
   const { location, speed, halfWidth, block } = input;
   if (block === undefined || !isRoadBlock(block)) return undefined;
   if (Math.abs(speed) <= rule.minSpeed) return undefined;

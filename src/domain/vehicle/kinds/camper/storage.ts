@@ -42,10 +42,7 @@ export class CamperStorage {
   constructor(restored: RestoredOf<typeof CAMPER_ENTITY>, docked: boolean) {
     this.storage = new StorageDoors(
       STORAGE_DOORS,
-      (id) => {
-        const name = storageDoorProperty(id);
-        return name === undefined ? undefined : restored[name];
-      },
+      (id) => restored[storageDoorProperty(id)],
       docked,
     );
   }

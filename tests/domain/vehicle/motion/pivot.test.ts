@@ -84,5 +84,6 @@ it("keeps the wall rule of the step it wraps", () => {
     LIMITS,
     tyres,
   );
-  expect(out.blocked).toBe(true);
+  expect(out.state.speed).toBe(0);
+  expect(Math.hypot(out.impulse.x, out.impulse.z)).toBe(0);
 });

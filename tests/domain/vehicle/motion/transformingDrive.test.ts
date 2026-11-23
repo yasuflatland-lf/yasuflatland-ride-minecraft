@@ -690,7 +690,6 @@ const fixedResult: fc.Arbitrary<MotionResult> = fc.record({
   forward: fc.record({ x: unit, z: unit }),
   impulse: fc.record({ x: unit, z: unit }),
   jumpVelocity: fc.double({ min: 0, max: 1, noNaN: true }),
-  blocked: fc.boolean(),
 });
 
 it("moves by the horizontal step's result", () => {

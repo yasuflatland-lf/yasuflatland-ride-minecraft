@@ -15,8 +15,3 @@ export function restoredDoorStep(open: unknown, docked: boolean): number {
 export function stepOpening(step: number, open: boolean): number {
   return step + Math.sign((open ? DOOR_STEPS : 0) - step);
 }
-
-/** The opening progress that drives an entry or shower door's swing. */
-export function swing(step: number, open: boolean): number {
-  return stepOpening(step, open);
-}

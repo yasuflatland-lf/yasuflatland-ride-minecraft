@@ -127,6 +127,5 @@ export function guardEnds(
     state: { ...step.state, speed: 0, stepTicks: 0 },
     impulse: { x: -ctx.velocity.x, z: -ctx.velocity.z },
     jumpVelocity: 0,
-    blocked: true,
   };
 }

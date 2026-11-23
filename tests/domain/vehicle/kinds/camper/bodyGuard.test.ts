@@ -60,7 +60,6 @@ function motion(yaw: number, speed: number): MotionResult {
     forward: forward(yaw),
     impulse: IMPULSE,
     jumpVelocity: 0,
-    blocked: false,
   };
 }
 
@@ -137,7 +136,7 @@ function driveInto(
       ends,
       "car",
     );
-    if (result.blocked) return { lanePoints, stopped: true };
+    if (result.state.speed === 0) return { lanePoints, stopped: true };
     at.x += dir.x * step;
     at.z += dir.z * step;
     lanePoints.push(points());
@@ -244,7 +243,6 @@ describe("camper body end guard", () => {
             form,
           );
           expect(result.state.speed).toBe(0);
-          expect(result.blocked).toBe(true);
           expect(result.impulse).toEqual({ x: -v.x, z: -v.z });
           expect(result.jumpVelocity).toBe(0);
           expect(result.state).toEqual({
@@ -285,7 +283,6 @@ describe("camper body end guard", () => {
             expect(result).toBe(step);
             expect(sensor.queries).toHaveLength(budget("car", travel(v)));
           } else {
-            expect(result.blocked).toBe(true);
             expect(result.state.speed).toBe(0);
           }
         },
@@ -619,8 +616,7 @@ describe("camper body end guard", () => {
             CAMPER_MOTION,
             CAMPER_TYRES,
           );
-          expect(moved.blocked).toBe(true);
-          expect(moved.state.speed).toBeGreaterThan(0);
+          expect(moved.state.speed).toBeCloseTo(speed, 12);
           const result = guardEnds(
             moved,
             { velocity: { x: v.x, y: 0, z: v.z }, solidAt: () => true },
@@ -628,7 +624,6 @@ describe("camper body end guard", () => {
             "car",
           );
           expect(result.state.speed).toBe(0);
-          expect(result.blocked).toBe(true);
           expect(result.impulse).toEqual({ x: -v.x, z: -v.z });
         },
       ),

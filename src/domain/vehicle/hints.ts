@@ -195,7 +195,6 @@ export function stepHint(
   state: HintState,
   candidate: Hint | undefined,
   tick: number,
-  timing: HintTiming = HINT_TIMING,
 ): { state: HintState; action?: HintAction } {
   if (!candidate)
     return state.shown === undefined
@@ -207,8 +206,8 @@ export function stepHint(
       action: { show: candidate },
     };
   if (
-    tick - state.since < timing.showFor &&
-    tick - state.lastSent >= timing.refresh
+    tick - state.since < HINT_TIMING.showFor &&
+    tick - state.lastSent >= HINT_TIMING.refresh
   )
     return { state: { ...state, lastSent: tick }, action: { show: candidate } };
   return { state };
