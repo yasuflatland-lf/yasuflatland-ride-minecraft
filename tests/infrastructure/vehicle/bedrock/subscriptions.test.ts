@@ -57,13 +57,13 @@ import {
   decorBlockId,
   pairDecorBlockId,
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
-import { installCamper } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
+import { registerCamperHandlers } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { FakeClock, FakeWorld } from "../../../application/vehicle/fakes";
 import { defined } from "../../../support/defined";
 
 type UseCases = Parameters<typeof registerCoreSubscriptions>[0] &
-  Parameters<typeof installCamper>[0];
+  Parameters<typeof registerCamperHandlers>[0];
 
 function register({
   useCases = {} as UseCases,
@@ -75,8 +75,8 @@ function register({
 }: {
   useCases?: UseCases;
   testInputs?: VehicleTestStore<RawInput>;
-  doorOwner?: Parameters<typeof installCamper>[1];
-  cellOwner?: Parameters<typeof installCamper>[2];
+  doorOwner?: Parameters<typeof registerCamperHandlers>[1];
+  cellOwner?: Parameters<typeof registerCamperHandlers>[2];
   blockOwner?: Parameters<typeof registerDockGuard>[0];
   laterSwitchTargets?: () => readonly SwitchTarget[];
 } = {}): void {
@@ -85,7 +85,7 @@ function register({
     testInputs,
     cellOwner,
     () =>
-      installCamper(useCases, doorOwner, cellOwner, () =>
+      registerCamperHandlers(useCases, doorOwner, cellOwner, () =>
         registerDockGuard(blockOwner),
       ),
     laterSwitchTargets,

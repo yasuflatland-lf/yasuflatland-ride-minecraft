@@ -8,7 +8,7 @@ import type {
 import { DECOR_MESSAGES } from "../../../domain/vehicle/dock/decorMessages";
 import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
 import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
-import type { DecorPlacingWorld } from "../ports/decor";
+import type { DecorPlacingWorld } from "./ports";
 
 export interface PlaceDecorCommand {
   /** Require this exact resolved slot for itemUse drawer placement. */

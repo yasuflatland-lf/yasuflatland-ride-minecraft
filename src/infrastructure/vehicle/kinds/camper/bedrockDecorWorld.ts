@@ -1,16 +1,16 @@
 // Implements DecorPlacingWorld with @minecraft/server: saving decor and placing it by hand (ADR 0012, 0024, 0093).
 import type { Entity } from "@minecraft/server";
-import type { DecorPlacingWorld } from "../../../application/vehicle/ports/decor";
-import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
+import type { DecorPlacingWorld } from "../../../../application/vehicle/room/ports";
+import type { PlayerId, VehicleId } from "../../../../domain/shared/ids";
 import {
   type DecorItemId,
   type DecorPlacement,
   serializeDecor,
-} from "../../../domain/vehicle/dock/decor";
-import { messageKey } from "../../shared/identifiers";
-import type { BedrockInventory } from "./bedrockInventory";
-import { isCreativePlayer } from "./bedrockPlacementWorld";
-import type { EntityIndex } from "./entityIndex";
+} from "../../../../domain/vehicle/dock/decor";
+import { messageKey } from "../../../shared/identifiers";
+import type { BedrockInventory } from "../../bedrock/bedrockInventory";
+import { isCreativePlayer } from "../../bedrock/bedrockPlacementWorld";
+import type { EntityIndex } from "../../bedrock/entityIndex";
 import { campingGearItem, DECOR_PROPERTY } from "./identifiers";
 
 /** The decor JSON saved on a vehicle, read when its aggregate is rebuilt. */

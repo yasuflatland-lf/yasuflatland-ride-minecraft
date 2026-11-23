@@ -1,10 +1,8 @@
 import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import {
-  DECK_CELLS_PROPERTY,
-  DECOR_PROPERTY,
-} from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { DECK_CELLS_PROPERTY } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { DECOR_PROPERTY } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { readCamperRestored } from "../../../../../src/infrastructure/vehicle/kinds/camper/restored";
 import { dockCodec } from "../../../../support/dockBlocks";
 
