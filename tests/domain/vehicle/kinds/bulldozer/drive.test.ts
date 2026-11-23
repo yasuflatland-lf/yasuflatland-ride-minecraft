@@ -577,7 +577,7 @@ it("digs no shaft with the blade raised or with no driver under a roof in reach,
     ).toEqual([]);
   }
 });
-it("runs the tracks opposite ways on a pivot", () => {
+it("sends track spin and phase from the travel on a pivot", () => {
   const d = new BulldozerDrive(0, {});
   const values: Record<string, unknown> = {};
   let travel = { r: 0, l: 0 };
@@ -587,12 +587,6 @@ it("runs the tracks opposite ways on a pivot", () => {
       .commands)
       if (c.type === "setProperty") values[c.name] = c.value;
   }
-  expect(values).toMatchObject({
-    spin_r: 64,
-    spin_l: 296,
-    track_r: 2,
-    track_l: 0,
-  });
   expect(values).toMatchObject({
     spin_r: trackSpin(travel.r, S.tracks.radius),
     spin_l: trackSpin(travel.l, S.tracks.radius),

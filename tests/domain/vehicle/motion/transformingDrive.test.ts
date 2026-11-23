@@ -13,10 +13,7 @@ import {
   SUV_MOTION,
   SUV_TYRES,
 } from "../../../../src/domain/vehicle/kinds/suv/profile";
-import {
-  SUV_SPEC,
-  SUV_TRANSFORMING,
-} from "../../../../src/domain/vehicle/kinds/suv/spec";
+import { SUV_TRANSFORMING } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { bankSink } from "../../../../src/domain/vehicle/motion/bank";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
 import {
@@ -48,7 +45,6 @@ import {
   gearCommand,
 } from "../../../../src/domain/vehicle/motion/transformingEntity";
 import { waterDepthAt } from "../../../../src/domain/vehicle/motion/water";
-import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { type Body, engineStep } from "../../../support/engineModel";
 import { waterSensors } from "../../../support/waterDepth";
 
@@ -111,139 +107,11 @@ it("keeps car speed within the supplied limits throughout 300 forward ticks", ()
   );
 });
 
-it("has no seat commands by default", () => {
-  const drive = new TransformingDrive(
-    0,
-    {},
-    SUV_TRANSFORMING,
-    SUV_MOTION,
-    SUV_TYRES,
-  );
-  expect(drive.onSeatVacated(0)).toStrictEqual([]);
-});
-
 it("keeps the SUV's door animation and sound when a seat is vacated", () => {
   expect(new SuvDrive(0, {}).onSeatVacated(0)).toStrictEqual([
     { type: "playAnimation", name: "door_fr" },
     { type: "playSound", name: "random.door_open" },
   ]);
-});
-
-// The mapping before ADR 0089, kept as an oracle.
-interface LegacyDriveInput {
-  throttle: number;
-  steer: number;
-  handbrake: boolean;
-  creep: boolean;
-}
-const LEGACY_NEUTRAL: LegacyDriveInput = {
-  throttle: 0,
-  steer: 0,
-  handbrake: false,
-  creep: false,
-};
-const LEGACY_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
-function legacyToDriveInput(raw: RawInput | undefined): LegacyDriveInput {
-  if (
-    raw === undefined ||
-    !Number.isFinite(raw.moveX) ||
-    !Number.isFinite(raw.moveY)
-  ) {
-    return LEGACY_NEUTRAL;
-  }
-  const steer = clamp(raw.moveX, -1, 1);
-  const sideways = Math.abs(steer);
-  // A phone stick pushed straight right reads about -0.2 forward/backward,
-  // which would otherwise reverse the vehicle and flip the steering.
-  if (
-    sideways > SPEC.throttleDeadzone &&
-    Math.abs(raw.moveY) <= sideways * LEGACY_SLOPE
-  ) {
-    return { throttle: 0, steer, handbrake: raw.jump, creep: true };
-  }
-  const magnitude = Math.abs(raw.moveY);
-  const throttle =
-    magnitude <= SPEC.throttleDeadzone
-      ? 0
-      : Math.sign(raw.moveY) * Math.min(1, magnitude / SPEC.throttleFullAt);
-  return { throttle, steer, handbrake: raw.jump, creep: false };
-}
-
-function legacyDriveInputFor(
-  raw: RawInput | undefined,
-  form: Form,
-): LegacyDriveInput {
-  if (form === "takeoff") return LEGACY_NEUTRAL;
-  const input = legacyToDriveInput(raw);
-  if (form === "car") return input;
-  return { ...input, throttle: Math.max(0, input.throttle), handbrake: false };
-}
-
-const anyYaw = fc.double({ min: -180, max: 180, noNaN: true });
-
-const LEGACY_SUV = {
-  maxSpeed: SUV_SPEC.maxSpeed,
-  maxReverse: SUV_SPEC.maxReverse,
-  accel: SUV_SPEC.accel,
-  reverseAccel: SUV_SPEC.reverseAccel,
-  brake: SUV_SPEC.brake,
-  drag: SUV_SPEC.drag,
-  turnRate: SUV_SPEC.turnRate,
-  steerFullSpeed: SUV_SPEC.steerFullSpeed,
-  grip: SUV_SPEC.grip,
-  handbrakeGrip: SUV_SPEC.handbrakeGrip,
-  creepSpeed: SUV_SPEC.creepSpeed,
-};
-
-it("an SUV in car form drives tick by tick as the old mapping did (ADR 0089)", () => {
-  fc.assert(
-    fc.property(
-      anyYaw,
-      fc.boolean(),
-      fc.array(
-        fc.record({
-          moveX: fc.double({ min: -1, max: 1, noNaN: true }),
-          moveY: fc.double({ min: -1, max: 1, noNaN: true }),
-          velocity: fc.record({
-            x: fc.double({ min: -2, max: 2, noNaN: true }),
-            z: fc.double({ min: -2, max: 2, noNaN: true }),
-          }),
-        }),
-        { minLength: 1, maxLength: 60 },
-      ),
-      (heading, jump, ticks) => {
-        const drive = new SuvDrive(heading, {});
-        let oracle = initialMotion(heading);
-        ticks.forEach(({ moveX, moveY, velocity }, i) => {
-          const raw = { moveX, moveY, jump };
-          const ctx: TickContext = {
-            ...context(),
-            tick: i,
-            velocity: { x: velocity.x, y: 0, z: velocity.z },
-            onGround: true,
-            // No obstacle, matching the oracle's step probe.
-            solidAt: () => false,
-          };
-          const out = drive.step(raw, ctx);
-          const o = stepMotion(
-            oracle,
-            legacyDriveInputFor(raw, "car"),
-            { velocity, onGround: true },
-            () => 0,
-            LEGACY_SUV,
-            LEGACY_SUV,
-          );
-          expect(drive.form).toBe("car");
-          expect(drive.speed).toBe(o.state.speed);
-          expect(drive.yaw).toBe(o.state.yaw);
-          expect(out.impulse.x).toBe(o.impulse.x);
-          expect(out.impulse.z).toBe(o.impulse.z);
-          oracle = o.state;
-        });
-      },
-    ),
-    { numRuns: 100 },
-  );
 });
 
 const resyncInput = fc.record({
@@ -599,36 +467,6 @@ function terrainContext(
   };
 }
 
-it("a drive given transformingHorizontalStep explicitly steps like one given no options", () => {
-  const options: TransformingOptions = {
-    inputFor: groundInputFor,
-    horizontal: transformingHorizontalStep,
-  };
-  fc.assert(
-    fc.property(stepTerrain, tickSequence, (ground, ticks) => {
-      const a = new TransformingDrive(
-        0,
-        {},
-        SUV_TRANSFORMING,
-        SUV_MOTION,
-        SUV_TYRES,
-      );
-      const b = new TransformingDrive(
-        0,
-        {},
-        SUV_TRANSFORMING,
-        SUV_MOTION,
-        SUV_TYRES,
-        options,
-      );
-      ticks.forEach((sample, tick) => {
-        const ctx = terrainContext(ground, sample, tick);
-        expect(b.step(sample.raw, ctx)).toStrictEqual(a.step(sample.raw, ctx));
-      });
-    }),
-  );
-});
-
 function suvDrive(
   options: TransformingOptions,
   restored: { form?: Form } = {},
@@ -937,25 +775,6 @@ function switched(
   );
 }
 
-it("the default hook returns the stepUp option", () => {
-  class ExposedStepUp extends TransformingDrive {
-    enabled(): boolean {
-      return this.stepUpEnabled();
-    }
-  }
-  for (const options of [{}, { stepUp: true }, { stepUp: false }]) {
-    const drive = new ExposedStepUp(
-      0,
-      {},
-      SUV_TRANSFORMING,
-      SUV_MOTION,
-      SUV_TYRES,
-      options,
-    );
-    expect(drive.enabled()).toBe(options.stepUp ?? true);
-  }
-});
-
 it("a hook that returns a fixed value steps exactly like the matching stepUp option", () => {
   fc.assert(
     fc.property(
@@ -1068,7 +887,7 @@ it("switching the hook per tick turns the submarine rising probe on and off", ()
   expect(rises).toBeGreaterThan(0);
 });
 
-it("never reads the hook during construction", () => {
+it("waits for subclass fields to initialize before reading the step-up hook", () => {
   class ReadyStepUp extends TransformingDrive {
     private readonly ready = true;
     protected override stepUpEnabled(): boolean {

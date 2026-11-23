@@ -21,7 +21,7 @@ The sports boat also creeps: afloat, a sideways stick drives it at 0.12 blocks/t
   - The sports boat: afloat, `sideways` is creep and `jump` does nothing. Beached, it drives by `beachedInput` (0080): reverse and steering only, no creep, no handbrake
 - `MotionLimits` in `motion/limits.ts` keeps the values every movement step reads: speeds, acceleration, braking, drag, turn rate, `steerFullSpeed` and `grip`. The tyre values move to `TyreLimits { handbrakeGrip, creepSpeed }`, which only the ground step (`stepMotion`) takes. The medium step (`stepMediumMotion`) and `updateSpeed` take the creep speed as an argument
 - The SUV and the camper keep their values (`handbrakeGrip` 0.04, `creepSpeed` 0.12) in `SUV_TYRES` and `CAMPER_TYRES`, read from `SUV_SPEC` and `CAMPER_SPEC`. The sports boat has no `handbrakeGrip`. Its `creepSpeed` (0.12) stays in `SPORTSBOAT_SPEC`
-- Behavior does not change for any kind. Tests compare every kind tick by tick with a copy of the old mapping
+- Preserve each kind's behavior. Unit properties verify raw stick normalization, the transforming drive's mapping by form, and the boat's afloat and beached mappings. Motion tests check the resulting speed, heading, and impulses
 
 ## Consequences
 

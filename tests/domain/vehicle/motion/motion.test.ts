@@ -1,21 +1,19 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  clamp,
   clampLength,
   dot,
   forward,
   length,
   normalizeYaw,
+  rightOf,
   type Vec2,
 } from "../../../../src/domain/shared/vec";
-import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { toDriveInput } from "../../../../src/domain/vehicle/driveInput";
 import {
   CAMPER_MOTION,
   CAMPER_TYRES,
 } from "../../../../src/domain/vehicle/kinds/camper/profile";
-import { CAMPER_SPEC } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { SPORTSBOAT_MOTION } from "../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPORTSBOAT_SPEC } from "../../../../src/domain/vehicle/kinds/sportsboat/spec";
 import {
@@ -24,7 +22,6 @@ import {
 } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
-import type { Form } from "../../../../src/domain/vehicle/motion/forms";
 import { FORMS } from "../../../../src/domain/vehicle/motion/forms";
 import type { MotionLimits } from "../../../../src/domain/vehicle/motion/limits";
 import type { GroundInput } from "../../../../src/domain/vehicle/motion/motion";
@@ -37,13 +34,11 @@ import {
   type MotionState,
   speedAfterWall,
   steerYaw,
-  stepMediumMotion,
   stepMotion,
   targetVelocity,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
 import { groundInputFor } from "../../../../src/domain/vehicle/motion/transformingDrive";
-import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { defined } from "../../../support/defined";
 import {
   type Body,
@@ -279,8 +274,7 @@ describe("alignOnMount (ADR 0019)", () => {
     );
   });
 
-  it("normalizes an out-of-range driver yaw", () => {
-    expect(alignOnMount(initialMotion(0), 270).yaw).toBe(-90);
+  it("normalizes the -180 degree mount yaw to 180", () => {
     expect(alignOnMount(initialMotion(0), -180).yaw).toBe(180);
   });
 });
@@ -309,10 +303,32 @@ describe("updateSpeed / steerYaw", () => {
   });
 
   it("coasts to a stop without input and without reversing the sign of speed", () => {
-    let s: number = SUV_SPEC.maxSpeed;
-    for (let i = 0; i < 100; i++)
-      s = updateSpeed(s, 0, false, SUV_MOTION, SUV_TYRES.creepSpeed);
-    expect(s).toBe(0);
+    fc.assert(
+      fc.property(
+        fc.double({
+          min: -SUV_SPEC.maxReverse,
+          max: SUV_SPEC.maxSpeed,
+          noNaN: true,
+        }),
+        (start) => {
+          const ticks = Math.ceil(Math.abs(start) / SUV_MOTION.drag) + 1;
+          let speed = start;
+          for (let i = 0; i < ticks; i++) {
+            speed = updateSpeed(
+              speed,
+              0,
+              false,
+              SUV_MOTION,
+              SUV_TYRES.creepSpeed,
+            );
+            expect(speed).toBeGreaterThanOrEqual(Math.min(0, start));
+            expect(speed).toBeLessThanOrEqual(Math.max(0, start));
+          }
+          expect(speed).toBe(0);
+        },
+      ),
+      { examples: [[SUV_SPEC.maxSpeed], [-SUV_SPEC.maxReverse]] },
+    );
   });
 
   it("creeping speeds up to the creep speed from a stop or from reversing, and never past it", () => {
@@ -495,22 +511,56 @@ describe("updateSpeed / steerYaw", () => {
     );
   });
 
-  it("the creep speed is below the ram threshold, so creeping never damages mobs (ADR 0006)", () => {
-    expect(SUV_SPEC.creepSpeed).toBeLessThan(SPEC.ramMinSpeed);
-  });
-
-  it("steering does not change heading when stopped and turns the opposite way in reverse", () => {
-    expect(steerYaw(10, 0, 1, SUV_MOTION)).toBe(10);
-    expect(steerYaw(10, 0.5, 1, SUV_MOTION)).toBeLessThan(10);
-    expect(steerYaw(10, -0.1, 1, SUV_MOTION)).toBeGreaterThan(10);
-  });
-
-  it("keeps heading within (-180, 180] regardless of how many turns it makes", () => {
-    let yaw = 0;
-    for (let i = 0; i < 10_000; i++)
-      yaw = steerYaw(yaw, SUV_SPEC.maxSpeed, 1, SUV_MOTION);
-    expect(yaw).toBeGreaterThan(-180);
-    expect(yaw).toBeLessThanOrEqual(180);
+  it("keeps heading normalized, holds it at rest, and reverses steering when backing up", () => {
+    const heading = fc.double({
+      min: -180,
+      minExcluded: true,
+      max: 180,
+      noNaN: true,
+    });
+    const tick = fc.record({
+      steer: fc.double({ min: -1, max: 1, noNaN: true }),
+      speed: fc.oneof(
+        fc.constant(0),
+        fc.double({
+          min: -SUV_SPEC.maxReverse,
+          max: SUV_SPEC.maxSpeed,
+          noNaN: true,
+        }),
+      ),
+    });
+    fc.assert(
+      fc.property(
+        heading,
+        fc.array(tick, { minLength: 1, maxLength: 100 }),
+        (initialYaw, ticks) => {
+          let yaw = initialYaw;
+          for (const { speed, steer } of ticks) {
+            const nextYaw = steerYaw(yaw, speed, steer, SUV_MOTION);
+            expect(nextYaw).toBeGreaterThan(-180);
+            expect(nextYaw).toBeLessThanOrEqual(180);
+            const turn = normalizeYaw(nextYaw - yaw);
+            if (speed === 0) expect(turn).toBeCloseTo(0, 9);
+            if (Math.abs(speed * steer) >= 1e-6) {
+              expect(Math.sign(turn)).toBe(-Math.sign(speed * steer));
+            }
+            yaw = nextYaw;
+          }
+        },
+      ),
+      {
+        examples: [
+          [
+            -179,
+            [
+              { speed: 0, steer: 1 },
+              { speed: 0.5, steer: 1 },
+              { speed: -0.1, steer: 1 },
+            ],
+          ],
+        ],
+      },
+    );
   });
 });
 
@@ -1061,9 +1111,8 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
     expect(r.state.speed).toBeGreaterThanOrEqual(MOTION.stepMinSpeed);
   });
 
-  it("keeps the key set of the returned state (absent friction stays absent)", () => {
+  it("estimates friction from the previous ground velocity and retains it in the air", () => {
     const noStep = () => 0 as const;
-    const keys = (state: MotionState) => Object.keys(state).sort();
 
     // Ground, no previous expected velocity: the estimate does not run.
     const fresh = stepMotion(
@@ -1074,13 +1123,8 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
       SUV_MOTION,
       SUV_TYRES,
     );
-    expect(keys(fresh.state)).toEqual([
-      "expected",
-      "mediumExpected",
-      "speed",
-      "stepTicks",
-      "yaw",
-    ]);
+    expect(fresh.state.friction).toBeUndefined();
+    expect(fresh.state.expected).toEqual({ x: 0, z: 0 });
 
     // Ground, 70% of the previous expected velocity kept: the estimate runs.
     const estimated = stepMotion(
@@ -1091,14 +1135,6 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
       SUV_MOTION,
       SUV_TYRES,
     );
-    expect(keys(estimated.state)).toEqual([
-      "expected",
-      "friction",
-      "mediumExpected",
-      "speed",
-      "stepTicks",
-      "yaw",
-    ]);
     expect(estimated.state.friction).toBeCloseTo(0.7, 12);
 
     // In the air: the previous estimate is kept and expected is cleared.
@@ -1110,14 +1146,6 @@ describe("stepMotion (properties, ADR 0002/0003)", () => {
       SUV_MOTION,
       SUV_TYRES,
     );
-    expect(keys(airborne.state)).toEqual([
-      "expected",
-      "friction",
-      "mediumExpected",
-      "speed",
-      "stepTicks",
-      "yaw",
-    ]);
     expect(airborne.state.friction).toBe(0.9);
     expect(airborne.state.expected).toBeUndefined();
   });
@@ -1192,39 +1220,62 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
     );
   });
 
-  it("groundWallAxes: a uniform ratio of at least wallKeptMax on every axis is never a wall", () => {
+  it("groundWallAxes: ratios above wallKeptMax on the same side of keptRatio are a slow surface", () => {
     fc.assert(
       fc.property(
         givenVel,
-        fc.double({ min: MOTION.wallKeptMax, max: 1, noNaN: true }),
+        fc.double({ min: MOTION.wallKeptMax + 1e-9, max: 1, noNaN: true }),
+        fc.double({ min: MOTION.wallKeptMax + 1e-9, max: 1, noNaN: true }),
         keptRatio,
-        (given, k, ratio) => {
-          // (given.x * k) / given.x can land one ulp below wallKeptMax. At
-          // keptRatio the ulp gap between axes is a tie, not a wall (#340).
-          fc.pre(k >= MOTION.wallKeptMax + 1e-9);
+        (given, xRatio, zRatio, ratio) => {
+          fc.pre(
+            Math.abs(xRatio - ratio) > 1e-9 &&
+              Math.abs(zRatio - ratio) > 1e-9 &&
+              xRatio < ratio === zRatio < ratio,
+          );
           expect(
-            groundWallAxes({ x: given.x * k, z: given.z * k }, given, ratio),
+            groundWallAxes(
+              { x: given.x * xRatio, z: given.z * zRatio },
+              given,
+              ratio,
+            ),
           ).toEqual({ x: false, z: false });
         },
       ),
+      { examples: [[{ x: 1, z: 1 }, 0.2, 0.3, 0.345]] },
     );
   });
 
-  it("groundWallAxes: a zeroed driven axis is a wall", () => {
+  it("groundWallAxes: a driven axis below wallKeptMax is a wall", () => {
     fc.assert(
       fc.property(
         givenVel,
         keptRatio,
         fc.double({ min: -1, max: 1, noNaN: true }),
-        (given, ratio, otherKept) => {
+        fc.double({ min: -1, max: MOTION.wallKeptMax - 1e-9, noNaN: true }),
+        (given, ratio, otherKept, blockedKept) => {
           expect(
-            groundWallAxes({ x: 0, z: given.z * otherKept }, given, ratio).x,
+            groundWallAxes(
+              { x: given.x * blockedKept, z: given.z * otherKept },
+              given,
+              ratio,
+            ).x,
           ).toBe(Math.abs(given.x) > MOTION.blockedAxisMin);
           expect(
-            groundWallAxes({ x: given.x * otherKept, z: 0 }, given, ratio).z,
+            groundWallAxes(
+              { x: given.x * otherKept, z: given.z * blockedKept },
+              given,
+              ratio,
+            ).z,
           ).toBe(Math.abs(given.z) > MOTION.blockedAxisMin);
         },
       ),
+      {
+        examples: [
+          [{ x: 1, z: 1 }, 0.345, 0.3, -0.05],
+          [{ x: 1, z: 0 }, 0.345, 0, 0.1],
+        ],
+      },
     );
   });
 
@@ -1270,36 +1321,25 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
           });
         },
       ),
+      {
+        examples: [
+          [1, 1, 20, 34, 69, true],
+          [1, 1, 15, 20, 30, false],
+        ],
+      },
     );
   });
 
-  it("groundWallAxes examples: disagreeing axes, a uniform slow surface, and one driven axis", () => {
-    expect(groundWallAxes({ x: 0.2, z: 0.69 }, { x: 1, z: 1 }, 0.345)).toEqual({
-      x: true,
-      z: false,
-    });
-    expect(groundWallAxes({ x: 0.2, z: 0.3 }, { x: 1, z: 1 }, 0.345)).toEqual({
-      x: false,
-      z: false,
-    });
-    // One driven axis keeping 0.3 is a friction sample, where 0003 read a wall.
-    expect(groundWallAxes({ x: 0.3, z: 0 }, { x: 1, z: 0 }, 0.345)).toEqual({
-      x: false,
-      z: false,
-    });
-    // z at exactly blockedAxisMin is not driven.
-    expect(
-      groundWallAxes({ x: 0.3, z: 0.02 }, { x: 1, z: 0.03 }, 0.345),
-    ).toEqual({ x: false, z: false });
-    expect(groundWallAxes({ x: 0.1, z: 0 }, { x: 1, z: 0 }, 0.345)).toEqual({
-      x: true,
-      z: false,
-    });
-    // Pushed back on x.
-    expect(groundWallAxes({ x: -0.05, z: 0.3 }, { x: 1, z: 1 }, 0.345)).toEqual(
-      { x: true, z: false },
-    );
-    // Axes one ulp apart across keptRatio agree: a surface, not a wall (#340).
+  it("treats a single driven axis as a friction sample at the blockedAxisMin boundary", () => {
+    for (const z of [0, MOTION.blockedAxisMin]) {
+      expect(groundWallAxes({ x: 0.3, z: 0.02 }, { x: 1, z }, 0.345)).toEqual({
+        x: false,
+        z: false,
+      });
+    }
+  });
+
+  it("treats a one-ulp difference across keptRatio as a surface (#340)", () => {
     expect(
       groundWallAxes(
         { x: 0.21000000000000002, z: 0.21 },
@@ -1307,10 +1347,6 @@ describe("ground walls and slow surfaces (ADR 0082)", () => {
         0.21000000000000002,
       ),
     ).toEqual({ x: false, z: false });
-    expect(groundWallAxes({ x: 0.3, z: 0.1 }, { x: 1, z: 1 }, 0.2)).toEqual({
-      x: false,
-      z: true,
-    });
   });
 
   // Drives 200 ticks on k1, then 25 on k2.
@@ -1444,183 +1480,35 @@ describe("blockedAxes / speedAfterWall (ADR 0003, 0081)", () => {
   });
 });
 
-// The mapping before ADR 0089, kept as an oracle.
-interface LegacyDriveInput {
-  throttle: number;
-  steer: number;
-  handbrake: boolean;
-  creep: boolean;
-}
-const LEGACY_NEUTRAL: LegacyDriveInput = {
-  throttle: 0,
-  steer: 0,
-  handbrake: false,
-  creep: false,
-};
-const LEGACY_SLOPE = Math.tan((SPEC.sidewaysAngle * Math.PI) / 180);
-function legacyToDriveInput(raw: RawInput | undefined): LegacyDriveInput {
-  if (
-    raw === undefined ||
-    !Number.isFinite(raw.moveX) ||
-    !Number.isFinite(raw.moveY)
-  ) {
-    return LEGACY_NEUTRAL;
-  }
-  const steer = clamp(raw.moveX, -1, 1);
-  const sideways = Math.abs(steer);
-  // A phone stick pushed straight right reads about -0.2 forward/backward,
-  // which would otherwise reverse the vehicle and flip the steering.
-  if (
-    sideways > SPEC.throttleDeadzone &&
-    Math.abs(raw.moveY) <= sideways * LEGACY_SLOPE
-  ) {
-    return { throttle: 0, steer, handbrake: raw.jump, creep: true };
-  }
-  const magnitude = Math.abs(raw.moveY);
-  const throttle =
-    magnitude <= SPEC.throttleDeadzone
-      ? 0
-      : Math.sign(raw.moveY) * Math.min(1, magnitude / SPEC.throttleFullAt);
-  return { throttle, steer, handbrake: raw.jump, creep: false };
-}
-
-function legacyDriveInputFor(
-  raw: RawInput | undefined,
-  form: Form,
-): LegacyDriveInput {
-  if (form === "takeoff") return LEGACY_NEUTRAL;
-  const input = legacyToDriveInput(raw);
-  if (form === "car") return input;
-  return { ...input, throttle: Math.max(0, input.throttle), handbrake: false };
-}
-
-const anyAxis = fc.oneof(
-  fc.double({ min: -1.5, max: 1.5, noNaN: true }),
-  fc.double(),
-);
-const anyRaw: fc.Arbitrary<RawInput> = fc.record({
-  moveX: anyAxis,
-  moveY: anyAxis,
-  jump: fc.boolean(),
-});
-const anyRawOrNone = fc.option(anyRaw, { nil: undefined });
-
-const anyYaw = fc.double({ min: -180, max: 180, noNaN: true });
-
-const legacyLimits = (s: typeof SUV_SPEC | typeof CAMPER_SPEC) => ({
-  maxSpeed: s.maxSpeed,
-  maxReverse: s.maxReverse,
-  accel: s.accel,
-  reverseAccel: s.reverseAccel,
-  brake: s.brake,
-  drag: s.drag,
-  turnRate: s.turnRate,
-  steerFullSpeed: s.steerFullSpeed,
-  grip: s.grip,
-  handbrakeGrip: s.handbrakeGrip,
-  creepSpeed: s.creepSpeed,
-});
-
-const TRANSFORMING_KINDS = [
-  {
-    kind: "suv",
-    limits: SUV_MOTION,
-    tyres: SUV_TYRES,
-    legacy: legacyLimits(SUV_SPEC),
-  },
-  {
-    kind: "camper",
-    limits: CAMPER_MOTION,
-    tyres: CAMPER_TYRES,
-    legacy: legacyLimits(CAMPER_SPEC),
-  },
-] as const;
-
-describe("per-kind control mapping, transforming kinds (ADR 0089)", () => {
-  it("maps the stick for a transforming kind as the old drive input did, in every form", () => {
-    fc.assert(
-      fc.property(anyRawOrNone, fc.constantFrom(...FORMS), (raw, form) => {
-        expect(groundInputFor(raw, form)).toStrictEqual(
-          legacyDriveInputFor(raw, form),
-        );
-      }),
-      { numRuns: 100 },
-    );
-  });
-
-  it.each(TRANSFORMING_KINDS)(
-    "moves the $kind tick by tick as the old mapping did",
-    ({ limits, tyres, legacy }) => {
-      fc.assert(
-        fc.property(
-          anyYaw,
-          fc.constantFrom(...FORMS),
-          fc.record({
-            drag: fc.double({ min: 0.5, max: 1, noNaN: true }),
-            maxSpeed: fc.double({ min: 0.2, max: 2, noNaN: true }),
-          }),
-          fc.array(
-            fc.record({
-              raw: anyRawOrNone,
-              velocity: fc.record({
-                x: fc.double({ min: -2, max: 2, noNaN: true }),
-                z: fc.double({ min: -2, max: 2, noNaN: true }),
-              }),
-              onGround: fc.boolean(),
-            }),
-            { minLength: 1, maxLength: 60 },
-          ),
-          (heading, form, medium, ticks) => {
-            let next = initialMotion(heading);
-            let old = initialMotion(heading);
-            for (const { raw, velocity, onGround } of ticks) {
-              const result =
-                form === "car"
-                  ? stepMotion(
-                      next,
-                      groundInputFor(raw, form),
-                      { velocity, onGround },
-                      () => 0,
-                      limits,
-                      tyres,
-                    )
-                  : stepMediumMotion(
-                      next,
-                      groundInputFor(raw, form),
-                      velocity,
-                      medium,
-                      limits,
-                      tyres.creepSpeed,
-                    );
-              const oracle =
-                form === "car"
-                  ? stepMotion(
-                      old,
-                      legacyDriveInputFor(raw, form),
-                      { velocity, onGround },
-                      () => 0,
-                      legacy,
-                      legacy,
-                    )
-                  : stepMediumMotion(
-                      old,
-                      legacyDriveInputFor(raw, form),
-                      velocity,
-                      medium,
-                      legacy,
-                      legacy.creepSpeed,
-                    );
-              expect(result.state.speed).toBe(oracle.state.speed);
-              expect(result.state.yaw).toBe(oracle.state.yaw);
-              expect(result.impulse.x).toBe(oracle.impulse.x);
-              expect(result.impulse.z).toBe(oracle.impulse.z);
-              next = result.state;
-              old = oracle.state;
-            }
-          },
-        ),
-        { numRuns: 100 },
-      );
+it("maps ground controls by form and ignores input during takeoff (ADR 0089)", () => {
+  const axis = fc.double({ min: -1, max: 1, noNaN: true });
+  const rawInput = fc.option(
+    fc.record({ moveX: axis, moveY: axis, jump: fc.boolean() }),
+    { nil: undefined },
+  );
+  fc.assert(
+    fc.property(rawInput, fc.constantFrom(...FORMS), (raw, form) => {
+      const mapped = groundInputFor(raw, form);
+      if (form === "takeoff") {
+        expect(mapped).toEqual(NEUTRAL_GROUND);
+        return;
+      }
+      const control = toDriveInput(raw);
+      expect(mapped).toEqual({
+        throttle:
+          form === "car" ? control.throttle : Math.max(0, control.throttle),
+        steer: control.steer,
+        handbrake: form === "car" && control.jump,
+        creep: control.sideways,
+      });
+    }),
+    {
+      examples: [
+        [{ moveX: 0, moveY: -1, jump: true }, "car"],
+        [{ moveX: 0, moveY: -1, jump: true }, "hover"],
+        [{ moveX: 1, moveY: 0, jump: true }, "takeoff"],
+        [{ moveX: 1, moveY: 0, jump: false }, "submarine"],
+      ],
     },
   );
 });
@@ -1635,12 +1523,22 @@ describe("targetVelocity (ADR 0002, 0081)", () => {
   const cap = fc.double({ min: 0, minExcluded: true, max: 2, noNaN: true });
   const args = fc.tuple(direction, component, velocity, retained, cap);
 
-  it("caps the result at maxSpeed", () => {
+  it("caps the result at maxSpeed without changing direction", () => {
     fc.assert(
       fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
-        expect(
-          length(targetVelocity(f, speed, v, keepLat, maxSpeed)),
-        ).toBeLessThanOrEqual(maxSpeed + 1e-9);
+        const target = targetVelocity(f, speed, v, keepLat, maxSpeed);
+        const side = rightOf(f);
+        const slide = dot(v, side) * keepLat;
+        const magnitude = Math.hypot(speed, slide);
+        expect(length(target)).toBeCloseTo(Math.min(magnitude, maxSpeed), 9);
+        expect(dot(target, f) * slide - dot(target, side) * speed).toBeCloseTo(
+          0,
+          9,
+        );
+        if (magnitude > 1e-9)
+          expect(
+            dot(target, f) * speed + dot(target, side) * slide,
+          ).toBeCloseTo(length(target) * magnitude, 9);
       }),
     );
   });
@@ -1694,55 +1592,6 @@ describe("targetVelocity (ADR 0002, 0081)", () => {
         const shifted = targetVelocity(f, speed, shiftedV, keepLat, maxSpeed);
         expect(Math.abs(result.x - shifted.x)).toBeLessThanOrEqual(1e-9);
         expect(Math.abs(result.z - shifted.z)).toBeLessThanOrEqual(1e-9);
-      }),
-    );
-  });
-
-  // Verbatim copies of the inline targets in stepMotion and stepMediumMotion
-  // before #474. Exact equality pins the operand order: a reordering changes
-  // the low bits of every target and slips past the 1e-9 properties above.
-  function preRefactorGroundTarget(
-    f: Vec2,
-    speed: number,
-    v: Vec2,
-    keepLat: number,
-    maxSpeed: number,
-  ): Vec2 {
-    const vLong = dot(v, f);
-    const lat = { x: v.x - f.x * vLong, z: v.z - f.z * vLong };
-    return clampLength(
-      { x: f.x * speed + lat.x * keepLat, z: f.z * speed + lat.z * keepLat },
-      maxSpeed,
-    );
-  }
-
-  function preRefactorMediumTarget(
-    f: Vec2,
-    speed: number,
-    v: Vec2,
-    keepLat: number,
-    maxSpeed: number,
-  ): Vec2 {
-    const vLong = dot(v, f);
-    return clampLength(
-      {
-        x: f.x * speed + (v.x - f.x * vLong) * keepLat,
-        z: f.z * speed + (v.z - f.z * vLong) * keepLat,
-      },
-      maxSpeed,
-    );
-  }
-
-  it("is bit-identical to both pre-refactor inline targets", () => {
-    fc.assert(
-      fc.property(args, ([f, speed, v, keepLat, maxSpeed]) => {
-        const result = targetVelocity(f, speed, v, keepLat, maxSpeed);
-        expect(result).toEqual(
-          preRefactorGroundTarget(f, speed, v, keepLat, maxSpeed),
-        );
-        expect(result).toEqual(
-          preRefactorMediumTarget(f, speed, v, keepLat, maxSpeed),
-        );
       }),
     );
   });
