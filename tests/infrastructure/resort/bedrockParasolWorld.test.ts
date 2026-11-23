@@ -8,6 +8,7 @@ import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockParasolWorld } from "../../../src/infrastructure/resort/bedrock/bedrockParasolWorld";
 import {
   BEACH_PARASOL,
+  BEACH_PARASOL_ITEM,
   PARASOL_CEILING_BLOCK,
   PARASOL_CEILING_PROPERTY,
 } from "../../../src/infrastructure/resort/identifiers";
@@ -59,7 +60,6 @@ function fixture(yaw = 0) {
     >(() => []),
     getBlockFromRay: vi.fn(),
     spawnEntity: vi.fn(),
-    spawnItem: vi.fn(),
   };
   const saved = new Map<string, unknown>();
   const entity = {
@@ -178,7 +178,7 @@ it("skips vehicle space and never claims an unrelated ceiling", () => {
     [...f.blocks.values()].every((b) => b.typeId === PARASOL_CEILING_BLOCK),
   ).toBe(true);
 });
-it("rolls back an entity when rotation fails and refunds through inventory overflow handling", () => {
+it("rolls back an entity when rotation fails and refunds one parasol item", () => {
   const f = fixture();
   f.dimension.spawnEntity.mockReturnValue(f.entity);
   f.entity.setRotation.mockImplementation(() => {
@@ -186,17 +186,17 @@ it("rolls back an entity when rotation fails and refunds through inventory overf
   });
   expect(f.adapter.spawn(dimensionId, f.pose)).toBeUndefined();
   expect(f.entity.remove).toHaveBeenCalledOnce();
-  const container = { addItem: vi.fn((item: unknown) => item) };
+  const container = { addItem: vi.fn() };
   const player = {
     typeId: "minecraft:player",
     getComponent: () => ({ container }),
-    dimension: f.dimension,
-    location: { x: 0, y: 64, z: 0 },
   };
   game.getEntity.mockReturnValue(player);
   f.adapter.refund(asPlayerId("player"), 0);
-  expect(container.addItem).toHaveBeenCalledOnce();
-  expect(f.dimension.spawnItem).toHaveBeenCalledOnce();
+  expect(container.addItem).toHaveBeenCalledExactlyOnceWith({
+    typeId: BEACH_PARASOL_ITEM,
+    amount: 1,
+  });
 });
 
 it("clears stale saved cells outside the current footprint after restoration", () => {

@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { PAINTS } from "../../../../src/domain/shared/paint";
+import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import {
   dyeOf,
   PAINT_VARIANT,
@@ -10,9 +11,13 @@ import {
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import { ENTITY_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
-vi.mock("@minecraft/server", () => ({ world: game }));
+vi.mock("@minecraft/server", () => ({
+  world: game,
+  GameMode: { Creative: "Creative" },
+}));
 
 function fixture() {
   const dimension = { playSound: vi.fn() };
@@ -40,6 +45,35 @@ function fixture() {
 
 describe("BedrockPaintWorld", () => {
   beforeEach(() => vi.resetAllMocks());
+
+  it.each(VEHICLE_KINDS)("reports the kind of a %s entity", (kind) => {
+    const { vehicle, paint } = fixture();
+    vehicle.typeId = ENTITY_TYPE[kind];
+    expect(paint.kindOf(asVehicleId(vehicle.id))).toBe(kind);
+  });
+
+  it("an unknown type has no kind", () => {
+    const { vehicle, paint } = fixture();
+    vehicle.typeId = "yasu_ride:unknown";
+    expect(paint.kindOf(asVehicleId(vehicle.id))).toBeUndefined();
+  });
+
+  it("a missing or invalid vehicle has no kind", () => {
+    const { vehicle, paint } = fixture();
+    expect(paint.kindOf(asVehicleId("missing"))).toBeUndefined();
+    vehicle.isValid = false;
+    expect(paint.kindOf(asVehicleId(vehicle.id))).toBeUndefined();
+  });
+
+  it("is true for a valid player in creative", () => {
+    const { paint } = fixture();
+    game.getEntity.mockReturnValue({
+      typeId: "minecraft:player",
+      isValid: true,
+      getGameMode: () => "Creative",
+    });
+    expect(paint.isCreative(asPlayerId("p"))).toBe(true);
+  });
 
   it("reads the paint from the variant component", () => {
     fc.assert(
@@ -98,18 +132,17 @@ describe("BedrockPaintWorld", () => {
     warn.mockRestore();
   });
 
-  it("plays no dye sound for a missing vehicle", () => {
-    const { dimension, paint } = fixture();
-    paint.playPaintSound(asVehicleId("missing"));
-    expect(dimension.playSound).not.toHaveBeenCalled();
-  });
-
-  it("does not paint a missing vehicle", () => {
-    const { dimension, vehicle, paint } = fixture();
-    paint.paint(asVehicleId("missing"), "red");
-    expect(vehicle.triggerEvent).not.toHaveBeenCalled();
-    expect(dimension.playSound).not.toHaveBeenCalled();
-  });
+  it.each(["paint", "playPaintSound"] as const)(
+    "%s leaves a missing vehicle alone",
+    (write) => {
+      const { dimension, vehicle, paint } = fixture();
+      const missing = asVehicleId("missing");
+      if (write === "paint") paint.paint(missing, "red");
+      else paint.playPaintSound(missing);
+      expect(vehicle.triggerEvent).not.toHaveBeenCalled();
+      expect(dimension.playSound).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(PAINTS)("takes one %s dye from the held slot", (color) => {
     const { consumeHeld, paint } = fixture();
