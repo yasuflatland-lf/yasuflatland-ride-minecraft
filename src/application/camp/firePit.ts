@@ -36,11 +36,11 @@ export class FirePitActions {
   toggle(
     id: FirePitId,
     player: PlayerId | undefined,
-    heldItem: string | undefined,
+    holdsIgniter: boolean,
     slot: number,
   ): boolean {
     const lit = this.world.isLit(id);
-    if (!canToggleFirePit(lit, heldItem)) return false;
+    if (!canToggleFirePit(lit, holdsIgniter)) return false;
     this.world.setLit(id, !lit);
     if (!lit && player && !this.world.isCreative(player))
       this.world.wearFlintAndSteel(player, slot);

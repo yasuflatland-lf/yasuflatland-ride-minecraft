@@ -11,11 +11,11 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { SCAN_STEP } from "../../../src/domain/build/edit/change";
 import {
-  type BuildFlow,
   setHeight,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";

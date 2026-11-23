@@ -430,6 +430,23 @@ describe("furniture top blocks", () => {
       moved,
     ]);
   });
+  it("retains a stale cell when its first cleanup read is unavailable", () => {
+    const f = fixture();
+    f.adapter.layTop(id);
+    f.entity.location.x++;
+    f.entity.dimension.getBlock.mockClear();
+    f.entity.dimension.getBlock.mockReturnValueOnce(undefined);
+    f.adapter.layTop(id);
+    expect(f.entity.dimension.getBlock.mock.calls).toEqual([
+      [cell],
+      [{ ...cell, x: cell.x + 1 }],
+    ]);
+    expect(f.properties.get(FURNITURE_TOP_CELLS)).toBe(
+      JSON.stringify([cell, { ...cell, x: cell.x + 1 }]),
+    );
+    f.adapter.layTop(id);
+    expect(f.blocks.get(f.key(cell))).toBe("minecraft:air");
+  });
   it("checks wanted and persisted cells above the top, conservatively refusing unloaded cells", () => {
     const f = fixture();
     const above = { ...cell, y: cell.y + 1 };

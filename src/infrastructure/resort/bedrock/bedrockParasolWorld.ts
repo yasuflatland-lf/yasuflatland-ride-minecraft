@@ -1,4 +1,4 @@
-import { type Dimension, type Entity, world } from "@minecraft/server";
+import { type Entity, world } from "@minecraft/server";
 import type {
   ParasolTakeBackWorld,
   ParasolWorld,
@@ -10,14 +10,8 @@ import {
   parasolCeilingCells,
   parasolPoseAt,
 } from "../../../domain/resort/parasolPose";
-import {
-  type Cell,
-  cellCenter,
-  cellKey,
-  sameCell,
-} from "../../../domain/shared/cells";
+import { type Cell, cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
-import { safeBlockAt } from "../../shared/blocks";
 import {
   gearEntities,
   gearFeedback,
@@ -26,11 +20,7 @@ import {
   spawnIn,
 } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
-import {
-  LaidBlockLayer,
-  readSavedCells,
-  writeSavedCells,
-} from "../../shared/laidBlockLayer";
+import { SingleBlockLayer } from "../../shared/laidBlockLayer";
 import { playerById } from "../../shared/players";
 import {
   BEACH_PARASOL,
@@ -41,11 +31,6 @@ import {
 
 const entities = gearEntities<ParasolId>(BEACH_PARASOL);
 const feedback = gearFeedback("parasol");
-
-interface CeilingRecord {
-  dimension: Dimension;
-  cells: Cell[];
-}
 
 export class BedrockParasolWorld
   extends BedrockPaidGroundCells
@@ -59,8 +44,7 @@ export class BedrockParasolWorld
   readonly isSolidTop: SpaceCheck;
   readonly isCampSpace: SpaceCheck;
 
-  private readonly layer: LaidBlockLayer;
-  private readonly ceilings = new Map<ParasolId, CeilingRecord>();
+  private readonly layer: SingleBlockLayer<ParasolId>;
   constructor(deps: {
     isVehicleSpace: SpaceCheck;
     isCampSpace: SpaceCheck;
@@ -72,8 +56,9 @@ export class BedrockParasolWorld
     ({ isSolidTop: this.isSolidTop, isCampSpace: this.isCampSpace } =
       gearGroundChecks(deps));
 
-    this.layer = new LaidBlockLayer(
+    this.layer = new SingleBlockLayer(
       PARASOL_CEILING_BLOCK,
+      PARASOL_CEILING_PROPERTY,
       deps.isVehicleSpace,
       "parasol ceiling",
     );
@@ -102,24 +87,12 @@ export class BedrockParasolWorld
     );
     return entity && asParasolId(entity.id);
   }
-  remember(entity: Entity): CeilingRecord {
-    const id = asParasolId(entity.id);
-    let record = this.ceilings.get(id);
-    if (!record) {
-      record = {
-        dimension: entity.dimension,
-        cells: readSavedCells(
-          entity.getDynamicProperty(PARASOL_CEILING_PROPERTY),
-        ),
-      };
-      this.ceilings.set(id, record);
-    }
-    return record;
+  remember(entity: Entity): void {
+    this.layer.remember(asParasolId(entity.id), entity);
   }
   layCeiling(id: ParasolId): void {
     const entity = this.entity(id);
     if (!entity) return;
-    const record = this.remember(entity);
     const pose = parasolPoseAt(
       {
         x: entity.location.x - 0.5,
@@ -128,70 +101,17 @@ export class BedrockParasolWorld
       },
       entity.getRotation().y,
     );
-    const warn = this.layer.warning("lay");
-    try {
-      const wanted = parasolCeilingCells(pose);
-      const keys = new Set(wanted.map(cellKey));
-      const stale = record.cells.filter((cell) => !keys.has(cellKey(cell)));
-      this.layer.clear(record.dimension, stale, warn);
-      record.cells = record.cells.filter(
-        (cell) =>
-          keys.has(cellKey(cell)) ||
-          safeBlockAt(record.dimension, cell) === undefined ||
-          safeBlockAt(record.dimension, cell)?.typeId === PARASOL_CEILING_BLOCK,
-      );
-      record.cells = this.layer.lay(
-        record.dimension,
-        wanted,
-        record.cells,
-        warn,
-      );
-      entity.setDynamicProperty(
-        PARASOL_CEILING_PROPERTY,
-        writeSavedCells(record.cells),
-      );
-    } catch (error) {
-      warn(error);
-    }
+    this.layer.lay(id, entity, parasolCeilingCells(pose));
   }
   clearCeiling(id: ParasolId): boolean {
-    const entity = this.entity(id);
-    const record =
-      this.ceilings.get(id) ?? (entity ? this.remember(entity) : undefined);
-    if (!record) return true;
-    const warn = this.layer.warning("clear");
-    this.layer.clear(record.dimension, record.cells, warn);
-    // Keep unloaded cells for later cleanup rather than losing their only record.
-    record.cells = record.cells.filter(
-      (cell) =>
-        safeBlockAt(record.dimension, cell) === undefined ||
-        safeBlockAt(record.dimension, cell)?.typeId === PARASOL_CEILING_BLOCK,
-    );
-    try {
-      entity?.setDynamicProperty(
-        PARASOL_CEILING_PROPERTY,
-        writeSavedCells(record.cells),
-      );
-    } catch (error) {
-      warn(error);
-    }
-    if (record.cells.length === 0) this.ceilings.delete(id);
-    return record.cells.length === 0;
+    return this.layer.clear(id, this.entity(id)).length === 0;
   }
   ceilingOwner(
     dimension: DimensionId,
     cell: Cell,
     typeId: string,
   ): string | undefined {
-    if (typeId !== PARASOL_CEILING_BLOCK) return undefined;
-    for (const [id, record] of this.ceilings) {
-      if (
-        record.dimension.id === dimension &&
-        record.cells.some((at) => sameCell(at, cell))
-      )
-        return id;
-    }
-    return undefined;
+    return this.layer.ownerOf(dimension, cell, typeId);
   }
   dropItem(id: ParasolId, player: PlayerId | undefined): void {
     const entity = this.entity(id);

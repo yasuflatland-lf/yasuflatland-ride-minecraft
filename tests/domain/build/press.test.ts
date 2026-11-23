@@ -2,15 +2,11 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
-  type BuildFlow,
   chooseHeighted,
-  chooseStairs,
-  chooseTerrain,
   confirmLiveHeight,
-  fixStairGoal,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import {
   type PressIntent,
@@ -19,6 +15,12 @@ import {
   type PressTarget,
   routePress,
 } from "../../../src/domain/build/flow/press";
+import {
+  chooseStairs,
+  fixStairGoal,
+} from "../../../src/domain/build/flow/stairFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 

@@ -69,11 +69,11 @@
 ### Import checker and its self-test
 
 - Applies to: Dependency-cruiser configuration and architecture fixtures.
-- Rule: `package.json` pins dependency-cruiser and `@swc/core` and runs the configuration through `lint:deps`. The configuration selects the swc parser, counts type-only imports with `tsPreCompilationDeps: true`, uses the repository tsconfig, does not follow node_modules, excludes `src/test-pack/`, and rejects unresolved imports with `not-resolvable`. The fixture helper uses a realpath temporary directory, clears the repository tsConfig option, and passes `validate: true` with the same forbidden rules.
+- Rule: `package.json` pins dependency-cruiser and `@swc/core` and runs the configuration through `lint:deps`. The configuration selects the swc parser, counts type-only imports with `tsPreCompilationDeps: true`, uses the repository tsconfig, does not follow node_modules, excludes `src/test-pack/`, and rejects unresolved imports with `not-resolvable`. The `no-circular` rule rejects cycles within `src/domain/build/`, including type-only cycles. The fixture helper uses a realpath temporary directory, clears the repository tsConfig option, and passes `validate: true` with the same forbidden rules.
 - Agreement: Accepted
-- Basis: [0065](../adr/0065-check-import-rules-with-dependency-cruiser.md) Decision, "Count type-only imports with `tsPreCompilationDeps: true` and exclude `src/test-pack/`, which sits outside the layers."; [0065](../adr/0065-check-import-rules-with-dependency-cruiser.md) Decision, "Add an unresolved-import rule so missing targets cannot evade the boundary checks."
+- Basis: [0065](../adr/0065-check-import-rules-with-dependency-cruiser.md) Decision covers type-only imports, test-pack exclusion, unresolved imports, and build-domain cycles.
 - Implementation: `package.json`; `.dependency-cruiser.cjs`; `tests/architecture.test.ts`
-- Verification: `tests/architecture.test.ts` `it.each` title "%s" exercises the named forbidden rules, including "unresolvable import", "kind names importing a type", and "test pack excluded". Not verified: current parser execution, exit status, or the ADR's expected `missing-typescript-transpiler` warning; no dependency check was run.
+- Verification: `tests/architecture.test.ts` exercises unresolved imports, type-only imports, test-pack exclusion, and the scope of cycle detection. `pnpm lint:deps` checks the repository graph.
 
 ### Feature folders and isolation
 

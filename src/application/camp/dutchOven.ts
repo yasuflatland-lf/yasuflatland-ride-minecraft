@@ -4,13 +4,12 @@ import {
   initialSimmering,
 } from "../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
+import { decodeCampHost } from "../../domain/camp/hosted";
 import {
   CAMP_TABLE_TOP,
-  DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
-  TABLE_SPOTS,
 } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
 import { cellOf } from "../../domain/shared/cells";
@@ -19,7 +18,7 @@ import {
   LIGHT_SWITCH_COOLDOWN_TICKS,
 } from "../../domain/shared/debounce";
 import { HitCounters } from "../../domain/shared/hitCounter";
-import { decodeHost, encodeHost, type Host } from "../../domain/shared/hosted";
+import { encodeHost, type Host } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import {
   hostSpotPoint,
@@ -43,20 +42,11 @@ import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 
-const ON_TABLE: HostedItemKind = {
-  id: "dutch_oven",
-  footprint: DUTCH_OVEN_FOOTPRINT_PX,
-  clearance: DUTCH_OVEN_SPEC.clearance,
-};
-
 /** The oven as a kind the hosted items guard removes when its host is gone. */
 export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
   return {
     loaded: () => world.loadedOvens(),
-    host: (id) =>
-      decodeHost(world.host(asDutchOvenId(id)), (type, spot) =>
-        type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
-      ),
+    host: (id) => decodeCampHost(world.host(asDutchOvenId(id))),
     isHostAreaLoaded: (id) => world.isHostAreaLoaded(asDutchOvenId(id)),
     hostExists: (hostId) => world.hostExists(hostId),
     remove: (id) => world.removeDutchOven(asDutchOvenId(id)),
@@ -72,7 +62,10 @@ export class DutchOvenActions {
     LIGHT_SWITCH_COOLDOWN_TICKS,
   );
 
-  constructor(private readonly world: DutchOvenWorld) {}
+  constructor(
+    private readonly world: DutchOvenWorld,
+    private readonly onTop: HostedItemKind,
+  ) {}
 
   toggleLid(id: DutchOvenId, tick: number): boolean {
     this.switches.forgetIdle(tick);
@@ -129,7 +122,7 @@ export class DutchOvenActions {
   }
 
   placeOnTop(surface: TopSurface, cmd: TopRequest): TopOutcome {
-    return placeOnTop(this.world, surface, ON_TABLE, cmd);
+    return placeOnTop(this.world, surface, this.onTop, cmd);
   }
 
   placeOnTable(cmd: {
@@ -164,7 +157,7 @@ export class DutchOvenActions {
   uncoverEmptyFirePits(): void {
     const occupiedPits = new Set<string>();
     for (const oven of this.world.loadedOvens()) {
-      const host = decodeHost(this.world.host(oven));
+      const host = decodeCampHost(this.world.host(oven));
       if (host.kind === "spot" && host.hostType === "fire_pit")
         occupiedPits.add(host.id);
     }
@@ -178,7 +171,7 @@ export class DutchOvenActions {
     let taken = false;
     handleHit(this.hits, id, tick, {
       drop: () => {
-        const host = decodeHost(this.world.host(id));
+        const host = decodeCampHost(this.world.host(id));
         if (
           host.kind === "spot" &&
           host.hostType === "fire_pit" &&

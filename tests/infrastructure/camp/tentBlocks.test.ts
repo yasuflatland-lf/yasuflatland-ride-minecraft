@@ -15,6 +15,7 @@ import {
   TENT_CELL_CODEC,
 } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import {
+  isTentBlockTypeId,
   TENT_CEILING_BLOCK,
   TENT_CELLS_PROPERTY,
   TENT_FACE_STATE,
@@ -43,6 +44,18 @@ vi.mock("@minecraft/server", () => ({
 
 const SAVED =
   '[{"x":110,"y":-60,"z":49,"block":{"type":"wall","face":1}},{"x":110,"y":-57,"z":50,"block":{"type":"ceiling"}}]';
+
+it("recognizes legacy tent block names only within the add-on's tent prefix", () => {
+  fc.assert(
+    fc.property(fc.string(), (suffix) => {
+      expect(isTentBlockTypeId(`yasu_ride:tent_${suffix}`)).toBe(true);
+      expect(isTentBlockTypeId(`other:tent_${suffix}`)).toBe(false);
+      expect(isTentBlockTypeId(`yasu_ride:roof_tent_${suffix}`)).toBe(false);
+    }),
+  );
+  expect(isTentBlockTypeId("yasu_ride:tent")).toBe(false);
+  expect(isTentBlockTypeId(undefined)).toBe(false);
+});
 
 describe("TENT_CELL_CODEC (ADR 0131)", () => {
   it("accepts the saved shape and rejects malformed cells", () => {

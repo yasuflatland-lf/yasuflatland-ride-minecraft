@@ -1,7 +1,8 @@
 import { aimedEndPoint } from "../../domain/build/aim/endPoint";
 import { aimedHeight } from "../../domain/build/aim/height";
 import { sizeOf } from "../../domain/build/box";
-import { type BuildFlow, liveHeightBox } from "../../domain/build/flow/flow";
+import { liveHeightBox } from "../../domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../domain/build/flow/state";
 import {
   type PreviewAim,
   previewPoints,

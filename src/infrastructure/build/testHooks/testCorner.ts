@@ -14,7 +14,7 @@ import type {
 import { SetPoint } from "../../../application/build/setPoint";
 import { TapAir } from "../../../application/build/tapAir";
 import { sizeOf } from "../../../domain/build/box";
-import { setHeight } from "../../../domain/build/flow/flow";
+import { setHeight } from "../../../domain/build/flow/heightFlow";
 import { routePress } from "../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../domain/shared/ids";
