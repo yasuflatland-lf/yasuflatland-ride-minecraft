@@ -8,6 +8,7 @@ import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { TopHostRegistry } from "./shared/tableTop/registry";
 import { installVehicles } from "./vehicle/install";
+import { installVehicleTestHooks } from "./vehicle/testHooks/install";
 import { WARP_BLOCK_TYPE } from "./warp/identifiers";
 import { installWarp } from "./warp/install";
 
@@ -43,6 +44,7 @@ export function bootstrap(): void {
   });
   if (__TEST_HOOKS__) {
     installBuildTestHooks(build);
+    installVehicleTestHooks(vehicles.testHooks);
   }
   installWarp();
   console.warn(`[${NAMESPACE}] loaded`);

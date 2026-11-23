@@ -20,10 +20,12 @@ import {
   DECK_SEAT_TYPE,
   entityPropertyId,
   SEAT_FILLER_TYPE,
-  TEST_HELD_ITEM_EVENT,
-  TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { SeatFillers } from "../../infrastructure/vehicle/bedrock/seatFillers";
+import {
+  TEST_HELD_ITEM_EVENT,
+  TEST_TOOL_EVENT,
+} from "../../infrastructure/vehicle/testHooks/identifiers";
 import {
   type Arena,
   BOAT_SEAT_PROBE,

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { parseTestToolMessage } from "../../../../src/infrastructure/vehicle/testInput/testToolMessage";
+import { parseTestToolMessage } from "../../../../src/infrastructure/vehicle/testHooks/testToolMessage";
 
 const part = fc.string({ minLength: 1 }).filter((s) => !s.includes(","));
 

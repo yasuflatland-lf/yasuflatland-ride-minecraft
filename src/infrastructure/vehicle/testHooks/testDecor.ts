@@ -1,8 +1,8 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { SetDecor } from "../../../../application/vehicle/room/setDecor";
-import { NAMESPACE } from "../../../shared/identifiers";
-import { parseTestDecorMessage } from "../../testInput/testDecorMessage";
-import { TEST_DECOR_EVENT } from "../identifiers";
+import type { SetDecor } from "../../../application/vehicle/room/setDecor";
+import { NAMESPACE } from "../../shared/identifiers";
+import { TEST_DECOR_EVENT } from "./identifiers";
+import { parseTestDecorMessage } from "./testDecorMessage";
 
 // Lets in-game tests set decor before players can place it (ADR 0093).
 export function registerTestDecor(decor: SetDecor): void {
