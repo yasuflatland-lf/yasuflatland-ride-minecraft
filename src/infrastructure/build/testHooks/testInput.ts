@@ -1,9 +1,9 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import { asPlayerId } from "../../../../domain/shared/ids";
-import { BUILD_NAMESPACE, TEST_INPUT_EVENT } from "../../identifiers";
-import type { BedrockAimReader } from "../bedrockAimReader";
+import { asPlayerId } from "../../../domain/shared/ids";
+import { BUILD_NAMESPACE, TEST_INPUT_EVENT } from "../identifiers";
+import type { TestAimReader } from "./testAim";
 
-export function registerTestInput(aim: BedrockAimReader): void {
+export function registerTestInput(aim: TestAimReader): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (event) => {
       if (
@@ -22,8 +22,7 @@ export function registerTestInput(aim: BedrockAimReader): void {
       const player = world
         .getAllPlayers()
         .find(({ name }) => name === input.player);
-      if (player?.isValid)
-        aim.setTouchOverride(asPlayerId(player.id), input.touch);
+      if (player?.isValid) aim.setTouch(asPlayerId(player.id), input.touch);
     },
     { namespaces: [BUILD_NAMESPACE] },
   );

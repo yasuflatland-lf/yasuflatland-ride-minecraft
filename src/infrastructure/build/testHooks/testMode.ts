@@ -1,12 +1,12 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import type { UpdateBuildModes } from "../../../../application/build/updateBuildModes";
-import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import { asPlayerId } from "../../../../domain/shared/ids";
+import type { UpdateBuildModes } from "../../../application/build/updateBuildModes";
+import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
+import { asPlayerId } from "../../../domain/shared/ids";
 import {
   BUILD_NAMESPACE,
   TEST_MODE_EVENT,
   TEST_RESULT_EVENT,
-} from "../../identifiers";
+} from "../identifiers";
 
 // A read of the real tick-driven mode; the message is the player's name (ADR 0010, 0178).
 export function registerTestMode(

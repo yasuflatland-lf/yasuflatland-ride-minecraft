@@ -2,9 +2,7 @@ import { MolangVariableMap, type Player, type RGB } from "@minecraft/server";
 import type {
   BuildFeedback,
   BuildMessage,
-  BuildMode,
 } from "../../../application/build/ports/feedback";
-import type { BlockState } from "../../../domain/build/blockState";
 import type { PreviewSet } from "../../../domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
@@ -65,20 +63,26 @@ function viewerIn(
   return player;
 }
 
+interface FeedbackListener {
+  onMessage?: BuildFeedback["showMessage"];
+  onMode?: BuildFeedback["showMode"];
+  onUndoHint?: BuildFeedback["showUndoHint"];
+}
+
 export class BedrockFeedback implements BuildFeedback {
-  showUndoHint(playerId: PlayerId): void {
+  readonly listeners = new Set<FeedbackListener>();
+
+  showUndoHint(...args: Parameters<BuildFeedback["showUndoHint"]>): void {
+    for (const listener of this.listeners) listener.onUndoHint?.(...args);
+    const [playerId] = args;
     const player = playerById(playerId);
     if (!player?.isValid) return;
     player.sendMessage({ translate: BUILD_MESSAGE.undoHint });
   }
 
-  showMessage(
-    playerId: PlayerId,
-    message: BuildMessage,
-    count?: number,
-    material?: BlockState,
-    skippedCount?: number,
-  ): void {
+  showMessage(...args: Parameters<BuildFeedback["showMessage"]>): void {
+    for (const listener of this.listeners) listener.onMessage?.(...args);
+    const [playerId, message, count, material, skippedCount] = args;
     const player = playerById(playerId);
     if (!player?.isValid) return;
     player.onScreenDisplay.setActionBar({
@@ -111,7 +115,9 @@ export class BedrockFeedback implements BuildFeedback {
     });
   }
 
-  showMode(playerId: PlayerId, mode: BuildMode): void {
+  showMode(...args: Parameters<BuildFeedback["showMode"]>): void {
+    for (const listener of this.listeners) listener.onMode?.(...args);
+    const [playerId, mode] = args;
     const player = playerById(playerId);
     if (!player?.isValid) return;
     const line = {
