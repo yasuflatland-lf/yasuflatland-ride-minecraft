@@ -29,16 +29,17 @@ This ADR extends 0200 and replaces that roof tent spec rule.
   `addRider`. An already seated player stays in place. A missing rideable,
   rejection, or exception leaves a one-shot teleport fallback to `seatPosition`;
   entry does not fail because seating failed. There is no per-tick teleport hold.
-- The target eye height is `shellRidge - eyeBelowRidge`: the SUV ridge from
-  `tools/gen_roof_tent.py` is `(5 + 1.2 * 12 + 6.6) / 16` = 1.625 blocks,
-  and the eye is 0.2 blocks below it at 1.425. The JSON seat y is
-  `occupantEyeHeight - standingEyeHeight + seatRiderOffset`, rounded to four
-  decimals: `1.425 - 1.62 + 0.35` = 0.155 blocks above the tent origin.
+- The target eye height is 0.2 blocks below the shell ridge. The SUV ridge
+  from `tools/gen_roof_tent.py` is `(5 + 1.2 * 12 + 6.6) / 16` = 1.625 blocks,
+  placing the eye at 1.425. The JSON seat y equals the target eye height
+  minus the standing eye height plus the rider offset, rounded to four decimals.
+  For the SUV, `1.425 - 1.62 + 0.35` gives 0.155 blocks above the tent origin.
+  The tests derive the expected JSON seat from `tests/support/packContract.ts`.
   The rider's feet overlap the platform below the bed, so the body is hidden.
   The one-shot teleport fallback remains at `seatLift` = `(5 + 2.4) / 16`
   (0.4625 blocks), avoiding placement below ground in a ground tent.
   The 0.35 rider offset follows the Java ridingOffset convention; the Bedrock
-  value is unmeasured and the owner tunes the spec constants live.
+  value is unmeasured and the owner tunes the seat positions live.
 - The occupant is invisible while inside: an invisibility effect without
   particles lasts 30 ticks and refreshes every 10 ticks for a valid tracked,
   seated occupant whose occupancy still matches. `LeaveRoofTent` removes it on

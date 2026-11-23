@@ -401,7 +401,7 @@ assert shared.face_region(dict(shared._faces[0][1])) == shared.regions[0].name`,
   );
 });
 
-it("matches the frozen sharing packer and reconstructs every region from its representative", async () => {
+it("reconstructs each region from its representative and skips a plain pack that cannot win", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.array(
@@ -418,10 +418,7 @@ it("matches the frozen sharing packer and reconstructs every region from its rep
       async (entries, gutter, maxSide) => {
         expect(
           await run(
-            `sys.path.insert(0, 'tests/tools/helpers')
-from reference_pack_shared import pack as reference_pack
-
-registry = m.RegionRegistry()
+            `registry = m.RegionRegistry()
 for i, (width, height, color, orientation) in enumerate(${JSON.stringify(entries)}):
     for j in reversed(range(6)):
         flip = orientation ^ (j % 4)
@@ -475,18 +472,16 @@ if shared is not None:
     if skip and plain is not None:
         assert prod(shared.size) <= prod(plain.size)
 
-expected = attempt(reference_pack, registry, share_key=key)
 with patch.object(m, '_pack', wraps=m._pack) as counted:
     actual = attempt(m.pack, registry, share_key=key)
 assert counted.call_count == (1 if skip else 2)
 assert counted.call_args_list[0].args[0].regions() == plan.registry().regions()
 if not skip:
     assert counted.call_args_list[1].args[0] is registry
-assert (actual is None) == (expected is None)
+assert (actual is None) == (plain is None and shared is None)
 if actual is not None:
     assert actual._plain_skipped == skip
-    assert actual.size == expected.size and actual._shared == expected._shared
-    assert all(actual.placement(r.name) == expected.placement(r.name) for r in regions)`,
+    assert m.audit(actual, m.render_atlas(actual)) == []`,
             "True",
           ),
         ).toBe(true);
@@ -496,10 +491,7 @@ if actual is not None:
   );
 });
 
-const plainSlotFixture = `sys.path.insert(0, 'tests/tools/helpers')
-import reference_pack_shared
-
-registry = m.RegionRegistry()
+const plainSlotFixture = `registry = m.RegionRegistry()
 representatives = m.RegionRegistry()
 for name, width, height in (('a',5,10), ('b',11,9), ('c',1,11), ('d',9,5), ('e',1,1), ('f',1,1)):
     region = m.Region(name, width, height, M.WOOD, lambda x,y: (0,0,0,255))
@@ -508,8 +500,8 @@ for name, width, height in (('a',5,10), ('b',11,9), ('c',1,11), ('d',9,5), ('e',
         representatives.register(region)
 
 plain = m.pack(registry, gutter_px=0)
-def check_plain_slots(module):
-    layout = module.pack(registry, gutter_px=0, share_key=lambda region: region.material)
+def check_plain_slots():
+    layout = m.pack(registry, gutter_px=0, share_key=lambda region: region.material)
     assert layout.size == plain.size
     for region in registry.regions():
         owner = 'e' if region.name == 'f' else region.name
@@ -523,8 +515,7 @@ it("uses the plain slots when packing representatives takes strictly more area",
 import math
 shared = m.pack(representatives, gutter_px=0)
 assert math.prod(plain.size) < math.prod(shared.size)
-check_plain_slots(m)
-check_plain_slots(reference_pack_shared)`,
+check_plain_slots()`,
       "True",
     ),
   ).toBe(true);
@@ -535,17 +526,16 @@ it("falls back to the plain slots when packing representatives raises ValueError
     await run(
       `${plainSlotFixture}
 from unittest.mock import patch
-for module in (m, reference_pack_shared):
-    original_pack = module._pack
-    rejected = []
-    def pack_plain_only(candidate, gutter_px, max_side):
-        if candidate is not registry:
-            rejected.append([r.name for r in candidate.regions()])
-            raise ValueError("Cannot pack representatives")
-        return original_pack(candidate, gutter_px, max_side)
-    with patch.object(module, '_pack', pack_plain_only):
-        check_plain_slots(module)
-    assert rejected == [[r.name for r in representatives.regions()]]`,
+original_pack = m._pack
+rejected = []
+def pack_plain_only(candidate, gutter_px, max_side):
+    if candidate is not registry:
+        rejected.append([r.name for r in candidate.regions()])
+        raise ValueError("Cannot pack representatives")
+    return original_pack(candidate, gutter_px, max_side)
+with patch.object(m, '_pack', pack_plain_only):
+    check_plain_slots()
+assert rejected == [[r.name for r in representatives.regions()]]`,
       "True",
     ),
   ).toBe(true);

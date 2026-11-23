@@ -3,7 +3,6 @@ import { boxFromSize, type CellBox, sizeOf, unionOf } from "../box";
 import { rotatedSize } from "./quarterTurn";
 
 export type RotationPlan = {
-  readonly source: CellBox;
   readonly target: CellBox;
   readonly union: CellBox;
 };
@@ -33,9 +32,5 @@ export function planRotationAboutCenter(source: CellBox): RotationPlan {
   };
   const target = frozenBox(boxFromSize(min, turned));
   const union = frozenBox(unionOf(source, target));
-  return Object.freeze({
-    source: frozenBox(source),
-    target,
-    union,
-  });
+  return Object.freeze({ target, union });
 }

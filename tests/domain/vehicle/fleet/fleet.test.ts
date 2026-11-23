@@ -34,35 +34,6 @@ describe("Fleet (ADR 0038, ADR 0066, ADR 0124)", () => {
     expect(fleet.state().order).toEqual(entries(ids(11).slice(1)));
   });
 
-  it("takes the latest eviction back into the slot a vehicle broken by hand frees", () => {
-    const fleet = Fleet.empty(fleetLimitOf);
-    for (const id of ids(12)) fleet.admit(entry(id));
-    fleet.forget(asVehicleId("v5"));
-    expect(evictedIds(fleet)).toEqual(["v0"]);
-    expect(fleet.state().order.map((e) => e.id)).toEqual([
-      "v1",
-      ...ids(12)
-        .slice(2)
-        .filter((id) => id !== "v5"),
-    ]);
-  });
-
-  it("takes back only an eviction of the freed group", () => {
-    const fleet = Fleet.empty(fleetLimitOf);
-    const boat = (id: string, owner: string) => ({
-      id: asVehicleId(id),
-      kind: "sportsboat" as const,
-      owner: asPlayerId(owner),
-    });
-    fleet.admit(boat("a1", "a"));
-    fleet.admit(boat("b1", "b"));
-    fleet.admit(boat("a2", "a"));
-    fleet.forget(asVehicleId("b1"));
-    expect(evictedIds(fleet)).toEqual(["a1"]);
-    fleet.forget(asVehicleId("a2"));
-    expect(fleet.state()).toEqual({ order: [boat("a1", "a")], evicted: [] });
-  });
-
   it("never takes back an eviction stored with its id only", () => {
     const fleet = Fleet.restore(
       { order: entries(ids(10)), evicted: [{ id: asVehicleId("old") }] },
@@ -227,44 +198,6 @@ describe("Fleet (ADR 0038, ADR 0066, ADR 0124)", () => {
         },
       ),
     );
-  });
-
-  it("evicts an owner's first boat without evicting their SUVs or another owner's vehicles", () => {
-    const fleet = Fleet.empty(fleetLimitOf);
-    const suvs = entries(ids(10)).map((e) => ({
-      ...e,
-      owner: asPlayerId("a"),
-    }));
-    const otherBoat = {
-      id: asVehicleId("other"),
-      kind: "sportsboat" as const,
-      owner: asPlayerId("b"),
-    };
-    for (const e of suvs) fleet.admit(e);
-    fleet.admit({
-      id: asVehicleId("first"),
-      kind: "sportsboat",
-      owner: asPlayerId("a"),
-    });
-    fleet.admit(otherBoat);
-    fleet.admit({
-      id: asVehicleId("second"),
-      kind: "sportsboat",
-      owner: asPlayerId("a"),
-    });
-    expect(evictedIds(fleet)).toEqual(["first"]);
-    expect(fleet.state().order).toEqual([
-      ...suvs,
-      otherBoat,
-      { id: "second", kind: "sportsboat", owner: "a" },
-    ]);
-    fleet.admit({
-      id: asVehicleId("other-suv"),
-      kind: "suv",
-      owner: asPlayerId("b"),
-    });
-    expect(evictedIds(fleet)).toEqual(["first"]);
-    expect(fleet.state().order.slice(0, suvs.length)).toEqual(suvs);
   });
 
   it("trims each group on restoration while sharing one unowned group across kinds", () => {

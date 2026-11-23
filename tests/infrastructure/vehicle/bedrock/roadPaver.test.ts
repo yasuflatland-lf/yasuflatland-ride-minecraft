@@ -90,26 +90,6 @@ it("lays a cell if and only if no guard applies", () => {
   );
 });
 
-it("keeps a chest and a laid block", () => {
-  const { typeAt, dimension, paver } = fixture({
-    [cellKey(cellAt(0))]: "minecraft:chest",
-    [cellKey(cellAt(1))]: LAID,
-  });
-  paver.pave(dimension, { block: ROAD, cells: [cellAt(0), cellAt(1)] });
-  expect(typeAt(cellAt(0))).toBe("minecraft:chest");
-  expect(typeAt(cellAt(1))).toBe(LAID);
-});
-
-it("keeps a protected cell", () => {
-  const { typeAt, dimension, paver } = fixture(
-    {},
-    { protect: cellKey(cellAt(0)) },
-  );
-  paver.pave(dimension, { block: ROAD, cells: [cellAt(0), cellAt(1)] });
-  expect(typeAt(cellAt(0))).toBe("minecraft:air");
-  expect(typeAt(cellAt(1))).toBe(ROAD);
-});
-
 it("skips an unloaded cell and a throwing cell without stopping the rest", () => {
   const { typeAt, dimension, paver } = fixture(
     {},

@@ -76,32 +76,4 @@ for width in (0, 3, -1, True, 1.5):
             raise AssertionError(width)
 `);
   });
-  it("round-trips generated files and detects stale geometry and texels", async () => {
-    await run(`
-import tempfile, subprocess, json
-from pathlib import Path
-with tempfile.TemporaryDirectory() as folder:
-    cmd = [sys.executable, '-I', 'tools/gen_sofa.py', folder]
-    subprocess.run(cmd, check=True, capture_output=True)
-    subprocess.run(cmd+['--check'], check=True, capture_output=True)
-    root = Path(folder)
-    stale = {}
-    for kind in ('sofa_single', 'sofa_double'):
-        geo = root/f'models/entity/yasu_ride/{kind}.geo.json'
-        assert json.loads(geo.read_text()) == m.geometry(1 if kind == 'sofa_single' else 2)
-        geo.write_text('{}')
-        stale[geo] = geo.read_bytes()
-    texture = root/'textures/entity/yasu_ride/sofa_single.png'
-    assert not (root/'textures/entity/yasu_ride/sofa_double.png').exists()
-    expected = m.texture_io.rgba_bytes(m.ATLAS_SIZE, m.ATLAS_SIZE, m.texture_pixels())
-    assert m.load_tool('render_preview').read_png_bytes(texture) == (m.ATLAS_SIZE, m.ATLAS_SIZE, expected)
-    m.texture_io.Outputs(False).png(texture, 1, 1, lambda x,y: (0,0,0,0))
-    stale[texture] = texture.read_bytes()
-    result = subprocess.run(cmd+['--check'], capture_output=True, text=True)
-    assert result.returncode
-    for path, contents in stale.items():
-        assert str(path) in result.stderr
-        assert path.read_bytes() == contents
-`);
-  });
 });

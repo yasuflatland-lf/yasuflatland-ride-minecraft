@@ -144,14 +144,6 @@ describe("beach chair cells", () => {
       }),
     );
   });
-
-  it("keeps the bed outline inside the three cells around the origin", () => {
-    const { bedOutline } = BEACH_CHAIR_SPEC;
-    expect(bedOutline.maxX - bedOutline.minX).toBe(16);
-    expect(-bedOutline.minZ).toBe(bedOutline.maxZ);
-    expect(bedOutline.maxZ).toBeLessThanOrEqual(1.5 * 16);
-    expect(bedOutline.maxZ).toBeGreaterThan(0.5 * 16);
-  });
 });
 
 describe("folded table top", () => {

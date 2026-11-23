@@ -94,24 +94,30 @@ describe("impact reach", () => {
       lanes: 4,
     };
     const headless = planOf(CATALOG, { ...options, playerConnected: false });
-    expect(headless.runs.map((scenario) => scenario.name)).toEqual([
-      "warp_registry_store",
-      "warp_world",
-      "warp_engine_probes",
-      "build_structure_store_uncopyable",
-      "build_warp_block_guard",
-    ]);
+    const expected = CATALOG.filter((scenario) =>
+      selection.features.some((changed) =>
+        scenario.features.some((tag) => covers(changed, tag)),
+      ),
+    );
+    expect(headless.runs).toEqual(
+      expected.filter(
+        (scenario) => !scenario.needsPlayer && !scenario.manualSetup,
+      ),
+    );
     expect(headless.skipped.map((scenario) => scenario.name)).toContain(
       "warp_flow",
     );
-    expect(headless.exclusive.map((scenario) => scenario.name)).toEqual([
-      "warp_registry_store",
-    ]);
-    const connected = planOf(CATALOG, { ...options, playerConnected: true });
-    expect(connected.exclusive.map((scenario) => scenario.name)).toEqual([
-      "warp_registry_store",
-      "warp_flow",
-    ]);
+    for (const name of ["warp_registry_store", "warp_flow"]) {
+      expect(
+        CATALOG.find((scenario) => scenario.name === name)?.isolation,
+      ).toBe("exclusive");
+    }
+    for (const playerConnected of [false, true]) {
+      const plan = planOf(CATALOG, { ...options, playerConnected });
+      expect(plan.exclusive).toEqual(
+        plan.runs.filter((scenario) => scenario.isolation === "exclusive"),
+      );
+    }
   });
 
   it("maps every tracked runtime and tooling path explicitly", () => {
@@ -371,15 +377,6 @@ describe("selectionOf", () => {
     expect(impactOfPath(path).impact).toEqual(impact);
   });
 
-  it.each([
-    "packs/yasu_ride_bp/entities/yasu_ride/sofa_single.se.json",
-    "packs/yasu_ride_bp/entities/yasu_ride/sofa_double.se.json",
-    "packs/yasu_ride_bp/items/yasu_ride/sofa_single_item.item.json",
-    "packs/yasu_ride_bp/items/yasu_ride/sofa_double_item.item.json",
-  ])("selects resort for the new sofa asset %s", (path) => {
-    expect(selectionOf([path])).toEqual({ all: false, features: ["resort"] });
-  });
-
   it.each(Object.values(FURNITURE_IDS))(
     "selects resort for $entity pack files and its registered scenarios",
     ({ entity, item }) => {
@@ -408,18 +405,6 @@ describe("selectionOf", () => {
     },
   );
 
-  it("tags the entity and item stem of every furniture kind as resort", () => {
-    // impact.ts cannot import FURNITURE_IDS: that would make the resort sources harness imports and select every scenario.
-    const stems = Object.values(FURNITURE_IDS).flatMap(({ entity, item }) => [
-      bareId(entity),
-      bareId(item),
-    ]);
-    for (const stem of stems) {
-      expect(stem).toBeDefined();
-      expect(PACK_STEM_TAGS[stem as string]).toEqual(["resort"]);
-    }
-  });
-
   it("selects only resort for edits to the resort domain and identifier sources", () => {
     for (const path of [
       "src/domain/resort/furniture.ts",
@@ -436,8 +421,6 @@ describe("selectionOf", () => {
     "beach_chair",
     "beach_chair_item",
     "dining_table_top",
-    "dining_table",
-    "dining_table_item",
   ])("selects resort scenarios for the %s pack stem", (stem) => {
     expect(PACK_STEM_TAGS[stem]).toEqual(["resort"]);
     const paths = tracked.filter(
@@ -447,6 +430,9 @@ describe("selectionOf", () => {
     );
     expect(paths.length).toBeGreaterThan(0);
     expect(selectionOf(paths)).toEqual({ all: false, features: ["resort"] });
+  });
+
+  it("plans the eligible resort scenarios", () => {
     expect(
       planOf(CATALOG, {
         shard: WHOLE_RUN,

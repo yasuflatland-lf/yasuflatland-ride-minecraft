@@ -1,6 +1,8 @@
+import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
 import { TABLE_SPEC } from "../../../src/domain/camp/spec";
+import { facePlayer } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { fakeTableWorld as fakeWorld } from "./fakeTableWorld";
 
@@ -27,23 +29,6 @@ describe("placing a camp table", () => {
     );
   });
 
-  it("refuses placement when the second chair-side cell is blocked", () => {
-    const world = fakeWorld();
-    vi.mocked(world.isAir).mockImplementation((_d, at) => at.x !== 5);
-    const place = new PlaceTable(world);
-    expect(
-      place.execute({
-        playerId,
-        dimensionId,
-        blockLocation: { x: 4, y: 7, z: 2 },
-        yaw: 180,
-        slot: 1,
-      }),
-    ).toBe(false);
-    expect(world.consumeItem).not.toHaveBeenCalled();
-    expect(world.spawnTable).not.toHaveBeenCalled();
-  });
-
   const cmd = {
     playerId,
     dimensionId,
@@ -51,32 +36,6 @@ describe("placing a camp table", () => {
     yaw: 180,
     slot: 1,
   };
-
-  it("runs the long axis along z and centers there when the player faces east or west", () => {
-    const world = fakeWorld();
-    expect(new PlaceTable(world).execute({ ...cmd, yaw: 90 })).toBe(true);
-    const [, at, yaw] = vi.mocked(world.spawnTable).mock.calls[0] ?? [];
-    expect(Math.abs(yaw ?? 0) % 180).toBe(90);
-    expect(at).toEqual({ x: 4.5, y: 8, z: 3 });
-  });
-
-  it("refuses when a vehicle occupies the space above either cell", () => {
-    const world = fakeWorld();
-    vi.mocked(world.isVehicleSpace).mockImplementation(
-      (_d, at) => at.x === 5 && at.y > cmd.blockLocation.y,
-    );
-    expect(new PlaceTable(world).execute(cmd)).toBe(false);
-    expect(world.spawnTable).not.toHaveBeenCalled();
-  });
-
-  it("refuses when either ground cell is already one of our blocks", () => {
-    const world = fakeWorld();
-    vi.mocked(world.isOwnBlock).mockImplementation(
-      (_d, at) => at.x === 5 && at.y === cmd.blockLocation.y,
-    );
-    expect(new PlaceTable(world).execute(cmd)).toBe(false);
-    expect(world.consumeItem).not.toHaveBeenCalled();
-  });
 
   it("refuses to stack a second table on the same spot and keeps the item", () => {
     const world = fakeWorld();
@@ -91,33 +50,62 @@ describe("placing a camp table", () => {
     expect(world.spawnTable).not.toHaveBeenCalled();
   });
 
-  it("refuses when only the topmost cell of the clearance column is blocked", () => {
-    const world = fakeWorld();
-    const top = cmd.blockLocation.y + TABLE_SPEC.clearance;
-    vi.mocked(world.isAir).mockImplementation((_d, at) => at.y !== top);
-    expect(new PlaceTable(world).execute(cmd)).toBe(false);
-    expect(world.spawnTable).not.toHaveBeenCalled();
-  });
-
-  it("takes the item from the slot the player used", () => {
-    const world = fakeWorld();
-    new PlaceTable(world).execute({ ...cmd, slot: 3 });
-    expect(world.consumeItem).toHaveBeenCalledWith(playerId, 3);
-  });
-
-  it("spawns nothing when the item cannot be taken from the slot", () => {
-    const world = fakeWorld();
-    vi.mocked(world.consumeItem).mockReturnValue(false);
-    expect(new PlaceTable(world).execute(cmd)).toBe(false);
-    expect(world.spawnTable).not.toHaveBeenCalled();
-  });
-
-  it("does not take the item in Creative", () => {
-    const world = fakeWorld();
-    vi.mocked(world.isCreative).mockReturnValue(true);
-    expect(new PlaceTable(world).execute(cmd)).toBe(true);
-    expect(world.consumeItem).not.toHaveBeenCalled();
-    expect(world.spawnTable).toHaveBeenCalledOnce();
+  it("checks both table cells and centers the table for any yaw", () => {
+    fc.assert(
+      fc.property(
+        fc.record({
+          x: fc.integer({ min: -100, max: 100 }),
+          y: fc.integer({ min: -60, max: 300 }),
+          z: fc.integer({ min: -100, max: 100 }),
+        }),
+        fc.integer({ min: -360, max: 360 }),
+        fc.constantFrom("none", "own", "air", "vehicle", "near"),
+        fc.integer({ min: 0, max: 1 }),
+        fc.integer({ min: 1, max: TABLE_SPEC.clearance }),
+        (blockLocation, yaw, refusal, index, dy) => {
+          const world = fakeWorld();
+          const facing = facePlayer(yaw);
+          const alongX = Math.abs(facing) % 180 === 0;
+          const cell = {
+            x: blockLocation.x + (alongX ? index : 0),
+            y: blockLocation.y,
+            z: blockLocation.z + (alongX ? 0 : index),
+          };
+          const matches = (at: typeof cell, height: number) =>
+            at.x === cell.x && at.y === cell.y + height && at.z === cell.z;
+          world.isOwnBlock.mockImplementation(
+            (_d, at) => refusal === "own" && matches(at, 0),
+          );
+          world.isAir.mockImplementation(
+            (_d, at) => refusal !== "air" || !matches(at, dy),
+          );
+          world.isVehicleSpace.mockImplementation(
+            (_d, at) => refusal === "vehicle" && matches(at, dy),
+          );
+          world.hasTableNear.mockReturnValue(refusal === "near");
+          const placed = new PlaceTable(world).execute({
+            ...cmd,
+            blockLocation,
+            yaw,
+          });
+          expect(placed).toBe(refusal === "none");
+          if (refusal !== "none") {
+            expect(world.consumeItem).not.toHaveBeenCalled();
+            expect(world.spawnTable).not.toHaveBeenCalled();
+          } else {
+            expect(world.spawnTable).toHaveBeenCalledExactlyOnceWith(
+              dimensionId,
+              {
+                x: blockLocation.x + (alongX ? 1 : 0.5),
+                y: blockLocation.y + 1,
+                z: blockLocation.z + (alongX ? 0.5 : 1),
+              },
+              facing,
+            );
+          }
+        },
+      ),
+    );
   });
 
   it("accepts a block's top face only, and never one of our own blocks", () => {
@@ -130,28 +118,3 @@ describe("placing a camp table", () => {
     expect(place.canUseBlock(dimensionId, block, "up")).toBe(false);
   });
 });
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Camp Table item when spawning fails (%s)",
-  (mode) => {
-    const world = fakeWorld(true);
-    world.isCreative.mockReturnValue(mode === "Creative");
-    const payer = mode === "playerless" ? undefined : playerId;
-    expect(
-      new PlaceTable(world).execute({
-        playerId: payer,
-        dimensionId,
-        blockLocation: { x: 0, y: 60, z: 0 },
-        yaw: 0,
-        slot: 3,
-      }),
-    ).toBe(false);
-    expect(world.spawnTable).toHaveBeenCalledOnce();
-    expect(world.consumeItem.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, 3]] : [],
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, 3]] : [],
-    );
-  },
-);

@@ -1,6 +1,6 @@
 import { system } from "@minecraft/server";
 import { AimHeight } from "../../application/build/aimHeight";
-import { CancelFlow } from "../../application/build/cancelFlow";
+import { BackToAiming } from "../../application/build/backToAiming";
 import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
@@ -20,7 +20,6 @@ import { ConfirmTerrain } from "../../application/build/confirmTerrain";
 import { CopyBox } from "../../application/build/copyBox";
 import { CopySelection } from "../../application/build/copySelection";
 import { CutBox } from "../../application/build/cutBox";
-import { DescribeBuild } from "../../application/build/describeBuild";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
@@ -49,7 +48,7 @@ import { BUILD_SPEC } from "../../domain/build/spec";
 import { Debounces } from "../../domain/shared/debounce";
 import type { PlayerId } from "../../domain/shared/ids";
 import { consoleLogger } from "../shared/consoleLogger";
-import { BedrockAimReader } from "./bedrock/bedrockAimReader";
+import { type AimOverride, BedrockAimReader } from "./bedrock/bedrockAimReader";
 import { BedrockBlockWorld } from "./bedrock/bedrockBlockWorld";
 import { BedrockBuildPlayers } from "./bedrock/bedrockBuildPlayers";
 import { BedrockFacingReader } from "./bedrock/bedrockFacingReader";
@@ -64,26 +63,17 @@ import { registerOutlineTick } from "./bedrock/handlers/outlineTick";
 import { registerPasteControls } from "./bedrock/handlers/pasteControls";
 import { registerSessions } from "./bedrock/handlers/sessions";
 import { registerTapTarget } from "./bedrock/handlers/tapTarget";
-import { TestAimReader } from "./bedrock/handlers/testAim";
-import { registerTestTap } from "./bedrock/handlers/testCorner";
-import { recordMessages, registerTestEdit } from "./bedrock/handlers/testEdit";
-import { registerTestInput } from "./bedrock/handlers/testInput";
-import { registerTestMode } from "./bedrock/handlers/testMode";
-import { registerTestPress } from "./bedrock/handlers/testPress";
-import { registerTestTapTarget } from "./bedrock/handlers/testTapTarget";
 import { registerWand } from "./bedrock/handlers/wand";
 import type { BlockPressContext } from "./bedrock/handlers/wandPress";
-import { MenuChoices } from "./bedrock/menuChoices";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
 export function installBuild(deps: {
   isProtected: SpaceCheck;
   isExcludedEntityType: (typeId: string) => boolean;
   uncopyableBlockTypes: readonly string[];
-}): void {
+}) {
   const repo = new InMemorySessionRepository();
-  const recorded = recordMessages(new BedrockFeedback());
-  const feedback = recorded.feedback;
+  const feedback = new BedrockFeedback();
   const ports = {
     blocks: new BedrockBlockWorld(deps),
     structures: new BedrockStructureStore(
@@ -92,12 +82,13 @@ export function installBuild(deps: {
     ),
   };
   const { blocks } = ports;
-  const bedrockAim = new BedrockAimReader();
-  const aim = new TestAimReader(bedrockAim);
+  const aimOverrides = new Map<PlayerId, AimOverride>();
+  const aim = new BedrockAimReader(aimOverrides);
+  const onPlayerLeave = new Set<(id: PlayerId) => void>();
   const tapTargets = new BedrockTapTargets();
   system.run(() => tapTargets.sweep());
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
-  const cancel = new CancelFlow(repo);
+  const cancel = new BackToAiming(repo);
   const pasteDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const rotateDebounce = new Debounces<PlayerId>(
@@ -247,34 +238,28 @@ export function installBuild(deps: {
     pasteDebounce,
     rotateDebounce,
     undoDebounce,
-    (id) => bedrockAim.setTouchOverride(id, false),
+    (id) => {
+      for (const listener of onPlayerLeave) listener(id);
+    },
   );
-  registerTestInput(bedrockAim);
-  registerTestTapTarget(tapTargets, pressTapTarget);
-  registerTestTap(
+  registerEditTick(jobs);
+  return {
     repo,
     feedback,
     blocks,
-    menuCases.openSelectionMenu,
     aim,
-    cases.aimHeight,
-  );
-  registerTestMode(modes, repo);
-  registerEditTick(jobs);
-  const describe = new DescribeBuild(repo);
-  registerTestPress(routes, describe, recorded);
-  registerTestEdit(
-    new MenuChoices(repo, menuCases),
-    menuCases.setHeight,
+    aimOverrides,
+    preview,
+    tapTargets,
+    pressTapTarget,
+    modes,
+    routes,
+    menuCases,
     pressPasteAim,
-    cases.undo,
     pressUndo,
-    describe,
-    recorded,
-    repo,
     endSession,
-    ports.structures,
+    structures: ports.structures,
     rotatePasteAim,
-    { aim, preview },
-  );
+    onPlayerLeave,
+  };
 }

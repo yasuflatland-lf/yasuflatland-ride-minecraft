@@ -32,7 +32,7 @@ entity at the bottom centre of local `(0, 8, 0)`, the rear wall's middle cell.
 Set `TENT_SPEC` width 7, depth 9, body headroom 3, tarp headroom 2, and lean 1.2.
 The lean matches the photos' ground 7 x 6 and ridge about 4.6 x 3.6 blocks.
 
-Define the intended shell through the pure `tentShellAt(height)` function in
+Define the body shell through the pure `tentShellAt(height)` function in
 `tentLayout.ts`. A cell centre is `(x, depth + 0.5, layer + 0.5)`; its x interval
 is x +/-0.5 and its depth interval is depth..depth+1. The body ground edges are
 x +/-3.5 and depth 3..9. Its top is `H = frontRoomHeadroom + 1 = 4`. At height y,
@@ -40,7 +40,8 @@ the side half width is `3.5 - lean*y/H`, the front edge is `3 + lean*y/H`, and
 the rear edge is `9 - lean*y/H`.
 
 The tarp has no side-wall cells. Its half width is 3.5 and its top is
-`tarpHeadroom + 1 = 3`. Its ground depth is 0..3; its rear edge meets the body's
+3 blocks. The tests use these dimensions from `tests/support/packContract.ts`.
+Its ground depth is 0..3; its rear edge meets the body's
 inclined front face at each height. This extends the nominal 0..3 tarp volume
 behind depth 3 above ground: the required bridge cell at depth 3 has centre 3.5,
 which would be outside both a strictly rectangular 0..3 tarp and the body at
