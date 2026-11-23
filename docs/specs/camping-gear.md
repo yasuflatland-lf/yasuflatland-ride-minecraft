@@ -215,6 +215,15 @@
 - Implementation: `src/domain/camp/dutchOven.ts` (`initialSimmering`); `src/application/camp/dutchOven.ts`; `src/infrastructure/camp/bedrock/handlers/dutchOven.ts`; `src/infrastructure/camp/bedrock/bedrockDutchOvenWorld.ts`; `packs/yasu_ride_rp/render_controllers/yasu_ride/dutch_oven.rc.json`; `packs/yasu_ride_rp/animations/yasu_ride/dutch_oven.anim.json`
 - Verification: `tests/application/camp/dutchOven.test.ts` "toggles each oven only after an idle cooldown across arbitrary presses"; `tests/infrastructure/camp/dutchOven.test.ts` "cancels an oven press holding %s and defers the lid toggle", "reads the persisted lid property and writes it with sound without changing the host", and "emits bubbles and steam only for simmering ovens". Not verified: state across a real server restart, touch timing, audible sound, or the rendered stew; `dutch_oven_lid_toggle` was not run here.
 
+### Shared press cooldown
+
+- Applies to: Camp gear switch cooldowns.
+- Rule: **6.** Each Dutch Oven, Gas Lantern and tent lantern shares its switch cooldown across players. A refused repeat press restarts the idle period, so another player's press during that period can also be refused.
+- Agreement: Proposed
+- Basis: `src/domain/shared/debounce.ts` (`Debounces.press`); `src/application/camp/dutchOven.ts` (`toggleLid`); `src/application/camp/gasLantern.ts` (`switch`); `src/application/camp/switchLantern.ts` (`execute`). [0191](../adr/0191-press-camp-gear-without-the-light-tool.md).
+- Implementation: `src/domain/shared/debounce.ts`; `src/application/camp/dutchOven.ts`; `src/application/camp/gasLantern.ts`
+- Verification: `tests/domain/shared/debounce.test.ts` "counts presses from the previous recorded press, including rejected presses"; `tests/application/camp/dutchOven.test.ts` and `tests/application/camp/gasLantern.test.ts` cover the shared idle cooldown.
+
 ### Oven take-back and uncovered pits
 
 - Applies to: Oven hits and the periodic repair of pit coverage.
@@ -371,7 +380,7 @@
 ### Roof tent rain ceiling
 
 - Applies to: Occupied roof tents, including SUV, camper, and ground placement.
-- Rule: Entities cannot occlude Bedrock's per-column rain. While occupied, the tent lays the existing `yasu_ride:tent_ceiling` over columns overlapping its yaw-rotated shell footprint, at the first integer cell above the ridge. The ladder property selects the approximately 3.9 by 2.4 SUV footprint; otherwise the footprint is 2 by 2.5. Only air outside vehicle space is filled; missing, unloaded, and non-air cells are skipped. Successfully laid cells merge into a JSON entity dynamic property and a private in-memory record. Leaving, removal cleanup, unload bookkeeping, death, logout, dimension change, and offline grace expiry clear only recorded cells still holding the ceiling block, preserving replacements. The 20-tick restore scan re-lays occupied tents and clears unoccupied stray ceilings after reload or restart. Empty unoccupied tents perform no block reads. Recorded ceiling cells have the shared Creative break guard and claim no camp space. There are no pack or manifest changes.
+- Rule: Entities cannot occlude Bedrock's per-column rain. While occupied, the tent lays the existing `yasu_ride:tent_ceiling` over columns overlapping its yaw-rotated shell footprint, at the first integer cell above the ridge. The ladder property selects the approximately 3.9 by 2.4 SUV footprint; otherwise the footprint is 2 by 2.5. Only air outside vehicle space is filled; missing, unloaded, and non-air cells are skipped. Successfully laid cells merge into a JSON entity dynamic property and a private in-memory record. Leaving, removal cleanup, unload bookkeeping, death, logout, dimension change, and offline grace expiry clear only recorded cells still holding the ceiling block, preserving replacements. Cells in unloaded chunks stay in the in-memory record and the dynamic property of the loaded tent. The 20-tick restore scan re-lays occupied tents and retries cleanup of unoccupied ceilings, including saved records after reload or restart. Empty unoccupied tents perform no block reads. Recorded ceiling cells have the shared Creative break guard and claim no camp space. There are no pack or manifest changes.
 - Agreement: Proposed
 - Basis: [0207](../adr/0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md) Decision; [0131](../adr/0131-pitch-a-tent-in-the-camp.md) Shelter and ceiling block reuse; [0235](../adr/0235-share-convex-rain-ceiling-geometry-and-placement.md) shared footprint and rain ceiling extraction.
 - Implementation: `src/domain/shared/footprint.ts`; `src/infrastructure/shared/laidBlockLayer.ts`; `src/infrastructure/camp/bedrock/roofTentCeiling.ts`; `src/domain/camp/roofTent/ceiling.ts`; `src/application/camp/ports/roofTentOccupant.ts`; `src/infrastructure/camp/identifiers.ts`; `src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld.ts`; `src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup.ts`; `src/infrastructure/camp/install.ts`; `src/infrastructure/camp/roofTent/install.ts`; `src/infrastructure/camp/tent/install.ts`.
@@ -455,6 +464,8 @@ No gear dimensions or clearance thresholds are relaxed to reproduce the spike es
 | `binoculars`       |      4.999 |      4.732 | no     | no   |
 
 ## Open issues
+
+- F-CAMP-306: Fire Pit double toggling remains an open issue.
 
 - ADR [0247](../adr/0247-precise-camping-gear-rotations-textures-and-cube-budget.md) provisionally permits registered yaw-plus-local-pitch gear assemblies (no three-axis cubes), with `COMPOUND_TILTS = False` selecting yaw-only steps of at most 0.5 px; `tools/gear_kit.py` implements the rotation rule and `COMPOUND_TILTS`; `tools/gen_camping_gear.py` accepts compound cubes that match an assembly registered through `gear_registry.assemblies()`; each model supplies its final assembly members through `GearModel.assemblies`, including the Macrame Hanging Planter's `macrame_planter_net`.
 - The tiled Macrame Hanging Planter uses atlas cell 10 and 256 cubes in total, exactly at the per-item budget (`MAX_CUBES_PER_ITEM = 256`), including 231 in the registered `macrame_planter_net` assembly (yaw plus local pitch, no roll). It is centered at 5 x 10 px with y 0..10 and uses the `alpha_test` decor material for leaf cutouts; pair blocks use one shared `alpha_test` material for standing-item cutouts. Implementation: `tools/gear_items/macrame_planter.py`. Verification: `tests/packs/macrameplanter.test.ts`.

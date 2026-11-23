@@ -304,8 +304,11 @@ it.each(["tooLarge", "unreadable"] as const)(
       expect(e.session.hasHistory).toBe(false);
       expect(e.feedback.messages).toEqual([
         {
-          message: "rotateTooLarge",
-          count: volume(planRotationAboutCenter(wideBox).union),
+          message: refusal === "tooLarge" ? "rotateTooLarge" : "copyUnreadable",
+          count:
+            refusal === "tooLarge"
+              ? volume(planRotationAboutCenter(wideBox).union)
+              : undefined,
         },
       ]);
     }

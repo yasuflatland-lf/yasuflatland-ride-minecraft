@@ -45,6 +45,8 @@ import {
   BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../identifiers";
+import { resortGearCells } from "./resortGearCells";
+
 export class BedrockBeachChairWorld
   extends BedrockPaidGroundCells
   implements
@@ -153,6 +155,7 @@ export class BedrockBeachChairWorld
   isCampSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isCampSpace(dimension, cell);
   }
+  resortGearCells = resortGearCells;
   spawn(
     dimension: DimensionId,
     pose: BeachChairPose,

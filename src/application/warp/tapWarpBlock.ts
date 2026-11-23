@@ -3,6 +3,7 @@ import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { ticks } from "../../domain/shared/ticks";
 import { WARP_SPEC } from "../../domain/warp/spec";
+import { handleHit } from "../shared/takeBackByHits";
 import type { WarpBlockTaps } from "./ports/blockTaps";
 import type { WarpTicks } from "./ports/ticks";
 import type { RemoveWarpPoint } from "./removeWarpPoint";
@@ -13,10 +14,7 @@ import type { RemoveWarpPoint } from "./removeWarpPoint";
  * (ADR 0249).
  */
 export class TapWarpBlock {
-  private readonly counters = new HitCounters<string>({
-    hits: WARP_SPEC.breakTaps,
-    resetTicks: WARP_SPEC.tapWindowTicks,
-  });
+  private readonly counters = new HitCounters<string>(WARP_SPEC.breakRule);
   /** Per block key, each player's latest unsettled tap tick. */
   private readonly lastTaps = new Map<string, Map<PlayerId, number>>();
 
@@ -37,20 +35,28 @@ export class TapWarpBlock {
     const effects = this.blocks.at(playerId, dimension, cell);
     if (!effects) return false;
     const key = `${dimension}:${cellKey(cell)}`;
-    this.counters.forgetStale(now);
-    const result = this.counters.hit(key, now);
-    if (result.broken) {
-      this.lastTaps.delete(key);
-      effects.remove();
-      effects.drop();
+    const { broken } = handleHit(
+      this.counters,
+      key,
+      now,
+      {
+        remove: () => {
+          this.lastTaps.delete(key);
+          effects.remove();
+        },
+        drop: () => effects.drop(),
+        showRemaining: (left) => effects.showRemaining(left),
+      },
+      "removeThenDrop",
+    );
+    if (broken) {
       this.remove.run({ dimension, cell });
       return false;
     }
-    effects.showRemaining(result.hitsLeft);
     const taps = this.lastTaps.get(key) ?? new Map<PlayerId, number>();
     taps.set(playerId, now);
     this.lastTaps.set(key, taps);
-    await this.ticks.wait(ticks(WARP_SPEC.tapWindowTicks + 1));
+    await this.ticks.wait(ticks(WARP_SPEC.breakRule.resetTicks + 1));
     const pending = this.lastTaps.get(key);
     if (pending?.get(playerId) !== now) return false;
     pending.delete(playerId);

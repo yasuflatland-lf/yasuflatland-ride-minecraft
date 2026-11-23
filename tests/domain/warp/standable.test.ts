@@ -1,21 +1,22 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
-  isStandableLanding,
-  type LandingSample,
-} from "../../../src/domain/warp/landing";
+  isStandable,
+  type StandSample,
+} from "../../../src/domain/shared/standing";
+import { WARP_LANDING_POLICY } from "../../../src/domain/warp/landing";
 
-const stone: LandingSample = {
+const stone: StandSample = {
   typeId: "minecraft:stone",
   isAir: false,
   isLiquid: false,
-  solid: true,
+  solidTop: true,
 };
-const air: LandingSample = {
+const air: StandSample = {
   typeId: "minecraft:air",
   isAir: true,
   isLiquid: false,
-  solid: false,
+  solidTop: false,
 };
 const sample = fc.record({
   typeId: fc.constantFrom(
@@ -26,24 +27,20 @@ const sample = fc.record({
   ),
   isAir: fc.boolean(),
   isLiquid: fc.boolean(),
-  solid: fc.boolean(),
+  solidTop: fc.boolean(),
 });
 
-it("requires solid, dry, non-air support regardless of the body and head", () => {
+it("preserves warp standability for non-hazardous blocks", () => {
   fc.assert(
     fc.property(sample, sample, sample, (floor, body, head) => {
-      if (!floor.solid || floor.isAir || floor.isLiquid)
-        expect(isStandableLanding(floor, body, head)).toBe(false);
-    }),
-  );
-});
-it("accepts exactly air or dry non-solid body and head cells above safe support", () => {
-  fc.assert(
-    fc.property(sample, sample, (body, head) => {
-      const passable = (cell: LandingSample) =>
-        cell.isAir || (!cell.isLiquid && !cell.solid);
-      expect(isStandableLanding(stone, body, head)).toBe(
-        passable(body) && passable(head),
+      const passable = (cell: StandSample) =>
+        cell.isAir || (!cell.isLiquid && !cell.solidTop);
+      expect(isStandable(body, head, floor, WARP_LANDING_POLICY)).toBe(
+        floor.solidTop &&
+          !floor.isAir &&
+          !floor.isLiquid &&
+          passable(body) &&
+          passable(head),
       );
     }),
   );
@@ -62,13 +59,13 @@ it("rejects every hazard in any of the three cells regardless of its flags", () 
       fc.integer({ min: 0, max: 2 }),
       sample,
       (hazard, index, flags) => {
-        const cells: [LandingSample, LandingSample, LandingSample] = [
+        const cells: [StandSample, StandSample, StandSample] = [
+          air,
+          air,
           stone,
-          air,
-          air,
         ];
         cells[index] = { ...flags, typeId: `minecraft:${hazard}` };
-        expect(isStandableLanding(cells[0], cells[1], cells[2])).toBe(false);
+        expect(isStandable(...cells, WARP_LANDING_POLICY)).toBe(false);
       },
     ),
   );
@@ -76,11 +73,12 @@ it("rejects every hazard in any of the three cells regardless of its flags", () 
 it("accepts a full warp block floor and passable grass but rejects a solid body", () => {
   const warp = { ...stone, typeId: "yasu_build:warp_block" };
   expect(
-    isStandableLanding(
-      warp,
+    isStandable(
       { ...air, typeId: "minecraft:short_grass", isAir: false },
       air,
+      warp,
+      WARP_LANDING_POLICY,
     ),
   ).toBe(true);
-  expect(isStandableLanding(warp, stone, air)).toBe(false);
+  expect(isStandable(stone, air, warp, WARP_LANDING_POLICY)).toBe(false);
 });
