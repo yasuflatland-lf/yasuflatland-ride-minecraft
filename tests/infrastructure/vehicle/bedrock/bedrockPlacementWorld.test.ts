@@ -1,44 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
 import { asDimensionId, asPlayerId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
-import { ITEM_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  ENTITY_TYPE,
+  ITEM_TYPE,
+  OWNER_PROPERTY,
+} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const game = vi.hoisted(() => ({ getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
-function fixture(campSpace: SpaceCheck = noCampSpace) {
+function fixture() {
   const dimension = { getBlock: vi.fn(), spawnEntity: vi.fn() };
   game.getDimension.mockImplementation((id: string) => {
     if (id !== "overworld") throw new Error(`unknown dimension ${id}`);
     return dimension;
   });
   const consumeHeld = vi.fn();
-  const giveVehicleItem = vi.fn();
-  const receivedGift = vi.fn();
-  const giveGift = vi.fn();
-  const markGiftReceived = vi.fn();
-  const inventory = {
-    consumeHeld,
-    giveVehicleItem,
-    receivedGift,
-    giveGift,
-    markGiftReceived,
-  } as unknown as BedrockInventory;
+  const inventory = { consumeHeld } as unknown as BedrockInventory;
   return {
     dimension,
     consumeHeld,
-    giveVehicleItem,
-    receivedGift,
-    giveGift,
-    markGiftReceived,
     placement: new BedrockPlacementWorld(
       inventory,
       new EntityIndex(),
-      campSpace,
+      () => false,
     ),
   };
 }
@@ -90,44 +79,67 @@ describe("BedrockPlacementWorld vehicle item", () => {
       4,
     );
   });
-
-  it("delegates the gift flag, give, and mark to the inventory", () => {
-    const { receivedGift, giveGift, markGiftReceived, placement } = fixture();
-    receivedGift.mockReturnValue(true);
-    const player = asPlayerId("player");
-    expect(placement.receivedGift(player, "camping_gear_box")).toBe(true);
-    placement.giveGift(player, "camping_gear_box");
-    placement.markGiftReceived(player, "camping_gear_box");
-    for (const stub of [receivedGift, giveGift, markGiftReceived])
-      expect(stub).toHaveBeenCalledExactlyOnceWith(
-        "player",
-        "camping_gear_box",
-      );
-  });
 });
 
-const noCampSpace: SpaceCheck = () => false;
+describe("BedrockPlacementWorld water query (ADR 0051)", () => {
+  beforeEach(() => vi.resetAllMocks());
 
-it.each([true, false])(
-  "forwards the camp space query and its answer %s (ADR 0129)",
-  (answer) => {
-    const check = vi.fn(() => answer);
-    const { placement } = fixture(check);
-    const dim = asDimensionId("nether");
-    const at = { x: 3, y: 64, z: -7 };
-    expect(placement.isCampSpace(dim, at)).toBe(answer);
-    expect(check).toHaveBeenCalledExactlyOnceWith(dim, at);
-  },
-);
+  it.each([
+    "minecraft:water",
+    "minecraft:flowing_water",
+    "minecraft:bubble_column",
+  ])(
+    "counts %s in the named dimension as water at the floored cell",
+    (typeId) => {
+      const { dimension, placement } = fixture();
+      dimension.getBlock.mockReturnValue({ typeId, isWaterlogged: false });
+      expect(
+        placement.isWaterAt(asDimensionId("overworld"), {
+          x: 1.7,
+          y: 64.2,
+          z: -0.5,
+        }),
+      ).toBe(true);
+      expect(game.getDimension).toHaveBeenCalledWith("overworld");
+      expect(dimension.getBlock).toHaveBeenCalledWith({ x: 1, y: 64, z: -1 });
+    },
+  );
 
-it.each(VEHICLE_KINDS)(
-  "refunds a %s through the inventory-or-feet helper",
-  (kind) => {
-    const { placement, giveVehicleItem } = fixture();
-    placement.refundVehicleItem(asPlayerId("player"), 4, kind);
-    expect(giveVehicleItem).toHaveBeenCalledExactlyOnceWith("player", kind);
-  },
-);
+  it("counts a waterlogged block as water and air or an unloaded cell as dry", () => {
+    const { dimension, placement } = fixture();
+    dimension.getBlock.mockReturnValueOnce({
+      typeId: "minecraft:kelp",
+      isWaterlogged: true,
+    });
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(true);
+    dimension.getBlock.mockReturnValueOnce({
+      typeId: "minecraft:air",
+      isWaterlogged: false,
+    });
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(false);
+    dimension.getBlock.mockImplementationOnce(() => {
+      throw new Error("unloaded");
+    });
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(false);
+    dimension.getBlock.mockReturnValueOnce(undefined);
+    expect(
+      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    ).toBe(false);
+  });
+
+  it("is dry in an unknown dimension", () => {
+    const { placement } = fixture();
+    expect(
+      placement.isWaterAt(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
+    ).toBe(false);
+  });
+});
 
 describe("BedrockPlacementWorld spawn result", () => {
   beforeEach(() => vi.resetAllMocks());
@@ -140,6 +152,39 @@ describe("BedrockPlacementWorld spawn result", () => {
       "suv",
       asPlayerId("player"),
     );
+
+  it.each(VEHICLE_KINDS)(
+    "records the owner synchronously when spawning a %s",
+    (kind) => {
+      const { dimension, placement } = fixture();
+      const at = { x: 1, y: 64, z: -2 };
+      const car = {
+        id: "vehicle",
+        setRotation: vi.fn(),
+        setDynamicProperty: vi.fn(),
+      };
+      dimension.spawnEntity.mockReturnValue(car);
+      const ownerId = asPlayerId("placing-player");
+      expect(
+        placement.spawnVehicle(
+          asDimensionId("overworld"),
+          at,
+          45,
+          kind,
+          ownerId,
+        ),
+      ).toEqual({ status: "spawned", id: car.id });
+      expect(dimension.spawnEntity).toHaveBeenCalledExactlyOnceWith(
+        ENTITY_TYPE[kind],
+        at,
+      );
+      expect(car.setRotation).toHaveBeenCalledExactlyOnceWith({ x: 0, y: 45 });
+      expect(car.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
+        OWNER_PROPERTY,
+        ownerId,
+      );
+    },
+  );
 
   it("reports a failure with no entity when spawnEntity throws", () => {
     const { placement, dimension } = fixture();

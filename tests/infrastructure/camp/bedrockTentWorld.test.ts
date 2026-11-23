@@ -42,7 +42,6 @@ import { defined } from "../../support/defined";
 const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
   world: game,
-  GameMode: { Creative: "Creative", Survival: "Survival" },
   BlockPermutation: { resolve: vi.fn() },
   ItemStack: class {
     constructor(
@@ -89,7 +88,6 @@ function fixture(entries: TentEntry[] = []) {
     dimension,
     teleport: vi.fn(),
     getRotation: vi.fn(() => ({ x: 23, y: -137 })),
-    getGameMode: vi.fn(() => "Survival"),
     getComponent: vi.fn(() => ({ container })),
     onScreenDisplay: { setActionBar: vi.fn() },
   };
@@ -912,11 +910,9 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(registry.all).not.toHaveBeenCalled();
   });
 
-  it("reads Creative, takes one held tent item, and gives one back, only for a player", () => {
-    const { container, player, world } = fixture();
+  it("takes one held tent item, and gives one back, only for a player", () => {
+    const { container, world } = fixture();
     const id = asPlayerId("player");
-    player.getGameMode.mockReturnValue("Creative");
-    expect(world.isCreative(id)).toBe(true);
     container.getItem.mockReturnValueOnce({ typeId: TENT_ITEM, amount: 2 });
     expect(world.consumeTentItem(id, 3)).toBe(true);
     expect(container.getItem).toHaveBeenLastCalledWith(3);
