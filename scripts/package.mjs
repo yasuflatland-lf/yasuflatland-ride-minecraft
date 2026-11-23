@@ -1,8 +1,17 @@
 // Bundle the built Behavior Pack and Resource Pack into dist/yasuflatland-ride-<version>.mcaddon.
 // Both test packs are left out because their scripts and assets belong in the dev world only.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
+import { join, resolve } from "node:path";
+import { bundleMain } from "./build.mjs";
 import { generatedStatus } from "./generated-files.mjs";
 
 const BP = "yasu_ride_bp";
@@ -60,10 +69,23 @@ if (expected && expected !== version) {
 }
 
 mkdirSync("dist", { recursive: true });
-const out = resolve(`dist/yasuflatland-ride-${version}.mcaddon`);
-rmSync(out, { force: true });
-execFileSync("zip", ["-r", "-X", "-q", out, BP, RP, "-x", "*.DS_Store"], {
-  cwd: "packs",
-  stdio: "inherit",
-});
+const archive = `yasuflatland-ride-${version}.mcaddon`;
+const out = resolve("dist", archive);
+const stage = mkdtempSync(resolve("dist", "stage-"));
+try {
+  for (const pack of [BP, RP]) {
+    cpSync(join("packs", pack), join(stage, pack), { recursive: true });
+  }
+  await bundleMain({
+    outfile: join(stage, BP, "scripts/main.js"),
+    testHooks: false,
+  });
+  execFileSync("zip", ["-r", "-X", "-q", archive, BP, RP, "-x", "*.DS_Store"], {
+    cwd: stage,
+    stdio: "inherit",
+  });
+  renameSync(join(stage, archive), out);
+} finally {
+  rmSync(stage, { recursive: true, force: true });
+}
 console.log(`packaged ${out}`);
