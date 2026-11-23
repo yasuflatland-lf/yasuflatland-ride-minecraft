@@ -12,7 +12,7 @@ import {
 } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
 import { MOTION } from "../../motion/constants";
-import { DOCK, heldStep, pushesStick, StillTimer } from "../../motion/dock";
+import { heldStep, pushesStick, StillTimer } from "../../motion/dock";
 import {
   DockedResend,
   dockCommands,
@@ -33,6 +33,7 @@ import {
 } from "../../motion/motion";
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import { DRIVER_SEAT, seatWorldPositions } from "../../seats";
+import { SPEC } from "../../spec";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
 import {
@@ -323,7 +324,7 @@ export class SportsboatDrive implements Drive {
       this.still.tick(
         afloat &&
           raw === undefined &&
-          Math.abs(step.state.speed) < DOCK.maxSpeed,
+          Math.abs(step.state.speed) < SPEC.stoppedSpeed,
       )
     ) {
       const holdY = holdHeight(ctx.location.y, (dy) =>
