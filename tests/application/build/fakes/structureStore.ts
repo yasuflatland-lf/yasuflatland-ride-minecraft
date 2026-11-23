@@ -4,8 +4,17 @@ import type {
   CaptureRefusal,
 } from "../../../../src/application/build/ports/structures";
 import { AIR, type BlockState } from "../../../../src/domain/build/blockState";
-import type { CellBox } from "../../../../src/domain/build/box";
-import { cellsOf } from "../../../../src/domain/build/box";
+import {
+  type CellBox,
+  cellsOf,
+  type Size,
+  sizeOf,
+} from "../../../../src/domain/build/box";
+import {
+  FACINGS,
+  type Facing,
+  facingVector,
+} from "../../../../src/domain/build/rotation/facing";
 import {
   NO_TURN,
   type QuarterTurn,
@@ -16,6 +25,7 @@ import {
 } from "../../../../src/domain/build/structure/handle";
 import type { Cell } from "../../../../src/domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../../src/domain/shared/ids";
+import { localOffset } from "../../../../src/domain/shared/vec";
 import type { FakeWorld } from "../fakes";
 
 export type StructureCall =
@@ -50,7 +60,7 @@ export class FakeStructureStore implements BuildStructureStore {
   private counter = 0;
   private readonly blocks = new Map<
     StructureHandle,
-    { at: Cell; state: BlockState }[]
+    { size: Size; cells: { at: Cell; state: BlockState }[] }
   >();
   constructor(private readonly world?: FakeWorld) {}
 
@@ -73,9 +83,9 @@ export class FakeStructureStore implements BuildStructureStore {
     dimensionId: DimensionId,
     box: CellBox,
   ) {
-    this.blocks.set(
-      handle,
-      [...cellsOf(box)].map((cell) => ({
+    this.blocks.set(handle, {
+      size: sizeOf(box),
+      cells: [...cellsOf(box)].map((cell) => ({
         at: {
           x: cell.x - box.min.x,
           y: cell.y - box.min.y,
@@ -83,7 +93,7 @@ export class FakeStructureStore implements BuildStructureStore {
         },
         state: source.stateAt(dimensionId, cell) ?? AIR,
       })),
-    );
+    });
   }
 
   capture(
@@ -113,29 +123,28 @@ export class FakeStructureStore implements BuildStructureStore {
   ): boolean {
     this.calls.push({ kind: "place", handle, dimensionId, anchor, turn });
     if (!this.placeSucceeds || !this.live.has(handle)) return false;
-    const blocks = this.blocks.get(handle) ?? [];
-    const { sx, sz } = blocks.reduce(
-      (size, { at }) => ({
-        sx: Math.max(size.sx, at.x + 1),
-        sz: Math.max(size.sz, at.z + 1),
-      }),
-      { sx: 0, sz: 0 },
-    );
-    if (this.world)
-      for (const { at, state } of blocks) {
-        let { x, z } = at;
-        let width = sx;
-        let depth = sz;
-        for (let step = 0; step < turn; step++) {
-          [x, z] = [depth - 1 - z, x];
-          [width, depth] = [depth, width];
-        }
+    const saved = this.blocks.get(handle);
+    if (this.world && saved) {
+      const facing = facingVector(FACINGS[turn] as Facing);
+      const corner = localOffset(facing, 1 - saved.size.z, saved.size.x - 1);
+      // Bedrock anchors the rotated bounding box at its minimum (ADR 0245).
+      const origin = {
+        x: anchor.x - Math.min(0, corner.x),
+        z: anchor.z - Math.min(0, corner.z),
+      };
+      for (const { at, state } of saved.cells) {
+        const offset = localOffset(facing, -at.z, at.x);
         this.world.setState(
           dimensionId,
-          { x: anchor.x + x, y: anchor.y + at.y, z: anchor.z + z },
+          {
+            x: origin.x + offset.x,
+            y: anchor.y + at.y,
+            z: origin.z + offset.z,
+          },
           state,
         );
       }
+    }
     return true;
   }
 

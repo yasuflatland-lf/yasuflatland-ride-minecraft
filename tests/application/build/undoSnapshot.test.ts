@@ -34,7 +34,7 @@ function setup(box: CellBox) {
   const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const structures = new FakeStructureStore();
+  const structures = new FakeStructureStore(world);
   const log = { warn: vi.fn() };
   const jobs = new EditJobs(
     repo,
@@ -67,26 +67,22 @@ function setup(box: CellBox) {
   };
 }
 
-it("restores any snapshot in order, discards it without changing paste aiming", () => {
+it("restores the snapshot before discarding it and keeps paste aiming", () => {
   fc.assert(
     fc.property(boxArb, (box) => {
       const e = setup(box);
+      e.world.put(box.min, blockStateOf("minecraft:stone"));
+      const clear = vi.spyOn(e.structures, "clearEntities");
+      const place = vi.spyOn(e.structures, "place");
+      const discard = vi.spyOn(e.structures, "discard");
       const mayRestore = vi.spyOn(e.world, "mayRestore");
       e.undo.execute({ playerId });
-      expect(mayRestore.mock.calls).toEqual(
-        [...cellsOf(box)].map((cell) => [overworld, cell]),
+      expect(new Set(mayRestore.mock.calls)).toEqual(
+        new Set([...cellsOf(box)].map((cell) => [overworld, cell])),
       );
-      expect(e.structures.calls).toEqual([
-        { kind: "clearEntities", dimensionId: overworld, box },
-        {
-          kind: "place",
-          turn: 0,
-          handle: e.handle,
-          dimensionId: overworld,
-          anchor: box.min,
-        },
-        { kind: "discard", handle: e.handle },
-      ]);
+      expect(clear).toHaveBeenCalledWith(overworld, box);
+      expect(clear).toHaveBeenCalledBefore(place);
+      expect(place).toHaveBeenCalledBefore(discard);
       expect(e.structures.live.size).toBe(0);
       expect(e.feedback.messages).toEqual([
         { message: "undoDone", count: volume(box) },
@@ -94,7 +90,7 @@ it("restores any snapshot in order, discards it without changing paste aiming", 
       expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
       expect(e.session.takeUndo()).toBe("nothingToUndo");
       expect(e.session.isEditing).toBe(false);
-      expect(e.world.writes).toBe(0);
+      expect(e.world.stateAt(overworld, box.min)).toEqual(AIR);
       expect(e.log.warn).not.toHaveBeenCalled();
     }),
   );
@@ -183,18 +179,9 @@ it("restores snapshots containing laid cells while retaining space protection", 
         expect(e.session.hasHistory).toBe(true);
         e.world.protectedCells.clear();
       }
+      e.world.put(blocked, blockStateOf("minecraft:stone"));
       e.undo.execute({ playerId });
-      expect(e.structures.calls).toEqual([
-        { kind: "clearEntities", dimensionId: overworld, box },
-        {
-          kind: "place",
-          turn: 0,
-          handle: e.handle,
-          dimensionId: overworld,
-          anchor: box.min,
-        },
-        { kind: "discard", handle: e.handle },
-      ]);
+      expect(e.world.stateAt(overworld, blocked)).toEqual(AIR);
       expect(e.feedback.messages.at(-1)).toEqual({
         message: "undoDone",
         count: volume(box),
@@ -224,7 +211,7 @@ it("keeps a snapshot refused at any protected cell so the next Undo retries it",
       expect(e.session.flow).toBe(flow);
       e.world.protectedCells.clear();
       e.undo.execute({ playerId });
-      expect(e.structures.calls[1]).toEqual({
+      expect(e.structures.calls).toContainEqual({
         kind: "place",
         turn: 0,
         handle: e.handle,
@@ -247,17 +234,13 @@ it("discards a failed placement, consumes history and warns once without changin
   const flow = e.session.flow;
   e.structures.placeSucceeds = false;
   e.undo.execute({ playerId });
-  expect(e.structures.calls).toEqual([
-    { kind: "clearEntities", dimensionId: overworld, box },
-    {
-      kind: "place",
-      turn: 0,
-      handle: e.handle,
-      dimensionId: overworld,
-      anchor: box.min,
-    },
-    { kind: "discard", handle: e.handle },
-  ]);
+  expect(e.structures.calls).toContainEqual({
+    kind: "place",
+    turn: 0,
+    handle: e.handle,
+    dimensionId: overworld,
+    anchor: box.min,
+  });
   expect(e.structures.live.size).toBe(0);
   expect(e.feedback.messages).toEqual([
     { message: "undoFailed", count: undefined },

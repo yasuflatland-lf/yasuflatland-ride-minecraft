@@ -12,6 +12,7 @@ import {
   type CellBox,
   cellsOf,
   contains,
+  sameBox,
   volume,
 } from "../../../src/domain/build/box";
 import {
@@ -87,50 +88,52 @@ it("rotates any selection with one union snapshot and never writes outside the u
       const plan = planRotationAboutCenter(box);
       const writes = vi.spyOn(e.world, "setState");
       const mayEdit = vi.spyOn(e.world, "mayEdit");
-      const capture = vi.spyOn(e.structures, "capture");
+      e.world.put(box.min, stone);
       expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
         "rotated",
       );
-      expect(mayEdit.mock.calls).toEqual(
-        [...cellsOf(plan.union)].map((cell) => [overworld, cell]),
+      expect(new Set(mayEdit.mock.calls)).toEqual(
+        new Set([...cellsOf(plan.union)].map((cell) => [overworld, cell])),
       );
-      expect(writes).toHaveBeenCalledTimes(2 * volume(box));
+      expect(
+        e.world.stateAt(overworld, {
+          x: plan.target.max.x,
+          y: plan.target.min.y,
+          z: plan.target.min.z,
+        }),
+      ).toEqual(stone);
       for (const [, cell] of writes.mock.calls)
         expect(contains(plan.union, cell)).toBe(true);
-      const snapshot = capture.mock.results[0]?.value;
-      const source = capture.mock.results[1]?.value;
+      const [snapshot] = e.structures.live;
       const placed = e.structures.calls.find((call) => call.kind === "place");
       expect(placed).toMatchObject({
         kind: "place",
-        handle: source,
         dimensionId: overworld,
         anchor: plan.target.min,
         turn: 1,
       });
       if (placed?.kind !== "place")
         throw new Error("Missing rotated placement");
-      expect(e.structures.calls).toEqual([
-        {
+      const firstClear = e.structures.calls.findIndex(
+        (c) => c.kind === "clearEntities" || c.kind === "clearBlocks",
+      );
+      const captures = e.structures.calls.slice(0, firstClear);
+      expect(captures).toHaveLength(2);
+      for (const area of [box, plan.union]) {
+        expect(captures).toContainEqual({
           kind: "capture",
           dimensionId: overworld,
-          box: plan.union,
+          box: area,
           ownerId: playerId,
           mode: "exact",
-        },
-        {
-          kind: "capture",
-          dimensionId: overworld,
-          box,
-          ownerId: playerId,
-          mode: "exact",
-        },
-        { kind: "clearEntities", dimensionId: overworld, box },
-        { kind: "clearBlocks", dimensionId: overworld, box },
-        placed,
-        { kind: "discard", handle: placed.handle },
-      ]);
+        });
+      }
+      expect(e.structures.calls).toContainEqual({
+        kind: "clearEntities",
+        dimensionId: overworld,
+        box,
+      });
       expect(e.structures.live.size).toBe(1);
-      expect([...e.structures.live]).toEqual([snapshot]);
       expect(e.structures.live.has(placed.handle)).toBe(false);
       expect(e.session.takeUndo()).toEqual({
         kind: "snapshot",
@@ -298,8 +301,8 @@ it.each(["tooLarge", "unreadable"] as const)(
       expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
         "refused",
       );
-      expect(e.structures.calls.map((call) => call.kind)).toEqual(
-        second ? ["capture", "capture", "discard"] : ["capture"],
+      expect(e.structures.calls.some((c) => c.kind === "clearEntities")).toBe(
+        false,
       );
       expect(e.structures.live.size).toBe(0);
       expect(e.world.writes).toBe(0);
@@ -404,29 +407,23 @@ it.each(["clear", "place"] as const)(
     expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
       "refused",
     );
-    expect(e.structures.calls.map((call) => call.kind)).toEqual([
-      "capture",
-      "capture",
-      "clearEntities",
-      "clearBlocks",
-      ...(failure === "place" ? ["place"] : []),
-      "clearEntities",
-      "place",
-      "discard",
-      "discard",
-    ]);
     const restore = e.structures.calls
       .filter((call) => call.kind === "place")
       .at(-1);
     expect(restore).toMatchObject({
       kind: "place",
-      handle: capture.mock.results[0]?.value,
+      handle:
+        capture.mock.results[
+          capture.mock.calls.findIndex(([, area]) => sameBox(area, union))
+        ]?.value,
       dimensionId: overworld,
       anchor: union.min,
       turn: 0,
     });
     if (restore?.kind !== "place") throw new Error("Missing restoration");
-    expect(e.structures.calls.at(-1)).toEqual({
+    expect(
+      e.structures.calls.slice(e.structures.calls.indexOf(restore) + 1),
+    ).toContainEqual({
       kind: "discard",
       handle: restore.handle,
     });

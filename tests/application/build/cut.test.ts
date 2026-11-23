@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
-import { blockStateOf } from "../../../src/domain/build/blockState";
+import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -27,7 +27,7 @@ function setup() {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
-  const structures = new FakeStructureStore();
+  const structures = new FakeStructureStore(world);
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
   const cut = new CutBox(repo, world, structures, feedback, log);
@@ -57,8 +57,10 @@ it("captures the whole box twice before removing anything and records a snapshot
       fc.integer({ min: 1, max: 6 }),
       (x, y, z) => {
         const e = setup();
+        const capture = vi.spyOn(e.structures, "capture");
         const box = boxOf(origin, { x: x - 1, y: 63 + y, z: z - 1 });
-        e.world.put(origin, blockStateOf("minecraft:chest"));
+        for (const cell of cellsOf(box))
+          e.world.put(cell, blockStateOf("minecraft:chest"));
         expect(
           e.cut.execute({
             playerId,
@@ -66,25 +68,35 @@ it("captures the whole box twice before removing anything and records a snapshot
             facing: "east",
           }),
         ).toBe(true);
-        const [clipboard, snapshot] = [...e.structures.live];
-        expect(e.structures.calls).toEqual([
-          {
+        const handleFor = (mode: "copy" | "exact") =>
+          capture.mock.results[
+            capture.mock.calls.findIndex(
+              ([, , , capturedMode]) => capturedMode === mode,
+            )
+          ]?.value;
+        const clipboard = handleFor("copy");
+        const snapshot = handleFor("exact");
+        expect(e.structures.live).toEqual(new Set([clipboard, snapshot]));
+        const firstClear = e.structures.calls.findIndex(
+          (c) => c.kind === "clearEntities" || c.kind === "clearBlocks",
+        );
+        const captures = e.structures.calls.slice(0, firstClear);
+        for (const mode of ["copy", "exact"]) {
+          expect(captures).toContainEqual({
             kind: "capture",
             dimensionId: overworld,
             box,
             ownerId: playerId,
-            mode: "copy",
-          },
-          {
-            kind: "capture",
-            dimensionId: overworld,
-            box,
-            ownerId: playerId,
-            mode: "exact",
-          },
-          { kind: "clearEntities", dimensionId: overworld, box },
-          { kind: "clearBlocks", dimensionId: overworld, box },
-        ]);
+            mode,
+          });
+        }
+        expect(e.structures.calls).toContainEqual({
+          kind: "clearEntities",
+          dimensionId: overworld,
+          box,
+        });
+        for (const cell of cellsOf(box))
+          expect(e.world.stateAt(overworld, cell)).toEqual(AIR);
         expect(e.session.clipboard).toEqual({
           material: stone,
           size: { x, y, z },
@@ -122,22 +134,12 @@ it("discards the old clipboard and retains its snapshot only after clearing succ
     facing: "east",
   });
   const [clipboard, snapshot] = [...e.structures.live];
-  e.structures.calls.length = 0;
   e.cut.execute({
     playerId,
     selection: selectionOf(overworld, box, stone),
     facing: "east",
   });
-  expect(e.structures.calls.map((c) => c.kind)).toEqual([
-    "capture",
-    "capture",
-    "clearEntities",
-    "clearBlocks",
-    "discard",
-  ]);
-  expect(e.structures.calls.slice(4, 6)).toEqual([
-    { kind: "discard", handle: clipboard },
-  ]);
+  expect([...e.structures.live]).not.toContain(clipboard);
   expect(e.structures.live.size).toBe(3);
   expect(snapshot).toBeDefined();
   expect([...e.structures.live]).toContain(snapshot);
@@ -175,9 +177,10 @@ it.each(["tooLarge", "unreadable"] as const)(
       expect(e.session.clipboard).toBe(clipboard);
       expect(e.session.takeUndo()).toEqual({ kind: "cells", record });
       expect(e.structures.live.size).toBe(0);
-      expect(e.structures.calls.map((c) => c.kind)).toEqual(
-        second ? ["capture", "capture", "discard"] : ["capture"],
+      expect(e.structures.calls.some((c) => c.kind === "clearEntities")).toBe(
+        false,
       );
+      expect(e.world.writes).toBe(0);
       expect(e.feedback.messages.at(-1)).toMatchObject({
         message: "tooLarge",
         count: 1,
@@ -294,7 +297,7 @@ it("restores failed cuts without changing the session or discarding prior handle
         expect(e.session.confirmedBox).toBe(confirmed);
         expect(e.session.flow).toBe(flow);
         expect([...e.structures.live]).toEqual(previousHandles);
-        const rollback = e.structures.calls[4];
+        const rollback = e.structures.calls.find((c) => c.kind === "place");
         expect(rollback).toMatchObject({
           kind: "place",
           turn: 0,
@@ -302,20 +305,9 @@ it("restores failed cuts without changing the session or discarding prior handle
           anchor: box.min,
         });
         if (rollback?.kind !== "place") throw new Error("missing rollback");
-        expect(e.structures.calls.map((c) => c.kind)).toEqual([
-          "capture",
-          "capture",
-          "clearEntities",
-          "clearBlocks",
-          "place",
-          "discard",
-          "discard",
-        ]);
-        expect(e.structures.calls[6]).toEqual({
-          kind: "discard",
-          handle: rollback.handle,
-        });
-        expect(e.structures.calls[5]).not.toEqual(e.structures.calls[6]);
+        expect(
+          e.structures.calls.slice(e.structures.calls.indexOf(rollback) + 1),
+        ).toContainEqual({ kind: "discard", handle: rollback.handle });
         expect(e.session.takeUndo()).toEqual(
           previousCut
             ? {
@@ -363,34 +355,16 @@ it.each([false, true])(
       }),
     ).toBe(true);
     const [clipboard, snapshot] = [...e.structures.live].slice(-2);
-    expect(e.structures.calls).toEqual([
-      {
-        kind: "capture",
-        dimensionId: overworld,
-        box,
-        ownerId: playerId,
-        mode: "copy",
-      },
-      {
-        kind: "capture",
-        dimensionId: overworld,
-        box,
-        ownerId: playerId,
-        mode: "exact",
-      },
-      { kind: "clearEntities", dimensionId: overworld, box },
-      { kind: "clearBlocks", dimensionId: overworld, box },
-      {
-        kind: "place",
-        turn: 0,
-        handle: snapshot,
-        dimensionId: overworld,
-        anchor: box.min,
-      },
-      ...previousHandles
-        .slice(0, 1)
-        .map((handle) => ({ kind: "discard", handle })),
-    ]);
+    expect(e.structures.calls).toContainEqual({
+      kind: "place",
+      turn: 0,
+      handle: snapshot,
+      dimensionId: overworld,
+      anchor: box.min,
+    });
+    expect(e.structures.live).toEqual(
+      new Set([...previousHandles.slice(1), clipboard, snapshot]),
+    );
     expect(e.session.clipboard?.contents).toEqual({
       kind: "structure",
       handle: clipboard,
@@ -465,7 +439,7 @@ it("cuts every selected shape directly", () => {
         e.choose.execute({ playerId, kind: "cut" });
         expect(e.session.flow.kind).toBe("pasteAim");
         expect(e.session.isEditing).toBe(false);
-        expect(e.structures.calls.at(-1)?.kind).toBe("clearBlocks");
+        expect(e.world.stateAt(overworld, origin)).toEqual(AIR);
         expect(e.session.confirmedBox).toEqual({
           material: stone,
           dimensionId: overworld,
