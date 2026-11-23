@@ -1,4 +1,4 @@
-import { type Cell, cellOf } from "../shared/cells";
+import { type Cell, cellKey, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
 import { GEAR_RECOVERY, type HitRule } from "../shared/hitCounter";
 import type { TopSurface } from "../shared/tableTop";
@@ -97,6 +97,17 @@ export interface FurniturePose {
   readonly yaw: Facing4;
 }
 
+// Search past two blocks because Beach Chairs that far apart can share an end cell.
+export const RESORT_GEAR_QUERY_RADIUS = 3;
+
+export function overlapsAny(
+  cells: readonly Cell[],
+  occupied: readonly Cell[],
+): boolean {
+  const keys = new Set(occupied.map(cellKey));
+  return cells.some((cell) => keys.has(cellKey(cell)));
+}
+
 function footprintOffsets(kind: FurnitureKind, yaw: Facing4): Vec2[] {
   // The furniture faces the player, so the player looks along the opposite quarter turn.
   const playerFacing = forward(yaw + 180);
@@ -121,15 +132,23 @@ export function furniturePose(
 ): FurniturePose {
   const yaw = snapYaw4(playerYaw + 180);
   const centre = offsetCentre(footprintOffsets(kind, yaw));
-  return {
+  return furniturePoseAt(
     kind,
-    origin: {
+    {
       x: block.x + 0.5 + centre.x,
       y: block.y + 1,
       z: block.z + 0.5 + centre.z,
     },
     yaw,
-  };
+  );
+}
+
+export function furniturePoseAt(
+  kind: FurnitureKind,
+  origin: Vec3,
+  yaw: Facing4,
+): FurniturePose {
+  return { kind, origin, yaw };
 }
 
 /** The occupied floor cells, in `spec.cells` order. */

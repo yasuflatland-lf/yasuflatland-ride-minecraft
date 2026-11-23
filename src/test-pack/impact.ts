@@ -326,7 +326,7 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   },
   {
     rule: "entry",
-    test: /^src\/(?:main|infrastructure\/bootstrap)\.ts$/,
+    test: /^src\/(?:buildFlags\.d|main|infrastructure\/bootstrap)\.ts$/,
     impact: "all",
   },
   { rule: "install", test: /^src\/[^/]+\/[^/]+\/install\.ts$/, impact: "all" },

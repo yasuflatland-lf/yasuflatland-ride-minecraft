@@ -15,6 +15,7 @@ import {
   FURNITURE_SPEC,
   type FurnitureKind,
   type FurniturePose,
+  furniturePoseAt,
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import {
@@ -52,6 +53,7 @@ import {
   FURNITURE_TOP_CELLS,
   furnitureKindOf,
 } from "../identifiers";
+import { resortGearCells } from "./resortGearCells";
 
 // A block spans 16 px on each horizontal axis.
 const CELL_FOOTPRINT_PX = { halfX: 8, halfZ: 8 };
@@ -118,6 +120,7 @@ export class BedrockFurnitureWorld
   isCampSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isCampSpace(dimension, cell);
   }
+  resortGearCells = resortGearCells;
   consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean {
     const entity = playerById(player);
     return (
@@ -223,11 +226,9 @@ export class BedrockFurnitureWorld
   private topCells(entity: Entity): Cell[] {
     const kind = furnitureKindOf(entity.typeId, "entity");
     if (kind === undefined || !FURNITURE_SPEC[kind].top) return [];
-    return diningTableTopCells({
-      kind,
-      origin: entity.location,
-      yaw: snapYaw4(entity.getRotation().y),
-    });
+    return diningTableTopCells(
+      furniturePoseAt(kind, entity.location, snapYaw4(entity.getRotation().y)),
+    );
   }
   private cellOverlaps(
     entity: Entity,

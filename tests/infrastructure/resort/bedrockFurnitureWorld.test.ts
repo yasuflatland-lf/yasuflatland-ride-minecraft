@@ -8,6 +8,8 @@ import { asFurnitureId } from "../../../src/domain/resort/ids";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
 import {
+  BEACH_CHAIR,
+  BEACH_PARASOL,
   DINING_TABLE_TOP,
   FURNITURE_IDS,
   FURNITURE_TOP_CELLS,
@@ -43,6 +45,56 @@ vi.mock(
   }),
 );
 beforeEach(() => vi.resetAllMocks());
+
+it("rebuilds nearby footprints for every included entity type", () => {
+  const entities = Object.values(FURNITURE_IDS).map(({ entity }, index) => ({
+    typeId: entity,
+    isValid: true,
+    location: { x: index + 0.5, y: 64, z: 0.5 },
+    getRotation: () => ({ y: -87 }),
+  }));
+  const double = entities.find(
+    (entity) => entity.typeId === FURNITURE_IDS.sofa_double.entity,
+  );
+  if (!double) throw new Error("Missing double sofa");
+  double.location.z = 0;
+  const getEntities = vi.fn(() => [
+    ...entities,
+    {
+      typeId: BEACH_CHAIR,
+      isValid: true,
+      location: { x: 0.5, y: 64, z: 2.5 },
+      getRotation: () => ({ y: 89 }),
+    },
+    { typeId: BEACH_PARASOL, isValid: true },
+    { typeId: "yasu_ride:low_chair", isValid: true },
+    { typeId: BEACH_CHAIR, isValid: false },
+  ]);
+  game.getDimension.mockReturnValue({ getEntities });
+  const adapter = new BedrockFurnitureWorld({
+    topHosts: new TopHostRegistry(),
+    isVehicleSpace: () => false,
+    isCampSpace: () => false,
+  });
+  const dimension = asDimensionId("nether");
+  const near = { x: 2.5, y: 64, z: 0.5 };
+  const cells = adapter.resortGearCells(dimension, near, 4);
+  const expected = [
+    ...entities.map((_, x) => ({ x, y: 64, z: 0 })),
+    { x: 3, y: 64, z: -1 },
+    { x: -1, y: 64, z: 2 },
+    { x: 0, y: 64, z: 2 },
+    { x: 1, y: 64, z: 2 },
+  ];
+  expect(cells).toHaveLength(expected.length);
+  expect(cells).toEqual(expect.arrayContaining(expected));
+  expect(game.getDimension).toHaveBeenCalledExactlyOnceWith(dimension);
+  expect(getEntities).toHaveBeenCalledExactlyOnceWith({
+    location: near,
+    maxDistance: 4,
+  });
+});
+
 describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
   function fixture() {
     const dimension = { spawnEntity: vi.fn(), spawnItem: vi.fn() };
