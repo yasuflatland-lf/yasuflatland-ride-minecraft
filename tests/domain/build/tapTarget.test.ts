@@ -72,6 +72,7 @@ it("has no tap target in the remaining flows, even with an aimed cell", () => {
           dimensionId,
           material,
           from,
+          to: base.max,
           base,
           previous: 1,
           heightedKind: "hip",

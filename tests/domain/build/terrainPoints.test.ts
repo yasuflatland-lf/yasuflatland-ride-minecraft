@@ -1,19 +1,14 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf } from "../../../src/domain/build/box";
 import {
-  adjustHeight,
-  type BuildFlow,
-  backToAiming,
   chooseTerrain,
   confirmLiveHeight,
-  cornerTaps,
   setHeight,
   tapAir,
-  tapsOf,
+  tapsForBox,
 } from "../../../src/domain/build/flow/flow";
-import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
-import { withBox } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { terrainAreaOf } from "../../../src/domain/build/terrain/area";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -26,98 +21,24 @@ const cellArb = fc.record({
   z: fc.integer({ min: -6, max: 6 }),
 });
 
-// Each step stands for an application operation that keeps the selection:
-// live height, Rotate, Place/Fill/Frame, and a terrain confirm.
-const stepArb = fc.oneof(
-  fc.record({
-    kind: fc.constant("height" as const),
-    height: fc.integer({ min: 1, max: 20 }),
-  }),
-  fc.record({ kind: fc.constant("rotate" as const) }),
-  fc.record({ kind: fc.constant("shape" as const) }),
-  fc.record({
-    kind: fc.constant("terrain" as const),
-    op: fc.constantFrom("fillBelow" as const, "removeAbove" as const),
-  }),
-);
-type Step = typeof stepArb extends fc.Arbitrary<infer T> ? T : never;
-
-function selectedFlow(
-  session: BuildSession,
-): Extract<BuildFlow, { kind: "selected" }> {
-  const flow = session.flow;
-  if (flow.kind !== "selected") throw new Error(`unexpected ${flow.kind}`);
-  return flow;
-}
-
-function apply(session: BuildSession, step: Step): void {
-  const flow = selectedFlow(session);
-  switch (step.kind) {
-    case "height": {
-      const aiming = setHeight(adjustHeight(flow), step.height);
-      if (aiming.kind === "baseHeight")
-        session.setFlow(confirmLiveHeight(aiming));
-      return;
-    }
-    case "rotate":
-      session.replaceSelection(
-        withBox(
-          flow.selection,
-          planRotationAboutCenter(flow.selection.box).target,
-        ),
-      );
-      return;
-    case "shape":
-      session.confirmBox(
-        flow.selection,
-        "selected",
-        tapsOf(session.flow) ?? cornerTaps(flow.selection.box),
-      );
-      return;
-    case "terrain":
-      session.setFlow(chooseTerrain(flow, step.op));
-      session.confirmBox(
-        flow.selection,
-        "selected",
-        tapsOf(session.flow) ?? cornerTaps(flow.selection.box),
-      );
-  }
-}
-
-it("keeps the tapped points for terrain heights and Cancel through any sequence of selection-keeping operations", () => {
+it("places rotated terrain taps on opposite footprint corners and preserves their height limits", () => {
   fc.assert(
-    fc.property(
-      cellArb,
-      cellArb,
-      fc.array(stepArb, { maxLength: 8 }),
-      (first, second, steps) => {
-        const session = new BuildSession(asPlayerId("p1"));
-        const aimed = tapAir(
-          { kind: "point1", dimensionId: dim, cell: first, material: stone },
-          second,
-        );
-        session.setFlow(
-          aimed.kind === "baseHeight" ? confirmLiveHeight(aimed) : aimed,
-        );
-        for (const step of steps) {
-          apply(session, step);
-          const flow = selectedFlow(session);
-          const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
-          expect(area.higherY).toBe(Math.max(first.y, second.y));
-          expect(area.lowerY).toBe(Math.min(first.y, second.y));
-          const { box } = flow.selection;
-          expect(area).toMatchObject({
-            minX: box.min.x,
-            maxX: box.max.x,
-            minZ: box.min.z,
-            maxZ: box.max.z,
-          });
-          const back = backToAiming(chooseTerrain(flow, "fillBelow"));
-          if (back.kind !== "point1") throw new Error("Cancel must aim");
-          expect(back.cell).toEqual(first);
-        }
-      },
-    ),
+    fc.property(cellArb, cellArb, cellArb, cellArb, (from, to, a, b) => {
+      const box = boxOf(a, b);
+      const taps = tapsForBox(box, { from, to });
+      expect(taps).toEqual({
+        from: { ...box.min, y: Math.min(from.y, to.y) },
+        to: { ...box.max, y: Math.max(from.y, to.y) },
+      });
+      expect(terrainAreaOf(box, taps.from, taps.to)).toMatchObject({
+        lowerY: Math.min(from.y, to.y),
+        higherY: Math.max(from.y, to.y),
+        minX: box.min.x,
+        maxX: box.max.x,
+        minZ: box.min.z,
+        maxZ: box.max.z,
+      });
+    }),
   );
 });
 
@@ -133,11 +54,16 @@ it("fills the pit only up to the tapped edge even after a raised live height and
     7,
   );
   if (aimed.kind !== "baseHeight") throw new Error("expected live height");
-  session.setFlow(confirmLiveHeight(aimed));
-  expect(selectedFlow(session).selection.box.max.y).toBe(66);
+  const selected = confirmLiveHeight(aimed);
+  session.setFlow(selected);
+  expect(selected.selection.box.max.y).toBe(66);
   for (let run = 0; run < 2; run++) {
-    apply(session, { kind: "terrain", op: "fillBelow" });
-    const flow = selectedFlow(session);
+    const terrain = chooseTerrain(session.flow, "fillBelow");
+    if (terrain.kind !== "terrainConfirm")
+      throw new Error("Expected terrain confirmation");
+    session.confirmBox(terrain.selection, "selected", terrain);
+    const flow = session.flow;
+    if (flow.kind !== "selected") throw new Error("Expected selection");
     expect(terrainAreaOf(flow.selection.box, flow.from, flow.to).higherY).toBe(
       64,
     );

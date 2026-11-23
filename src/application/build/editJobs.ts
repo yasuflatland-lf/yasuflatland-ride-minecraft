@@ -30,7 +30,7 @@ import { unstuck } from "./unstuck";
 
 type EditSelection = Pick<
   EditRecord,
-  "selectionBefore" | "selectionAfter" | "selectionBeforeTaps"
+  "selectionBefore" | "selectionAfter" | "selectionBeforeTaps" | "keepEmpty"
 >;
 
 interface Job {
