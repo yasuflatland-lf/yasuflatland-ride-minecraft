@@ -284,6 +284,10 @@ export class Vehicle {
     return this.drive.capability?.(key);
   }
 
+  cargo(): readonly string[] {
+    return this.drive.cargo?.() ?? [];
+  }
+
   /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
   resync(): void {
     this.drive.resync();

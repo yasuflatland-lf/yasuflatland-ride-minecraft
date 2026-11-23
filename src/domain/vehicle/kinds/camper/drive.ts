@@ -146,6 +146,10 @@ export class CamperDrive extends TransformingDrive {
     return offer(key, CAMPER_ROOM, this.room);
   }
 
+  cargo(): readonly string[] {
+    return this.roomDecor.all().map(({ item }) => item);
+  }
+
   /** Unit-test snapshot. */
   override inspect(): Readonly<{
     wheelsDown: boolean;

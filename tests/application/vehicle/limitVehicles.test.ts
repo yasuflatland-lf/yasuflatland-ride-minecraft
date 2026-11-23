@@ -13,8 +13,10 @@ import {
 } from "../../../src/domain/vehicle/fleet/fleet";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
+  CAMPER_SAVED,
   createVehicle,
   fleetLimitOf,
+  rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { FakeFleetRepository, FakeWorld, InMemoryRepo } from "./fakes";
@@ -41,6 +43,27 @@ function setup() {
 }
 
 describe("LimitVehicles (ADR 0038)", () => {
+  it("removes an evicted camper with its decor and gives back no items", () => {
+    const { world, repo, uc } = setup();
+    const first: FleetEntry = {
+      id: asVehicleId("first"),
+      kind: "camper",
+      owner: asPlayerId("owner"),
+    };
+    const camper = rebuildVehicle("camper", first.id, 0, [], {
+      [CAMPER_SAVED.decor]: JSON.stringify([
+        { slot: "stove", item: "percolator" },
+      ]),
+    });
+    expect(camper.cargo()).toEqual(["percolator"]);
+    repo.save(camper);
+    world.loaded = [first];
+    uc.spawned(first);
+    uc.spawned({ ...first, id: asVehicleId("second") });
+    expect(world.calls).toEqual(["remove:first"]);
+    expect(repo.get(first.id)).toBeUndefined();
+  });
+
   it("saves a found list exactly when it contains an unknown vehicle", () => {
     fc.assert(
       fc.property(

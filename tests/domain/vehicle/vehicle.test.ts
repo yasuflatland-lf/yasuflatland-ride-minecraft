@@ -1111,6 +1111,7 @@ it("exposes a room only for kinds with the room capability", () => {
       fc.integer(),
       (kind, yaw) => {
         const vehicle = createVehicle(kind, asVehicleId("a"), yaw);
+        expect(vehicle.cargo()).toEqual([]);
         const room = vehicle.capability(CAMPER_ROOM);
         expect(room !== undefined).toBe(kind === "camper");
         if (room) {
@@ -1123,6 +1124,7 @@ it("exposes a room only for kinds with the room capability", () => {
             ),
           ).toBe(true);
           expect(vehicle.capability(CAMPER_ROOM)).toBe(room);
+          expect(vehicle.cargo()).toEqual(["percolator"]);
           expect(room.decor.decor()).toEqual([
             { slot: "stove", item: "percolator" },
           ]);
