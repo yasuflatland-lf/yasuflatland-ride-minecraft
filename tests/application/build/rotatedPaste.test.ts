@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { NewCopy } from "../../../src/application/build/newCopy";
@@ -19,6 +18,7 @@ import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
 import { structureClipboard } from "../../support/buildClipboard";
 import {
   cellKey,

@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
@@ -11,6 +10,7 @@ import {
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
 import {
   holdClipboard,
   structureClipboard,

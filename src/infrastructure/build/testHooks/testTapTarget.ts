@@ -4,9 +4,9 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import { asPlayerId } from "../../../../domain/shared/ids";
-import { BUILD_NAMESPACE, TEST_TAP_TARGET_EVENT } from "../../identifiers";
-import type { BedrockTapTargets } from "../bedrockTapTargets";
+import { asPlayerId } from "../../../domain/shared/ids";
+import type { BedrockTapTargets } from "../bedrock/bedrockTapTargets";
+import { BUILD_NAMESPACE, TEST_TAP_TARGET_EVENT } from "../identifiers";
 
 // Script cannot emit entity hit events, so the scenario calls the press handler directly.
 export function registerTestTapTarget(
