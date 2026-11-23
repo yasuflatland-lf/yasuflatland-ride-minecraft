@@ -72,7 +72,6 @@ const handlerCases = [
     entity: BEACH_CHAIR,
     placementFields: {},
     hitTime: { tick: 10 },
-    defersHit: true,
     setup: () => {
       const world = fakeBeachChairWorld();
       const place = new PlaceBeachChair(world);
@@ -91,7 +90,6 @@ const handlerCases = [
     entity: BEACH_PARASOL,
     placementFields: {},
     hitTime: { tick: 10 },
-    defersHit: false,
     setup: () => {
       setupParasol();
       return {
@@ -110,7 +108,6 @@ const handlerCases = [
     entity: FURNITURE_IDS[kind].entity,
     placementFields: { kind },
     hitTime: { now: 10 },
-    defersHit: true,
     setup: () => {
       const world = fakeFurnitureWorld(kind);
       const place = new PlaceFurniture(world);
@@ -127,7 +124,7 @@ const handlerCases = [
 
 describe.each(handlerCases)(
   "$name handlers",
-  ({ item, entity, placementFields, hitTime, defersHit, setup }) => {
+  ({ item, entity, placementFields, hitTime, setup }) => {
     it.each([
       ["Up", "up"],
       ["North", "other"],
@@ -188,11 +185,9 @@ describe.each(handlerCases)(
       const strike = (call: number) => {
         hit?.(ev);
         hit?.(ev);
-        if (defersHit) {
-          expect(recover).toHaveBeenCalledTimes(call - 1);
-          expect(game.run).toHaveBeenCalledTimes(call);
-          game.run.mock.calls[call - 1]?.[0]();
-        }
+        expect(recover).toHaveBeenCalledTimes(call - 1);
+        expect(game.run).toHaveBeenCalledTimes(call);
+        game.run.mock.calls[call - 1]?.[0]();
         expect(recover).toHaveBeenCalledTimes(call);
       };
       strike(1);
@@ -205,15 +200,26 @@ describe.each(handlerCases)(
       strike(2);
     });
 
-    it("skips recovery on a dye hit", () => {
+    it("leaves recovery available after a dye hit in the same tick", () => {
       const { recover } = setup();
-      game.dye = true;
-      game.handlers.get("entityHitEntity")?.({
+      const hit = game.handlers.get("entityHitEntity");
+      const ev = {
         damagingEntity: new game.Player(),
         hitEntity: { id: "furniture", typeId: entity },
-      });
-      expect(game.run).not.toHaveBeenCalled();
+      };
+      game.dye = true;
+      hit?.(ev);
+      if (entity !== BEACH_PARASOL) expect(game.run).not.toHaveBeenCalled();
+      game.dye = false;
+      hit?.(ev);
+      hit?.(ev);
       expect(recover).not.toHaveBeenCalled();
+      for (const [run] of game.run.mock.calls) run();
+      expect(recover).toHaveBeenCalledExactlyOnceWith({
+        id: "furniture",
+        player: "p",
+        ...hitTime,
+      });
     });
   },
 );

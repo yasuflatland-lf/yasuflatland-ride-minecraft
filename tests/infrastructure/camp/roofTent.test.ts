@@ -493,6 +493,9 @@ it("routes a dye before folding and counts each swing once", () => {
   const ev = { damagingEntity: p, hitEntity: tent };
   fire("after:entityHitEntity", ev);
   fire("after:entityHitEntity", ev);
+  expect(setItem).not.toHaveBeenCalled();
+  expect(game.run).toHaveBeenCalledOnce();
+  game.run.mock.lastCall?.[0]();
   expect(setItem).toHaveBeenCalledOnce();
   expect(held.amount).toBe(2);
   expect(tent.remove).not.toHaveBeenCalled();
@@ -500,10 +503,13 @@ it("routes a dye before folding and counts each swing once", () => {
   for (let i = 0; i < 2; i++) {
     game.tick++;
     fire("after:entityHitEntity", ev);
+    game.run.mock.lastCall?.[0]();
   }
   expect(tent.remove).not.toHaveBeenCalled();
   game.tick++;
   fire("after:entityHitEntity", ev);
+  expect(tent.remove).not.toHaveBeenCalled();
+  game.run.mock.lastCall?.[0]();
   expect(tent.remove).toHaveBeenCalledOnce();
 });
 it("keeps unknown hosts and ejects, returns and clears spawn before removing a moving host's tent", () => {
