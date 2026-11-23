@@ -16,7 +16,6 @@ import {
 } from "../../../src/domain/build/box";
 import {
   type BuildFlow,
-  selectionBoxOf,
   tapAir,
   tapBlock,
 } from "../../../src/domain/build/flow/flow";
@@ -24,6 +23,7 @@ import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rota
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,

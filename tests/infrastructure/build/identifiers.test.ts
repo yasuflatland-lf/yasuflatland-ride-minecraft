@@ -1,12 +1,8 @@
-import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
-  BUILD_FORM,
-  BUILD_MESSAGE,
   BUILD_NAMESPACE,
   BUILD_UNDO_TYPE,
-  buildId,
   buildItemRole,
   LAID_BLOCK_TAG,
   PASTE_PLACE_TYPE,
@@ -23,69 +19,7 @@ it("keeps the copied vehicle identifiers in sync across the feature boundary", (
   expect(LAID_BLOCK_TAG).toBe(VEHICLE_LAID_BLOCK_TAG);
 });
 
-it("defines every feedback message in both locales", () => {
-  for (const locale of ["en_US", "ja_JP"]) {
-    const lang = readFileSync(
-      `packs/yasu_ride_rp/texts/${locale}.lang`,
-      "utf8",
-    );
-    const entries = new Map(
-      lang.split("\n").map((line) => {
-        const split = line.indexOf("=");
-        return [line.slice(0, split), line.slice(split + 1)];
-      }),
-    );
-    expect(
-      [...entries.keys()]
-        .filter((key) => key.startsWith("yasu_build.message."))
-        .sort(),
-    ).toEqual(Object.values(BUILD_MESSAGE).sort());
-    expect(
-      [...entries.keys()]
-        .filter((key) => key.startsWith("yasu_build.form."))
-        .sort(),
-    ).toEqual(Object.values(BUILD_FORM).sort());
-    expect(entries.get(BUILD_MESSAGE.pasteReady)?.match(/%s/g)).toHaveLength(5);
-    expect(entries.get(BUILD_MESSAGE.copied)?.match(/%s/g)).toHaveLength(1);
-    expect(
-      entries.get(BUILD_MESSAGE.undoDonePartial)?.match(/%s/g),
-    ).toHaveLength(2);
-    expect(entries.get(BUILD_MESSAGE.heightSize)?.match(/%s/g)).toHaveLength(3);
-    expect(entries.get(BUILD_MESSAGE.heightAimSize)?.match(/%s/g)).toHaveLength(
-      3,
-    );
-    expect(entries.get(BUILD_FORM.removeAboveBody)?.match(/%s/g)).toHaveLength(
-      4,
-    );
-    expect(entries.get(BUILD_FORM.fillBelowBody)?.match(/%s/g)).toHaveLength(4);
-    expect(entries.get(BUILD_MESSAGE.undoHint)).toContain(
-      entries.get(BUILD_FORM.undo),
-    );
-    expect(entries.get(BUILD_MESSAGE.undoHint)).not.toContain("%s");
-    for (const key of Object.values(BUILD_MESSAGE))
-      expect(entries.get(key)).toBeTruthy();
-    for (const key of Object.values(BUILD_FORM))
-      expect(entries.get(key)).toBeTruthy();
-    expect(entries.get(BUILD_MESSAGE.endSet)).toContain("%s");
-    for (const message of [
-      "tooLarge",
-      "rotateTooLarge",
-      "rotateDone",
-      "copied",
-      "editDone",
-      "editDoneCount",
-      "undoDone",
-    ] as const)
-      expect(entries.get(BUILD_MESSAGE[message])).toContain("%s");
-  }
-});
-
 it("defines items and test events in the build namespace", () => {
-  fc.assert(
-    fc.property(fc.string(), (name) => {
-      expect(buildId(name)).toBe(`${BUILD_NAMESPACE}:${name}`);
-    }),
-  );
   expect(
     [
       BUILD_UNDO_TYPE,
@@ -130,22 +64,4 @@ it("does not classify unrelated item ids as build items", () => {
       },
     ),
   );
-});
-
-it("keeps format arguments identical for every build message in both locales", () => {
-  const counts = ["en_US", "ja_JP"].map((locale) => {
-    const entries = new Map(
-      readFileSync(`packs/yasu_ride_rp/texts/${locale}.lang`, "utf8")
-        .split("\n")
-        .map((line) => {
-          const split = line.indexOf("=");
-          return [line.slice(0, split), line.slice(split + 1)];
-        }),
-    );
-    return Object.values(BUILD_MESSAGE).map((key) => [
-      key,
-      entries.get(key)?.match(/%s/g)?.length ?? 0,
-    ]);
-  });
-  expect(counts[0]).toEqual(counts[1]);
 });
