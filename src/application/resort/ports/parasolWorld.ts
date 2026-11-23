@@ -13,7 +13,6 @@ export interface ParasolWorld extends GroundCellsWorld, ItemPayment {
   spawn(dimension: DimensionId, pose: ParasolPose): ParasolId | undefined;
   showBlocked(player: PlayerId): void;
   layCeiling(id: ParasolId): void;
-  clearCeiling(id: ParasolId): void;
 }
 export interface ParasolTakeBackWorld extends HitsLeftFeedback {
   dropItem(id: ParasolId, player: PlayerId | undefined): void;

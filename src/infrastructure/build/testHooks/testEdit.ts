@@ -4,92 +4,38 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import type { DescribeBuild } from "../../../../application/build/describeBuild";
-import { discardAll } from "../../../../application/build/discardAll";
-import type { EndBuildSession } from "../../../../application/build/endBuildSession";
-import type {
-  BuildFeedback,
-  BuildMessage,
-  BuildMode,
-} from "../../../../application/build/ports/feedback";
-import type { BuildStructureStore } from "../../../../application/build/ports/structures";
-import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
-import type { PressUndo } from "../../../../application/build/pressUndo";
-import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
-import type { SetHeightTo } from "../../../../application/build/setHeightTo";
-import type { ShowPreview } from "../../../../application/build/showPreview";
-import type { UndoEdit } from "../../../../application/build/undoEdit";
-import { parseFace } from "../../../../domain/build/aim/face";
-import { AIR } from "../../../../domain/build/blockState";
-import { boxOf, sizeOf, volume } from "../../../../domain/build/box";
+import { discardAll } from "../../../application/build/discardAll";
+import type { EndBuildSession } from "../../../application/build/endBuildSession";
+import type { BuildStructureStore } from "../../../application/build/ports/structures";
+import type { PressPasteAim } from "../../../application/build/pressPasteAim";
+import type { PressUndo } from "../../../application/build/pressUndo";
+import type { RotatePasteAim } from "../../../application/build/rotatePasteAim";
+import type { SetHeightTo } from "../../../application/build/setHeightTo";
+import type { ShowPreview } from "../../../application/build/showPreview";
+import type { UndoEdit } from "../../../application/build/undoEdit";
+import { parseFace } from "../../../domain/build/aim/face";
+import { AIR } from "../../../domain/build/blockState";
+import { boxOf, sizeOf, volume } from "../../../domain/build/box";
 import {
   facingVector,
   parseFacing,
-} from "../../../../domain/build/rotation/facing";
-import { selectionOf } from "../../../../domain/build/selection";
-import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
+} from "../../../domain/build/rotation/facing";
+import { selectionOf } from "../../../domain/build/selection";
+import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
-} from "../../../../domain/shared/ids";
+} from "../../../domain/shared/ids";
+import type { MenuChoices } from "../bedrock/menuChoices";
 import {
   BUILD_NAMESPACE,
   TEST_EDIT_EVENT,
   TEST_RESULT_EVENT,
-} from "../../identifiers";
-import type { MenuChoices } from "../menuChoices";
+} from "../identifiers";
+import type { DescribeBuild } from "./describeBuild";
+import type { recordMessages } from "./recordMessages";
 import type { TestAimReader } from "./testAim";
-
-interface LastMessage {
-  message: BuildMessage;
-  count?: number;
-  skippedCount?: number;
-}
-
-/**
- * Wraps `feedback` so the latest message per player can be read back. Edit
- * jobs report editDone and undoDone from later ticks through the shared
- * feedback, so the test hook has to observe that instance.
- */
-export function recordMessages(feedback: BuildFeedback): {
-  feedback: BuildFeedback;
-  last(playerId: PlayerId): LastMessage | undefined;
-  lastMode(playerId: PlayerId): BuildMode | undefined;
-  hints(playerId: PlayerId): number;
-  forget(playerId: PlayerId): void;
-} {
-  const latest = new Map<PlayerId, LastMessage>();
-  const modes = new Map<PlayerId, BuildMode>();
-  const hints = new Map<PlayerId, number>();
-  return {
-    feedback: {
-      showMessage: (id, message, count, material, skippedCount) => {
-        latest.set(id, { message, count, skippedCount });
-        feedback.showMessage(id, message, count, material, skippedCount);
-      },
-      showUndoHint: (id) => {
-        hints.set(id, (hints.get(id) ?? 0) + 1);
-        feedback.showUndoHint(id);
-      },
-      showSize: (id, size) => feedback.showSize(id, size),
-      showMode: (id, mode) => {
-        modes.set(id, mode);
-        feedback.showMode(id, mode);
-      },
-      drawPreview: (id, dimension, set) =>
-        feedback.drawPreview(id, dimension, set),
-    },
-    hints: (playerId) => hints.get(playerId) ?? 0,
-    last: (playerId) => latest.get(playerId),
-    lastMode: (playerId) => modes.get(playerId),
-    forget: (playerId) => {
-      latest.delete(playerId);
-      modes.delete(playerId);
-      hints.delete(playerId);
-    },
-  };
-}
 
 export function registerTestEdit(
   choices: MenuChoices,

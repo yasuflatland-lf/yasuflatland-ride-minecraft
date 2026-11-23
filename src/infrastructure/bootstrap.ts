@@ -1,7 +1,8 @@
-// Composition root: one install call per feature (ADR 0046).
+// Feature composition root (ADR 0046).
 // Only here may one feature's output reach another, in both directions (ADR 0122, 0129).
 import { excludedEntityType } from "./build/excludedEntityType";
 import { installBuild } from "./build/install";
+import { installBuildTestHooks } from "./build/testHooks/install";
 import { installCamp } from "./camp/install";
 import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
@@ -32,7 +33,7 @@ export function bootstrap(): void {
     isCampSpace: camp.isCampSpace,
     placeHostedOnTop: camp.placeHostedOnTop,
   });
-  installBuild({
+  const build = installBuild({
     isExcludedEntityType: excludedEntityType(vehicles.isFleetEntityType),
     isProtected: (d, c) =>
       vehicles.isVehicleSpace(d, c) || camp.isCampSpace(d, c),
@@ -40,6 +41,7 @@ export function bootstrap(): void {
     // duplicate the block (docs/specs/warp.md, Registration).
     uncopyableBlockTypes: [WARP_BLOCK_TYPE],
   });
+  installBuildTestHooks(build);
   installWarp();
   console.warn(`[${NAMESPACE}] loaded`);
 }

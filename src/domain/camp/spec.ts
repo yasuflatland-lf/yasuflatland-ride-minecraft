@@ -64,10 +64,6 @@ export const TENT_SPEC = Object.freeze({
   maxTents: 4,
   /** The tent's yaw snaps to this many degrees. */
   yawStep: 90,
-  /** light_emission of yasu_ride:tent_ceiling: 3 layers below it the block light is still 1, so no hostile mob spawns inside. Tuned in game. */
-  ceilingLight: 4,
-  /** light_emission of yasu_ride:tent_lantern while the lantern is on: the camper's fridge plate and ceiling light level. */
-  lanternLight: 15,
   /** A loaded tent re-lays the cells the world lost once every this many lays, as the dock does (ADR 0096). */
   cellRecheckTicks: ticks(20),
   /** Ticks a flap takes to roll up or drop, one step per tick; also each flap's tap window (ADR 0105). */
@@ -145,17 +141,8 @@ export const ROOF_TENT_SPEC = Object.freeze({
   exitSearch: Object.freeze({ radius: 4, up: 4, down: 8 }),
   /** SUV shell lift (5 px) plus sleeping-bag rise above its platform (2.4 px), from tools/gen_roof_tent.py. */
   seatLift: (5 + 2.4) / 16,
-  /** A riding player's feet sit about 0.35 blocks below the seat point (Java ridingOffset convention).
-   * The Bedrock value is unmeasured; the owner tunes it live. */
-  seatRiderOffset: 0.35,
-  /** Standing eye height assumption; tune with the rider offset after live checks. */
-  standingEyeHeight: 1.62,
   /** SUV shell ridge from tools/gen_roof_tent.py, in blocks above the tent origin. */
   shellRidge: (5 + 1.2 * 12 + 6.6) / 16,
-  /** Camera clearance below the ridge; tune live for first-person fit. */
-  eyeBelowRidge: 0.2,
-  /** Ground and camper shell ridge (19 px, GROUND_DIMS in tools/gen_roof_tent.py), in blocks above the tent origin. */
-  groundShellRidge: 19 / 16,
   /** Short expiry bounds invisibility after a crash or lost tracking. */
   concealTicks: ticks(30),
   /** Refresh before expiry while the tracked occupant is seated. */

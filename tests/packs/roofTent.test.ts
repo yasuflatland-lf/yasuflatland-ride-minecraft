@@ -14,6 +14,10 @@ import {
 } from "../../src/infrastructure/camp/identifiers";
 import { PACK_STEM_TAGS } from "../../src/test-pack/impact";
 import { type Bone, turnedCorners } from "../support/geometry";
+import {
+  ROOF_TENT_PACK_CONTRACT,
+  SUV_PACK_CONTRACT,
+} from "../support/packContract";
 import { readRgbaPng } from "../support/png";
 import { rideSeatY } from "../support/roofTentSeatContract";
 import { assertOneAxis } from "./oneAxis";
@@ -132,8 +136,10 @@ describe("roof tent asset contract", () => {
   });
 
   it("keeps every SUV rack bar on the hardtop and under the platform", () => {
-    expect(SUV_SPEC.roofTentShellHalfWidth).toBe(suvDims.half_width / 16);
-    expect(SUV_SPEC.roofTentHardtopHalfWidth).toBeCloseTo(
+    expect(SUV_PACK_CONTRACT.roofTentShellHalfWidth).toBe(
+      suvDims.half_width / 16,
+    );
+    expect(SUV_PACK_CONTRACT.roofTentHardtopHalfWidth).toBeCloseTo(
       bodyDims.CABIN_HALF_WIDTH,
       12,
     );
@@ -530,7 +536,9 @@ describe("roof tent asset contract", () => {
     const d = groundDims;
     expect([d.half_width * 2, d.half_depth * 2]).toEqual([32, 40]);
     expect([d.platform_height, d.wall_height, d.ridge_height]).toEqual([
-      2, 12, 19,
+      2,
+      12,
+      ROOF_TENT_PACK_CONTRACT.groundShellRidge * 16,
     ]);
     expect([d.shell_lift, d.mount_bar_x.length, d.pole_x.length]).toEqual([
       0, 0, 0,

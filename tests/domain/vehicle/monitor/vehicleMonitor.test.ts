@@ -26,7 +26,6 @@ import { waterSensors } from "../../../support/waterDepth";
 const profile: VehicleProfile = {
   ...profileOf("suv"),
   monitor: {
-    group: "tools",
     tools: [{ item: "switch", states: ["down", "up"] }],
   },
 };

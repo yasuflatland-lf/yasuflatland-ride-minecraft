@@ -292,29 +292,19 @@ describe("roof tent occupant", () => {
     );
   });
 
-  it("ejects through the host guard and clears the recorded spawn on removal", () => {
-    const { world, bed, leave, sleep } = setup();
+  it("ejects the occupant before the host guard removes the tent", () => {
+    const { world, leave } = setup();
     const tents = new FakeRoofTentWorld();
     tents.hosts.set(cmd.tentId, { kind: "vehicle", id: asVehicleId("host") });
     world.occupants.set(cmd.tentId, playerId);
-    sleep.execute(cmd);
-    new RoofTentHostGuard(
-      tents,
-      () => ({ status: "removed" }),
-      leave,
-      new ClearRoofTentSpawn(world, bed, { warn: vi.fn() }),
-    ).check();
+    new RoofTentHostGuard(tents, () => ({ status: "removed" }), leave).check();
     expect(world.calls).toEqual([
       ["placeOutside", playerId, cmd.tentId],
       ["reveal", playerId],
       ["setOccupant", cmd.tentId, undefined],
     ]);
     expect(world.occupantOf(cmd.tentId)).toBeUndefined();
-    expect(bed.clearSpawnPoint).toHaveBeenCalledExactlyOnceWith(
-      playerId,
-      world.dimensionOf(cmd.tentId),
-      world.spawnCellOf(cmd.tentId),
-    );
+    expect(world.placeOutside).toHaveBeenCalledBefore(tents.remove);
     expect(tents.remove).toHaveBeenCalledExactlyOnceWith(cmd.tentId);
   });
 });

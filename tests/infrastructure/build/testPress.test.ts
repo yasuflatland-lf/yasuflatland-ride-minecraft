@@ -1,11 +1,11 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
-import { DescribeBuild } from "../../../src/application/build/describeBuild";
-import { registerTestPress } from "../../../src/infrastructure/build/bedrock/handlers/testPress";
 import {
   TEST_PRESS_EVENT,
   TEST_RESULT_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
+import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
+import { registerTestPress } from "../../../src/infrastructure/build/testHooks/testPress";
 import { FakeSessions } from "../../application/build/fakes";
 
 const clock = vi.hoisted(() => ({
