@@ -1,7 +1,13 @@
+import type {
+  HostedItemKind,
+  HostedKindId,
+} from "../../../application/shared/ports/hostedItem";
 import {
   CAMP_TABLE_TOP,
   DUTCH_OVEN_FOOTPRINT_PX,
+  DUTCH_OVEN_SPEC,
   GAS_LANTERN_FOOTPRINT_PX,
+  GAS_LANTERN_SPEC,
   TABLE_SPOTS,
 } from "../../../domain/camp/spec";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -14,6 +20,18 @@ import {
   TABLE_TOP_REFUSAL_HINTS,
 } from "../identifiers";
 
+export const DUTCH_OVEN_ON_TOP: HostedItemKind = {
+  id: "dutch_oven" as HostedKindId,
+  footprint: DUTCH_OVEN_FOOTPRINT_PX,
+  clearance: DUTCH_OVEN_SPEC.clearance,
+};
+
+export const GAS_LANTERN_ON_TOP: HostedItemKind = {
+  id: "gas_lantern" as HostedKindId,
+  footprint: GAS_LANTERN_FOOTPRINT_PX,
+  clearance: GAS_LANTERN_SPEC.tableClearance,
+};
+
 export function registerCampTopHosts(registry: TopHostRegistry): void {
   registry.registerHost({
     hostType: "camp_table",
@@ -24,15 +42,15 @@ export function registerCampTopHosts(registry: TopHostRegistry): void {
     legacySpot: (spot) => TABLE_SPOTS[spot],
   });
   registry.registerHosted({
-    kind: "dutch_oven",
+    kind: DUTCH_OVEN_ON_TOP.id,
     entityTypeId: DUTCH_OVEN_TYPE,
     hostProperty: DUTCH_OVEN_HOST_PROPERTY,
-    footprint: DUTCH_OVEN_FOOTPRINT_PX,
+    footprint: DUTCH_OVEN_ON_TOP.footprint,
   });
   registry.registerHosted({
-    kind: "gas_lantern",
+    kind: GAS_LANTERN_ON_TOP.id,
     entityTypeId: GAS_LANTERN_TYPE,
     hostProperty: GAS_LANTERN_HOST_PROPERTY,
-    footprint: GAS_LANTERN_FOOTPRINT_PX,
+    footprint: GAS_LANTERN_ON_TOP.footprint,
   });
 }

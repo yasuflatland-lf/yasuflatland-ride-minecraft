@@ -12,6 +12,7 @@ import { BedrockDutchOvenWorld } from "../../../src/infrastructure/camp/bedrock/
 import { BedrockFirePitWorld } from "../../../src/infrastructure/camp/bedrock/bedrockFirePitWorld";
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
+import { DUTCH_OVEN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 import {
   CAMP_TABLE_TYPE,
   DUTCH_OVEN_GROUND_EVENT,
@@ -630,7 +631,7 @@ it("rolls back an oven when a fire pit host setter fails and leaves the pit unco
   });
 
   expect(
-    new DutchOvenActions(world).placeOnFirePit({
+    new DutchOvenActions(world, DUTCH_OVEN_ON_TOP).placeOnFirePit({
       pit: asFirePitId(pit.id),
       slot: 0,
     }),
