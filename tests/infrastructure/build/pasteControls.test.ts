@@ -72,9 +72,9 @@ vi.mock("@minecraft/server-ui", () => ({
 function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   engine.tick = 0;
   engine.queue.length = 0;
-  const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore();
+  const repo = new FakeSessions(structures);
   const id = asPlayerId("p");
   const session = repo.getOrCreate(id);
   const cell = { x: 0, y: 60, z: 0 };
@@ -107,7 +107,6 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     feedback,
     log,
     new FakeBuildPlayers(),
-    structures,
   );
   const undoEdit = new UndoEdit(repo, feedback, jobs, blocks, structures, log);
   const editUndo = vi.spyOn(undoEdit, "execute");

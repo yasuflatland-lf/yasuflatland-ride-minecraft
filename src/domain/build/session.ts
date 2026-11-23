@@ -44,6 +44,7 @@ export class BuildSession {
   private currentClipboard: Clipboard | undefined;
   private currentMode: BuildMode = MODE_OFF;
   private history: UndoHistory = EMPTY_HISTORY;
+  private readonly released = new Set<StructureHandle>();
   private editing = false;
   private undoHintTaken = false;
 
@@ -119,15 +120,13 @@ export class BuildSession {
     });
   }
 
-  completeCopy(
-    selection: Selection,
-    clipboard: Clipboard,
-  ): StructureHandle | undefined {
+  completeCopy(selection: Selection, clipboard: Clipboard): void {
     const previous = structureOf(this.currentClipboard);
     this.currentClipboard = clipboard;
+    if (previous !== undefined && previous !== structureOf(clipboard))
+      this.released.add(previous);
     this.confirmBox(selection);
     this.currentFlow = beginPasteAim();
-    return previous !== structureOf(clipboard) ? previous : undefined;
   }
 
   resumePasteAim(): boolean {
@@ -165,22 +164,22 @@ export class BuildSession {
     this.clearSelection();
   }
 
-  clearClipboard(): StructureHandle | undefined {
+  clearClipboard(): void {
     const previous = structureOf(this.currentClipboard);
     this.currentClipboard = undefined;
-    return previous;
+    if (previous !== undefined) this.released.add(previous);
   }
 
   /** Ending paste also discards the copied selection (ADR 0203). */
-  endPasting(): StructureHandle | undefined {
+  endPasting(): void {
     this.clearSelection();
-    return this.clearClipboard();
+    this.clearClipboard();
   }
 
   /** A held clipboard is discarded even when the flow is idle (ADR 0203). */
-  leaveBuildMode(): StructureHandle | undefined {
+  leaveBuildMode(): void {
     if (this.currentClipboard || this.currentFlow.kind !== "idle")
-      return this.endPasting();
+      this.endPasting();
   }
 
   get clipboard(): Clipboard | undefined {
@@ -214,35 +213,43 @@ export class BuildSession {
     return undefined;
   }
 
-  /** Ends the edit and returns evicted structures; only undoable edits add history. */
-  finishEdit(record: EditRecord, kind: EditKind): readonly StructureHandle[] {
+  finishEdit(record: EditRecord, kind: EditKind): void {
     this.editing = false;
-    if (kind !== "undoable") return [];
+    if (kind === "undoable") this.addHistory({ kind: "cells", record });
+  }
+
+  recordSnapshot(snapshot: SnapshotRecord): void {
+    this.addHistory({ kind: "snapshot", snapshot });
+  }
+
+  private addHistory(entry: UndoEntry): void {
     const { history, dropped } = withEntry(
       this.history,
-      { kind: "cells", record },
+      entry,
       BUILD_SPEC.undoDepth,
     );
     this.history = history;
-    return dropped;
+    for (const handle of dropped) this.released.add(handle);
   }
 
-  /** Adds the snapshot and returns structures evicted by the shared history cap. */
-  recordSnapshot(snapshot: SnapshotRecord): readonly StructureHandle[] {
-    const { history, dropped } = withEntry(
-      this.history,
-      { kind: "snapshot", snapshot },
-      BUILD_SPEC.undoDepth,
-    );
-    this.history = history;
-    return dropped;
-  }
-
-  clearHistory(): readonly StructureHandle[] {
-    const handles = this.history.entries.flatMap((entry) =>
-      entry.kind === "snapshot" ? [entry.snapshot.handle] : [],
-    );
+  clearHistory(): void {
+    for (const entry of this.history.entries) {
+      if (entry.kind === "snapshot") this.released.add(entry.snapshot.handle);
+    }
     this.history = EMPTY_HISTORY;
+  }
+
+  drainReleased(): StructureHandle[] {
+    if (this.released.size === 0) return [];
+    // A handle can be retained again before the repository drains the update.
+    const clipboard = structureOf(this.currentClipboard);
+    if (clipboard !== undefined) this.released.delete(clipboard);
+    for (const entry of this.history.entries) {
+      if (entry.kind === "snapshot")
+        this.released.delete(entry.snapshot.handle);
+    }
+    const handles = [...this.released];
+    this.released.clear();
     return handles;
   }
 

@@ -115,9 +115,7 @@ export function menuCasesFor(repo: FakeSessions) {
     copy: { execute: vi.fn() },
     newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
     endPasting: {
-      execute: vi.fn((cmd) =>
-        new EndPasting(repo, new FakeStructureStore()).execute(cmd),
-      ),
+      execute: vi.fn((cmd) => new EndPasting(repo).execute(cmd)),
     },
     undo: { execute: vi.fn() },
     clear: {

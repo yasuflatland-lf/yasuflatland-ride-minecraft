@@ -56,7 +56,7 @@ function setup(active = true) {
   const session = repo.getOrCreate(alex);
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+    new LeaveBuild(repo, new FakeTapTargets()),
   );
   if (active)
     for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
@@ -204,7 +204,7 @@ it("draws only in build mode and on the interval, and clears the preview with th
   expect(aim).not.toHaveBeenCalled();
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+    new LeaveBuild(repo, new FakeTapTargets()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([{ playerId: alex, held: "wand" }]);
@@ -296,7 +296,7 @@ it("keeps concurrent players and their aim targets separate", () => {
   other.setFlow({ kind: "point1", dimensionId: nether, cell: end, material });
   const modes = new UpdateBuildModes(
     repo,
-    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+    new LeaveBuild(repo, new FakeTapTargets()),
   );
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     modes.execute([

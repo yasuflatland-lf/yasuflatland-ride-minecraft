@@ -65,9 +65,10 @@ const face = fc.constantFrom<Face>(
 );
 const heightedKind = fc.constantFrom("gable" as const, "hip" as const);
 function setup() {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
+  const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
+  const session = repo.getOrCreate(playerId);
   const feedback = new FakeFeedback();
   const jobs = new EditJobs(
     repo,
@@ -75,9 +76,7 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
-    { discard: () => {} },
   );
-  const structures = new FakeStructureStore(world);
   return { repo, session, world, feedback, jobs, structures };
 }
 function roof(

@@ -97,7 +97,10 @@ it("preserves blocks and defers point taps out of before events", () => {
         engine.tick = 0;
         engine.scheduled.length = 0;
         vi.clearAllMocks();
-        const repo = new InMemorySessionRepository();
+        const structures = new FakeStructureStore();
+        const repo = new InMemorySessionRepository(structures, {
+          warn: vi.fn(),
+        });
         const feedback: BuildFeedback = {
           showMessage: vi.fn(),
           showSize: vi.fn(),
@@ -129,7 +132,7 @@ it("preserves blocks and defers point taps out of before events", () => {
               repo,
               blocks,
               feedback,
-              new FakeStructureStore(),
+              structures,
               new FakeBuildPlayers(),
             ),
             feedback,
@@ -219,7 +222,8 @@ it("preserves blocks and defers point taps out of before events", () => {
 function setupAir() {
   engine.tick = 0;
   engine.scheduled.length = 0;
-  const repo = new InMemorySessionRepository();
+  const structures = new FakeStructureStore();
+  const repo = new InMemorySessionRepository(structures, { warn: vi.fn() });
   const feedback: BuildFeedback = {
     showMessage: vi.fn(),
     showSize: vi.fn(),
@@ -270,7 +274,6 @@ function setupAir() {
     cell: { x: 10, y: 0, z: 0 },
     material: blockStateOf("minecraft:stone"),
   });
-  const structures = new FakeStructureStore();
   const paste = new PasteAt(
     repo,
     blocks,

@@ -63,8 +63,10 @@ export class PasteAt {
       return "refused";
     }
     // Commit history only once placement succeeds, preserving earlier undo on failure.
-    edit.commit({ box, handle: snapshot, paste: true });
-    session.selectPasted(selectionOf(dimensionId, box, clipboard.material));
+    this.repo.update(session, (session) => {
+      edit.commit({ box, handle: snapshot, paste: true });
+      session.selectPasted(selectionOf(dimensionId, box, clipboard.material));
+    });
     reportEditCompletion(
       session,
       this.feedback,

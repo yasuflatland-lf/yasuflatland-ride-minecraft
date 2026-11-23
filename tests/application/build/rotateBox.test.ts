@@ -47,10 +47,10 @@ const boxArb = fc
   );
 
 function setup(box: CellBox = wideBox) {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const feedback = new FakeFeedback();
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
@@ -62,7 +62,7 @@ function setup(box: CellBox = wideBox) {
     to: box.max,
   });
   const rotate = new RotateBox(repo, world, players, structures, feedback, log);
-  const jobs = new EditJobs(repo, world, feedback, log, players, structures);
+  const jobs = new EditJobs(repo, world, feedback, log, players);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   return {
     repo,

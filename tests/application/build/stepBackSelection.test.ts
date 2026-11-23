@@ -61,7 +61,8 @@ it("clears the start during a running edit and keeps all history entries", () =>
   expect(session.flow).toEqual({ kind: "idle" });
   expect(session.isEditing).toBe(true);
   expect(feedback.messages.at(-1)?.message).toBe("startCleared");
-  expect(session.clearHistory()).toEqual([first, last]);
+  session.clearHistory();
+  expect(session.drainReleased()).toEqual([first, last]);
 });
 
 it("has no selection step for a missing or idle session", () => {

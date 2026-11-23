@@ -33,17 +33,16 @@ const dirt = blockStateOf("minecraft:dirt");
 const sign = blockStateOf("minecraft:standing_sign");
 
 function setup() {
-  const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
   const structures = new FakeStructureStore();
+  const repo = new FakeSessions(structures);
   const jobs = new EditJobs(
     repo,
     world,
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
-    structures,
   );
   return {
     repo,

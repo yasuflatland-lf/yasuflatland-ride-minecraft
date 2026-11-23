@@ -138,7 +138,7 @@ describe("undo history", () => {
     );
   });
 
-  it("clearHistory returns only held snapshots and empties mixed history", () => {
+  it("clearHistory releases held snapshots and empties mixed history", () => {
     fc.assert(
       fc.property(stepsArb, (steps) => {
         const session = new BuildSession(asPlayerId("p1"));
@@ -152,10 +152,13 @@ describe("undo history", () => {
             session.recordSnapshot(entry.snapshot);
           } else session.finishEdit(entry.record, "undoable");
         }
-        expect(session.clearHistory()).toEqual(expected);
+        session.drainReleased();
+        session.clearHistory();
+        expect(session.drainReleased()).toEqual(expected);
         expect(session.hasHistory).toBe(false);
         expect(session.takeUndo()).toBe("nothingToUndo");
-        expect(session.clearHistory()).toEqual([]);
+        session.clearHistory();
+        expect(session.drainReleased()).toEqual([]);
       }),
     );
   });
@@ -165,8 +168,9 @@ describe("undo history", () => {
     const first = snapshotAt(1);
     const second = snapshotAt(2);
     if (first.kind !== "snapshot" || second.kind !== "snapshot") return;
-    expect(s.recordSnapshot(first.snapshot)).toEqual([]);
-    expect(s.recordSnapshot(second.snapshot)).toEqual([]);
+    s.recordSnapshot(first.snapshot);
+    s.recordSnapshot(second.snapshot);
+    expect(s.drainReleased()).toEqual([]);
     expect(s.takeUndo()).toEqual(second);
     expect(s.takeUndo()).toEqual(first);
     expect(s.takeUndo()).toBe("nothingToUndo");
@@ -466,7 +470,7 @@ it("startNewCopy idles any paste aiming, clears the box, and keeps the clipboard
   );
 });
 
-it("returns only replaced or cleared structure handles and retains identical handles", () => {
+it("releases only replaced or cleared structure handles and retains identical handles", () => {
   fc.assert(
     fc.property(
       fc.uuid(),
@@ -487,23 +491,24 @@ it("returns only replaced or cleared structure handles and retains identical han
         });
         const a = clipboard(first);
         const b = clipboard(second);
-        expect(
-          session.completeCopy(selectionOf(dim, box, stone), a),
-        ).toBeUndefined();
-        expect(
-          session.completeCopy(selectionOf(dim, box, stone), clipboard(first)),
-        ).toBeUndefined();
-        expect(session.completeCopy(selectionOf(dim, box, stone), b)).toBe(
-          first === second ? undefined : a.contents.handle,
+        const selection = selectionOf(dim, box, stone);
+        session.completeCopy(selection, a);
+        session.clearClipboard();
+        session.completeCopy(selection, clipboard(first));
+        expect(session.drainReleased()).toEqual([]);
+        session.completeCopy(selection, b);
+        expect(session.drainReleased()).toEqual(
+          first === second ? [] : [a.contents.handle],
         );
-        expect(session[exit]()).toBe(b.contents.handle);
-        expect(session[exit]()).toBeUndefined();
+        session[exit]();
+        expect(session.drainReleased()).toEqual([b.contents.handle]);
+        session[exit]();
+        expect(session.drainReleased()).toEqual([]);
         const next = structureClipboard(box, () => stone);
-        expect(
-          session.completeCopy(selectionOf(dim, box, stone), next),
-        ).toBeUndefined();
-        expect(session[exit]()).toBe(next.contents.handle);
-        expect(session[exit]()).toBeUndefined();
+        session.completeCopy(selection, next);
+        session[exit]();
+        session[exit]();
+        expect(session.drainReleased()).toEqual([next.contents.handle]);
       },
     ),
   );

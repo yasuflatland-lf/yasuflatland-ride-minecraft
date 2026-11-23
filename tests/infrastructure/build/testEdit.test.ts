@@ -115,8 +115,8 @@ it("counts undo hints per player and forgets only that player's records", () => 
 });
 
 function snapshotHook() {
-  const repo = new FakeSessions();
   const structures = new FakeStructureStore();
+  const repo = new FakeSessions(structures);
   const { feedback, messages } = setup();
   vi.mocked(system.sendScriptEvent).mockClear();
   const builder = {
@@ -156,7 +156,7 @@ function snapshotHook() {
     new DescribeBuild(repo),
     messages,
     repo,
-    new EndBuildSession(repo, structures, new FakeTapTargets()),
+    new EndBuildSession(repo, new FakeTapTargets()),
     structures,
     new RotatePasteAim(repo, feedback),
     { aim: new TestAimReader(overrides), preview },

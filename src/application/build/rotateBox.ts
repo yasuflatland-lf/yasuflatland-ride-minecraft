@@ -75,11 +75,13 @@ export class RotateBox {
       this.feedback.showMessage(playerId, "rotateFailed");
       return "refused";
     }
-    edit.commit({
-      box: plan.union,
-      selectionBefore: selectedBox,
-      selectionBeforeTaps: { from: flow.from, to: flow.to },
-      handle: snapshot,
+    this.repo.update(session, () => {
+      edit.commit({
+        box: plan.union,
+        selectionBefore: selectedBox,
+        selectionBeforeTaps: { from: flow.from, to: flow.to },
+        handle: snapshot,
+      });
     });
     this.structures.discard(source);
     session.setFlow(withoutStepBack(flow));

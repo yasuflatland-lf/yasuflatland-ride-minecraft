@@ -24,10 +24,10 @@ const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone", { stone_type: "granite" });
 const origin = { x: 0, y: 64, z: 0 };
 function setup() {
-  const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
   const cut = new CutBox(repo, world, structures, feedback, log);

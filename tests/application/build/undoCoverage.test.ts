@@ -61,13 +61,13 @@ const stone = blockStateOf("minecraft:stone");
 const size = fc.integer({ min: 3, max: 6 });
 
 function setup() {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const feedback = new FakeFeedback();
   const players = new FakeBuildPlayers();
   const log = { warn: () => {} };
-  const jobs = new EditJobs(repo, world, feedback, log, players, structures);
+  const jobs = new EditJobs(repo, world, feedback, log, players);
   const rotateBox = new RotateBox(
     repo,
     world,
