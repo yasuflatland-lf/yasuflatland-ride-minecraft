@@ -4,10 +4,10 @@ import {
   GasLanternActions,
   gasLanternHostedKind,
 } from "../../../src/application/camp/gasLantern";
+import { decodeCampHost } from "../../../src/application/camp/hostedKind";
 import type { GasLanternWorld } from "../../../src/application/camp/ports/gasLantern";
 import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
-import { decodeCampHost } from "../../../src/domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
   GAS_LANTERN_FOOTPRINT_PX,

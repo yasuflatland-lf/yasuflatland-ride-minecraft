@@ -4,11 +4,11 @@ import {
   DutchOvenActions,
   dutchOvenHostedKind,
 } from "../../../src/application/camp/dutchOven";
+import { decodeCampHost } from "../../../src/application/camp/hostedKind";
 import type { DutchOvenWorld } from "../../../src/application/camp/ports/dutchOven";
 import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
-import { decodeCampHost } from "../../../src/domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,

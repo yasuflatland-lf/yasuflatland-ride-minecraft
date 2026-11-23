@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { decodeCampHost } from "../../../src/application/camp/hostedKind";
 import { asFirePitId, type FirePitId } from "../../../src/domain/camp/firePit";
-import { decodeCampHost } from "../../../src/domain/camp/hosted";
 import { TABLE_SPOTS } from "../../../src/domain/camp/spec";
 import { asTableId, type TableId } from "../../../src/domain/camp/table";
 import {

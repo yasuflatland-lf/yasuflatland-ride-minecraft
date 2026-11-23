@@ -4,14 +4,11 @@ import {
   initialSimmering,
 } from "../../domain/camp/dutchOven";
 import { asFirePitId, type FirePitId } from "../../domain/camp/firePit";
-import { decodeCampHost } from "../../domain/camp/hosted";
 import {
-  CAMP_TABLE_TOP,
   DUTCH_OVEN_SPEC,
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
 } from "../../domain/camp/spec";
-import type { TableId } from "../../domain/camp/table";
 import { cellOf } from "../../domain/shared/cells";
 import {
   Debounces,
@@ -20,11 +17,7 @@ import {
 import { HitCounters } from "../../domain/shared/hitCounter";
 import { encodeHost, type Host } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import {
-  hostSpotPoint,
-  type LocalPoint,
-  type TopSurface,
-} from "../../domain/shared/tableTop";
+import { hostSpotPoint } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
 import {
   canUseBlockTop,
@@ -32,28 +25,28 @@ import {
   placeOnGround,
 } from "../shared/groundPlacement";
 import { placePaid } from "../shared/paidPlacement";
-import {
-  placeOnTop,
-  type TopOutcome,
-  type TopRequest,
-} from "../shared/placeOnTop";
 import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
+import {
+  campHostedKind,
+  decodeCampHost,
+  HostedOnTopActions,
+} from "./hostedKind";
 import type { DutchOvenWorld } from "./ports/dutchOven";
 
-/** The oven as a kind the hosted items guard removes when its host is gone. */
 export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
-  return {
-    loaded: () => world.loadedOvens(),
-    host: (id) => decodeCampHost(world.host(asDutchOvenId(id))),
-    isHostAreaLoaded: (id) => world.isHostAreaLoaded(asDutchOvenId(id)),
-    hostExists: (hostId) => world.hostExists(hostId),
-    remove: (id) => world.removeDutchOven(asDutchOvenId(id)),
-  };
+  return campHostedKind(
+    {
+      asId: asDutchOvenId,
+      loaded: () => world.loadedOvens(),
+      remove: (id) => world.removeDutchOven(id),
+    },
+    world,
+  );
 }
 
-export class DutchOvenActions {
+export class DutchOvenActions extends HostedOnTopActions {
   private readonly hits = new HitCounters<DutchOvenId>(
     DUTCH_OVEN_SPEC.recovery,
   );
@@ -64,8 +57,10 @@ export class DutchOvenActions {
 
   constructor(
     private readonly world: DutchOvenWorld,
-    private readonly onTop: HostedItemKind,
-  ) {}
+    onTop: HostedItemKind,
+  ) {
+    super(world, onTop);
+  }
 
   toggleLid(id: DutchOvenId, tick: number): boolean {
     this.switches.forgetIdle(tick);
@@ -119,23 +114,6 @@ export class DutchOvenActions {
     );
     if (result.placed) this.world.setCovered(cmd.pit, true);
     return result.placed;
-  }
-
-  placeOnTop(surface: TopSurface, cmd: TopRequest): TopOutcome {
-    return placeOnTop(this.world, surface, this.onTop, cmd);
-  }
-
-  placeOnTable(cmd: {
-    player?: PlayerId;
-    table: TableId;
-    slot: number;
-    aim?: LocalPoint;
-  }): TopOutcome {
-    return this.placeOnTop(CAMP_TABLE_TOP, {
-      ...cmd,
-      hostType: "camp_table",
-      host: cmd.table,
-    });
   }
 
   private spawnHosted(

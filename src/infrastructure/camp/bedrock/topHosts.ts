@@ -1,3 +1,7 @@
+import {
+  CAMP_TABLE_HOST_TYPE,
+  campTableLegacySpot,
+} from "../../../application/camp/hostedKind";
 import type {
   HostedItemKind,
   HostedKindId,
@@ -8,7 +12,6 @@ import {
   DUTCH_OVEN_SPEC,
   GAS_LANTERN_FOOTPRINT_PX,
   GAS_LANTERN_SPEC,
-  TABLE_SPOTS,
 } from "../../../domain/camp/spec";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
@@ -34,12 +37,12 @@ export const GAS_LANTERN_ON_TOP: HostedItemKind = {
 
 export function registerCampTopHosts(registry: TopHostRegistry): void {
   registry.registerHost({
-    hostType: "camp_table",
+    hostType: CAMP_TABLE_HOST_TYPE,
     entityTypeId: CAMP_TABLE_TYPE,
     surface: CAMP_TABLE_TOP,
     isTopNow: () => true,
     refusalHints: TABLE_TOP_REFUSAL_HINTS,
-    legacySpot: (spot) => TABLE_SPOTS[spot],
+    legacySpot: campTableLegacySpot,
   });
   registry.registerHosted({
     kind: DUTCH_OVEN_ON_TOP.id,
