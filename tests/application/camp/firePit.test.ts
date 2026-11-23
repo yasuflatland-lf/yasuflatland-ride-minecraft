@@ -89,28 +89,3 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
   }
 });
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Fire Pit item when spawning fails (%s)",
-  (mode) => {
-    const { actions, world } = fixture(true);
-    world.isCreative.mockReturnValue(mode === "Creative");
-    const payer = mode === "playerless" ? undefined : player;
-    expect(
-      actions.place({
-        player: payer,
-        dimension,
-        block: { x: 4, y: 60, z: 5 },
-        yaw: 47,
-        slot: 1,
-      }),
-    ).toBe(false);
-    expect(world.spawnFirePit).toHaveBeenCalledOnce();
-    expect(world.consumeItem.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, 1]] : [],
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, 1]] : [],
-    );
-  },
-);

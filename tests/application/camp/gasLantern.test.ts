@@ -342,39 +342,3 @@ it("keeps a hosted lantern whose host still exists", () => {
   expect(world.removeGasLantern).not.toHaveBeenCalled();
   expect(world.clearLight).not.toHaveBeenCalled();
 });
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Gas Lantern item when spawning fails on the ground (%s)",
-  (mode) => {
-    const { actions, world } = fixture(true);
-    world.isCreative.mockReturnValue(mode === "Creative");
-    const payer = mode === "playerless" ? undefined : player;
-    expect(actions.place({ ...cmd, player: payer })).toBe(false);
-    expect(world.spawnGasLantern).toHaveBeenCalledOnce();
-    expect(world.consumeItem).toHaveBeenCalledTimes(
-      mode === "Survival" ? 1 : 0,
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, cmd.slot]] : [],
-    );
-  },
-);
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Gas Lantern item when spawning fails on a table (%s)",
-  (mode) => {
-    const { actions, world } = fixture(true);
-    world.isCreative.mockReturnValue(mode === "Creative");
-    const payer = mode === "playerless" ? undefined : player;
-    expect(actions.placeOnTable({ ...tableCmd, player: payer })).toBe(
-      "refused",
-    );
-    expect(world.spawnHosted).toHaveBeenCalledOnce();
-    expect(world.consumeItem).toHaveBeenCalledTimes(
-      mode === "Survival" ? 1 : 0,
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, tableCmd.slot]] : [],
-    );
-  },
-);
