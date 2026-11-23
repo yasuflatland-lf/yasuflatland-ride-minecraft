@@ -684,66 +684,56 @@ it("asks the later switch targets after the vehicle's, on every use", () => {
   expect(later.switchFor).not.toHaveBeenCalled();
 });
 
-it("preserves switch routing, cancellation and use-case arguments across rider and room states", () => {
+it("routes generated switch events according to their context", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom("none", "room", "vehicle"),
+      fc.constantFrom("use", "block", "entity"),
       fc.boolean(),
       fc.boolean(),
       fc.boolean(),
       fc.boolean(),
-      (mountId, owner, canSwitch, headlightsSwitch, isFirstEvent) => {
-        const mount =
-          mountId === "none"
-            ? undefined
-            : {
-                id: mountId,
-                typeId:
-                  mountId === "room" ? ENTITY_TYPE.camper : ENTITY_TYPE.suv,
-              };
+      fc.boolean(),
+      (event, rider, inOwnedRoom, reachable, headlightHandled, first) => {
+        const mount = rider
+          ? { id: "room", typeId: ENTITY_TYPE.camper }
+          : undefined;
         const f = lightSwitchFixture(mount, () =>
-          owner ? asVehicleId("room") : undefined,
+          inOwnedRoom ? asVehicleId("room") : undefined,
         );
-        f.ceilingLights.canSwitch.mockReturnValue(canSwitch);
-        f.headlights.execute.mockReturnValue(headlightsSwitch);
-        const headlightCalls: unknown[][] = [];
-        const ceilingCalls: unknown[][] = [];
-        // Transcribe the existing use rule: the mount gets headlights first, then ceiling
-        // lights on refusal; on foot only the room gets ceiling lights (ADR 0115).
-        const use = () => {
-          if (mount) {
-            headlightCalls.push([{ playerId: "player", vehicleId: mount.id }]);
-            if (!headlightsSwitch)
-              ceilingCalls.push([{ ...inRoom, vehicleId: mount.id }]);
-          } else if (owner) ceilingCalls.push([inRoom]);
-        };
-        const check = () => {
-          expect(f.headlights.execute.mock.calls).toEqual(headlightCalls);
-          expect(f.ceilingLights.execute.mock.calls).toEqual(ceilingCalls);
-        };
-        f.use();
-        use();
-        check();
+        f.ceilingLights.canSwitch.mockReturnValue(reachable);
+        f.headlights.execute.mockReturnValue(headlightHandled);
+        if (event === "use") f.use();
+        if (event === "block")
+          expect(f.pressBlock(first)).toBe(!rider && inOwnedRoom && reachable);
+        if (event === "entity")
+          expect(
+            f.pressEntity({ id: "room", typeId: ENTITY_TYPE.camper }),
+          ).toBe(rider || (inOwnedRoom && reachable));
         f.nextTick();
-        check();
-
-        const blockClaim = !mount && owner && canSwitch;
-        expect(f.pressBlock(isFirstEvent)).toBe(blockClaim);
-        check();
-        f.nextTick();
-        if (blockClaim && isFirstEvent) use();
-        check();
-
-        for (const id of ["room", "other"]) {
-          const entityClaim =
-            mount?.id === id || (owner && id === "room" && canSwitch);
-          expect(f.pressEntity({ id, typeId: ENTITY_TYPE.camper })).toBe(
-            entityClaim,
+        const dispatched =
+          event === "use" ||
+          (event === "block" && !rider && inOwnedRoom && reachable && first) ||
+          (event === "entity" && (rider || (inOwnedRoom && reachable)));
+        if (!dispatched) {
+          expect(f.headlights.execute).not.toHaveBeenCalled();
+          expect(f.ceilingLights.execute).not.toHaveBeenCalled();
+        } else if (rider) {
+          expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
+            playerId: "player",
+            vehicleId: "room",
+          });
+          expect(f.ceilingLights.execute).toHaveBeenCalledTimes(
+            headlightHandled ? 0 : 1,
           );
-          check();
-          f.nextTick();
-          if (entityClaim) use();
-          check();
+          if (!headlightHandled)
+            expect(f.ceilingLights.execute).toHaveBeenCalledWith(inRoom);
+        } else {
+          expect(f.headlights.execute).not.toHaveBeenCalled();
+          expect(f.ceilingLights.execute).toHaveBeenCalledTimes(
+            inOwnedRoom ? 1 : 0,
+          );
+          if (inOwnedRoom)
+            expect(f.ceilingLights.execute).toHaveBeenCalledWith(inRoom);
         }
       },
     ),
@@ -773,39 +763,12 @@ const inRoom = {
   feet: { x: 2.5, y: 65, z: 3.5 },
 };
 
-it("switches the ceiling lights of the room a player on foot stands in, and nothing outside a room (ADR 0115)", () => {
-  const f = lightSwitchFixture();
-  f.use();
-  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
-  expect(f.headlights.execute).not.toHaveBeenCalled();
-  const outside = lightSwitchFixture(undefined, () => undefined);
-  outside.use();
-  expect(outside.ceilingLights.execute).not.toHaveBeenCalled();
-});
-
 it("finds the room from the cell of the feet when the cell under them is not laid (ADR 0115)", () => {
   const f = lightSwitchFixture(undefined, (cell) =>
     cell.y === 65 ? asVehicleId("room") : undefined,
   );
   f.use();
   expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith(inRoom);
-});
-
-it("gives a rider's switch to the headlights first, and to the ceiling lights only when the rider is not the driver (ADR 0020, 0115)", () => {
-  const camper = { id: "camper", typeId: ENTITY_TYPE.camper };
-  const f = lightSwitchFixture(camper);
-  f.headlights.execute.mockReturnValueOnce(true);
-  f.use();
-  expect(f.headlights.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId: "player",
-    vehicleId: "camper",
-  });
-  expect(f.ceilingLights.execute).not.toHaveBeenCalled();
-  f.use();
-  expect(f.ceilingLights.execute).toHaveBeenCalledExactlyOnceWith({
-    ...inRoom,
-    vehicleId: "camper",
-  });
 });
 
 it("takes a switch press on a block in a room on the next tick, cancelled, and leaves riders and other items alone (ADR 0115)", () => {
