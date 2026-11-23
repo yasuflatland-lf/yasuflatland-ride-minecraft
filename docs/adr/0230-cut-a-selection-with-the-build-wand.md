@@ -18,7 +18,7 @@ Undo restores an earlier wand edit, but cannot empty an arbitrary selected range
 3. Cut works in two steps. It captures the inclusive box as a structure clipboard and takes a separate undo snapshot before clearing blocks and eligible entities (0243). Fluids outside the box may flow back afterward.
 4. A successful Cut replaces the clipboard and enters paste aiming, ending the active selection (0253). The clipboard contains the source as it was before clearing and can be pasted elsewhere at once.
 5. Bound Cut by `BUILD_SPEC.maxCopyVolume` (32,768 cells), the same limit as Copy, because the whole box is stored. The bounding volume counts already-air and protected cells. Oversized or busy requests retain the selection flow, the old clipboard, and the prior confirmed box.
-6. Check protection across the entire box before capture. Refuse a protected box as a whole. A successful Cut records the snapshot for Undo (0243).
+6. Check volume, then whether the session is busy, then protection across the entire box before capture. Refuse a protected box as a whole. A successful Cut records the snapshot for Undo (0243).
 7. Undo restores the cleared area from the snapshot. The clipboard keeps its cut contents. See 0243 for capture refusals and rollback.
 
 ## Consequences
