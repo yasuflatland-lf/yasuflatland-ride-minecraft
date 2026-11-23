@@ -35,7 +35,7 @@ export class DockedResend {
   }
 
   next(wasHeld: boolean, held: boolean): EngineCommand | undefined {
-    this.heldOnce ||= held;
+    this.heldOnce ||= wasHeld || held;
     if (!this.pending) return undefined;
     this.pending = false;
     return held === wasHeld ? dockedCommand(held) : undefined;
