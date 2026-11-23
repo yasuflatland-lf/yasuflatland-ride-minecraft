@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SUV_SPEC } from "../../src/domain/vehicle/kinds/suv/spec";
 import {
-  ROOF_TENT_FAMILY,
   ROOF_TENT_FLAP_OPEN_PROPERTY,
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
@@ -13,6 +12,7 @@ import {
   ROOF_TENT_TYPE,
 } from "../../src/infrastructure/camp/identifiers";
 import { PACK_STEM_TAGS } from "../../src/test-pack/impact";
+import { ROOF_TENT_FAMILY } from "../../src/test-pack/scenarios/support/tentContract";
 import { type Bone, turnedCorners } from "../support/geometry";
 import {
   ROOF_TENT_PACK_CONTRACT,

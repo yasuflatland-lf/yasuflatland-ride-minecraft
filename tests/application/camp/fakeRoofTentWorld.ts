@@ -4,7 +4,6 @@ import type { VehicleHostState } from "../../../src/application/shared/ports/veh
 import { asRoofTentId, type RoofTentId } from "../../../src/domain/camp/ids";
 import type { Host } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import type { Paint } from "../../../src/domain/shared/paint";
 
 export const PLAYER = asPlayerId("player");
 export const DIMENSION = asDimensionId("overworld");
@@ -25,13 +24,11 @@ export const PRESENT: Extract<VehicleHostState, { status: "present" }> = {
 
 export class FakeRoofTentWorld implements RoofTentWorld {
   readonly hosts = new Map<RoofTentId, Host>();
-  readonly paints = new Map<RoofTentId, Paint>();
   readonly calls: string[] = [];
   spawn = vi.fn<RoofTentWorld["spawn"]>(() => asRoofTentId("tent"));
   remove = vi.fn<RoofTentWorld["remove"]>((id) => {
     this.calls.push(`remove:${id}`);
     this.hosts.delete(id);
-    this.paints.delete(id);
   });
   ownerOf = vi.fn<RoofTentWorld["ownerOf"]>(() => PLAYER);
   hostOf = (id: RoofTentId): Host => this.hosts.get(id) ?? { kind: "ground" };
@@ -45,11 +42,8 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   giveItem = vi.fn<RoofTentWorld["giveItem"]>();
   showRefusal = vi.fn<RoofTentWorld["showRefusal"]>();
   showHitsLeft = vi.fn<RoofTentWorld["showHitsLeft"]>();
-  paintOf = (id: RoofTentId) => this.paints.get(id);
-  paint = vi.fn<RoofTentWorld["paint"]>((id, paint) => {
-    this.paints.set(id, paint);
-  });
+  paintOf = vi.fn<RoofTentWorld["paintOf"]>();
+  paint = vi.fn<RoofTentWorld["paint"]>();
   consumeDye = vi.fn<RoofTentWorld["consumeDye"]>();
-  readonly sounds: RoofTentId[] = [];
   playPaintSound = vi.fn<RoofTentWorld["playPaintSound"]>();
 }

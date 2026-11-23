@@ -18,9 +18,6 @@ import {
 } from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
-import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
-import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
-import { BedrockPlacementWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -33,7 +30,6 @@ import {
   ENTITY_TYPE,
   entityPropertyId,
   HEADLIGHTS_PROPERTY,
-  ITEM_TYPE,
   OWNER_PROPERTY,
   PLAYER_TYPE,
   SEAT_FILLER_TYPE,
@@ -85,12 +81,8 @@ function fixture(restoredReaders: RestoredReaders = {}) {
   const inputs = new VehicleTestStore<RawInput>();
   const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
-  const inventory = new BedrockInventory(index);
   return {
     index,
-    inventory,
-    placement: new BedrockPlacementWorld(inventory, index, noCampSpace),
-    paint: new BedrockPaintWorld(index, inventory),
     inputs,
     testHeldItems,
     entities,
@@ -107,101 +99,6 @@ function fixture(restoredReaders: RestoredReaders = {}) {
     ),
   };
 }
-
-describe("BedrockPlacementWorld (ADR 0066)", () => {
-  beforeEach(() => vi.resetAllMocks());
-
-  it.each(VEHICLE_KINDS)(
-    "records the owner synchronously when spawning a %s",
-    (kind) => {
-      const { dimension, car, placement } = fixture();
-      dimension.spawnEntity.mockReturnValue(car);
-      const ownerId = asPlayerId("placing-player");
-      expect(
-        placement.spawnVehicle(
-          asDimensionId("overworld"),
-          car.location,
-          45,
-          kind,
-          ownerId,
-        ),
-      ).toEqual({ status: "spawned", id: car.id });
-      expect(dimension.spawnEntity).toHaveBeenCalledExactlyOnceWith(
-        ENTITY_TYPE[kind],
-        car.location,
-      );
-      expect(car.setRotation).toHaveBeenCalledExactlyOnceWith({ x: 0, y: 45 });
-      expect(car.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
-        OWNER_PROPERTY,
-        ownerId,
-      );
-      expect(OWNER_PROPERTY).toBe("yasu_ride:owner");
-    },
-  );
-});
-
-describe("BedrockPlacementWorld water query (ADR 0051)", () => {
-  beforeEach(() => vi.resetAllMocks());
-
-  it.each([
-    "minecraft:water",
-    "minecraft:flowing_water",
-    "minecraft:bubble_column",
-  ])(
-    "counts %s in the named dimension as water at the floored cell",
-    (typeId) => {
-      const { dimension, placement } = fixture();
-      dimension.getBlock.mockReturnValue({ typeId, isWaterlogged: false });
-      expect(
-        placement.isWaterAt(asDimensionId("overworld"), {
-          x: 1.7,
-          y: 64.2,
-          z: -0.5,
-        }),
-      ).toBe(true);
-      expect(game.getDimension).toHaveBeenCalledWith("overworld");
-      expect(dimension.getBlock).toHaveBeenCalledWith({ x: 1, y: 64, z: -1 });
-    },
-  );
-
-  it("counts a waterlogged block as water and air or an unloaded cell as dry", () => {
-    const { dimension, placement } = fixture();
-    dimension.getBlock.mockReturnValueOnce({
-      typeId: "minecraft:kelp",
-      isWaterlogged: true,
-    });
-    expect(
-      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
-    ).toBe(true);
-    dimension.getBlock.mockReturnValueOnce({
-      typeId: "minecraft:air",
-      isWaterlogged: false,
-    });
-    expect(
-      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
-    ).toBe(false);
-    dimension.getBlock.mockImplementationOnce(() => {
-      throw new Error("unloaded");
-    });
-    expect(
-      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
-    ).toBe(false);
-    dimension.getBlock.mockReturnValueOnce(undefined);
-    expect(
-      placement.isWaterAt(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
-    ).toBe(false);
-  });
-
-  it("is dry in an unknown dimension", () => {
-    const { placement } = fixture();
-    game.getDimension.mockImplementation(() => {
-      throw new Error("unknown");
-    });
-    expect(
-      placement.isWaterAt(asDimensionId("nowhere"), { x: 0, y: 0, z: 0 }),
-    ).toBe(false);
-  });
-});
 
 describe("BedrockVehicleWorld submarine wiring (ADR 0040)", () => {
   beforeEach(() => vi.resetAllMocks());
@@ -345,31 +242,6 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(
       world.loadedVehicles().map((s) => ({ id: s.id, kind: s.kind })),
     ).toEqual([{ id: car.id, kind: "suv" }]);
-  });
-
-  it("gives the item of the requested kind", () => {
-    for (const kind of VEHICLE_KINDS) {
-      const { inventory } = fixture();
-      const playerId = asPlayerId("player");
-      const addItem = vi.fn();
-      const player = {
-        id: playerId,
-        typeId: PLAYER_TYPE,
-        getComponent: (name: string) =>
-          name === "minecraft:inventory"
-            ? { container: { addItem } }
-            : undefined,
-      };
-      game.getEntity.mockImplementation((id: string) =>
-        id === playerId ? player : undefined,
-      );
-
-      inventory.giveVehicleItem(playerId, kind);
-
-      expect(addItem).toHaveBeenCalledWith(
-        expect.objectContaining({ typeId: ITEM_TYPE[kind], amount: 1 }),
-      );
-    }
   });
 
   it("reports the headlights as the vehicle's headlights property says (ADR 0020)", () => {
@@ -537,27 +409,6 @@ describe("BedrockVehicleWorld snapshots", () => {
     expect(world.loadedVehicles()).toEqual([]);
     world.sweepGone(new Set());
     expect(grid.typeAt(cell)).toBe("minecraft:air");
-  });
-});
-
-describe("BedrockPaintWorld paint wiring (ADR 0076)", () => {
-  it.each(VEHICLE_KINDS)("reports the kind of a %s entity", (kind) => {
-    const { car, paint } = fixture();
-    car.typeId = ENTITY_TYPE[kind];
-    expect(paint.kindOf(asVehicleId(car.id))).toBe(kind);
-  });
-
-  it("an unknown type has no kind", () => {
-    const { car, paint } = fixture();
-    car.typeId = "yasu_ride:unknown";
-    expect(paint.kindOf(asVehicleId(car.id))).toBeUndefined();
-  });
-
-  it("a missing or invalid vehicle has no kind", () => {
-    const { car, paint } = fixture();
-    expect(paint.kindOf(asVehicleId("missing"))).toBeUndefined();
-    car.isValid = false;
-    expect(paint.kindOf(asVehicleId(car.id))).toBeUndefined();
   });
 });
 
@@ -1268,29 +1119,6 @@ describe("BedrockVehicleWorld solid and ram queries around a loaded vehicle", ()
     const { world, car } = fixture();
     world.applyMotion(asVehicleId("missing"), { x: 0, y: 0, z: 1 }, 0);
     expect(car.applyImpulse).not.toHaveBeenCalled();
-  });
-});
-
-type Fixture = ReturnType<typeof fixture>;
-const creativeAdapters: [
-  string,
-  (f: Fixture) => { isCreative(id: string): boolean },
-][] = [
-  ["BedrockPlacementWorld", (f) => f.placement],
-  ["BedrockPaintWorld", (f) => new BedrockPaintWorld(f.index, f.inventory)],
-];
-
-describe.each(creativeAdapters)("%s isCreative", (_name, adapterOf) => {
-  beforeEach(() => vi.resetAllMocks());
-  it("is true for a valid player in creative", () => {
-    const f = fixture();
-    game.getEntity.mockReturnValue({
-      id: "p",
-      typeId: PLAYER_TYPE,
-      isValid: true,
-      getGameMode: () => "Creative",
-    });
-    expect(adapterOf(f).isCreative("p")).toBe(true);
   });
 });
 

@@ -5,7 +5,7 @@ type ChoiceEntry<Id extends string = string> = Readonly<
   { id: Id } & ({ textKey: string } | { label: RawMessage })
 >;
 
-export function entryLabel(entry: ChoiceEntry): RawMessage {
+function entryLabel(entry: ChoiceEntry): RawMessage {
   return "textKey" in entry ? { translate: entry.textKey } : entry.label;
 }
 const CANCELLED = "cancel" as const;
