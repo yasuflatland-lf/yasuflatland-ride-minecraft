@@ -5,7 +5,7 @@ import { aimedEndPoint } from "../../../src/domain/build/aim/endPoint";
 import type { AimSample } from "../../../src/domain/build/aim/sample";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import type { BuildFlow } from "../../../src/domain/build/flow/flow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { tapTargetCell } from "../../../src/domain/build/tapTarget";
 import { asPlayerId } from "../../../src/domain/shared/ids";

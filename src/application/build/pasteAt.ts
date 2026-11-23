@@ -1,7 +1,7 @@
 import { cellsOf } from "../../domain/build/box";
 import type { PasteTarget } from "../../domain/build/clipboard/clipboard";
 import { completionMessage } from "../../domain/build/edit/completion";
-import { airPressOffersUndo } from "../../domain/build/flow/flow";
+import { airPressOffersUndo } from "../../domain/build/flow/press";
 import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";

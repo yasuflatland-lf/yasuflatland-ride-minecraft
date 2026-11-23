@@ -1,16 +1,20 @@
 import type { BlockState } from "../../src/domain/build/blockState";
 import { sizeOf } from "../../src/domain/build/box";
 import {
-  type BaseHeightFlow,
-  type BuildFlow,
   chooseHeighted,
-  chooseStairs,
-  chooseTerrain,
   confirmLiveHeight,
-  fixStairGoal,
   tapAir,
   tapBlock,
-} from "../../src/domain/build/flow/flow";
+} from "../../src/domain/build/flow/heightFlow";
+import {
+  chooseStairs,
+  fixStairGoal,
+} from "../../src/domain/build/flow/stairFlow";
+import type {
+  BaseHeightFlow,
+  BuildFlow,
+} from "../../src/domain/build/flow/state";
+import { chooseTerrain } from "../../src/domain/build/flow/terrainFlow";
 import type { Cell } from "../../src/domain/shared/cells";
 import type { DimensionId } from "../../src/domain/shared/ids";
 
