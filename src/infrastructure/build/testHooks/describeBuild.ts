@@ -1,11 +1,11 @@
-import type { BuildFlow } from "../../domain/build/flow/flow";
-import { pasteMenu } from "../../domain/build/flow/menu";
+import type { BuildFlow } from "../../../domain/build/flow/flow";
+import { pasteMenu } from "../../../domain/build/flow/menu";
 import {
   NO_TURN,
   type QuarterTurn,
-} from "../../domain/build/rotation/quarterTurn";
-import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import type { PlayerId } from "../../domain/shared/ids";
+} from "../../../domain/build/rotation/quarterTurn";
+import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
+import type { PlayerId } from "../../../domain/shared/ids";
 
 export class DescribeBuild {
   constructor(private readonly repo: BuildSessionRepository) {}

@@ -3,6 +3,7 @@ import type { AimReader } from "../../../application/build/ports/aim";
 import type { AimSample, InputKind } from "../../../domain/build/aim/sample";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
 import { playerById } from "../../shared/players";
 import { FACES } from "./faces";
 
@@ -14,13 +15,15 @@ export function readInputKind(readMode: () => unknown): InputKind {
   }
 }
 
-export class BedrockAimReader implements AimReader {
-  private readonly touchOverrides = new Set<PlayerId>();
+export interface AimOverride {
+  input?: InputKind;
+  target?: Pick<AimSample, "block" | "input"> & { direction?: Vec3 };
+}
 
-  setTouchOverride(playerId: PlayerId, enabled: boolean): void {
-    if (enabled) this.touchOverrides.add(playerId);
-    else this.touchOverrides.delete(playerId);
-  }
+export class BedrockAimReader implements AimReader {
+  constructor(
+    private readonly overrides: ReadonlyMap<PlayerId, AimOverride> = new Map(),
+  ) {}
 
   dimensionOf(playerId: PlayerId) {
     try {
@@ -37,17 +40,25 @@ export class BedrockAimReader implements AimReader {
       const hit = player.getBlockFromViewDirection({
         maxDistance: BUILD_SPEC.reach,
       });
+      const origin = player.getHeadLocation();
+      const direction = player.getViewDirection();
+      const override = this.overrides.get(playerId);
+      if (override?.target) {
+        const target = override.target;
+        return {
+          ray: { origin, direction: target.direction ?? direction },
+          block: target.block,
+          input: target.input,
+        };
+      }
       return {
-        ray: {
-          origin: player.getHeadLocation(),
-          direction: player.getViewDirection(),
-        },
+        ray: { origin, direction },
         block: hit
           ? { cell: hit.block.location, face: FACES[hit.face] }
           : undefined,
-        input: this.touchOverrides.has(playerId)
-          ? "touch"
-          : readInputKind(() => player.inputInfo.lastInputModeUsed),
+        input:
+          override?.input ??
+          readInputKind(() => player.inputInfo.lastInputModeUsed),
       };
     } catch {
       return undefined;

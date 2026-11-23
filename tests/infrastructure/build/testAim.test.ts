@@ -4,60 +4,76 @@ import {
   FACINGS,
   facingVector,
 } from "../../../src/domain/build/rotation/facing";
-import { asPlayerId } from "../../../src/domain/shared/ids";
-import { TestAimReader } from "../../../src/infrastructure/build/bedrock/handlers/testAim";
-import { FakeAimReader, overworld } from "../../application/build/fakes";
+import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
+import {
+  type AimOverride,
+  BedrockAimReader,
+} from "../../../src/infrastructure/build/bedrock/bedrockAimReader";
+import { TestAimReader } from "../../../src/infrastructure/build/testHooks/testAim";
+import { overworld } from "../../application/build/fakes";
+
+const engine = vi.hoisted(() => ({ getEntity: vi.fn() }));
+vi.mock("@minecraft/server", () => ({
+  InputMode: { Touch: "Touch" },
+  Direction: { Up: "Up", North: "North" },
+  world: { getEntity: engine.getEntity },
+}));
+
+function setup(face: "Up" | "North") {
+  const ray = { origin: { x: 1, y: 2, z: 3 }, direction: { x: 1, y: 0, z: 0 } };
+  const cell = { x: 1, y: 1, z: 3 };
+  const player = {
+    typeId: "minecraft:player",
+    isValid: true,
+    dimension: { id: overworld },
+    getHeadLocation: () => ray.origin,
+    getViewDirection: () => ray.direction,
+    getBlockFromViewDirection: () => ({ block: { location: cell }, face }),
+  };
+  engine.getEntity.mockReturnValue(player);
+  const overrides = new Map<PlayerId, AimOverride>();
+  const reader = new BedrockAimReader(overrides);
+  return { reader, aim: new TestAimReader(overrides), ray, player };
+}
 
 it("overrides only the requested player's gaze with air aim until cleared", () => {
   fc.assert(
     fc.property(fc.constantFrom(...FACINGS), (facing) => {
-      const base = new FakeAimReader();
-      base.target = {
-        input: "pointer",
-        ray: { origin: { x: 1, y: 2, z: 3 }, direction: { x: 1, y: 0, z: 0 } },
-        block: { cell: { x: 1, y: 1, z: 3 }, face: "up" },
-      };
-      const aim = new TestAimReader(base);
+      const { reader, aim, ray, player: entity } = setup("Up");
       const player = asPlayerId("player");
       const other = asPlayerId("other");
-      vi.spyOn(base, "dimensionOf").mockReturnValue(overworld);
+      const base = reader.aim(player);
       aim.setFacing(player, facing);
-      expect(aim.aim(player)).toEqual({
+      expect(reader.aim(player)).toEqual({
         input: "pointer",
         ray: {
-          origin: base.target.ray.origin,
+          origin: ray.origin,
           direction: facingVector(facing),
         },
       });
-      expect(aim.aim(other)).toEqual(base.target);
-      expect(aim.dimensionOf(player)).toBe(overworld);
+      expect(reader.aim(other)).toEqual(base);
+      expect(reader.dimensionOf(player)).toBe(overworld);
       aim.setFacing(player, undefined);
-      expect(aim.aim(player)).toEqual(base.target);
-      base.target = undefined;
+      expect(reader.aim(player)).toEqual(base);
+      entity.isValid = false;
       aim.setFacing(player, facing);
-      expect(aim.aim(player)).toBeUndefined();
+      expect(reader.aim(player)).toBeUndefined();
     }),
   );
 });
 
 it("overrides the hit with an upward face until the test aim is cleared", () => {
-  const base = new FakeAimReader();
-  const ray = { origin: { x: 1, y: 2, z: 3 }, direction: { x: 1, y: 0, z: 0 } };
-  base.target = {
-    input: "pointer",
-    ray,
-    block: { cell: { x: 1, y: 1, z: 3 }, face: "north" },
-  };
-  const aim = new TestAimReader(base);
+  const { reader, aim, ray } = setup("North");
   const player = asPlayerId("player");
+  const base = reader.aim(player);
   const cell = { x: -10, y: 9, z: 7 };
   aim.setHit(player, cell);
-  expect(aim.aim(player)).toEqual({
+  expect(reader.aim(player)).toEqual({
     input: "pointer",
     ray,
     block: { cell, face: "up" },
   });
-  expect(aim.aim(asPlayerId("other"))).toEqual(base.target);
+  expect(reader.aim(asPlayerId("other"))).toEqual(base);
   aim.setHit(player, undefined);
-  expect(aim.aim(player)).toEqual(base.target);
+  expect(reader.aim(player)).toEqual(base);
 });
