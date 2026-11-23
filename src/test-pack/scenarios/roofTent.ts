@@ -1,4 +1,5 @@
 import { type Entity, system } from "@minecraft/server";
+import { SUV_PACK_CONTRACT } from "../../../tests/support/packContract";
 import { entranceWorld } from "../../domain/camp/roofTent/access";
 import { PAINTS } from "../../domain/shared/paint";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
@@ -96,12 +97,14 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
       rightInset = false;
       footOutside = false;
       if (mount) {
-        const shellHalf = SUV_SPEC.roofTentShellHalfWidth;
+        const shellHalf = SUV_PACK_CONTRACT.roofTentShellHalfWidth;
         leftOverhang =
           mount.anchor.x + shellHalf > SUV_SPEC.bodyHalfWidth + 0.05;
         rightInset =
           Math.abs(
-            mount.anchor.x - shellHalf + SUV_SPEC.roofTentHardtopHalfWidth,
+            mount.anchor.x -
+              shellHalf +
+              SUV_PACK_CONTRACT.roofTentHardtopHalfWidth,
           ) < 0.05;
         const foot = entranceWorld(mount, {
           location: host.location,

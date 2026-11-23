@@ -3,7 +3,6 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
 import { isRoofKind, stairRoofHeight } from "../roof/roof";
-import type { Facing } from "../rotation/facing";
 import {
   type Selection,
   selectionHeightLimit,
@@ -53,7 +52,6 @@ export type BuildFlow =
       readonly selectionBefore?: CellBox;
       readonly from: Cell;
       readonly heightedKind: HeightStepKind;
-      readonly facing?: Facing;
       readonly previous: number;
       readonly heightLocked: boolean;
       readonly roofStyle?: "stair";
@@ -311,7 +309,6 @@ export function stairRoofFits(
 export function chooseHeighted(
   flow: BuildFlow,
   kind: HeightStepKind,
-  facing?: Facing,
 ): BuildFlow {
   if (flow.kind !== "selected") return flow;
   const { box, dimensionId, material } = flow.selection;
@@ -335,7 +332,6 @@ export function chooseHeighted(
       : {}),
     from: flow.from,
     heightedKind: kind,
-    facing,
     previous,
     heightLocked: locked || stairRoof,
     ...(stairRoof ? { roofStyle: "stair" as const } : {}),

@@ -1,7 +1,7 @@
 import type { Player, RawMessage } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
+import { BackToAiming } from "../../../src/application/build/backToAiming";
 import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
@@ -206,7 +206,7 @@ function setup(fallback?: boolean) {
     },
     confirmTerrain: { execute: vi.fn() },
     cancel: {
-      backToAiming: vi.fn((cmd) => new CancelFlow(repo).backToAiming(cmd)),
+      backToAiming: vi.fn((cmd) => new BackToAiming(repo).backToAiming(cmd)),
     },
     copy: { execute: vi.fn() },
     newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
@@ -520,37 +520,37 @@ it("does nothing on utility dismissal", async () => {
   expect(cases.cancel.backToAiming).not.toHaveBeenCalled();
 });
 
-it("bounds the fallback slider, uses the previous height and applies it before the roof menu", async () => {
+it("bounds the fallback slider, starts at the initial roof height and applies it before the roof menu", async () => {
   await fc.assert(
     fc.asyncProperty(
       fc.integer({ min: 0, max: 319 }),
-      fc.integer({ min: 1, max: 21 }),
       fc.constantFrom("gable" as const, "hip" as const),
-      async (y, requested, kind) => {
+      async (y, kind) => {
         const { session, menus, player, cases } = setup(true);
-        const flow = chooseHeighted(
-          selected({ ...from, y }, { ...to, y }),
-          kind,
-        );
+        const selection = selected({ ...from, y }, { ...to, y });
+        session.setFlow(selection);
+        const flow = chooseHeighted(selection, kind);
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
         const max = volumeOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
-        const previous = Math.min(max, requested);
-        session.setFlow({ ...flow, previous });
         ui.forms.length = 0;
-        ui.answers.push({ formValues: [max] }, { selection: 1 });
-        await menus.showHeightSlider(player);
-        expect(ui.forms[0]?.heading).toEqual({
+        ui.answers.push(
+          ...shapeAnswers(selection, kind),
+          { formValues: [max] },
+          { selection: 1 },
+        );
+        await menus.showShapeMenu(player);
+        expect(ui.forms[2]?.heading).toEqual({
           translate: BUILD_FORM.roofTitle,
         });
-        expect(ui.forms[1]?.heading).toEqual({
+        expect(ui.forms[3]?.heading).toEqual({
           translate: BUILD_FORM.roofTitle,
         });
-        expect(ui.forms[0]?.sliders).toEqual([
+        expect(ui.forms[2]?.sliders).toEqual([
           {
             label: { translate: BUILD_FORM.height },
             min: 1,
             max,
-            options: { defaultValue: previous, valueStep: 1 },
+            options: { defaultValue: flow.previous, valueStep: 1 },
           },
         ]);
         expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
@@ -558,7 +558,7 @@ it("bounds the fallback slider, uses the previous height and applies it before t
           height: max,
         });
         expect(session.flow).toEqual({ ...flow, previous: max });
-        expect(ui.forms[1]?.buttons).toEqual(
+        expect(ui.forms[3]?.buttons).toEqual(
           labels(contentsMenu(session.flow)),
         );
         expect(cases.confirmHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -605,8 +605,6 @@ it("holds one lock across nested forms, allows other players, and releases on di
   const pending = menus.showShapeMenu(player);
   await vi.waitFor(() => expect(ui.forms).toHaveLength(3));
   await menus.showShapeMenu(player);
-  await menus.showHeightSlider(player);
-  await menus.showBuildMenu(player);
   await menus.showContentsMenu(player);
   expect(ui.forms).toHaveLength(3);
   const other = { id: "other", isValid: true } as Player;
@@ -623,10 +621,10 @@ it("holds one lock across nested forms, allows other players, and releases on di
 it.each(["shape", "roof", "paste", "slider"] as const)(
   "ignores %s responses after disconnection",
   async (stage) => {
-    const { session, menus, player, cases } = setup();
+    const { session, menus, player, cases } = setup(stage === "slider");
     let close!: (answer: Answer) => void;
-    if (stage === "roof" || stage === "slider")
-      session.setFlow(chooseHeighted(endpoint, "hip"));
+    if (stage === "slider") ui.answers.push(...shapeAnswers(endpoint, "hip"));
+    if (stage === "roof") session.setFlow(chooseHeighted(endpoint, "hip"));
     if (stage === "paste") {
       holdClipboard(
         session,
@@ -640,14 +638,15 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
       }),
     );
     const pending =
-      stage === "shape"
+      stage === "shape" || stage === "slider"
         ? menus.showShapeMenu(player)
         : stage === "roof"
           ? menus.showContentsMenu(player)
-          : stage === "paste"
-            ? menus.showPasteMenu(player)
-            : menus.showHeightSlider(player);
-    await vi.waitFor(() => expect(ui.forms).toHaveLength(1));
+          : menus.showPasteMenu(player);
+    await vi.waitFor(() =>
+      expect(ui.forms).toHaveLength(stage === "slider" ? 3 : 1),
+    );
+    vi.clearAllMocks();
     Object.assign(player, { isValid: false });
     close({ selection: 0, formValues: [3] });
     await pending;
@@ -874,11 +873,7 @@ it.each([
       heightLocked: true,
       previous: y - from.y + 1,
     });
-    ui.answers.push({ selection: 0 });
-    await menus.showHeightSlider(player);
-    expect(ui.forms).toHaveLength(4);
-    expect(ui.forms[3]?.sliders).toEqual([]);
-    expect(cases.setHeight.execute).not.toHaveBeenCalled();
+    expect(ui.forms[2]?.sliders).toEqual([]);
   },
 );
 
@@ -1356,18 +1351,19 @@ it.each(["root", "build"] as const)(
   "ignores an off-level response from the %s form",
   async (level) => {
     const { session, menus, player, cases } = setup();
-    session.setFlow(selected(from, to, level));
+    if (level === "build")
+      ui.answers.push(...shapeAnswers(endpoint, "buildShape"));
     let answer!: (value: Answer) => void;
     ui.answers.push(
       new Promise((resolve) => {
         answer = resolve;
       }),
     );
-    const pending =
-      level === "root"
-        ? menus.showShapeMenu(player)
-        : menus.showBuildMenu(player);
-    await vi.waitFor(() => expect(ui.forms).toHaveLength(1));
+    const pending = menus.showShapeMenu(player);
+    await vi.waitFor(() =>
+      expect(ui.forms).toHaveLength(level === "build" ? 2 : 1),
+    );
+    vi.clearAllMocks();
     session.setFlow(selected(from, to, level === "root" ? "build" : "root"));
     answer({ selection: 0 });
     await pending;
@@ -1394,7 +1390,6 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   const pending = menus.showShapeMenu(player);
   await vi.waitFor(() => expect(ui.forms).toHaveLength(2));
   expect(session.flow).toEqual(openBuildMenu(endpoint));
-  await menus.showBuildMenu(player);
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(2);
   dismiss({ canceled: true });

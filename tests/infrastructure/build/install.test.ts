@@ -1,3 +1,4 @@
+import { ScriptEventSource, system, world } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -5,7 +6,13 @@ import { registerEditTick } from "../../../src/infrastructure/build/bedrock/hand
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
 import { registerTapTarget } from "../../../src/infrastructure/build/bedrock/handlers/tapTarget";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
+import {
+  TEST_EDIT_EVENT,
+  TEST_INPUT_EVENT,
+  TEST_RESULT_EVENT,
+} from "../../../src/infrastructure/build/identifiers";
 import { installBuild } from "../../../src/infrastructure/build/install";
+import { installBuildTestHooks } from "../../../src/infrastructure/build/testHooks/install";
 
 const engine = vi.hoisted(() => ({
   getEntity: vi.fn(),
@@ -29,16 +36,19 @@ vi.mock("@minecraft/server", () => {
     world: {
       getEntity: engine.getEntity,
       getDimension: engine.getDimension,
+      getAllPlayers: vi.fn(),
       afterEvents: {
-        playerLeave: event,
+        playerLeave: { subscribe: vi.fn() },
         playerDimensionChange: event,
         entityDie: event,
       },
     },
     system: {
+      currentTick: 1,
       run: vi.fn(),
       runInterval: vi.fn(),
-      afterEvents: { scriptEventReceive: event },
+      sendScriptEvent: vi.fn(),
+      afterEvents: { scriptEventReceive: { subscribe: vi.fn() } },
     },
   };
 });
@@ -52,6 +62,7 @@ vi.mock(
     registerPasteControls: vi.fn(),
   }),
 );
+
 vi.mock("../../../src/infrastructure/build/bedrock/handlers/wand", () => ({
   registerWand: vi.fn(),
 }));
@@ -145,3 +156,55 @@ it.each([false, true])(
       });
   },
 );
+
+it("installs test hooks separately and clears their player state on disconnect", () => {
+  vi.clearAllMocks();
+  const playerId = asPlayerId("builder");
+  const player = {
+    id: playerId,
+    name: "Builder",
+    typeId: "minecraft:player",
+    isValid: true,
+    onScreenDisplay: { setActionBar: vi.fn() },
+  } as unknown as ReturnType<typeof world.getAllPlayers>[number];
+  engine.getEntity.mockReturnValue(player);
+  vi.mocked(world.getAllPlayers).mockReturnValue([player]);
+  const build = installBuild({
+    isProtected: () => false,
+    isExcludedEntityType: () => false,
+    uncopyableBlockTypes: [],
+  });
+  const subscribe = vi.mocked(system.afterEvents.scriptEventReceive.subscribe);
+  expect(subscribe).not.toHaveBeenCalled();
+  installBuildTestHooks(build);
+
+  const send = (id: string, message: string) => {
+    for (const [receive] of subscribe.mock.calls) {
+      receive({ sourceType: ScriptEventSource.Server, id, message });
+    }
+  };
+  const readDegrees = () => {
+    send(TEST_EDIT_EVENT, `${playerId} state`);
+    const [id, reply] =
+      vi.mocked(system.sendScriptEvent).mock.calls.at(-1) ?? [];
+    expect(id).toBe(TEST_RESULT_EVENT);
+    return JSON.parse(reply ?? "{}").pasteReadyDegrees;
+  };
+
+  send(TEST_INPUT_EVENT, JSON.stringify({ player: player.name, touch: true }));
+  expect(build.aimOverrides.get(playerId)?.input).toBe("touch");
+  build.feedback.showMode(playerId, {
+    kind: "pasteReady",
+    size: { x: 2, y: 1, z: 3 },
+    blockCount: 6,
+    degrees: 90,
+  });
+  expect(readDegrees()).toBe(90);
+
+  const leave = vi.mocked(world.afterEvents.playerLeave.subscribe).mock
+    .calls[0]?.[0];
+  if (!leave) throw new Error("Missing player leave subscription");
+  leave({ playerId, playerName: player.name });
+  expect(build.aimOverrides.has(playerId)).toBe(false);
+  expect(readDegrees()).toBeUndefined();
+});

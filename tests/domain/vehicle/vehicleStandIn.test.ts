@@ -20,6 +20,7 @@ import {
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
 import { defined } from "../../support/defined";
+import { CAMPER_PACK_CONTRACT } from "../../support/packContract";
 
 const RULE = defined(CAMPER_PROFILE.standIn, "camper stand-in");
 
@@ -57,7 +58,7 @@ function input(
 function boxCenters(pose: StandInPose): Vec3[] {
   return CAMPER_SPEC.bumperBoxXs.map((x) => ({
     x: pose.x + (pose.axis === "x" ? x : 0),
-    y: pose.y + CAMPER_SPEC.bumperBoxY,
+    y: pose.y + CAMPER_PACK_CONTRACT.bumperBoxY,
     z: pose.z + (pose.axis === "z" ? x : 0),
   }));
 }

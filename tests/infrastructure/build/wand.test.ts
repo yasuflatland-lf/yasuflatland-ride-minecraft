@@ -40,13 +40,11 @@ import {
 } from "../../support/buildClipboard";
 
 const menus = {
-  showBuildMenu: vi.fn(),
   showContentsMenu: vi.fn(),
   showTerraceMenu: vi.fn(),
   showStairContentsMenu: vi.fn(),
   showUtilityMenu: vi.fn(),
   showPasteMenu: vi.fn(),
-  showHeightSlider: vi.fn(),
 };
 
 const engine = vi.hoisted(() => {
@@ -237,13 +235,11 @@ function setupAir() {
   const pointExecute = vi.spyOn(setPoint, "execute");
   const execute = vi.spyOn(tapAir, "execute");
   const menus = {
-    showBuildMenu: vi.fn(),
     showContentsMenu: vi.fn(),
     showTerraceMenu: vi.fn(),
     showStairContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
-    showHeightSlider: vi.fn(),
   };
   const aim: AimReader = {
     dimensionOf: () => nether,
