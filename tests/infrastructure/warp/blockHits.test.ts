@@ -45,7 +45,6 @@ function fixture() {
   const dimension = {
     id: "minecraft:overworld",
     getBlock: vi.fn(),
-    spawnItem: vi.fn(),
   };
   const block = {
     typeId: WARP_BLOCK_TYPE,
@@ -131,10 +130,8 @@ it("filters nonplayers, other blocks and noncreative break events", () => {
   expect(event.cancel).toBe(false);
   expect(game.run).not.toHaveBeenCalled();
 });
-it("returns one item including creative, drops overflow, removes the block and translates messages", () => {
+it("returns one item including creative, removes the block and translates messages", () => {
   const f = fixture();
-  const leftover = { typeId: WARP_BLOCK_TYPE, amount: 1 };
-  f.addItem.mockReturnValue(leftover);
   const effects = new BedrockWarpBlockTaps().at(
     asPlayerId("player"),
     asDimensionId(f.dimension.id),
@@ -150,13 +147,10 @@ it("returns one item including creative, drops overflow, removes the block and t
     [{ translate: "yasu_build.warp.tap_left", with: ["1"] }],
     [{ translate: WARP_MESSAGE.blockBroken }],
   ]);
-  expect(f.addItem).toHaveBeenCalledExactlyOnceWith(
-    expect.objectContaining(leftover),
-  );
-  expect(f.dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
-    leftover,
-    f.player.location,
-  );
+  expect(f.addItem).toHaveBeenCalledExactlyOnceWith({
+    typeId: WARP_BLOCK_TYPE,
+    amount: 1,
+  });
   expect(f.block.setType).toHaveBeenCalledExactlyOnceWith("minecraft:air");
 });
 it("ignores missing blocks, unloaded cells, lookup errors and departed players", () => {

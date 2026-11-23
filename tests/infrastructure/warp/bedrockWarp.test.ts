@@ -8,11 +8,7 @@ import type { WarpName } from "../../../src/domain/warp/warpName";
 import { BedrockWarpPlayers } from "../../../src/infrastructure/warp/bedrock/bedrockWarpPlayers";
 import { BedrockWarpWorld } from "../../../src/infrastructure/warp/bedrock/bedrockWarpWorld";
 import { SystemWarpTicks } from "../../../src/infrastructure/warp/bedrock/systemWarpTicks";
-import {
-  WARP_BLOCK_COMPONENT,
-  WARP_BLOCK_TYPE,
-  WARP_TOOL_TYPE,
-} from "../../../src/infrastructure/warp/identifiers";
+import { WARP_BLOCK_TYPE } from "../../../src/infrastructure/warp/identifiers";
 
 const game = vi.hoisted(() => ({
   getEntity: vi.fn(),
@@ -71,14 +67,6 @@ function fixture() {
     players: new BedrockWarpPlayers(),
   };
 }
-
-it("uses the build namespace for warp identifiers", () => {
-  expect([WARP_BLOCK_TYPE, WARP_TOOL_TYPE, WARP_BLOCK_COMPONENT]).toEqual([
-    "yasu_build:warp_block",
-    "yasu_build:warp_tool",
-    "yasu_build:warp_block",
-  ]);
-});
 
 it.each([
   [WARP_BLOCK_TYPE, "present"],

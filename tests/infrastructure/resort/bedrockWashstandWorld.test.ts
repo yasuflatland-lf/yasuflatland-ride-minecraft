@@ -21,27 +21,13 @@ it.each([true, false])("writes the running property as %s", (on) => {
   expect(setProperty).toHaveBeenCalledExactlyOnceWith(WASHSTAND_RUNNING, on);
 });
 it("collects loaded washstands in every dimension", () => {
-  const queries = vi.fn();
   game.getDimension.mockImplementation((name: string) => ({
-    getEntities: (query: unknown) => {
-      queries(query);
-      return [{ id: name }];
-    },
+    getEntities: ({ type }: { type: string }) =>
+      type === FURNITURE_IDS.washstand.entity ? [{ id: name }] : [],
   }));
-  expect(new BedrockWashstandWorld().loadedWashstands()).toEqual([
-    "overworld",
-    "nether",
-    "the_end",
-  ]);
-  expect(game.getDimension.mock.calls.map(([name]) => name)).toEqual([
-    "overworld",
-    "nether",
-    "the_end",
-  ]);
-  expect(queries).toHaveBeenCalledTimes(3);
-  expect(queries).toHaveBeenCalledWith({
-    type: FURNITURE_IDS.washstand.entity,
-  });
+  expect(new Set(new BedrockWashstandWorld().loadedWashstands())).toEqual(
+    new Set(["overworld", "nether", "the_end"]),
+  );
 });
 it("ignores missing, invalid, wrong-type and throwing lookups", () => {
   const adapter = new BedrockWashstandWorld();

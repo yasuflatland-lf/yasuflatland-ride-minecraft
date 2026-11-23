@@ -29,8 +29,6 @@ export { pairHeights } from "./camper/decor";
 /** @public Room contracts exposed to vehicle use cases. */
 export type {
   CamperRoom,
-  RoomDecorHost,
-  RoomFixturesHost,
   RoomStorageHost,
   StoragePressRequest,
 } from "./camper/room";

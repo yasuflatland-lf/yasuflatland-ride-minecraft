@@ -8,12 +8,9 @@ import {
   ROOF_TENT_TYPE,
   TENT_TYPE,
 } from "../../src/infrastructure/camp/identifiers";
-import {
-  PAINT_BY_DYE,
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../src/infrastructure/shared/dyes";
+import { PAINT_BY_DYE, paintEvent } from "../../src/infrastructure/shared/dyes";
 import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { PAINT_VARIANT } from "../../src/test-pack/scenarios/support/paintContract";
 import { type Json, jsonFileEntries } from "../support/packFiles";
 import { readTextureMer } from "../support/textureBindings";
 

@@ -10,7 +10,6 @@ import type { SwitchLantern } from "../../../src/application/camp/switchLantern"
 import type { TakeDownTent } from "../../../src/application/camp/takeDownTent";
 import { TENT_LAYOUT_VERSION, TENT_SPEC } from "../../../src/domain/camp/spec";
 import {
-  lanternCell,
   PITCHED_STATE,
   type TentBlock,
   type TentPose,
@@ -47,6 +46,7 @@ import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/ca
 import { dyeOf } from "../../../src/infrastructure/shared/dyes";
 import { NAMESPACE } from "../../../src/infrastructure/shared/identifiers";
 import type { CellLayer } from "../../../src/infrastructure/shared/laidCells";
+import { lanternCell } from "../../../src/test-pack/scenarios/support/tentContract";
 import { defined } from "../../support/defined";
 
 type Handler = (ev: never) => void;

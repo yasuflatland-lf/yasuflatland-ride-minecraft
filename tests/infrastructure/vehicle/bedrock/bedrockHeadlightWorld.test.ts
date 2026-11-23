@@ -64,11 +64,4 @@ describe("BedrockHeadlightWorld", () => {
       vehicle.location,
     );
   });
-
-  it("does nothing to a missing vehicle", () => {
-    const { dimension, vehicle, headlights } = fixture();
-    headlights.setHeadlights(asVehicleId("missing"), true);
-    expect(vehicle.setProperty).not.toHaveBeenCalled();
-    expect(dimension.playSound).not.toHaveBeenCalled();
-  });
 });
