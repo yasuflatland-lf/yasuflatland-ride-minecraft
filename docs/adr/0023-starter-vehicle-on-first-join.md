@@ -5,13 +5,12 @@
 
 ## Context
 
-In survival, the only way to get a vehicle is to craft its item (0008). The current recipe (`packs/mycar_bp/recipes/suv_item.json`) takes 5 iron ingots, 1 iron block, and 2 coal blocks: 14 iron ingots and 18 coal in all. That takes long enough that a new player on the home LAN server cannot drive for a while. We compared making the recipe cheaper, for example from wood, with handing each player a vehicle item without crafting. A cheap recipe still needs a crafting table and has to avoid the shapes of vanilla wood recipes. A broken vehicle drops its item again (0008), so one item is enough to keep a vehicle for good.
+Before starter vehicles, Survival players had to craft the vehicle item (0008). The SUV recipe (`packs/yasu_ride_bp/recipes/yasu_ride/suv_item.recipe.json`) takes 5 iron ingots, 1 iron block, and 2 coal blocks: 14 iron ingots and 18 coal in all. That takes long enough that a new player on the home LAN server cannot drive for a while. We compared making the recipe cheaper, for example from wood, with handing each player a vehicle item without crafting. A cheap recipe still needs a crafting table and has to avoid the shapes of vanilla wood recipes. A broken vehicle drops its item again (0008), so one item is enough to keep a vehicle for good.
 
 ## Decision
 
-- When a player joins the world for the first time, put one vehicle item in their inventory. If it is full, drop the item at their feet
-- The script listens to `world.afterEvents.playerSpawn` with `initialSpawn`. That is true on the first spawn of every session, not only the first join ever, and false on a respawn after death, so the player's dynamic property `mycar:starter_received` remembers that they got the item, and later joins give nothing
-- Players who joined before this change get the item on their next join, and players in creative mode get it as well
+- On joining the world, a player receives one item of each starter kind they have yet to receive, including in Creative mode. Give each item to the player or drop it at their feet when their inventory is full.
+- Listen to `world.afterEvents.playerSpawn` with `initialSpawn`, which fires on every join and skips respawns after death. After giving each item, record receipt in a per-kind player dynamic property. The SUV keeps `yasu_ride:starter_received`. The bulldozer uses `yasu_ride:bulldozer_starter_received` (0136). A returning player receives any newly introduced starter on their next join.
 - Crafting (0008) stays, so more vehicles can still be crafted
 
 ## Consequences
