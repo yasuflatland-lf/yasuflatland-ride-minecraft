@@ -85,6 +85,15 @@
 - Implementation: `src/domain/vehicle/vehicle.ts` (`receiveHit`); `src/domain/shared/hitCounter.ts` (`registerHit`); `src/domain/vehicle/spec.ts`; `src/application/vehicle/hitVehicle.ts` (`giveDecorItems` call); `src/application/vehicle/retireVehicle.ts`; `src/infrastructure/vehicle/bedrock/bedrockFleetWorld.ts` (`dropVehicleItem`); `src/infrastructure/vehicle/bedrock/handlers/hits.ts`; `packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`; `packs/yasu_ride_bp/entities/yasu_ride/bulldozer.se.json`.
 - Verification: `tests/application/vehicle/hitVehicle.test.ts` "on the third hit, drops the item, removes the vehicle, and discards the aggregate" and "never counts hits from the deck toward breaking the vehicle"; `tests/domain/vehicle/vehicle.test.ts` "an empty vehicle breaks after 3 hits, but not while occupied"; `tests/domain/shared/hitCounter.test.ts` "ignores occupied hits and breaks exactly on the n-th free hit within the reset window", and "never breaks when every hit comes after more than the reset window". Not verified: player attack event wiring on a device by these unit tests.
 
+### Occupancy outside vehicle seats
+
+- Applies to: Vehicle take-back occupancy.
+- Rule: **1.** A person on a docked boat's deck seat or inside a parked camper's room is not a vehicle occupant for take-back hits. An outside player can take it back; the camper's room blocks are removed with it.
+- Agreement: Accepted
+- Basis: `src/domain/vehicle/vehicle.ts` (`receiveHit` uses `this.crew.occupied`); `src/application/vehicle/hitVehicle.ts` (`execute`); `src/application/vehicle/retireVehicle.ts` and `src/application/vehicle/limitVehicles.ts` use the shared retirement path. [0008](../adr/0008-vehicle-item-and-breaking.md).
+- Implementation: `src/domain/vehicle/vehicle.ts`; `src/application/vehicle/hitVehicle.ts`; `src/application/vehicle/retireVehicle.ts`; `src/application/vehicle/limitVehicles.ts`
+- Verification: not covered for deck-seat and room occupants. `tests/application/vehicle/hitVehicle.test.ts` covers the separate restriction on hits from the deck.
+
 ### Fleet groups and limits
 
 - Applies to: all vehicle kinds, players, and dimensions.
@@ -111,6 +120,15 @@
 - Basis: [0038](../adr/0038-keep-at-most-ten-vehicles-in-a-world.md) Decision, "A malformed value is logged and the fleet starts over"; [0066](../adr/0066-limit-vehicles-per-player-and-kind.md) Decision, "The fleet stays in the world dynamic property `yasu_ride:fleet`, oldest first, and stores each vehicle's id, kind, and owner if any"; [0066](../adr/0066-limit-vehicles-per-player-and-kind.md) Decision, "A fleet stored by an earlier build (`{\"order\": [...], \"evicted\": [...]}` with plain ids) keeps its evicted list and drops its order."; [0124](../adr/0124-take-back-an-eviction-when-a-slot-frees.md) Decision, "The evicted list stores the kind and owner of each vehicle, so the fleet can tell its group. The stored fleet becomes version 3. A version 2 or older save keeps its evictions by id only, and those are never taken back"
 - Implementation: `src/infrastructure/vehicle/persistence/fleetJson.ts` (`FLEET_VERSION`, `parseFleetState`, `serializeFleetState`); `src/infrastructure/vehicle/persistence/dynamicPropertyFleetRepository.ts` (`DynamicPropertyFleetRepository.load`, `save`); `src/infrastructure/vehicle/bedrock/identifiers.ts` (`FLEET_PROPERTY`).
 - Verification: `tests/infrastructure/vehicle/persistence/fleetJson.test.ts` "drops the legacy order and keeps its evictions (ADR 0066)", "keeps a version 2 order and its evictions by id only", and "round-trips every valid state with optional owners through version 3"; `tests/infrastructure/vehicle/persistence/dynamicPropertyFleetRepository.test.ts` "loads back the order and the evicted list it saved" and "starts over with an empty fleet and warns when the stored fleet is malformed".
+
+### Camper decor on eviction
+
+- Applies to: Camper fleet eviction.
+- Rule: **2.** Fleet eviction of a parked camper removes its room and loses its decor; taking it back by hand returns its decor items.
+- Agreement: Accepted
+- Basis: [0066](../adr/0066-limit-vehicles-per-player-and-kind.md); `src/application/vehicle/limitVehicles.ts` (`removeLoadedEvicted`); `src/application/vehicle/hitVehicle.ts` (`execute`); `src/application/vehicle/retireVehicle.ts` (`retireVehicle`).
+- Implementation: `src/application/vehicle/limitVehicles.ts`; `src/application/vehicle/hitVehicle.ts`; `src/application/vehicle/retireVehicle.ts`
+- Verification: `tests/application/vehicle/hitVehicle.test.ts` "gives back stowed decor when the camper breaks (ADR 0103)"; decor loss on eviction is not covered.
 
 ### Taking back an eviction when a slot frees
 

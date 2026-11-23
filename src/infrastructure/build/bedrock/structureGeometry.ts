@@ -4,8 +4,8 @@ import { buildId } from "../identifiers";
 
 const STRUCTURE_PURPOSE = "box";
 const FILL_LIMIT = 32_768;
-// Candidate engine limits from ADR 0243; not yet measured on BDS.
-const AXIS_LIMITS = { x: 64, y: 256, z: 64 } as const;
+// ADR 0243 measured the engine limit at 64 x 384 x 64.
+const AXIS_LIMITS = { x: 64, y: 384, z: 64 } as const;
 
 export function structureIdentifier(ownerId: string, counter: number): string {
   // Fixed-width UTF-16 encoding preserves arbitrary player IDs without collisions.

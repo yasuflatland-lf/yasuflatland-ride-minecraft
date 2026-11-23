@@ -34,11 +34,13 @@ that block while a roof tent is occupied, removing it on every exit path.
   offline grace all reach occupant clearing or removal. `RoofTentCleanup` and
   the unload handler clear recorded cells before forgetting the tent. Clear
   only cells still holding `yasu_ride:tent_ceiling`, preserving any replacement
-  block, then forget the cell property.
+  block. Keep cells in unloaded chunks in the record and in the dynamic
+  property of any still-loaded tent. Clear the property when no cells remain.
 - Every 20 ticks, the restore scan synchronizes every loaded tent: occupied tents
   re-lay missing ceiling cells idempotently and unoccupied tents clear stray
-  recorded ceilings after script reload or restart. An empty unoccupied tent
-  performs no block reads.
+  recorded ceilings, including cells left by earlier cleanup attempts or saved
+  across a script reload or restart. An empty unoccupied tent performs no block
+  reads.
 - The temporary ceiling claims no camp-space cells. The roof tent still lays no
   room blocks. Register its recorded cells with the shared laid-block Creative
   break guard, separately from the ground tent's guard.

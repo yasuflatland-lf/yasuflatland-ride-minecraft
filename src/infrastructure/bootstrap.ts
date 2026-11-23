@@ -41,7 +41,9 @@ export function bootstrap(): void {
     // duplicate the block (docs/specs/warp.md, Registration).
     uncopyableBlockTypes: [WARP_BLOCK_TYPE],
   });
-  installBuildTestHooks(build);
+  if (__TEST_HOOKS__) {
+    installBuildTestHooks(build);
+  }
   installWarp();
   console.warn(`[${NAMESPACE}] loaded`);
 }

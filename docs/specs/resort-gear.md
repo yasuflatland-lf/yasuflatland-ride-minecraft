@@ -196,6 +196,15 @@
 - Implementation: `src/infrastructure/resort/install.ts`; `src/infrastructure/resort/bedrock/bedrockBeachChairWorld.ts`; `src/infrastructure/shared/tableTop/registry.ts`; `src/application/shared/hostedItemsGuard.ts`
 - Verification: `tests/infrastructure/resort/install.test.ts` checks that the registered surface uses the beach chair dimensions and item limit from `BEACH_CHAIR_SPEC` and is available only when folded. `tests/domain/resort/beachChair.test.ts` property-tests that every hosted item stays on the top with its centre over the middle cell. `tests/infrastructure/resort/bedrockBeachChairWorld.test.ts` checks registry-reported occupancy. Application tests cover refusal without advancing hit counters. `beach_chair_lantern` and `beach_chair_oven` host two items at both ends of the top and check height, the middle cell, unfolding and recovery refusals, and host-loss cleanup; they have not been run on BDS.
 
+### Hosted gear press cooldown
+
+- Applies to: Camp gear hosted on resort furniture.
+- Rule: **6.** A Dutch Oven or Gas Lantern hosted on Resort Gear shares its switch cooldown across players. A refused repeat press restarts that item's idle period, so another player's press during it can also be refused.
+- Agreement: Proposed
+- Basis: `src/domain/shared/debounce.ts` (`Debounces.press`); `src/application/camp/dutchOven.ts` (`toggleLid`); `src/application/camp/gasLantern.ts` (`switch`); `src/infrastructure/resort/install.ts` (tabletop host registration). [0237](../adr/0237-register-tabletop-hosts-across-features.md).
+- Implementation: `src/domain/shared/debounce.ts`; `src/application/camp/dutchOven.ts`; `src/application/camp/gasLantern.ts`; `src/infrastructure/resort/install.ts`
+- Verification: `tests/domain/shared/debounce.test.ts` "counts presses from the previous recorded press, including rejected presses"; `tests/application/camp/dutchOven.test.ts` and `tests/application/camp/gasLantern.test.ts` cover the shared idle cooldown.
+
 ### Dining Table assets and hosting
 
 - Applies to: Dining Table placement, recovery, model and tabletop hosting.

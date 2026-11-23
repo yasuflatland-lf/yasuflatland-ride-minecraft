@@ -27,6 +27,7 @@ import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/b
 import { BedrockRoofTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentWorld";
 import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
 import { registerRoofTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle";
+import { registerRoofTentOccupantCleanup } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement";
 import { registerTestRoofTent } from "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent";
 import { RoofTentHosts } from "../../../src/infrastructure/camp/bedrock/roofTentHosts";
@@ -1085,6 +1086,44 @@ it("restores occupied ceilings and clears unoccupied saved ceilings after reload
   game.dimension.getBlock.mockClear();
   restored.syncCeiling(asRoofTentId("tent"));
   expect(game.dimension.getBlock).not.toHaveBeenCalled();
+});
+
+it("keeps an unloaded ceiling cell on exit and retries it on a later restore scan", () => {
+  const tent = spawn();
+  const { blocks, throwing } = ceilingTerrain();
+  const id = asRoofTentId("tent");
+  occupants.setOccupant(id, PLAYER);
+  const [unloaded, ...loaded] = savedCeiling(tent) as [Cell, ...Cell[]];
+  throwing.add(cellKey(unloaded));
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    occupants.setOccupant(id, undefined);
+    expect(savedCeiling(tent)).toEqual([unloaded]);
+    expect(occupants.ceilingOwner(DIM, unloaded, ids.TENT_CEILING_BLOCK)).toBe(
+      id,
+    );
+    expect(blocks.get(cellKey(unloaded))).toBe(ids.TENT_CEILING_BLOCK);
+    for (const cell of loaded)
+      expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+
+    registerRoofTentOccupantCleanup(leave, occupants, () => [id]);
+    const tick = game.runInterval.mock.lastCall?.[0] as () => void;
+    tick();
+    expect(savedCeiling(tent)).toEqual([unloaded]);
+    throwing.clear();
+    game.dimension.getBlock.mockClear();
+    for (let i = 0; i < 20; i++) tick();
+    expect(game.dimension.getBlock).toHaveBeenCalledExactlyOnceWith(unloaded);
+    expect(blocks.get(cellKey(unloaded))).toBe("minecraft:air");
+    expect(
+      tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY),
+    ).toBeUndefined();
+    expect(
+      occupants.ceilingOwner(DIM, unloaded, ids.TENT_CEILING_BLOCK),
+    ).toBeUndefined();
+  } finally {
+    warn.mockRestore();
+  }
 });
 
 it("guards only recorded ceiling cells in their tent's dimension", () => {

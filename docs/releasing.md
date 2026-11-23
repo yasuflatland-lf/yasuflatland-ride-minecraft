@@ -5,4 +5,4 @@ Bump the Behavior Pack version in `packs/yasu_ride_bp/manifest.json` and write t
 - open **Actions → Release → Run workflow** on `main`, which tags the commit as `v<version>` (for example `v0.1.0` for `[0, 1, 0]`), or
 - push a matching tag yourself: `git tag v0.1.0 && git push origin v0.1.0`.
 
-The release workflow runs the checks, builds `yasuflatland-ride-<version>.mcaddon`, and attaches it to a new GitHub Release. Opening the file on a device imports both packs into Minecraft.
+The release workflow runs the checks, builds `yasuflatland-ride-<version>.mcaddon`, and attaches it to a new GitHub Release. `pnpm build` enables the in-game test hooks. `pnpm package` stages the Behavior Pack and Resource Pack under `dist/`, rebuilds the main script with build-tool test hooks disabled, and creates the archive from that staging directory. The released pack still accepts `yasu_ride:test_input` from the server. Opening the file on a device imports both packs into Minecraft.
