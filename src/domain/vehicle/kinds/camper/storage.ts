@@ -1,5 +1,4 @@
 import { sameCell } from "../../../shared/cells";
-import { SyncedValue } from "../../../shared/syncedValue";
 import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorItemId,
@@ -9,6 +8,7 @@ import {
 import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import type { RestoredOf } from "../../entityContract";
+import { SyncedCommands } from "../../syncedCommands";
 import { cellTaken } from "./decor";
 import { slotPoint, slotsFor } from "./decorPlacing";
 import { StorageDoors } from "./dooredStorage";
@@ -34,10 +34,7 @@ import { storagePressTarget } from "./storagePlates";
 export class CamperStorage {
   // The storage doors share the entry door's swing length, each on its own (ADR 0114, 0121).
   private readonly storage: StorageDoors<StorageDoorId>;
-  private readonly drawerItemsSync = {
-    drawer_top: new SyncedValue<number>(),
-    drawer_bottom: new SyncedValue<number>(),
-  };
+  private readonly drawerItemsSync = new SyncedCommands<CamperRoomDecor>();
 
   constructor(restored: RestoredOf<typeof CAMPER_ENTITY>, docked: boolean) {
     this.storage = new StorageDoors(
@@ -45,6 +42,18 @@ export class CamperStorage {
       (id) => restored[storageDoorProperty(id)],
       docked,
     );
+    for (const drawer of ["drawer_top", "drawer_bottom"] as const) {
+      const slot = parseDecorSlotId(`${drawer}_0`);
+      this.drawerItemsSync.add(
+        (decor) => {
+          const item = slot === undefined ? undefined : decor.itemIn(slot);
+          return item === undefined
+            ? 0
+            : [...DRAWER_GEAR_IDS].indexOf(item) + 1;
+        },
+        (code) => drawerItemCommand(drawer, code),
+      );
+    }
   }
 
   open(): ReadonlySet<StorageDoorId> {
@@ -177,15 +186,7 @@ export class CamperStorage {
   }
 
   drawerItemCommands(decor: CamperRoomDecor): EngineCommand[] {
-    return (["drawer_top", "drawer_bottom"] as const).flatMap((drawer) => {
-      const slot = parseDecorSlotId(`${drawer}_0`);
-      const item = slot === undefined ? undefined : decor.itemIn(slot);
-      const code =
-        item === undefined ? 0 : [...DRAWER_GEAR_IDS].indexOf(item) + 1;
-      return this.drawerItemsSync[drawer].next(code) === undefined
-        ? []
-        : [drawerItemCommand(drawer, code)];
-    });
+    return this.drawerItemsSync.next(decor);
   }
 
   shutAll(): void {
@@ -194,6 +195,6 @@ export class CamperStorage {
 
   resync(): void {
     this.storage.resync();
-    for (const sync of Object.values(this.drawerItemsSync)) sync.resync();
+    this.drawerItemsSync.resync();
   }
 }

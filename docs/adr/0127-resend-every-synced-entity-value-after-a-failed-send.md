@@ -13,11 +13,12 @@ Sending step commands first ([0055](0055-kind-neutral-vehicle-core.md)) prevents
 ## Decision
 
 - Keep `SyncedValue` as the single latch. `resync()` marks it unsent, so its next `next(value)` sends the current value regardless of the previous value. An optional `{ value }` constructor argument primes a known entity value, including `undefined`.
-- Prime only the transforming drive's form with its restored form. A rebuild still sends bank, gear, trim, roll, room and storage values on its first tick, and sends form only if it changes.
+- Prime the transforming drive's form and the sports boat's icebreaker with the known entity values. A rebuild sends the other properties on their first eligible step. A rebuilt bulldozer also resyncs gravity and form on its first step ([0136](0136-bulldozer.md)).
+- Register each drive and camper room latch with its command builder in a `SyncedCommands` group. The group emits commands in registration order within each send pass and resets every registered latch together.
 - Require `Drive.resync()` and delegate to it from `Vehicle.resync()`. Reset every synced value, including each storage door and the camper's inherited transforming values.
 - Wrap `Vehicle.tick` and the first world `run` together. If either throws, the application calls `Vehicle.resync()` and rethrows the same error for the existing per-vehicle isolation and logging. Later world calls stay outside this catch.
 - The next tick sends all current synced values again, preserving command order: gravity before form, then bank and gear. Resend even values delivered before a partial failure: setting a property to the same value and repeating gravity events are idempotent.
-- Do not latch or retry one-shot commands: dock and undock events, door sounds and animations, switch clicks, and final commands retain their existing behavior. No world port or infrastructure change is needed.
+- Dock and undock events, door sounds and animations, switch clicks, and final commands remain one-shot. The separate `docked` property follows the resend rules in [0156](0156-resend-the-docked-property-after-a-failed-send.md).
 
 ## Consequences
 

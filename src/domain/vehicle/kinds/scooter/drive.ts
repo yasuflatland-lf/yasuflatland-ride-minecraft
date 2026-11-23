@@ -1,8 +1,8 @@
-import { SyncedValue } from "../../../shared/syncedValue";
 import type { DriveStep, RestoredValues, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
 import { isDry } from "../../motion/forms";
 import { TransformingDrive } from "../../motion/transformingDrive";
+import { SyncedCommands } from "../../syncedCommands";
 import { leanCommand, standCommand, steerCommand } from "./entity";
 import { bodyRoll, type Lean, rollLevel, stepLean } from "./lean";
 import { SCOOTER_MOTION, SCOOTER_TYRES } from "./profile";
@@ -14,9 +14,10 @@ export class ScooterDrive extends TransformingDrive {
   private lean: Lean = { angle: 0 };
   private steer = 0;
   private stand = false;
-  private readonly leanSync = new SyncedValue<number>();
-  private readonly steerSync = new SyncedValue<number>();
-  private readonly standSync = new SyncedValue<boolean>();
+  private readonly bodySync = new SyncedCommands<ScooterDrive>()
+    .add((drive) => drive.lean.angle, leanCommand)
+    .add((drive) => drive.steer, steerCommand)
+    .add((drive) => drive.stand, standCommand);
 
   constructor(yaw: number, restored: RestoredValues<"form">) {
     super(yaw, restored, SCOOTER_TRANSFORMING, SCOOTER_MOTION, SCOOTER_TYRES);
@@ -38,29 +39,19 @@ export class ScooterDrive extends TransformingDrive {
         this.speed,
         onWater,
       );
-    const lean = this.leanSync.next(this.lean.angle);
-    const steer = this.steerSync.next(this.steer);
-    const stand = this.standSync.next(this.stand);
     return {
       ...step,
       riderLean: rollLevel(
         bodyRoll(this.lean, this.bankAngle),
         SCOOTER_SPEC.rollLevelAngles,
       ),
-      commands: [
-        ...step.commands,
-        ...(lean === undefined ? [] : [leanCommand(lean)]),
-        ...(steer === undefined ? [] : [steerCommand(steer)]),
-        ...(stand === undefined ? [] : [standCommand(stand)]),
-      ],
+      commands: [...step.commands, ...this.bodySync.next(this)],
     };
   }
 
   override resync(): void {
     super.resync();
-    this.leanSync.resync();
-    this.steerSync.resync();
-    this.standSync.resync();
+    this.bodySync.resync();
   }
 
   override inspect(): Readonly<{

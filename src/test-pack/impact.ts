@@ -183,6 +183,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/seats.ts",
   "src/domain/vehicle/spec.ts",
   "src/domain/vehicle/standIn.ts",
+  "src/domain/vehicle/syncedCommands.ts",
   "src/domain/vehicle/vehicle.ts",
   "src/infrastructure/camp/identifiers.ts",
   "src/infrastructure/shared/identifiers.ts",
