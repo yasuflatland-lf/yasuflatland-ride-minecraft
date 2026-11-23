@@ -236,8 +236,8 @@
 - Rule: Features exchange host state through `VehicleHostLookup` next to `SpaceCheck`. Bootstrap passes the shared read-only port to camp; vehicle infrastructure supplies presence, pose, mount, driver presence, and motion without exposing vehicle domain objects. Unknown includes unloaded hosts; removed requires positive evidence.
 - Agreement: Proposed
 - Basis: [0200](../adr/0200-roof-tent-as-a-host-bound-camp-entity.md) Decision, "Features exchange host state through `VehicleHostLookup` next to `SpaceCheck`."
-- Implementation: `src/application/shared/ports/vehicleHost.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`; `src/infrastructure/bootstrap.ts`
-- Verification: `tests/infrastructure/vehicle/install.test.ts` "returns the vehicles' space check for other features (ADR 0122)". Not verified: this space-check test does not exercise the complete host-state lifecycle or roof tent integration.
+- Implementation: `src/domain/vehicle/hostState.ts` (`hostStateFrom`); `src/application/shared/ports/vehicleHost.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleWorld.ts`; `src/infrastructure/bootstrap.ts`
+- Verification: `tests/domain/vehicle/hostState.test.ts` covers driver presence, horizontal speed, pose, dimension, and mount. `tests/infrastructure/vehicle/install.test.ts` "returns the vehicles' space check for other features (ADR 0122)". Not verified: this space-check test does not exercise the complete host-state lifecycle or roof tent integration.
 
 ### Infrastructure vehicle kinds
 
