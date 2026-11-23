@@ -92,6 +92,14 @@ describe.each(furnitureKinds)("%s", (kind) => {
     );
     expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
     expect(world.layTop).not.toHaveBeenCalled();
+
+    world.showBlocked.mockClear();
+    world.spawn.mockClear();
+    world.consumeItem.mockReturnValue(false);
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+    expect(world.spawn).not.toHaveBeenCalled();
+    expect(world.layTop).not.toHaveBeenCalled();
   });
 
   it("rejects an obstruction over any of the footprint cells before charging", () => {

@@ -7,8 +7,7 @@ import {
 import { PARASOL_SPEC } from "../../domain/resort/spec";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { canUseBlockTop } from "../shared/groundPlacement";
-import { placePaid } from "../shared/paidPlacement";
+import { canUseBlockTop, placeOnCells } from "../shared/groundPlacement";
 import type { ParasolWorld } from "./ports/parasolWorld";
 
 export class PlaceParasol {
@@ -21,39 +20,34 @@ export class PlaceParasol {
     yaw: number;
     slot: number;
   }): boolean {
+    const world = this.world;
     const { player, dimension, block, face, yaw, slot } = cmd;
     const blocked = () => {
-      this.world.showBlocked(player);
+      world.showBlocked(player);
       return false;
     };
-    if (!canUseBlockTop(this.world, dimension, block, face)) return blocked();
+    if (!canUseBlockTop(world, dimension, block, face)) return blocked();
     const pose = parasolPose(block, yaw);
-    if (!this.world.isSolidTop(dimension, parasolSupportCell(pose)))
-      return blocked();
-    for (const cell of parasolFootCells(pose)) {
-      if (
-        !this.world.isAir(dimension, cell) ||
-        this.world.isVehicleSpace(dimension, cell) ||
-        this.world.isCampSpace(dimension, cell)
-      )
-        return blocked();
-    }
-    if (
-      tooCloseToOtherBase(
-        pose.base,
-        this.world.baseCellsNear(
-          dimension,
-          pose.base,
-          PARASOL_SPEC.minBaseDistance,
-        ),
-      )
-    )
-      return blocked();
-    const result = placePaid(this.world, { player, slot }, () =>
-      this.world.spawn(dimension, pose),
+    const result = placeOnCells(
+      { dimension, cells: world, payment: world },
+      {
+        support: [parasolSupportCell(pose)],
+        clear: parasolFootCells(pose),
+        protect: ["vehicle", "camp"],
+        extraCheck: () =>
+          !tooCloseToOtherBase(
+            pose.base,
+            world.baseCellsNear(
+              dimension,
+              pose.base,
+              PARASOL_SPEC.minBaseDistance,
+            ),
+          ),
+      },
+      { player, slot },
+      () => world.spawn(dimension, pose),
+      (id) => world.layCeiling(id),
     );
-    if (!result.placed) return blocked();
-    this.world.layCeiling(result.id);
-    return true;
+    return result.placed || blocked();
   }
 }

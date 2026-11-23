@@ -2,8 +2,11 @@ import { TABLE_SPEC } from "../../domain/camp/spec";
 import { tableCells, tableYaw } from "../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-import { canUseBlockTop } from "../shared/groundPlacement";
-import { placePaid } from "../shared/paidPlacement";
+import {
+  canUseBlockTop,
+  clearanceCells,
+  placeOnCells,
+} from "../shared/groundPlacement";
 import type { TableWorld } from "./ports/table";
 
 interface PlaceTableCommand {
@@ -22,27 +25,38 @@ export class PlaceTable {
   }
 
   execute(cmd: PlaceTableCommand): boolean {
+    const world = this.world;
+    const { dimensionId: dimension, blockLocation: block } = cmd;
     const yaw = tableYaw(cmd.yaw);
-    const cells = tableCells(cmd.blockLocation, yaw);
-    for (const cell of cells) {
-      if (this.world.isOwnBlock(cmd.dimensionId, cell)) return false;
-      for (let dy = 1; dy <= TABLE_SPEC.clearance; dy++) {
-        const above = { ...cell, y: cell.y + dy };
-        if (
-          !this.world.isAir(cmd.dimensionId, above) ||
-          this.world.isVehicleSpace(cmd.dimensionId, above)
-        )
-          return false;
-      }
-    }
+    const alongX = Math.abs(yaw) % 180 === 0;
     const at = {
-      x: cmd.blockLocation.x + (Math.abs(yaw) % 180 === 0 ? 1 : 0.5),
-      y: cmd.blockLocation.y + 1,
-      z: cmd.blockLocation.z + (Math.abs(yaw) % 180 === 0 ? 0.5 : 1),
+      x: block.x + (alongX ? 1 : 0.5),
+      y: block.y + 1,
+      z: block.z + (alongX ? 0.5 : 1),
     };
-    if (this.world.hasTableNear(cmd.dimensionId, at)) return false;
-    return placePaid(this.world, { player: cmd.playerId, slot: cmd.slot }, () =>
-      this.world.spawnTable(cmd.dimensionId, at, yaw),
+    return placeOnCells(
+      {
+        dimension,
+        payment: world,
+        cells: {
+          // The own-block check precedes the air check in each column.
+          isAir: (d, cell) =>
+            (cell.y !== at.y ||
+              !world.isOwnBlock(d, { ...cell, y: block.y })) &&
+            world.isAir(d, cell),
+          isVehicleSpace: (d, cell) => world.isVehicleSpace(d, cell),
+        },
+      },
+      {
+        support: [],
+        clear: tableCells(block, yaw).flatMap((cell) =>
+          clearanceCells({ ...cell, y: cell.y + 1 }, TABLE_SPEC.clearance),
+        ),
+        protect: ["vehicle"],
+        extraCheck: () => !world.hasTableNear(dimension, at),
+      },
+      { player: cmd.playerId, slot: cmd.slot },
+      () => world.spawnTable(dimension, at, yaw),
     ).placed;
   }
 }

@@ -113,3 +113,22 @@ it("spawns the chair at the supported pose", () => {
     yaw: 180,
   });
 });
+
+it("shows blocked feedback when payment or spawn fails, refunding only a paid item", () => {
+  fc.assert(
+    fc.property(command, fc.boolean(), (cmd, paid) => {
+      const world = fakeBeachChairWorld();
+      world.consumeItem.mockReturnValue(paid);
+      world.spawn.mockReturnValue(undefined);
+      expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
+      expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+      expect(world.spawn).toHaveBeenCalledTimes(paid ? 1 : 0);
+      if (paid)
+        expect(world.refund).toHaveBeenCalledExactlyOnceWith(
+          cmd.player,
+          cmd.slot,
+        );
+      else expect(world.refund).not.toHaveBeenCalled();
+    }),
+  );
+});

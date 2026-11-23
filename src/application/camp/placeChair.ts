@@ -9,7 +9,7 @@ import {
 import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-import { placePaid } from "../shared/paidPlacement";
+import { placeOnCells } from "../shared/groundPlacement";
 import type { ItemPayment } from "../shared/ports/itemPayment";
 import type { ChairWorld } from "./ports/chair";
 
@@ -52,30 +52,33 @@ export class PlaceChair {
   }
 
   execute(cmd: PlaceChairCommand): boolean {
-    const block = cmd.blockLocation;
-    // Each return before the spawn also leaves the item unconsumed.
-    if (this.blockedByVehicle(cmd.dimensionId, block)) return false;
-    if (
-      !canPlaceChair((dy) =>
-        this.world.isAir(cmd.dimensionId, above(block, dy)),
-      )
-    )
-      return false;
-    if (this.world.hasChairAt(cmd.kind, cmd.dimensionId, above(block, 1)))
-      return false;
+    const world = this.world;
+    const { kind, dimensionId: dimension, blockLocation: block } = cmd;
     const payment: ItemPayment = {
-      isCreative: (player) => this.world.isCreative(player),
-      consumeItem: (player, slot) =>
-        this.world.consumeChairItem(cmd.kind, player, slot),
-      refund: (player) => this.world.refundChairItem(cmd.kind, player),
+      isCreative: (p) => world.isCreative(p),
+      consumeItem: (p, s) => world.consumeChairItem(kind, p, s),
+      refund: (p) => world.refundChairItem(kind, p),
     };
-    return placePaid(payment, { player: cmd.playerId, slot: cmd.slot }, () =>
-      this.world.spawnChair(
-        cmd.kind,
-        cmd.dimensionId,
-        cellCenter(block, 1),
-        chairYaw(cmd.yaw),
-      ),
+    return placeOnCells(
+      { dimension, cells: world, payment },
+      {
+        support: [],
+        clear: [],
+        protect: ["vehicle"],
+        // Chairs check vehicle space at seat height only, before testing any air cells.
+        extraCheck: () =>
+          !this.blockedByVehicle(dimension, block) &&
+          canPlaceChair((dy) => world.isAir(dimension, above(block, dy))) &&
+          !world.hasChairAt(kind, dimension, above(block, 1)),
+      },
+      { player: cmd.playerId, slot: cmd.slot },
+      () =>
+        world.spawnChair(
+          kind,
+          dimension,
+          cellCenter(block, 1),
+          chairYaw(cmd.yaw),
+        ),
     ).placed;
   }
 

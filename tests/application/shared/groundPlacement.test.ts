@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import {
   canUseBlockTop,
   hasClearance,
+  placeOnCells,
   placeOnGround,
 } from "../../../src/application/shared/groundPlacement";
 import type { GroundCellsWorld } from "../../../src/application/shared/ports/groundCells";
@@ -49,6 +50,122 @@ function fixture(creative = false, consumeResult = true, failSpawn = false) {
   };
   return { world, nonAir, own, vehicle, item };
 }
+
+it("checks support, each clearance cell, and the extra check in order up to the first refusal", () => {
+  fc.assert(
+    fc.property(
+      position,
+      fc.integer({ min: 0, max: 5 }),
+      fc.integer({ min: 0, max: 5 }),
+      fc.shuffledSubarray(["vehicle", "camp"] as const),
+      fc.option(fc.nat()),
+      (base, supportCount, clearCount, protect, refusal) => {
+        const support = Array.from({ length: supportCount }, (_, x) => ({
+          ...base,
+          x: base.x + x,
+        }));
+        const clear = Array.from({ length: clearCount }, (_, x) => ({
+          ...base,
+          x: base.x + x,
+          y: base.y + 1,
+        }));
+        const protectedChecks = (["vehicle", "camp"] as const).filter((space) =>
+          protect.includes(space),
+        );
+        const stages = [
+          ...support.map((cell) => `support ${cellKey(cell)}`),
+          ...clear.flatMap((cell) =>
+            ["air", ...protectedChecks].map(
+              (check) => `${check} ${cellKey(cell)}`,
+            ),
+          ),
+          "extra",
+        ];
+        const failure =
+          refusal === null ? stages.length : refusal % stages.length;
+        const checked: string[] = [];
+        const passes = (check: string) => {
+          checked.push(check);
+          return check !== stages[failure];
+        };
+        const { world: payment, item } = fixture();
+        const cells = {
+          isSolidTop: (d: typeof dimension, cell: Vec3) =>
+            d === dimension && passes(`support ${cellKey(cell)}`),
+          isAir: (d: typeof dimension, cell: Vec3) =>
+            d === dimension && passes(`air ${cellKey(cell)}`),
+          isVehicleSpace: (d: typeof dimension, cell: Vec3) =>
+            d !== dimension || !passes(`vehicle ${cellKey(cell)}`),
+          isCampSpace: (d: typeof dimension, cell: Vec3) =>
+            d !== dimension || !passes(`camp ${cellKey(cell)}`),
+        };
+        const result = placeOnCells(
+          { dimension, cells, payment },
+          { support, clear, protect, extraCheck: () => passes("extra") },
+          { player, slot: 0 },
+          item.spawn,
+        );
+        expect(checked).toEqual(stages.slice(0, failure + 1));
+        expect(result).toEqual(
+          refusal === null ? { placed: true, id: "item" } : { placed: false },
+        );
+        expect(payment.isCreative).toHaveBeenCalledTimes(
+          refusal === null ? 1 : 0,
+        );
+        expect(item.spawn).toHaveBeenCalledTimes(refusal === null ? 1 : 0);
+      },
+    ),
+  );
+});
+
+it("spawns only after payment, refunds failed spawns, and runs the hook only with a spawned id", () => {
+  fc.assert(
+    fc.property(
+      fc.record({
+        creative: fc.boolean(),
+        consumeResult: fc.boolean(),
+        hasPlayer: fc.boolean(),
+        failSpawn: fc.boolean(),
+        id: fc.string(),
+        slot: fc.integer({ min: 0, max: 8 }),
+      }),
+      ({ creative, consumeResult, hasPlayer, failSpawn, id, slot }) => {
+        const { world: payment } = fixture(creative, consumeResult);
+        const spawn = vi.fn(() => (failSpawn ? undefined : id));
+        const after = vi.fn();
+        const owesPayment = hasPlayer && !creative;
+        const spawnAttempted = !owesPayment || consumeResult;
+        const placed = spawnAttempted && !failSpawn;
+        const result = placeOnCells(
+          { dimension, cells: payment, payment },
+          { support: [], clear: [], protect: [] },
+          { player: hasPlayer ? player : undefined, slot },
+          spawn,
+          after,
+        );
+        expect(result).toEqual(
+          placed ? { placed: true, id } : { placed: false },
+        );
+        expect(payment.isCreative).toHaveBeenCalledTimes(hasPlayer ? 1 : 0);
+        expect(payment.consumeItem).toHaveBeenCalledTimes(owesPayment ? 1 : 0);
+        expect(spawn).toHaveBeenCalledTimes(spawnAttempted ? 1 : 0);
+        if (owesPayment) {
+          expect(payment.consumeItem).toHaveBeenCalledWith(player, slot);
+          if (spawnAttempted)
+            expect(payment.consumeItem).toHaveBeenCalledBefore(spawn);
+        }
+        if (owesPayment && consumeResult && failSpawn) {
+          expect(payment.refund).toHaveBeenCalledExactlyOnceWith(player, slot);
+          expect(spawn).toHaveBeenCalledBefore(payment.refund);
+        } else expect(payment.refund).not.toHaveBeenCalled();
+        if (placed) {
+          expect(after).toHaveBeenCalledExactlyOnceWith(id);
+          expect(spawn).toHaveBeenCalledBefore(after);
+        } else expect(after).not.toHaveBeenCalled();
+      },
+    ),
+  );
+});
 
 it("accepts exactly the up face of a block that is not own", () => {
   fc.assert(
