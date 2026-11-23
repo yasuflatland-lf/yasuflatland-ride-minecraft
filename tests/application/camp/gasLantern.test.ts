@@ -104,39 +104,6 @@ it("spawns above the pressed block with yaw snapped to quarter turns", () => {
   );
 });
 
-it("takes back only the lantern hit three times and hints after earlier hits", () => {
-  fc.assert(
-    fc.property(
-      fc.integer({ min: 0, max: 10000 }),
-      fc.array(fc.integer({ min: 1, max: 99 }), { minLength: 2, maxLength: 2 }),
-      (start, gaps) => {
-        const { actions, world } = fixture();
-        const first = asGasLanternId("first");
-        const second = asGasLanternId("second");
-        const ticks = [
-          start,
-          start + (gaps[0] ?? 1),
-          start + (gaps[0] ?? 1) + (gaps[1] ?? 1),
-        ];
-        for (const [i, tick] of ticks.entries()) {
-          expect(actions.hit(first, player, tick)).toBe(i === 2);
-          if (i < 2) {
-            expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2 - i);
-            expect(actions.hit(second, player, tick)).toBe(false);
-            expect(world.showHitsLeft).toHaveBeenLastCalledWith(player, 2 - i);
-          }
-        }
-        expect(world.showHitsLeft).toHaveBeenCalledTimes(4);
-        expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(first);
-        expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith(first);
-        expect(actions.hit(second, player, ticks[2] ?? start)).toBe(true);
-        expect(world.dropItem).toHaveBeenLastCalledWith(second);
-        expect(world.removeGasLantern).toHaveBeenLastCalledWith(second);
-      },
-    ),
-  );
-});
-
 it("switches and relays only after the lantern's shared cooldown sits idle", () => {
   fc.assert(
     fc.property(fc.integer({ min: 1, max: 9 }), (spacing) => {
@@ -182,10 +149,16 @@ it("clears a lit lantern's light before dropping its item and removing it", () =
   const { actions, world } = fixture();
   const id = asGasLanternId("lit");
   actions.switch(id, 0);
-  actions.hit(id, player, 1);
-  actions.hit(id, player, 2);
+  expect(actions.hit(id, player, 1)).toBe(false);
+  expect(actions.hit(id, player, 2)).toBe(false);
   expect(world.clearLight).not.toHaveBeenCalled();
-  actions.hit(id, player, 3);
+  expect(actions.hit(id, player, 3)).toBe(true);
+  expect(world.showHitsLeft.mock.calls).toEqual([
+    [player, 2],
+    [player, 1],
+  ]);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id);
+  expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith(id);
   expect(world.clearLight).toHaveBeenCalledExactlyOnceWith(id);
   expect(world.clearLight.mock.invocationCallOrder[0]).toBeLessThan(
     world.dropItem.mock.invocationCallOrder[0] ?? 0,

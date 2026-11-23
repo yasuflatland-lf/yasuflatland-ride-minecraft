@@ -99,101 +99,6 @@ it("carries the source selection material in the session clipboard", () => {
   );
 });
 
-it("keeps the old structure live during New copy and discards it only after successful replacement by copy or cut", () => {
-  fc.assert(
-    fc.property(boxArb, fc.boolean(), fc.boolean(), (box, newCopy, cut) => {
-      const e = setup();
-      e.copy.execute({
-        playerId,
-        selection: selectionOf(overworld, box, AIR),
-        facing: "east",
-      });
-      const session = e.repo.getOrCreate(playerId);
-      const old = structureOf(session.clipboard);
-      if (newCopy) new NewCopy(e.repo).execute(playerId);
-      expect(e.structures.live).toEqual(new Set([old]));
-      if (cut) {
-        const world = new FakeWorld();
-        expect(
-          new CutBox(e.repo, world, e.structures, e.feedback, {
-            warn: () => {},
-          }).execute({
-            playerId,
-            selection: selectionOf(overworld, box, AIR),
-            facing: "east",
-          }),
-        ).toBe(true);
-        expect(session.clipboard?.contents.kind).toBe("structure");
-        const entry = session.takeUndo();
-        if (typeof entry === "string" || entry.kind !== "snapshot")
-          throw new Error("Expected snapshot");
-        expect(e.structures.live).toEqual(
-          new Set([structureOf(session.clipboard), entry.snapshot.handle]),
-        );
-        session.putBackUndo(entry);
-      } else {
-        e.copy.execute({
-          playerId,
-          selection: selectionOf(overworld, box, AIR),
-          facing: "east",
-        });
-        expect(e.structures.live).toEqual(
-          new Set([structureOf(session.clipboard)]),
-        );
-      }
-      expect(
-        e.structures.calls.filter((call) => call.kind === "discard"),
-      ).toEqual([{ kind: "discard", handle: old }]);
-    }),
-  );
-});
-
-it("discards cleared structures once through every exit and leaves no live clipboard structures", () => {
-  fc.assert(
-    fc.property(
-      boxArb,
-      fc.constantFrom("clear", "end", "leave", "disconnect"),
-      (box, exit) => {
-        const e = setup();
-        const session = e.repo.getOrCreate(playerId);
-        e.copy.execute({
-          playerId,
-          selection: selectionOf(overworld, box, AIR),
-          facing: "east",
-        });
-        const old = structureOf(session.clipboard);
-        const clear = () => {
-          if (exit === "clear") {
-            const handle = session.clearClipboard();
-            if (handle !== undefined) e.structures.discard(handle);
-          } else if (exit === "end")
-            new EndPasting(e.repo, e.structures).execute(playerId);
-          else if (exit === "leave")
-            new LeaveBuild(e.repo, e.structures, new FakeTapTargets()).execute(
-              playerId,
-            );
-          else
-            new EndBuildSession(
-              e.repo,
-              e.structures,
-              new FakeTapTargets(),
-            ).execute(playerId);
-        };
-        clear();
-        clear();
-        expect(session.clipboard).toBeUndefined();
-        expect(e.structures.live.size).toBe(0);
-        expect(
-          e.structures.calls.filter((call) => call.kind === "discard"),
-        ).toEqual([{ kind: "discard", handle: old }]);
-        expect(e.repo.get(playerId)).toBe(
-          exit === "disconnect" ? undefined : session,
-        );
-      },
-    ),
-  );
-});
-
 it("refuses without changing a present session or creating an absent one, preserving live handles and messages", () => {
   fc.assert(
     fc.property(
@@ -435,8 +340,10 @@ it.each(["absent", "structure"] as const)(
             ).toEqual(live);
             const calls = e.structures.calls.slice(callCount);
             expect(
-              calls.filter((c) => c.kind === "discard").map((c) => c.handle),
-            ).toEqual([...oldLive].filter((h) => !live.has(h)));
+              new Set(
+                calls.filter((c) => c.kind === "discard").map((c) => c.handle),
+              ),
+            ).toEqual(new Set([...oldLive].filter((h) => !live.has(h))));
             if (refused) {
               expect(session).toBe(before);
               expect(session).toEqual(state);

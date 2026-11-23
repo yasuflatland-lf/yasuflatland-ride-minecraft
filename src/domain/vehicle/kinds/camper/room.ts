@@ -26,7 +26,7 @@ export interface DrawerTarget {
   readonly floorFootprint?: boolean;
 }
 
-export interface RoomDecorHost {
+interface RoomDecorHost {
   /** The decor of the vehicle's room, in slot order, then any stowed decor that could not occupy a slot (ADR 0093, 0103). */
   decor(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
@@ -58,7 +58,7 @@ export interface RoomStorageHost {
   pressStorage(request: StoragePressRequest): StoragePress | undefined;
 }
 
-export interface RoomFixturesHost {
+interface RoomFixturesHost {
   /**
    * Every use by a player away from the wheel restarts the idle time (ADR 0024).
    * After SPEC.headlightSwitchCooldown idle ticks, feet inside the parked room can switch the lights (ADR 0115).

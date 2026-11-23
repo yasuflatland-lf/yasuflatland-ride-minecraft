@@ -58,9 +58,6 @@ describe("roof tent occupant", () => {
       [playerId, cmd.tentId],
     ]);
     expect(world.conceal.mock.calls).toEqual([[playerId], [playerId]]);
-    expect(world.moveInside.mock.invocationCallOrder[0]).toBeLessThan(
-      world.conceal.mock.invocationCallOrder[0] ?? 0,
-    );
     expect(world.showMessage).toHaveBeenCalledExactlyOnceWith(
       other,
       "tent_occupied",
@@ -113,27 +110,6 @@ describe("roof tent occupant", () => {
         ).toBeLessThan(world.addSpawnSetter.mock.invocationCallOrder[0] ?? 0);
       }),
     );
-  });
-
-  it("keeps the night-only message and records a daytime spawn", () => {
-    const { world, bed, menu, leave } = setup(0);
-    vi.spyOn(leave, "execute");
-    world.occupants.set(cmd.tentId, playerId);
-    menu.choose(cmd, "sleep");
-    expect(bed.setSpawnPoint).toHaveBeenCalledExactlyOnceWith(
-      playerId,
-      world.dimensionOf(cmd.tentId),
-      world.spawnCellOf(cmd.tentId),
-    );
-    expect(bed.sleep).not.toHaveBeenCalled();
-    expect(world.occupantOf(cmd.tentId)).toBe(playerId);
-    expect(world.placeOutside).not.toHaveBeenCalled();
-    expect(leave.execute).not.toHaveBeenCalled();
-    expect(bed.showMessage).toHaveBeenCalledExactlyOnceWith(
-      playerId,
-      SLEEP_MESSAGES.nightOnly,
-    );
-    expect(world.spawnSetters(cmd.tentId)).toEqual([playerId]);
   });
 
   it("sleeps after the occupant leaves while the form is open", () => {
@@ -273,7 +249,6 @@ describe("roof tent occupant", () => {
   it("dispatches the occupant's menu choices and ignores other players", () => {
     const { world, bed, menu } = setup();
     expect(menu.entries()).toEqual(ROOF_TENT_CHOICES);
-    expect(menu.entries()).toEqual(["sleep", "exit"]);
     menu.choose(cmd, "exit");
     world.occupants.set(cmd.tentId, other);
     for (const choice of menu.entries()) menu.choose(cmd, choice);

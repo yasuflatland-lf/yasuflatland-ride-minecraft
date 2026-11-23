@@ -8,7 +8,6 @@ import { CHAIR_KINDS } from "../../../src/infrastructure/camp/identifiers";
 const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
   world: game,
-  GameMode: { Creative: "Creative", Survival: "Survival" },
   ItemStack: class {
     constructor(
       public typeId: string,
@@ -44,7 +43,6 @@ function fixture() {
     id: "player",
     typeId: "minecraft:player",
     isValid: true,
-    getGameMode: vi.fn(() => "Survival"),
     getComponent: vi.fn(() => ({ container })),
     onScreenDisplay: { setActionBar: vi.fn() },
   };
@@ -261,12 +259,6 @@ describe("BedrockChairWorld (ADR 0122)", () => {
         z: 0,
       }),
     ).toBe(false);
-  });
-
-  it("reports Creative for the requested player", () => {
-    const { player, chairs } = fixture();
-    player.getGameMode.mockReturnValue("Creative");
-    expect(chairs.isCreative(asPlayerId("player"))).toBe(true);
   });
 
   it("counts a missing or removed chair as not occupied", () => {

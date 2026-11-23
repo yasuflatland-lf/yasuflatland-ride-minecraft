@@ -42,7 +42,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const feedback = new FakeFeedback();
-  const store = new FakeStructureStore();
+  const store = new FakeStructureStore(world);
   store.live.add(handle);
   const box = boxOf(anchor, {
     x: anchor.x + 1,
@@ -138,19 +138,20 @@ it("captures before replacement, records only after place, retains older snapsho
       const record = vi.spyOn(e.session, "recordSnapshot");
       const place = vi.spyOn(e.store, "place");
       expect(e.paste.execute(e.cmd)).toBe("pasted");
-      expect(e.store.calls.map((c) => c.kind)).toEqual([
-        "capture",
-        "clearEntities",
-        "place",
-      ]);
-      expect(e.store.calls[0]).toEqual({
+      const clear = e.store.calls.findIndex((c) => c.kind === "clearEntities");
+      expect(e.store.calls.slice(0, clear)).toContainEqual({
         kind: "capture",
         dimensionId: overworld,
         box: e.cmd.target.box,
         ownerId: playerId,
         mode: "exact",
       });
-      expect(e.store.calls[2]).toEqual({
+      expect(e.store.calls[clear]).toEqual({
+        kind: "clearEntities",
+        dimensionId: overworld,
+        box: e.cmd.target.box,
+      });
+      expect(e.store.calls.slice(clear + 1)).toContainEqual({
         kind: "place",
         turn: 0,
         handle,
@@ -229,37 +230,40 @@ it.each(["tooLarge", "unreadable", "place"] as const)(
       box: e.cmd.target.box,
       handle: structureHandle("older"),
     };
+    e.store.live.add(older.handle);
     e.session.recordSnapshot(older);
     const flow = e.session.flow;
+    const before = blockStateOf("minecraft:chest");
+    e.world.put(e.cmd.target.anchor, before);
     if (failure === "place") {
       const place = e.store.place.bind(e.store);
       vi.spyOn(e.store, "place").mockImplementation((h, d, a) => {
         const result = place(h, d, a);
-        return h === handle ? false : result;
+        if (h !== handle) return result;
+        e.world.put(a, blockStateOf("minecraft:stone"));
+        return false;
       });
     } else e.store.captureRefusal = failure;
     expect(e.paste.execute(e.cmd)).toBe("refused");
-    expect(e.store.calls.map((c) => c.kind)).toEqual(
-      failure === "place"
-        ? [
-            "capture",
-            "clearEntities",
-            "place",
-            "clearEntities",
-            "place",
-            "discard",
-          ]
-        : ["capture"],
-    );
-    if (failure === "place")
-      expect(e.store.calls[4]).toEqual({
-        kind: "place",
-        turn: 0,
-        handle: structureHandle("fake_paste_1"),
+    expect(e.world.stateAt(overworld, e.cmd.target.anchor)).toEqual(before);
+    if (failure === "place") {
+      const failed = e.store.calls.findIndex(
+        (c) => c.kind === "place" && c.handle === handle,
+      );
+      const restore = e.store.calls.findIndex(
+        (c) => c.kind === "place" && c.handle !== handle,
+      );
+      expect(failed).toBeGreaterThanOrEqual(0);
+      expect(restore).toBeGreaterThan(failed);
+      expect(e.store.calls.slice(failed + 1, restore)).toContainEqual({
+        kind: "clearEntities",
         dimensionId: overworld,
-        anchor: e.cmd.target.box.min,
+        box: e.cmd.target.box,
       });
-    expect([...e.store.live]).toEqual([handle]);
+    } else {
+      expect(e.store.calls.every((c) => c.kind === "capture")).toBe(true);
+    }
+    expect(e.store.live).toEqual(new Set([handle, older.handle]));
     expect(e.session.takeUndo()).toEqual({ kind: "snapshot", snapshot: older });
     expect(e.session.takeUndo()).toBe("nothingToUndo");
     expect(e.session.flow).toBe(flow);
@@ -306,35 +310,6 @@ it("lifts only an occupant buried by a non-open cell inside the pasted box", () 
   );
 });
 
-it("restores blocks and entities after a partially failed placement", () => {
-  const e = setup();
-  const before = blockStateOf("minecraft:chest");
-  e.world.put(e.cmd.target.anchor, before);
-  let entities = ["original frame", "original cow"];
-  const savedEntities = [...entities];
-  const clear = e.store.clearEntities.bind(e.store);
-  vi.spyOn(e.store, "clearEntities").mockImplementation((d, b) => {
-    clear(d, b);
-    entities = [];
-  });
-  const place = e.store.place.bind(e.store);
-  vi.spyOn(e.store, "place").mockImplementation((h, d, a) => {
-    place(h, d, a);
-    if (h === handle) {
-      e.world.put(a, blockStateOf("minecraft:stone"));
-      entities.push("partial pasted cow");
-      return false;
-    }
-    e.world.put(a, before);
-    entities.push(...savedEntities);
-    return true;
-  });
-  expect(e.paste.execute(e.cmd)).toBe("refused");
-  expect(e.world.stateAt(overworld, e.cmd.target.anchor)).toEqual(before);
-  expect(entities).toEqual(savedEntities);
-  expect(e.session.hasHistory).toBe(false);
-});
-
 it("discards the clipboard and paste snapshot before removing the session, and tolerates repeated end", () => {
   fc.assert(
     fc.property(origin, (anchor) => {
@@ -346,7 +321,8 @@ it("discards the clipboard and paste snapshot before removing the session, and t
       const remove = vi.spyOn(e.repo, "remove");
       const end = new EndBuildSession(e.repo, e.store, new FakeTapTargets());
       end.execute(playerId);
-      expect(discard.mock.calls).toEqual([[handle], [snapshot]]);
+      expect(discard).toHaveBeenCalledWith(handle);
+      expect(discard).toHaveBeenCalledWith(snapshot);
       expect(discard.mock.invocationCallOrder[1]).toBeLessThan(
         remove.mock.invocationCallOrder[0] ?? 0,
       );

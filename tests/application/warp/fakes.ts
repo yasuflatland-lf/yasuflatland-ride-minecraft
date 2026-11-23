@@ -57,12 +57,10 @@ class FakeRegistryStore implements WarpRegistryStore {
 
 class FakeWorld implements WarpWorld {
   presences = new Map<WarpPointId, BlockPresence>();
-  probes: WarpPoint[] = [];
   standable = new Set<string>();
   teleports: { playerId: PlayerId; dimension: DimensionId; feet: Cell }[] = [];
   teleportSucceeds = true;
   presence(point: WarpPoint): BlockPresence {
-    this.probes.push(point);
     return this.presences.get(point.id) ?? "present";
   }
   isStandable(dimension: DimensionId, feet: Cell) {
