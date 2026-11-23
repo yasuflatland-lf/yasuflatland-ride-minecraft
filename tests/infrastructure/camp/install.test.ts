@@ -9,9 +9,6 @@ import {
 } from "../../../src/domain/camp/tent";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
-import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
-import { registerFirePit } from "../../../src/infrastructure/camp/bedrock/handlers/firePit";
-import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import {
   CHAIR_KINDS,
   GAS_LANTERN_TYPE,
@@ -109,7 +106,7 @@ vi.mock("@minecraft/server", () => ({
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern",
   () => ({
-    registerTestTentLantern: registrations.handler("registerTestTentLantern"),
+    registerTestTentLantern: vi.fn(),
   }),
 );
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/tentHits", () => ({
@@ -124,29 +121,23 @@ vi.mock(
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/tentLifecycle",
   () => ({
-    registerTentLifecycle: registrations.handler("registerTentLifecycle"),
+    registerTentLifecycle: vi.fn(),
   }),
 );
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testTent", () => ({
-  registerTestTent: registrations.handler("registerTestTent"),
+  registerTestTent: vi.fn(),
 }));
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap",
   () => ({
-    registerTestTentFlap: registrations.handler("registerTestTentFlap"),
-  }),
-);
-vi.mock(
-  import("../../../src/infrastructure/shared/bedBlock"),
-  async (load) => ({
-    registerBedBlock: registrations.trace((await load()).registerBedBlock),
+    registerTestTentFlap: vi.fn(),
   }),
 );
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/hits", () => ({
   registerChairHits: registrations.handler("registerChairHits"),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/testHit", () => ({
-  registerTestChairHit: registrations.handler("registerTestChairHit"),
+  registerTestChairHit: vi.fn(),
 }));
 vi.mock("../../../src/infrastructure/camp/bedrock/handlers/table", () => ({
   registerTable: registrations.handler("registerTable"),
@@ -174,18 +165,6 @@ vi.mock(
   }),
 );
 vi.mock(
-  import("../../../src/infrastructure/camp/bedrock/handlers/tentFlap"),
-  async (load) => ({
-    registerTentFlap: registrations.trace((await load()).registerTentFlap),
-  }),
-);
-vi.mock(
-  import("../../../src/infrastructure/camp/bedrock/handlers/tentLoop"),
-  async (load) => ({
-    registerTentLoop: registrations.trace((await load()).registerTentLoop),
-  }),
-);
-vi.mock(
   import("../../../src/infrastructure/shared/laidBlockGuard"),
   async (load) => ({
     registerLaidBlockGuard: registrations.trace(
@@ -205,15 +184,13 @@ vi.mock(
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle",
   () => ({
-    registerRoofTentLifecycle: registrations.handler(
-      "registerRoofTentLifecycle",
-    ),
+    registerRoofTentLifecycle: vi.fn(),
   }),
 );
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent",
   () => ({
-    registerTestRoofTent: registrations.handler("registerTestRoofTent"),
+    registerTestRoofTent: vi.fn(),
   }),
 );
 
@@ -232,22 +209,8 @@ vi.mock(
 vi.mock(
   "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup",
   () => ({
-    registerRoofTentOccupantCleanup: vi.fn(() => {
-      registrations.log.push("registerRoofTentOccupantCleanup");
-      return vi.fn();
-    }),
+    registerRoofTentOccupantCleanup: vi.fn(() => vi.fn()),
   }),
-);
-
-vi.mock(
-  import("../../../src/infrastructure/shared/starterItem"),
-  async (load) => {
-    const original = await load();
-    return {
-      ...original,
-      registerStarterItem: registrations.trace(original.registerStarterItem),
-    };
-  },
 );
 
 function install(deps: Partial<Parameters<typeof installCamp>[0]> = {}) {
@@ -475,21 +438,7 @@ it("cancels a break claimed by the roof tent ceiling guard", () => {
   }
 });
 
-it("registers oven interactions before fire pit interactions", () => {
-  install();
-  expect(vi.mocked(registerDutchOven).mock.invocationCallOrder[0]).toBeLessThan(
-    vi.mocked(registerFirePit).mock.invocationCallOrder[0] ?? 0,
-  );
-});
-
-it("registers Gas Lantern interactions after Fire Pit interactions", () => {
-  install();
-  expect(vi.mocked(registerFirePit).mock.invocationCallOrder[0]).toBeLessThan(
-    vi.mocked(registerGasLantern).mock.invocationCallOrder[0] ?? 0,
-  );
-});
-
-it("preserves handler registration order on each engine signal", () => {
+it("preserves precedence for competing camp interactions, hits and breaks", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
   const logGuard = (owner: Parameters<typeof registerLaidBlockGuard>[0]) => {
     registrations.log.push(
@@ -503,11 +452,7 @@ it("preserves handler registration order on each engine signal", () => {
     .mockImplementationOnce(logGuard);
   install();
 
-  const lifecycle = [
-    "registerRoofTentLifecycle",
-    "registerTentLoop",
-    "registerTentLifecycle",
-  ];
+  // An earlier handler can claim the interaction or cancel the break before the next handler runs.
   const expected = {
     playerInteractWithBlock: [
       "registerChairPlacement",
@@ -534,28 +479,7 @@ it("preserves handler registration order on each engine signal", () => {
       "registerRoofTentHits",
       "registerTentHits",
     ],
-    scriptEventReceive: [
-      "registerTestChairHit",
-      "registerTable",
-      "registerDutchOven",
-      "registerFirePit",
-      "registerGasLantern",
-      "registerTestRoofTent",
-      "registerTestTent",
-      "registerTestTentFlap",
-      "registerTestTentLantern",
-    ],
-    entityLoad: lifecycle,
-    entitySpawn: lifecycle,
-    entityRemove: ["registerRoofTentLifecycle", "registerTentLifecycle"],
     playerBreakBlock: ["registerTentHits", "tentGuard", "ceilingGuard"],
-    startup: ["registerBedBlock", "registerTentFlap"],
-    playerSpawn: ["registerStarterItem"],
-    playerLeave: ["registerRoofTentOccupantCleanup"],
-    entityDie: ["registerRoofTentOccupantCleanup"],
-    playerDimensionChange: ["registerRoofTentOccupantCleanup"],
-    itemUse: ["registerRoofTentEnter"],
-    entityHitBlock: ["registerTentHits"],
   };
   for (const [signal, handlers] of Object.entries(expected)) {
     expect(

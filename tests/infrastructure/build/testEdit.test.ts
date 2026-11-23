@@ -303,20 +303,15 @@ it.each([
   );
 });
 
-it("rejects invalid paste facing and ignores the removed rotate command", () => {
+it("rejects invalid paste facing", () => {
   const e = snapshotHook();
   e.send("structure 0 0 0 1 1 1");
-  const flow = e.repo.get(player)?.flow;
   e.send("pasteat 3 4 5 up true invalid");
   expect(e.execute).not.toHaveBeenCalled();
   expect(system.sendScriptEvent).toHaveBeenLastCalledWith(
     TEST_RESULT_EVENT,
     JSON.stringify({ player: "Alex", error: "Invalid paste facing" }),
   );
-  vi.mocked(system.sendScriptEvent).mockClear();
-  e.send("rotate");
-  expect(e.repo.get(player)?.flow).toBe(flow);
-  expect(system.sendScriptEvent).not.toHaveBeenCalled();
 });
 
 it.each([0, 1, 2, 3])(

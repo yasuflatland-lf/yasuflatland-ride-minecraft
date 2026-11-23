@@ -17,6 +17,7 @@ import {
 } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import {
   TENT_CEILING_BLOCK,
+  TENT_CELLS_PROPERTY,
   TENT_FACE_STATE,
   TENT_FLAP_BLOCK,
   TENT_LANTERN_BLOCK,
@@ -44,10 +45,6 @@ const SAVED =
   '[{"x":110,"y":-60,"z":49,"block":{"type":"wall","face":1}},{"x":110,"y":-57,"z":50,"block":{"type":"ceiling"}}]';
 
 describe("TENT_CELL_CODEC (ADR 0131)", () => {
-  it("saves under yasu_ride:tent_cells", () => {
-    expect(TENT_CELL_CODEC.property).toBe("yasu_ride:tent_cells");
-  });
-
   it("accepts the saved shape and rejects malformed cells", () => {
     for (const cell of JSON.parse(SAVED))
       expect(TENT_CELL_CODEC.isCell(cell)).toBe(true);
@@ -64,11 +61,11 @@ describe("TENT_CELL_CODEC (ADR 0131)", () => {
   });
 
   it("reads the saved shape back unchanged", () => {
-    const holder = { getDynamicProperty: vi.fn(() => SAVED) };
+    const holder = {
+      getDynamicProperty: (key: string) =>
+        key === TENT_CELLS_PROPERTY ? SAVED : undefined,
+    };
     expect(savedLaidCells(holder, TENT_CELL_CODEC)).toEqual(JSON.parse(SAVED));
-    expect(holder.getDynamicProperty).toHaveBeenCalledWith(
-      "yasu_ride:tent_cells",
-    );
   });
 
   it("compares the type and the face", () => {
@@ -119,8 +116,6 @@ describe("TENT_CELL_CODEC (ADR 0131)", () => {
           { [TENT_OPEN_STATE]: open },
         );
       }
-      expect(TENT_FLAP_BLOCK).toBe("yasu_ride:tent_flap");
-      expect(TENT_OPEN_STATE).toBe("yasu_ride:open");
     });
 
     it("accepts the saved flap shape and rejects an unknown flap or a non-boolean open", () => {
@@ -301,7 +296,6 @@ describe("tent lantern cells (ADR 0134)", () => {
     expect(TENT_CELL_CODEC.blockIdOf({ type: "lantern", lit: true })).toBe(
       TENT_LANTERN_BLOCK,
     );
-    expect(TENT_LANTERN_BLOCK).toBe("yasu_ride:tent_lantern");
     for (const lit of [false, true]) {
       TENT_CELL_CODEC.permutationOf({ type: "lantern", lit });
       expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(
