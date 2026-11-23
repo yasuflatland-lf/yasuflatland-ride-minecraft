@@ -14,10 +14,12 @@ import { StepBackSelection } from "../../../src/application/build/stepBackSelect
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import {
+  boxFromSize,
   boxOf,
   boxWithHeight,
   type CellBox,
   cellsOf,
+  unionOf,
 } from "../../../src/domain/build/box";
 import {
   chooseHeighted,
@@ -32,6 +34,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { confirmEndpointHeight } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -122,133 +125,145 @@ function undoAndExpectEmpty(e: Env) {
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
 }
 
-it("keeps the filled box selected and restores its pre-build selection on Undo", () => {
+it("Build Undo restores blocks after paste selects its result", () => {
   const e = setup();
-  const box = boxOf({ x: 1, y: 64, z: 2 }, { x: 3, y: 66, z: 5 });
-  const selected = {
-    kind: "selected",
-    menuLevel: "root",
-    selection: selectionOf(overworld, box, stone),
-  };
-  select(e, box);
-  e.shape.execute({ playerId, style: "fill" });
+  const source = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 64, z: 0 });
+  const target = boxOf({ x: 5, y: 64, z: 0 }, { x: 7, y: 64, z: 0 });
+  const before = seed(e, target);
+  const point = tapBlock({ kind: "idle" }, overworld, source.min, stone);
+  e.session.setFlow(tapAir(point, source.max));
+  for (const cell of cellsOf(source)) e.world.put(cell, stone);
+  expect(
+    e.copy.execute({
+      playerId,
+      facing: "east",
+      selection: selectionOf(overworld, source, stone),
+    }),
+  ).toBe(true);
+  expect(
+    e.paste.execute({
+      playerId,
+      dimensionId: overworld,
+      target: { anchor: target.min, box: target, turn: 0 },
+    }),
+  ).toBe("pasted");
+  expect(e.session.flow.kind).toBe("selected");
+  expect(snapshot(e, target)).not.toEqual(before);
+
+  expect(e.pressUndo.execute({ playerId })).toBe("undone");
   e.drain();
-  expect(e.session.flow).toMatchObject(selected);
-  const entry = e.session.takeUndo();
-  expect(entry).toMatchObject({
-    kind: "cells",
-    record: { selectionBefore: box, selectionAfter: box },
-  });
-  if (typeof entry === "string") throw new Error("Expected cell history");
-  e.session.putBackUndo(entry);
-  e.undo.execute({ playerId });
-  e.drain();
-  expect(e.session.flow).toMatchObject(selected);
+  expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
+  expect(e.session.hasHistory).toBe(false);
+  expect(snapshot(e, target)).toEqual(before);
 });
 
-it.each(["build", "paste"] as const)(
-  "Build Undo restores blocks after %s selects its result",
-  (edit) => {
-    const e = setup();
-    const source = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 64, z: 0 });
-    const target =
-      edit === "paste"
-        ? boxOf({ x: 5, y: 64, z: 0 }, { x: 7, y: 64, z: 0 })
-        : source;
-    const before = seed(e, target);
-    const point = tapBlock({ kind: "idle" }, overworld, source.min, stone);
-    e.session.setFlow(tapAir(point, source.max));
-    if (edit === "paste") {
-      for (const cell of cellsOf(source)) e.world.put(cell, stone);
-      expect(
-        e.copy.execute({
-          playerId,
-          facing: "east",
-          selection: selectionOf(overworld, source, stone),
+const builds = [
+  { kind: "line", style: "fill" },
+  { kind: "rectangle", style: "fill" },
+  { kind: "rectangle", style: "frame" },
+  { kind: "box", style: "fill" },
+  { kind: "box", style: "walls" },
+  { kind: "box", style: "faces" },
+  ...(
+    [
+      "gable",
+      "hip",
+      "cube",
+      "sphere",
+      "cylinder",
+      "sideCylinderX",
+      "sideCylinderZ",
+    ] as const
+  ).flatMap((kind) => fillStylesFor(kind).map((fill) => ({ kind, fill }))),
+] as const;
+
+it.each(builds)(
+  "Build Undo restores the blocks and pre-build selection for %j",
+  (build) => {
+    fc.assert(
+      fc.property(
+        fc.record({
+          x: fc.integer({ min: -20, max: 20 }),
+          y: fc.integer({ min: 50, max: 70 }),
+          z: fc.integer({ min: -20, max: 20 }),
         }),
-      ).toBe(true);
-      expect(
-        e.paste.execute({
-          playerId,
-          dimensionId: overworld,
-          target: { anchor: target.min, box: target, turn: 0 },
-        }),
-      ).toBe("pasted");
-    } else {
-      e.shape.execute({ playerId, style: "fill" });
-      e.drain();
-    }
-    expect(e.session.flow.kind).toBe("selected");
-    expect(snapshot(e, target)).not.toEqual(before);
+        fc.integer({ min: 2, max: 6 }),
+        fc.integer({ min: 2, max: 6 }),
+        fc.integer({ min: 1, max: 6 }),
+        size,
+        (origin, width, depth, originalHeight, chosenHeight) => {
+          const e = setup();
+          const base = boxFromSize(origin, {
+            x: width,
+            y: 1,
+            z: build.kind === "line" ? 1 : depth,
+          });
+          const height =
+            build.kind === "line" || build.kind === "rectangle"
+              ? 1
+              : build.kind === "box"
+                ? Math.max(2, originalHeight)
+                : originalHeight;
+          const before = boxWithHeight(base, height);
+          const region = boxWithHeight(base, Math.max(height, chosenHeight));
+          const blocks = seed(e, region);
+          const first = tapBlock(
+            { kind: "idle" },
+            overworld,
+            before.min,
+            stone,
+          );
+          e.session.setFlow(confirmEndpointHeight(tapAir(first, before.max)));
+          if ("style" in build) {
+            e.shape.execute({ playerId, style: build.style });
+          } else {
+            e.session.setFlow(
+              setHeight(
+                chooseHeighted(e.session.flow, build.kind),
+                chosenHeight,
+              ),
+            );
+            e.heighted.execute({ playerId, fill: build.fill });
+          }
+          e.drain();
+          const written = [...cellsOf(region)].filter(
+            (cell) => e.world.stateAt(overworld, cell)?.typeId === stone.typeId,
+          );
+          expect(written.length).toBeGreaterThan(0);
+          const built = written
+            .map((cell) => boxOf(cell, cell))
+            .reduce(unionOf);
+          const result = selectionOf(overworld, built, stone);
+          expect(e.session.flow).toMatchObject({
+            kind: "selected",
+            menuLevel: "root",
+            selection: result,
+          });
+          expect(e.session.confirmedBox).toEqual(result);
+          const entry = e.session.takeUndo();
+          expect(entry).toMatchObject({
+            kind: "cells",
+            record: { selectionBefore: before, selectionAfter: built },
+          });
+          if (typeof entry === "string") throw new Error(entry);
+          e.session.putBackUndo(entry);
 
-    expect(e.pressUndo.execute({ playerId })).toBe("undone");
-    e.drain();
-    expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
-    expect(e.session.hasHistory).toBe(false);
-    expect(snapshot(e, target)).toEqual(before);
-  },
-);
-
-it.each(["endpoint", "heightStep"] as const)(
-  "undo restores the box selected at %s confirmation",
-  (kind) => {
-    const e = setup();
-    const base = boxOf({ x: 1, y: 64, z: 2 }, { x: 3, y: 64, z: 5 });
-    const box =
-      kind === "endpoint" ? base : boxOf(base.min, { ...base.max, y: 67 });
-    if (kind === "endpoint") {
-      select(e, base);
-      e.shape.execute({ playerId, style: "frame" });
-    } else {
-      select(e, box);
-      e.session.setFlow(chooseHeighted(e.session.flow, "cube"));
-      e.heighted.execute({ playerId, fill: "fill" });
-    }
-    e.drain();
-    e.undo.execute({ playerId });
-    expect(e.session.confirmedBox?.box).toEqual(box);
-  },
-);
-
-it.each([
-  { kind: "gable", originalHeight: 5, builtHeight: 3 },
-  { kind: "hip", originalHeight: 1, builtHeight: 3 },
-  { kind: "sphere", originalHeight: 2, builtHeight: 2 },
-] as const)(
-  "undo restores the full pre-build $kind selection and confirmation",
-  ({ kind, originalHeight, builtHeight }) => {
-    const e = setup();
-    const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 3, y: 64, z: 1 });
-    const before = boxWithHeight(base, originalHeight);
-    const built =
-      kind === "sphere"
-        ? boxOf({ x: 1, y: 64, z: 0 }, { x: 2, y: 65, z: 1 })
-        : boxWithHeight(base, builtHeight);
-    select(e, before);
-    e.session.setFlow(
-      setHeight(chooseHeighted(e.session.flow, kind), builtHeight),
-    );
-
-    e.heighted.execute({ playerId, fill: "fill" });
-    e.drain();
-    expect(e.session.flow).toMatchObject({
-      kind: "selected",
-      menuLevel: "root",
-      selection: selectionOf(overworld, built, stone),
-    });
-    expect(e.session.confirmedBox).toEqual(
-      selectionOf(overworld, built, stone),
-    );
-
-    e.undo.execute({ playerId });
-    e.drain();
-    expect(e.session.flow).toMatchObject({
-      kind: "selected",
-      menuLevel: "root",
-      selection: selectionOf(overworld, before, stone),
-    });
-    expect(e.session.confirmedBox).toEqual(
-      selectionOf(overworld, before, stone),
+          expect(e.pressUndo.execute({ playerId })).toBe("undone");
+          e.drain();
+          const restored = selectionOf(overworld, before, stone);
+          expect(e.session.flow).toMatchObject({
+            kind: "selected",
+            menuLevel: "root",
+            selection: restored,
+          });
+          expect(e.session.confirmedBox).toEqual(restored);
+          expect(snapshot(e, region)).toEqual(blocks);
+          expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
+          expect(e.session.hasHistory).toBe(false);
+          e.undo.execute({ playerId });
+          expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
+        },
+      ),
     );
   },
 );
@@ -306,93 +321,6 @@ it("CutBox then UndoEdit restores the box and consumes only its snapshot", () =>
       expect(snapshot(e, box)).toEqual(before);
       expect(e.session.clipboard).toBe(clipboard);
       expect(e.structures.live.size).toBe(1);
-    }),
-  );
-});
-
-it.each(["line Place", "rectangle Fill", "rectangle Frame"] as const)(
-  "%s then UndoEdit restores the previous blocks",
-  (build) => {
-    fc.assert(
-      fc.property(size, size, (width, depth) => {
-        const e = setup();
-        const box = boxOf(
-          { x: 0, y: 64, z: 0 },
-          { x: width - 1, y: 64, z: build === "line Place" ? 0 : depth - 1 },
-        );
-        const before = seed(e, box);
-        select(e, box);
-        e.shape.execute({
-          playerId,
-          style: build === "rectangle Frame" ? "frame" : "fill",
-        });
-        e.drain();
-        expect(snapshot(e, box)).not.toEqual(before);
-        expect(e.session.hasHistory).toBe(true);
-        undoAndExpectEmpty(e);
-        expect(snapshot(e, box)).toEqual(before);
-      }),
-    );
-  },
-);
-
-const heightedBuilds = (
-  ["gable", "hip", "cylinder", "sphere", "cube"] as const
-).flatMap((kind) => fillStylesFor(kind).map((fill) => ({ kind, fill })));
-
-it.each(heightedBuilds)(
-  "confirmed $kind $fill then UndoEdit restores the previous blocks",
-  ({ kind, fill }) => {
-    fc.assert(
-      fc.property(size, size, size, (width, depth, height) => {
-        const e = setup();
-        const base = boxOf(
-          { x: 0, y: 64, z: 0 },
-          { x: width - 1, y: 64, z: depth - 1 },
-        );
-        const box = { min: base.min, max: { ...base.max, y: 64 + height - 1 } };
-        const before = seed(e, box);
-        e.session.setFlow({
-          kind: "heightStep",
-          dimensionId: overworld,
-          base,
-          from: base.min,
-          heightedKind: kind,
-          previous: height,
-          heightLocked: false,
-          material: stone,
-        });
-        e.heighted.execute({ playerId, fill });
-        e.drain();
-        expect(snapshot(e, box)).not.toEqual(before);
-        expect(e.session.hasHistory).toBe(true);
-        undoAndExpectEmpty(e);
-        expect(snapshot(e, box)).toEqual(before);
-      }),
-    );
-  },
-);
-
-it("RotateSelection then UndoEdit restores the original arrangement and overwritten neighbors", () => {
-  fc.assert(
-    fc.property(size, (width) => {
-      const e = setup();
-      const box = boxOf({ x: 0, y: 64, z: 0 }, { x: width - 1, y: 65, z: 1 });
-      const union = planRotationAboutCenter(box).union;
-      const before = seed(e, union);
-      select(e, box);
-      expect(
-        e.rotate.execute({
-          playerId,
-          dimensionId: overworld,
-        }),
-      ).toBe("rotated");
-      expect(e.session.flow.kind).toBe("selected");
-      expect(snapshot(e, union)).not.toEqual(before);
-      expect(e.session.hasHistory).toBe(true);
-      undoAndExpectEmpty(e);
-      expect(snapshot(e, union)).toEqual(before);
-      expect(e.structures.live.size).toBe(0);
     }),
   );
 });

@@ -218,13 +218,6 @@ it("reports no selection outside selected flow or in a different dimension", () 
   expect(e.structures.calls).toEqual([]);
 });
 
-it("undo reports the pre-rotation selection and restores its box", () => {
-  const e = setup();
-  e.rotate.execute({ playerId, dimensionId: overworld });
-  e.undo.execute({ playerId });
-  expect(selectionBoxOf(e.session.flow)).toEqual(wideBox);
-});
-
 it("undo restores every original union cell, including overwritten neighbors", () => {
   fc.assert(
     fc.property(boxArb, (box) => {
