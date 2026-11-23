@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
+import { boxOf, boxWithHeight, cellBox } from "../../../src/domain/build/box";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
   adjustHeight,
@@ -470,10 +470,7 @@ it.each(["gable", "hip"] as const)(
       ...selected,
       selection: selectionOf(
         dim,
-        {
-          min: { ...box.min, y: min.y + 1 },
-          max: { ...box.max, y: min.y + 1 },
-        },
+        cellBox({ ...box.min, y: min.y + 1 }, { ...box.max, y: min.y + 1 }),
         stair,
       ),
     };

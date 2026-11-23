@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { AIR } from "../../../src/domain/build/blockState";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, cellBox } from "../../../src/domain/build/box";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -25,7 +25,7 @@ const entry: fc.Arbitrary<UndoEntry> = fc.oneof(
     kind: "snapshot" as const,
     snapshot: {
       dimensionId,
-      box: { min: cell, max: cell },
+      box: cellBox(cell, cell),
       handle: structureHandle(name),
     },
   })),

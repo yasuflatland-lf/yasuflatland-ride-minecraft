@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { HorizontalAxis } from "../../../src/domain/build/axis";
-import { contains } from "../../../src/domain/build/box";
+import { cellBox, contains } from "../../../src/domain/build/box";
 import {
   type HeightedSpec,
   placementOf,
@@ -22,10 +22,11 @@ const spec = fc
   .map(
     ([min, width, depth, height]): HeightedSpec => ({
       kind: "sideCylinderX",
-      base: {
-        min,
-        max: { x: min.x + width - 1, y: min.y, z: min.z + depth - 1 },
-      },
+      base: cellBox(min, {
+        x: min.x + width - 1,
+        y: min.y,
+        z: min.z + depth - 1,
+      }),
       height,
     }),
   );
@@ -36,7 +37,7 @@ it("counts unique bounded cells symmetric across all three axes, including thin 
   fc.assert(
     fc.property(spec, (spec) => {
       const { min, max } = spec.base;
-      const bounds = { min, max: { ...max, y: min.y + spec.height - 1 } };
+      const bounds = cellBox(min, { ...max, y: min.y + spec.height - 1 });
       for (const axis of ["x", "z"] as const) {
         const kind = kindOf(axis);
         for (const fill of fillStylesFor(kind)) {
@@ -70,7 +71,7 @@ it("exchanges x and z without changing the cylinder", () => {
       const swapped = {
         ...spec,
         kind: "sideCylinderZ" as const,
-        base: { min: swap(spec.base.min), max: swap(spec.base.max) },
+        base: cellBox(swap(spec.base.min), swap(spec.base.max)),
       };
       for (const fill of fillStylesFor(spec.kind)) {
         expect(
@@ -124,7 +125,7 @@ it("closes Hollow ends and leaves Tube ends open wherever the section has an int
 it("counts a very long axis from one cross-section scan", () => {
   const long = {
     kind: "sideCylinderX" as const,
-    base: { min: { x: 0, y: 0, z: 0 }, max: { x: 999999999, y: 0, z: 4 } },
+    base: cellBox({ x: 0, y: 0, z: 0 }, { x: 999999999, y: 0, z: 4 }),
     height: 5,
   };
   expect(placementOf(long.kind).count(long, "fill")).toBe(21e9);
@@ -167,7 +168,7 @@ it("bounds the preview budget and samples the end ellipses or the top and bottom
 it("prioritizes the top and bottom axis lines under a tight outline budget", () => {
   const s = {
     kind: "sideCylinderX" as const,
-    base: { min: { x: 0, y: 0, z: 0 }, max: { x: 30, y: 0, z: 4 } },
+    base: cellBox({ x: 0, y: 0, z: 0 }, { x: 30, y: 0, z: 4 }),
     height: 5,
   };
   const points = volumeOf(s.kind).wireframe(s, 30);

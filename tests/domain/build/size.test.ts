@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import {
   boxFromSize,
   boxWithHeight,
+  cellBox,
   contains,
   sizeOf,
   unionOf,
@@ -13,14 +14,13 @@ const coordinate = fc.integer({ min: -20, max: 20 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimension = fc.integer({ min: 1, max: 6 });
 const size = fc.record({ x: dimension, y: dimension, z: dimension });
-const box = fc.tuple(cell, size).map(([min, dimensions]) => ({
-  min,
-  max: {
+const box = fc.tuple(cell, size).map(([min, dimensions]) =>
+  cellBox(min, {
     x: min.x + dimensions.x - 1,
     y: min.y + dimensions.y - 1,
     z: min.z + dimensions.z - 1,
-  },
-}));
+  }),
+);
 
 it("reconstructs a box from its minimum and size", () => {
   fc.assert(

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { boxOf, contains } from "../../../src/domain/build/box";
+import { boxOf, cellBox, contains } from "../../../src/domain/build/box";
 import {
   roofPlacement,
   roofVolume,
@@ -117,10 +117,10 @@ describe("heighted geometry", () => {
             volume.maxHeight(base, base.min.y + height - 1),
           ).toBeGreaterThanOrEqual(1);
           expect(volume.wireframe(spec, 100).length).toBeLessThanOrEqual(100);
-          const bounds = {
-            min: base.min,
-            max: { ...base.max, y: base.min.y + height - 1 },
-          };
+          const bounds = cellBox(base.min, {
+            ...base.max,
+            y: base.min.y + height - 1,
+          });
           for (const fill of fillStylesFor(kind)) {
             const cells = [...placement.cells(spec, fill)];
             expect(placement.count(spec, fill)).toBe(cells.length);

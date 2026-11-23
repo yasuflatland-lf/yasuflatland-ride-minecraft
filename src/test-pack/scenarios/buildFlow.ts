@@ -15,7 +15,7 @@ import {
   blockStateOf,
   sameBlockState,
 } from "../../domain/build/blockState";
-import { boxOf, type CellBox, sameBox } from "../../domain/build/box";
+import { boxOf, type CellBox, cellBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import {
   type RoofSpec,
@@ -86,7 +86,7 @@ interface Reply {
     dimensionId?: string;
     material?: BlockState;
     to?: Cell;
-    selection?: { box: CellBox };
+    selection?: { box: BoxBounds };
   };
   mode?: boolean;
   sessionPresent?: boolean;
@@ -710,7 +710,7 @@ export function buildStairRoofs(a: Arena): Promise<Outcome> {
       );
 
       const spec: RoofSpec = {
-        base: { min, max: f.cell(sx - 1, 0, sz - 1) },
+        base: cellBox(min, f.cell(sx - 1, 0, sz - 1)),
         kind,
         height,
         style: "stair",
@@ -1139,7 +1139,10 @@ function pasteStep(
   );
 }
 
-function capturePasteSource(f: Fixture, { min, max }: CellBox): Promise<Reply> {
+function capturePasteSource(
+  f: Fixture,
+  { min, max }: BoxBounds,
+): Promise<Reply> {
   return f.edit(
     `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
   );
@@ -1387,10 +1390,13 @@ export function buildUndoItemEnd(a: Arena): Promise<Outcome> {
 
       const picked = await f.tap("air", next);
       const selected = line ? picked : await f.tap("fixHeight");
+      const actual = selected.flow.selection?.box;
+      const expected = boxOf(start, next);
       check(
         selected.flow.kind === "selected" &&
-          selected.flow.selection !== undefined &&
-          sameBox(selected.flow.selection.box, boxOf(start, next)),
+          actual !== undefined &&
+          sameCell(actual.min, expected.min) &&
+          sameCell(actual.max, expected.max),
         "Re-picking the end did not select the new box",
       );
     }
@@ -1879,13 +1885,16 @@ export function buildPasteBlocked(a: Arena): Promise<Outcome> {
   });
 }
 
-function checkSelection(reply: Reply, box: CellBox, detail: string): void {
+type BoxBounds = Pick<CellBox, "min" | "max">;
+
+function checkSelection(reply: Reply, box: BoxBounds, detail: string): void {
   const actual = reply.flow.selection?.box;
   check(
     reply.flow.kind === "selected" &&
       reply.flow.menuLevel === "root" &&
       actual !== undefined &&
-      sameBox(actual, box),
+      sameCell(actual.min, box.min) &&
+      sameCell(actual.max, box.max),
     `${detail}: expected root selection ${JSON.stringify(box)}, got ${JSON.stringify(reply.flow)}`,
   );
 }
@@ -3292,14 +3301,8 @@ export function buildRotateTappedSpan(a: Arena): Promise<Outcome> {
         "Expected the gaze above the tapped span",
       );
       const turned = await f.press("itemUse");
-      check(
-        turned.message === "rotateDone" &&
-          turned.flow.kind === "selected" &&
-          turned.flow.menuLevel === "root" &&
-          !!turned.flow.selection &&
-          sameBox(turned.flow.selection.box, { min, max }),
-        "Expected the two tapped layers to stay selected",
-      );
+      check(turned.message === "rotateDone", "Expected rotation to finish");
+      checkSelection(turned, { min, max }, "Two tapped layers after rotation");
       for (const c of cells) {
         const expected = sameCell(c, f.cell(2, 0, 0))
           ? "minecraft:gold_block"

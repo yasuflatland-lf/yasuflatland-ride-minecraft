@@ -3,7 +3,7 @@ import {
   type PlayerInteractWithBlockAfterEvent,
   world,
 } from "@minecraft/server";
-import { cellsOf } from "../../domain/build/box";
+import { cellBox, cellsOf } from "../../domain/build/box";
 import type { StructureHandle } from "../../domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
@@ -36,8 +36,8 @@ export async function buildStructureRotationDecor(
   const slot = player.selectedSlotIndex;
   const store = new BedrockStructureStore(() => false);
   const dim = asDimensionId(a.dim.id);
-  const source = { min: a.at(20, a.gy, 20), max: a.at(27, a.gy + 5, 27) };
-  const destination = { min: a.at(40, a.gy, 20), max: a.at(47, a.gy + 5, 27) };
+  const source = cellBox(a.at(20, a.gy, 20), a.at(27, a.gy + 5, 27));
+  const destination = cellBox(a.at(40, a.gy, 20), a.at(47, a.gy + 5, 27));
   const results: { name: string; pass: boolean; value: string }[] = [];
   const record = (name: string, pass: boolean, value: unknown) =>
     results.push({ name, pass, value: JSON.stringify(value) ?? String(value) });

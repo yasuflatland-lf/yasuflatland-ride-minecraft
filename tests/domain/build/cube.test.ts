@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, cellBox } from "../../../src/domain/build/box";
 import { cellsOfShape } from "../../../src/domain/build/shape/shape";
 import {
   cubePlacement,
@@ -95,10 +95,10 @@ describe("cube geometry", () => {
   it("matches box faces and walls on the same bounds", () => {
     fc.assert(
       fc.property(spec, (spec) => {
-        const box = {
-          min: spec.base.min,
-          max: { ...spec.base.max, y: spec.base.min.y + spec.height - 1 },
-        };
+        const box = cellBox(spec.base.min, {
+          ...spec.base.max,
+          y: spec.base.min.y + spec.height - 1,
+        });
         for (const [fill, style] of [
           ["hollow", "faces"],
           ["tube", "walls"],
