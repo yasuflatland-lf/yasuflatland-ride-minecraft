@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
+import { BackToAiming } from "../../../src/application/build/backToAiming";
 import { ChooseStairs } from "../../../src/application/build/chooseStairs";
 import {
   ConfirmStairs,
@@ -53,7 +53,7 @@ function fixture() {
   const fix = new FixStairGoal(repo, feedback, aim);
   const confirm = new ConfirmStairs(repo, feedback, jobs);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
-  const cancel = new CancelFlow(repo);
+  const cancel = new BackToAiming(repo);
   const preview = new ShowPreview(
     repo,
     feedback,

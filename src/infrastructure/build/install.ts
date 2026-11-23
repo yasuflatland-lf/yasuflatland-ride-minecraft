@@ -1,6 +1,6 @@
 import { system } from "@minecraft/server";
 import { AimHeight } from "../../application/build/aimHeight";
-import { CancelFlow } from "../../application/build/cancelFlow";
+import { BackToAiming } from "../../application/build/backToAiming";
 import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
@@ -97,7 +97,7 @@ export function installBuild(deps: {
   const tapTargets = new BedrockTapTargets();
   system.run(() => tapTargets.sweep());
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
-  const cancel = new CancelFlow(repo);
+  const cancel = new BackToAiming(repo);
   const pasteDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const rotateDebounce = new Debounces<PlayerId>(
