@@ -142,6 +142,7 @@ it("rotates any selection with one union snapshot and never writes outside the u
           box: plan.union,
           handle: snapshot,
           selectionBefore: box,
+          selectionBeforeTaps: { from: box.min, to: box.max },
         },
       });
       expect(e.session.takeUndo()).toBe("nothingToUndo");
@@ -159,7 +160,7 @@ it("rotates any selection with one union snapshot and never writes outside the u
   );
 });
 
-it("rotates the selected box once per press, undoes each turn with its selection, and keeps the tapped points", () => {
+it("rotates the selected box once per press, restores the box and taps for each undone turn", () => {
   const e = setup();
   const cmd = { playerId, dimensionId: overworld };
   const { union, target } = planRotationAboutCenter(wideBox);
@@ -172,8 +173,8 @@ it("rotates the selected box once per press, undoes each turn with its selection
     expect(e.session.flow).toMatchObject({
       kind: "selected",
       selection: selectionOf(overworld, box, stone),
-      from: wideBox.min,
-      to: wideBox.max,
+      from: box.min,
+      to: box.max,
     });
     expect(e.structures.live.size).toBe(i + 1);
   }
@@ -182,8 +183,8 @@ it("rotates the selected box once per press, undoes each turn with its selection
     expect(e.session.flow).toMatchObject({
       kind: "selected",
       selection: selectionOf(overworld, box, stone),
-      from: wideBox.min,
-      to: wideBox.max,
+      from: box.min,
+      to: box.max,
     });
   }
   expect(states()).toEqual(original);
@@ -304,8 +305,11 @@ it.each(["tooLarge", "unreadable"] as const)(
       expect(e.session.hasHistory).toBe(false);
       expect(e.feedback.messages).toEqual([
         {
-          message: "rotateTooLarge",
-          count: volume(planRotationAboutCenter(wideBox).union),
+          message: refusal === "tooLarge" ? "rotateTooLarge" : "copyUnreadable",
+          count:
+            refusal === "tooLarge"
+              ? volume(planRotationAboutCenter(wideBox).union)
+              : undefined,
         },
       ]);
     }

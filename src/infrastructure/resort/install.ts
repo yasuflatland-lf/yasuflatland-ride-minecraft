@@ -45,11 +45,6 @@ import { registerParasolHits } from "./bedrock/handlers/hits";
 import { registerParasolLifecycle } from "./bedrock/handlers/lifecycle";
 import { registerParasolPlacement } from "./bedrock/handlers/placement";
 import { registerShowLifecycle } from "./bedrock/handlers/showLifecycle";
-import { registerTestBeachChair } from "./bedrock/handlers/testBeachChair";
-import { registerTestFurniture } from "./bedrock/handlers/testFurniture";
-import { registerTestParasol } from "./bedrock/handlers/testParasol";
-import { registerTestToilet } from "./bedrock/handlers/testToilet";
-import { registerTestWashstand } from "./bedrock/handlers/testWashstand";
 import { registerToiletInteraction } from "./bedrock/handlers/toiletInteraction";
 import { registerWashstandInteraction } from "./bedrock/handlers/washstandInteraction";
 import {
@@ -67,7 +62,7 @@ export function installResort(deps: {
   isVehicleSpace: SpaceCheck;
   isCampSpace: SpaceCheck;
   placeHostedOnTop: PlaceHostedOnTop;
-}): void {
+}) {
   deps.topHosts.registerHost({
     hostType: "beach_chair",
     entityTypeId: BEACH_CHAIR,
@@ -97,7 +92,6 @@ export function installResort(deps: {
   registerFurniturePlacement(new PlaceFurniture(furniture));
   registerFurnitureHits(takeFurniture, furniture);
   registerFurnitureTopLifecycle(furniture);
-  registerTestFurniture(furniture, takeFurniture, deps);
   const states = new ShowStates();
   const sound = new BedrockShowSound();
   const toilet = new BedrockToiletWorld(deps);
@@ -113,8 +107,6 @@ export function installResort(deps: {
   registerToiletInteraction(useToilet);
   registerWashstandInteraction(useWashstand);
   registerShowLifecycle(watch, new TickShows(toilet, washstand, states));
-  registerTestToilet(states, sound, deps);
-  registerTestWashstand(washstand, useWashstand);
   const chair = new BedrockBeachChairWorld(deps);
   const takeChair = new TakeBackBeachChair(chair);
   registerBeachChairPlacement(new PlaceBeachChair(chair));
@@ -128,7 +120,6 @@ export function installResort(deps: {
     }),
   );
   registerBeachChairLifecycle(lie);
-  registerTestBeachChair(chair, takeChair, deps, form);
   registerStarterItem(
     new GiveStarterItem(
       new BedrockStarterItemWorld(
@@ -144,6 +135,19 @@ export function installResort(deps: {
     takeBack,
     new PaintParasol(new Repaint(new BedrockParasolPaintWorld())),
   );
-  registerTestParasol(adapter, takeBack, deps);
   registerParasolLifecycle(adapter, new SyncParasolCeilings(adapter));
+  return {
+    deps,
+    furniture,
+    takeFurniture,
+    states,
+    sound,
+    washstand,
+    useWashstand,
+    chair,
+    takeChair,
+    form,
+    parasol: adapter,
+    takeBackParasol: takeBack,
+  };
 }

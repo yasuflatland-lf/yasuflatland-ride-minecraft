@@ -24,6 +24,7 @@ import {
   tapAir,
   tapBlock,
   tappedSpanHeight,
+  tapsForBox,
   tapsOf,
   withoutStepBack,
 } from "../../../src/domain/build/flow/flow";
@@ -39,7 +40,10 @@ import {
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
-import { selectionOf } from "../../../src/domain/build/selection";
+import {
+  selectionHeightLimit,
+  selectionOf,
+} from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -409,6 +413,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
               kind: "heightStep",
               dimensionId: dim,
               from,
+              to,
               material: stone,
               heightedKind: kind,
               base: { min: origin, max: { ...end, y: origin.y } },
@@ -504,6 +509,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
               ? { selectionBefore: endpoint.selection.box }
               : {}),
             from: a,
+            to: b,
             heightedKind: kind,
             previous: 1,
             material: stone,
@@ -603,6 +609,7 @@ it("offers each heighted kind's fill styles followed by Cancel", () => {
           dimensionId: dim,
           base: boxOf(from, to),
           from,
+          to,
           heightedKind: kind,
           previous: 1,
           heightLocked: false,
@@ -653,6 +660,7 @@ it("offers Undo on a plain air press only when idle", () => {
       dimensionId: dim,
       base: boxOf(cell, cell),
       from: cell,
+      to: cell,
       heightedKind: "cylinder",
       previous: 1,
       heightLocked: false,
@@ -819,21 +827,24 @@ it("opens Terrace confirmation from a single-cell foot", () => {
   expect(stairContentsMenu(contents)).toEqual([]);
 });
 
-it("uses the rotated selection as the stair foot and keeps the tapped point for Cancel", () => {
+it("uses the rotated row for stairs and resumes aiming from its minimum corner", () => {
   const from = { x: 3, y: 5, z: 0 };
   const to = { ...from, x: 1 };
   const point = tapBlock(idle, dim, from, stone);
   const session = new BuildSession(asPlayerId("p"));
   session.setFlow(tapAir(point, to));
   const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
-  session.replaceSelection(selectionOf(dim, rotated, stone));
+  session.replaceSelection(
+    selectionOf(dim, rotated, stone),
+    tapsForBox(rotated, { from, to }),
+  );
   const aim = chooseStairs(session.flow, "stairs");
   expect(aim).toMatchObject({
     kind: "stairAim",
     row: { ...rotated, along: "z", y: 5 },
     selectionBefore: rotated,
   });
-  expect(backToAiming(aim)).toEqual(point);
+  expect(backToAiming(aim)).toEqual({ ...point, cell: rotated.min });
 });
 
 it("starts and re-enters live height at the clamped tapped span", () => {
@@ -870,7 +881,7 @@ it("starts and re-enters live height at the clamped tapped span", () => {
   );
 });
 
-it("confirms the tapped span at root independently of the live height", () => {
+it("confirms the initial tapped span or the reopened box independently of the live aim", () => {
   fc.assert(
     fc.property(
       cell,
@@ -895,11 +906,15 @@ it("confirms the tapped span at root independently of the live height", () => {
           ),
         };
         expect(confirmTappedSpan({ ...flow, previous })).toEqual(expected);
-        const reopened = adjustHeight(
-          confirmLiveHeight({ ...flow, previous: 2 }),
-        );
+        const confirmed = confirmLiveHeight({
+          ...flow,
+          previous: Math.min(2, selectionHeightLimit(box)),
+        });
+        const reopened = adjustHeight(confirmed);
         if (reopened.kind === "baseHeight")
-          expect(confirmTappedSpan(reopened)).toEqual(expected);
+          expect(confirmTappedSpan({ ...reopened, previous })).toEqual(
+            confirmed,
+          );
       },
     ),
   );

@@ -23,7 +23,8 @@ export function startUndoableBuild(
     readonly count: number;
     readonly plan: Iterable<PlanStep>;
     readonly selectionBefore: CellBox;
-    readonly selectionBeforeTaps?: Taps;
+    readonly selectionBeforeTaps: Taps;
+    readonly keepEmpty?: true;
     readonly after: Selection;
     readonly taps: Taps;
   },
@@ -34,7 +35,8 @@ export function startUndoableBuild(
   session.confirmBox(after, "selected", taps);
   deps.jobs.start(playerId, after.dimensionId, plan, "undoable", {
     selectionBefore,
-    ...(selectionBeforeTaps && { selectionBeforeTaps }),
+    selectionBeforeTaps,
+    ...(cmd.keepEmpty && { keepEmpty: true }),
     selectionAfter: after.box,
   });
   return true;

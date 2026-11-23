@@ -2,7 +2,6 @@ import {
   Direction,
   type Entity,
   Player,
-  ScriptEventSource,
   system,
   type Vector3,
   world,
@@ -25,7 +24,7 @@ export type PlaceContext = {
 
 export type HitContext = {
   entity: Entity;
-  attacker?: Player;
+  attacker: Player;
   player: PlayerId;
   tick: number;
 };
@@ -40,7 +39,6 @@ export function registerPlaceableEntity(opts: {
   ): boolean;
   place(ctx: PlaceContext): void;
   hit(ctx: HitContext): void;
-  testHitEvent?: string;
   placements?: TickScopedSet<PlayerId>;
 }): void {
   const placements = opts.placements ?? new TickScopedSet<PlayerId>();
@@ -76,20 +74,4 @@ export function registerPlaceableEntity(opts: {
       tick: system.currentTick,
     });
   });
-  if (opts.testHitEvent) {
-    system.afterEvents.scriptEventReceive.subscribe((ev) => {
-      if (
-        ev.id !== opts.testHitEvent ||
-        ev.sourceType !== ScriptEventSource.Server
-      )
-        return;
-      const entity = world.getEntity(ev.message);
-      if (!entity || !opts.entityTypeIds.has(entity.typeId)) return;
-      opts.hit({
-        entity,
-        player: asPlayerId("test"),
-        tick: system.currentTick,
-      });
-    });
-  }
 }

@@ -186,6 +186,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/infrastructure/camp/identifiers.ts",
   "src/infrastructure/shared/identifiers.ts",
   "src/infrastructure/vehicle/bedrock/identifiers.ts",
+  "src/infrastructure/vehicle/testHooks/identifiers.ts",
 ];
 
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
@@ -326,7 +327,7 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   },
   {
     rule: "entry",
-    test: /^src\/(?:main|infrastructure\/bootstrap)\.ts$/,
+    test: /^src\/(?:buildFlags\.d|main|infrastructure\/bootstrap)\.ts$/,
     impact: "all",
   },
   { rule: "install", test: /^src\/[^/]+\/[^/]+\/install\.ts$/, impact: "all" },

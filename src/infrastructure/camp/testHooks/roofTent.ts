@@ -1,31 +1,32 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import type { FoldRoofTent } from "../../../../application/camp/foldRoofTent";
-import type { PlaceRoofTent } from "../../../../application/camp/placeRoofTent";
-import type { RoofTentHostGuard } from "../../../../application/camp/roofTentHostGuard";
-import { asRoofTentId } from "../../../../domain/camp/ids";
+import type { FoldRoofTent } from "../../../application/camp/foldRoofTent";
+import type { PlaceRoofTent } from "../../../application/camp/placeRoofTent";
+import type { RoofTentHostGuard } from "../../../application/camp/roofTentHostGuard";
+import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
+import { asRoofTentId } from "../../../domain/camp/ids";
 import {
   asDimensionId,
   asPlayerId,
   asVehicleId,
-} from "../../../../domain/shared/ids";
-import { NAMESPACE } from "../../../shared/identifiers";
+} from "../../../domain/shared/ids";
+import { NAMESPACE } from "../../shared/identifiers";
+import type { BedrockRoofTentOccupantWorld } from "../bedrock/bedrockRoofTentOccupantWorld";
+import { roofTentEntity } from "../bedrock/bedrockRoofTentWorld";
 import {
   TEST_ROOF_TENT_DRIVER_SEAT_EVENT,
   TEST_ROOF_TENT_HIT_EVENT,
   TEST_ROOF_TENT_HOST_REMOVE_EVENT,
   TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT,
   TEST_ROOF_TENT_PLACE_EVENT,
-} from "../../identifiers";
-import type { BedrockRoofTentOccupantWorld } from "../bedrockRoofTentOccupantWorld";
-import { roofTentEntity } from "../bedrockRoofTentWorld";
-import type { RoofTentHosts } from "../roofTentHosts";
+} from "../identifiers";
 
 export function registerTestRoofTent(
   place: PlaceRoofTent,
   fold: FoldRoofTent,
   guard: RoofTentHostGuard,
   occupants: BedrockRoofTentOccupantWorld,
-  hosts: RoofTentHosts,
+  lookup: VehicleHostLookup,
+  driverOverrides: Map<string, string>,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -51,10 +52,7 @@ export function registerTestRoofTent(
             yaw,
             slot: 0,
           });
-        } else if (
-          parts.length === 1 &&
-          hosts.lookup(id).status === "present"
-        ) {
+        } else if (parts.length === 1 && lookup(id).status === "present") {
           place.execute({
             dimensionId: asDimensionId("minecraft:overworld"),
             target: { entityId: asVehicleId(id) },
@@ -71,7 +69,7 @@ export function registerTestRoofTent(
       } else if (
         ev.id === TEST_ROOF_TENT_HOST_REMOVE_EVENT &&
         parts.length === 1 &&
-        hosts.lookup(id).status === "present"
+        lookup(id).status === "present"
       ) {
         world.getEntity(id)?.remove();
         // Lifecycle bookkeeping probes the host area in the deferred callback.
@@ -90,9 +88,10 @@ export function registerTestRoofTent(
         ev.id === TEST_ROOF_TENT_DRIVER_SEAT_EVENT &&
         parts.length === 2 &&
         riderId &&
-        hosts.lookup(id).status === "present"
+        lookup(id).status === "present"
       ) {
-        if (world.getEntity(riderId)?.isValid) hosts.testDriver(id, riderId);
+        // Vehicle snapshots and the SUV's seats accept only players.
+        if (world.getEntity(riderId)?.isValid) driverOverrides.set(id, riderId);
       }
     },
     { namespaces: [NAMESPACE] },

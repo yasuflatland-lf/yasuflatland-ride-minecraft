@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import { boxOf } from "../../../src/domain/build/box";
+import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import {
   type BuildFlow,
@@ -17,7 +17,10 @@ import {
 } from "../../../src/domain/build/history/history";
 import { NO_TURN } from "../../../src/domain/build/rotation/quarterTurn";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
-import { selectionOf } from "../../../src/domain/build/selection";
+import {
+  selectionHeightLimit,
+  selectionOf,
+} from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
@@ -84,7 +87,13 @@ describe("undo history", () => {
   });
 
   it("does not add an empty record", () => {
-    const empty: EditRecord = { dimensionId: dim, changes: [] };
+    const empty: EditRecord = {
+      dimensionId: dim,
+      changes: [],
+      selectionBeforeTaps: cornerTaps(
+        boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 1 }),
+      ),
+    };
     expect(withEntry(EMPTY_HISTORY, cells(empty), 10).history).toBe(
       EMPTY_HISTORY,
     );
@@ -282,11 +291,19 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
       ...flow,
       selection: selectionOf(dimensionId, boxOf(flow.from, flow.to), stone),
     })),
+  boxArb.map((box) => ({
+    kind: "baseHeight" as const,
+    selection: selectionOf(dim, box, stone),
+    ...cornerTaps(box),
+    baseBox: boxWithHeight(box, 1),
+    previous: 5,
+  })),
   fc.record({
     kind: fc.constant("heightStep" as const),
     dimensionId: dimensionArb,
     base: boxArb,
     from: cellArb,
+    to: cellArb,
     heightedKind: fc.constantFrom(
       "cube" as const,
       "cylinder" as const,
@@ -520,7 +537,8 @@ it("confirms a box as an active root selection with matching Copy bounds", () =>
 
 it("uses the supplied taps even when replacing a selected box, and defaults to idle", () => {
   fc.assert(
-    fc.property(boxArb, cellArb, cellArb, (box, from, to) => {
+    fc.property(cellArb, cellArb, (from, to) => {
+      const box = boxOf(from, to);
       const session = new BuildSession(asPlayerId("p1"));
       const selection = selectionOf(dim, box, stone);
       session.setFlow({
@@ -550,9 +568,9 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
     fc.property(
       cellArb,
       cellArb,
-      boxArb,
+      fc.integer({ min: 1, max: 10 }),
       fc.constantFrom("selected" as const, "terrainConfirm" as const),
-      (from, to, box, kind) => {
+      (from, to, height, kind) => {
         const session = new BuildSession(asPlayerId("p1"));
         const selection = selectionOf(dim, boxOf(from, to), stone);
         session.setFlow(
@@ -560,7 +578,11 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
             ? { kind, menuLevel: "build", selection, from, to }
             : { kind, selection, from, to, op: "fillBelow" },
         );
-        const next = selectionOf(dim, box, stone);
+        const next = selectionOf(
+          dim,
+          boxWithHeight(selection.box, height),
+          stone,
+        );
         session.confirmBox(
           next,
           "selected",
@@ -578,90 +600,27 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
   );
 });
 
-it("replaceSelection preserves the flow state and tapped points and replaces the same-dimension confirmation", () => {
+it("replaces taps and bounds together only while selected or aiming height", () => {
   fc.assert(
-    fc.property(
-      flowArb,
-      boxArb,
-      dimensionArb,
-      fc.boolean(),
-      (flow, box, confirmedDimension, confirmed) => {
-        const session = new BuildSession(asPlayerId("p1"));
-        if (confirmed)
-          session.confirmBox(
-            selectionOf(
-              confirmedDimension,
-              boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
-              stone,
-            ),
-          );
-        const previous = session.confirmedBox;
-        session.setFlow(flow);
-        session.replaceSelection(
-          selectionOf(
-            flow.kind === "selected"
-              ? flow.selection.dimensionId
-              : confirmedDimension,
-            box,
-            flow.kind === "selected" ? flow.selection.material : stone,
-          ),
-        );
-        expect(session.flow.kind).toBe(flow.kind);
-        if (flow.kind === "selected") {
-          expect(session.flow).toEqual({
-            ...flow,
-            selection: selectionOf(
-              flow.selection.dimensionId,
-              box,
-              flow.selection.material,
-            ),
-          });
-          if (session.flow.kind !== "selected")
-            throw new Error("Missing endpoint flow");
-          expect(session.flow.from).toBe(flow.from);
-          expect(session.flow.to).toBe(flow.to);
-        } else expect(session.flow).toBe(flow);
-        if (
-          flow.kind === "selected" &&
-          previous?.dimensionId === flow.selection.dimensionId
-        )
-          expect(session.confirmedBox).toEqual({
-            material: flow.selection.material,
-            dimensionId: flow.selection.dimensionId,
-            box,
-          });
-        else expect(session.confirmedBox).toBe(previous);
-      },
-    ),
-  );
-});
-
-it("replaceSelection updates an existing confirmation in the endpoint dimension", () => {
-  fc.assert(
-    fc.property(boxArb, boxArb, dimensionArb, (before, after, dimensionId) => {
+    fc.property(flowArb, boxArb, (flow, box) => {
       const session = new BuildSession(asPlayerId("p1"));
-      session.confirmBox(selectionOf(dimensionId, before, stone));
-      session.setFlow({
-        kind: "selected",
-        menuLevel: "root",
-        selection: selectionOf(dimensionId, before, stone),
-        from: before.max,
-        to: before.min,
-      });
-      session.replaceSelection(selectionOf(dimensionId, after, stone));
-      expect(session.flow).toEqual({
-        kind: "selected",
-        menuLevel: "root",
-        selection: selectionOf(dimensionId, after, stone),
-        from: before.max,
-        to: before.min,
-      });
-      expect(session.confirmedBox).toEqual({
-        material: stone,
-        dimensionId,
-        box: after,
-      });
-      expect(session.confirmedBox?.box).not.toBe(after);
+      session.setFlow(flow);
+      const selection = selectionOf(dim, box, stone);
+      const taps = { from: box.max, to: box.min };
+      session.replaceSelection(selection, taps);
+      if (flow.kind === "selected" || flow.kind === "baseHeight") {
+        expect(session.flow).toMatchObject({
+          kind: flow.kind,
+          selection,
+          ...taps,
+        });
+        if (flow.kind === "baseHeight")
+          expect(session.flow).toMatchObject({
+            baseBox: boxWithHeight(box, 1),
+            previous: Math.min(flow.previous, selectionHeightLimit(box)),
+          });
+      } else expect(session.flow).toBe(flow);
+      expect(session.confirmedBox).toBeUndefined();
     }),
   );
 });
@@ -686,12 +645,15 @@ it("advances rotation selections and only updates confirmed boxes in the same di
           to: box.max,
         });
         const target = planRotationAboutCenter(box).target;
-        session.replaceSelection(selectionOf(dim, target, stone));
+        session.replaceSelection(
+          selectionOf(dim, target, stone),
+          cornerTaps(target),
+        );
         expect(session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
-          from: box.min,
-          to: box.max,
+          from: target.min,
+          to: target.max,
           selection: selectionOf(dim, target, stone),
         });
         expect(session.confirmedBox).toEqual({

@@ -10,6 +10,7 @@ import {
   cellsOf,
   volume,
 } from "../../../src/domain/build/box";
+import { cornerTaps } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -130,10 +131,13 @@ it.each([
       target: { box, anchor: box.min, turn: 0 },
     }),
   ).toBe("pasted");
-  if (situation === "rotated")
+  if (situation === "rotated") {
+    const target = planRotationAboutCenter(box).target;
     e.session.replaceSelection(
-      selectionOf(overworld, planRotationAboutCenter(box).target, material),
+      selectionOf(overworld, target, material),
+      cornerTaps(target),
     );
+  }
   if (situation === "another edit")
     e.session.finishEdit(
       {
@@ -143,7 +147,10 @@ it.each([
       "undoable",
     );
   if (situation === "wrong dimension")
-    e.session.replaceSelection(selectionOf(nether, box, material));
+    e.session.replaceSelection(
+      selectionOf(nether, box, material),
+      cornerTaps(box),
+    );
   if (situation === "no clipboard") e.session.clearClipboard();
   const flow = e.session.flow;
   e.undo.execute({ playerId });

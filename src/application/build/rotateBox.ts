@@ -1,5 +1,5 @@
 import { cellsOf, volume } from "../../domain/build/box";
-import { withoutStepBack } from "../../domain/build/flow/flow";
+import { tapsForBox, withoutStepBack } from "../../domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { inDimension, withBox } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -58,7 +58,9 @@ export class RotateBox {
       "exact",
     );
     if (snapshot === "tooLarge" || snapshot === "unreadable") {
-      this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      if (snapshot === "tooLarge")
+        this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      else this.feedback.showMessage(playerId, "copyUnreadable");
       return "refused";
     }
     const source = this.structures.capture(
@@ -69,7 +71,9 @@ export class RotateBox {
     );
     if (source === "tooLarge" || source === "unreadable") {
       this.structures.discard(snapshot);
-      this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      if (source === "tooLarge")
+        this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      else this.feedback.showMessage(playerId, "copyUnreadable");
       return "refused";
     }
     this.structures.clearEntities(dimensionId, selectedBox);
@@ -94,12 +98,16 @@ export class RotateBox {
         dimensionId,
         box: plan.union,
         selectionBefore: selectedBox,
+        selectionBeforeTaps: { from: flow.from, to: flow.to },
         handle: snapshot,
       }),
     );
     this.structures.discard(source);
     session.setFlow(withoutStepBack(flow));
-    session.replaceSelection(withBox(selection, plan.target));
+    session.replaceSelection(
+      withBox(selection, plan.target),
+      tapsForBox(plan.target, flow),
+    );
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);
     this.feedback.showMessage(playerId, "rotateDone", volume(selectedBox));
     return "rotated";

@@ -1,27 +1,27 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import { PlaceFurniture } from "../../../../application/resort/placeFurniture";
-import type { TakeBackFurniture } from "../../../../application/resort/takeBackFurniture";
-import type { SpaceCheck } from "../../../../application/shared/ports/space";
+import { PlaceFurniture } from "../../../application/resort/placeFurniture";
+import type { TakeBackFurniture } from "../../../application/resort/takeBackFurniture";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type {
   FurnitureKind,
   FurniturePose,
-} from "../../../../domain/resort/furniture";
-import { asFurnitureId, type FurnitureId } from "../../../../domain/resort/ids";
+} from "../../../domain/resort/furniture";
+import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
-} from "../../../../domain/shared/ids";
-import { id } from "../../../shared/identifiers";
-import type { TopHostRegistry } from "../../../shared/tableTop/registry";
+} from "../../../domain/shared/ids";
+import { id } from "../../shared/identifiers";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
+import { BedrockFurnitureWorld } from "../bedrock/bedrockFurnitureWorld";
 import {
   FURNITURE_IDS,
   TEST_FURNITURE_BLOCK,
   TEST_FURNITURE_HIT,
   TEST_FURNITURE_PLACE,
   TEST_FURNITURE_TOP,
-} from "../../identifiers";
-import { BedrockFurnitureWorld } from "../bedrockFurnitureWorld";
+} from "../identifiers";
 
 // Server-only hooks exercise production placement without a connected player (ADR 0010).
 export function registerTestFurniture(

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UseTentFlap } from "../../../src/application/camp/useTentFlap";
 import { registerTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/tentFlap";
-import { registerTestTentFlap } from "../../../src/infrastructure/camp/bedrock/handlers/testTentFlap";
 import {
   TENT_FLAP_COMPONENT,
   TEST_TENT_FLAP_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
+import { registerTestTentFlap } from "../../../src/infrastructure/camp/testHooks/tentFlap";
 import { NAMESPACE } from "../../../src/infrastructure/shared/identifiers";
 import { defined } from "../../support/defined";
 

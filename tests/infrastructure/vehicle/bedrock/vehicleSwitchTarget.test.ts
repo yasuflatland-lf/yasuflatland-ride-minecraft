@@ -72,3 +72,35 @@ it("routes the parked camper's wheel deck seat to headlights and other places to
     value: true,
   });
 });
+
+it("does not claim item use for a deck-seat rider of a vehicle without deck-seat headlights", () => {
+  const { repo } = parkedCamper();
+  const clock = new FakeClock();
+  const target = vehicleSwitchTarget(
+    new SwitchHeadlights(new FakeWorld(), repo, clock),
+    new SwitchCeilingLights(repo, clock),
+    () => undefined,
+  );
+  game.getEntity.mockReturnValue({
+    id: "boat",
+    typeId: "yasu_ride:sportsboat",
+    isValid: true,
+    getDynamicProperty: (key: string) =>
+      key === DECK_SEATS_PROPERTY ? JSON.stringify(["seat"]) : undefined,
+  });
+  const seat = {
+    id: "seat",
+    typeId: DECK_SEAT_TYPE,
+    isValid: true,
+    getDynamicProperty: (key: string) =>
+      key === DECK_SEAT_OF_PROPERTY ? "boat" : undefined,
+  };
+  const player = {
+    id: "driver",
+    location: { x: 0.5, y: 65, z: 0.5 },
+    dimension: { id: asDimensionId("overworld") },
+    getComponent: () => ({ entityRidingOn: seat }),
+  } as unknown as Player;
+
+  expect(target.claimsItemUse(player)).toBe(false);
+});

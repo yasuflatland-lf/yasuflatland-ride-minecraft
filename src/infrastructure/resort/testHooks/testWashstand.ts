@@ -1,8 +1,8 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { UseWashstand } from "../../../../application/resort/useWashstand";
-import { asFurnitureId } from "../../../../domain/resort/ids";
-import { TEST_WASHSTAND } from "../../identifiers";
-import type { BedrockWashstandWorld } from "../bedrockWashstandWorld";
+import type { UseWashstand } from "../../../application/resort/useWashstand";
+import { asFurnitureId } from "../../../domain/resort/ids";
+import type { BedrockWashstandWorld } from "../bedrock/bedrockWashstandWorld";
+import { TEST_WASHSTAND } from "../identifiers";
 
 // Server-only hooks exercise production shows without a connected player (ADR 0010).
 export function registerTestWashstand(

@@ -48,6 +48,7 @@ abstract class StairEdit {
           plan: planStairs(staircase, roles, material),
           selectionBefore,
           selectionBeforeTaps: flow.taps,
+          keepEmpty: true,
           after: selectionOf(dimensionId, boxOf(taps.from, taps.to), material),
           taps,
         },
