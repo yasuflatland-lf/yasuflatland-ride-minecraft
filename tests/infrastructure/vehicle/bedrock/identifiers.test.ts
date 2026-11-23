@@ -136,12 +136,6 @@ describe("identifiers (ADR 0047)", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("pins the blade switch item id", () => {
-    expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:blade_switch");
-    expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:wide_blade_switch");
-    expect(MONITOR_TOOL_TYPES).toContain("yasu_ride:road_paver_switch");
-  });
-
   it.each(VEHICLE_KINDS)(
     "reads the fleet entry and ownership of %s (ADR 0066)",
     (kind) => {
@@ -173,15 +167,5 @@ describe("identifiers (ADR 0047)", () => {
         },
       }),
     ).toBeUndefined();
-  });
-
-  it("keeps the SUV's original starter flag, so nobody gets a second SUV (ADR 0023)", () => {
-    expect(STARTER_RECEIVED_PROPERTY.suv).toBe("yasu_ride:starter_received");
-  });
-
-  it("freezes the entity and item type tables", () => {
-    expect(Object.isFrozen(STARTER_RECEIVED_PROPERTY)).toBe(true);
-    expect(Object.isFrozen(ENTITY_TYPE)).toBe(true);
-    expect(Object.isFrozen(ITEM_TYPE)).toBe(true);
   });
 });

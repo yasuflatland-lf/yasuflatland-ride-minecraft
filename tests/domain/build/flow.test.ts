@@ -20,7 +20,6 @@ import {
   fixStairGoal,
   openBuildMenu,
   opensUtilityMenu,
-  selectionBoxOf,
   setHeight,
   tapAir,
   tapBlock,
@@ -51,6 +50,7 @@ import {
 } from "../../../src/domain/build/volume/kind";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
+import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
 import {
   holdClipboard,
   structureClipboard,

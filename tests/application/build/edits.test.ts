@@ -114,39 +114,55 @@ function snapshot(world: FakeWorld, size: number, y = 64) {
 }
 
 describe("EditJobs properties", () => {
-  it("shows one undo hint across several nonempty edits per player", () => {
+  it("shows the undo hint on the first nonempty edit per player session", () => {
+    const step = fc.record({
+      playerId: fc.constantFrom(alex, blake),
+      action: fc.constantFrom("edit", "empty", "undo", "remove"),
+    });
     fc.assert(
-      fc.property(fc.integer({ min: 2, max: 10 }), (edits) => {
+      fc.property(fc.array(step, { minLength: 1, maxLength: 40 }), (steps) => {
         const env = setup();
-        for (let i = 0; i < edits; i++) {
-          select(env, alex, 2, 64 + i);
-          fillAndClearBeforeCompletion(env, alex);
-          expect(env.feedback.messages.at(-1)).toEqual({
-            message: "editDone",
-            count: 4,
-          });
-          expect(env.feedback.undoHints).toEqual([alex]);
+        const hinted = new Set<typeof alex>();
+        const expectedHints: (typeof alex)[] = [];
+        for (const [i, { playerId, action }] of steps.entries()) {
+          const y = 64 + i;
+          const cell = { x: 0, y, z: 0 };
+          if (action === "remove") {
+            env.repo.remove(playerId);
+            hinted.delete(playerId);
+          } else if (action === "undo") {
+            // An undoable record can predate the first hint in this session.
+            env.world.put(cell, stone);
+            env.repo.getOrCreate(playerId).finishEdit(
+              {
+                dimensionId: overworld,
+                changes: [{ cell, before: dirt, after: stone }],
+              },
+              "undoable",
+            );
+            env.undo.execute({ playerId });
+            runAll(env);
+            expect(env.feedback.messages.at(-1)).toEqual({
+              message: "undoDone",
+              count: 1,
+            });
+          } else {
+            if (action === "empty") env.world.put(cell, stone);
+            select(env, playerId, 1, y);
+            fillAndClearBeforeCompletion(env, playerId);
+            if (action === "edit" && !hinted.has(playerId)) {
+              hinted.add(playerId);
+              expectedHints.push(playerId);
+            }
+            expect(env.feedback.messages.at(-1)).toEqual({
+              message: hinted.has(playerId) ? "editDone" : "editDoneCount",
+              count: action === "edit" ? 1 : 0,
+            });
+          }
+          expect(env.feedback.undoHints).toEqual(expectedHints);
         }
-        select(env, blake, 2, 80);
-        fillAndClearBeforeCompletion(env, blake);
-        expect(env.feedback.undoHints).toEqual([alex, blake]);
       }),
     );
-  });
-
-  it("does not show or consume the hint for an empty edit", () => {
-    const env = setup();
-    env.world.put({ x: 0, y: 64, z: 0 }, stone);
-    select(env, alex, 1);
-    fillAndClearBeforeCompletion(env, alex);
-    expect(env.feedback.messages.at(-1)).toEqual({
-      message: "editDoneCount",
-      count: 0,
-    });
-    expect(env.feedback.undoHints).toEqual([]);
-    select(env, alex, 2);
-    fillAndClearBeforeCompletion(env, alex);
-    expect(env.feedback.undoHints).toEqual([alex]);
   });
 
   it("promises the gesture only when the flow at completion offers Undo", () => {
@@ -193,40 +209,6 @@ describe("EditJobs properties", () => {
         expect(env.feedback.undoHints, name).toEqual([alex]);
       }
     }
-  });
-
-  it("does not show or consume the hint for an undo", () => {
-    const env = setup();
-    const cell = { x: 0, y: 64, z: 0 };
-    env.world.put(cell, stone);
-    env.repo.getOrCreate(alex).finishEdit(
-      {
-        dimensionId: overworld,
-        changes: [{ cell, before: dirt, after: stone }],
-      },
-      "undoable",
-    );
-    env.undo.execute({ playerId: alex });
-    runAll(env);
-    expect(env.feedback.messages.at(-1)).toEqual({
-      message: "undoDone",
-      count: 1,
-    });
-    expect(env.feedback.undoHints).toEqual([]);
-    select(env, alex, 1);
-    fillAndClearBeforeCompletion(env, alex);
-    expect(env.feedback.undoHints).toEqual([alex]);
-  });
-
-  it("shows a new hint after the session is removed", () => {
-    const env = setup();
-    select(env, alex, 1);
-    fillAndClearBeforeCompletion(env, alex);
-    expect(env.feedback.undoHints).toEqual([alex]);
-    env.repo.remove(alex);
-    select(env, alex, 2);
-    fillAndClearBeforeCompletion(env, alex);
-    expect(env.feedback.undoHints).toEqual([alex, alex]);
   });
 
   it("fill then undo restores every cell", () => {

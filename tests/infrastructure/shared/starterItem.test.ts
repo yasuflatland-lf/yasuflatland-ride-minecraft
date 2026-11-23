@@ -27,10 +27,9 @@ vi.mock("@minecraft/server", () => ({
 beforeEach(() => vi.resetAllMocks());
 const id = asPlayerId("p");
 
-it("reads the player flag, gives one item with overflow dropped, and marks receipt", () => {
+it("reads the player flag, gives one starter item, and marks receipt", () => {
   const flags = new Map<string, unknown>();
-  const spawnItem = vi.fn();
-  const addItem = vi.fn((item) => item);
+  const addItem = vi.fn();
   const player = {
     typeId: "minecraft:player",
     isValid: true,
@@ -38,8 +37,6 @@ it("reads the player flag, gives one item with overflow dropped, and marks recei
     getDynamicProperty: vi.fn((key) => flags.get(key)),
     setDynamicProperty: vi.fn((key, value) => flags.set(key, value)),
     getComponent: vi.fn(() => ({ container: { addItem } })),
-    dimension: { spawnItem },
-    location: { x: 1, y: 64, z: 2 },
   };
   game.getEntity.mockReturnValue(player);
   const world = new BedrockStarterItemWorld(
@@ -47,22 +44,15 @@ it("reads the player flag, gives one item with overflow dropped, and marks recei
     ROOF_TENT_STARTER_RECEIVED_PROPERTY,
   );
   expect(world.received(id)).toBe(false);
-  expect(world.isCreative(id)).toBe(false);
   expect(new GiveStarterItem(world).execute(id)).toBe(true);
   expect(addItem).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ typeId: ROOF_TENT_ITEM, amount: 1 }),
-  );
-  expect(spawnItem).toHaveBeenCalledExactlyOnceWith(
-    addItem.mock.calls[0]?.[0],
-    player.location,
   );
   expect(player.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
     ROOF_TENT_STARTER_RECEIVED_PROPERTY,
     true,
   );
   expect(world.received(id)).toBe(true);
-  player.getGameMode.mockReturnValue("Creative");
-  expect(world.isCreative(id)).toBe(true);
 });
 
 it("returns undefined for a missing player and safely skips adapter writes", () => {
@@ -71,7 +61,6 @@ it("returns undefined for a missing player and safely skips adapter writes", () 
     ROOF_TENT_STARTER_RECEIVED_PROPERTY,
   );
   expect(world.received(id)).toBeUndefined();
-  expect(world.isCreative(id)).toBe(false);
   expect(() => {
     world.give(id);
     world.markReceived(id);

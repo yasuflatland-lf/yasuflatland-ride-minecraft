@@ -3,7 +3,10 @@ import { expect, it, vi } from "vitest";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { PasteAt } from "../../../src/application/build/pasteAt";
-import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
+import {
+  type HeldBuildItem,
+  UpdateBuildModes,
+} from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
@@ -255,6 +258,16 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
         }
       },
     ),
+    {
+      examples: [
+        [
+          Array.from({ length: BUILD_SPEC.modeLeaveTicks }, () => ({
+            held: "pasteRotate" as const,
+            aiming: false,
+          })),
+        ],
+      ],
+    },
   );
 });
 
@@ -308,8 +321,12 @@ it("preserves aiming through held controls and leaves after consecutive empty ti
           e.repo,
           new LeaveBuild(e.repo, e.structures, new FakeTapTargets()),
         );
-        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+        for (let i = 1; i <= BUILD_SPEC.modeEnterTicks; i++) {
           modes.execute([{ playerId, held: "wand" }]);
+          expect(modes.isInBuildMode(playerId)).toBe(
+            i === BUILD_SPEC.modeEnterTicks,
+          );
+        }
         const clipboard = e.session.clipboard;
         for (const held of items) {
           modes.execute([{ playerId, held }]);
@@ -328,24 +345,6 @@ it("preserves aiming through held controls and leaves after consecutive empty ti
       },
     ),
   );
-});
-
-it("leaves and discards the clipboard when paste control is held outside aiming", () => {
-  const e = setup();
-  const modes = new UpdateBuildModes(
-    e.repo,
-    new LeaveBuild(e.repo, e.structures, new FakeTapTargets()),
-  );
-  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-    modes.execute([{ playerId, held: "wand" }]);
-  e.session.setFlow({ kind: "idle" });
-  for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++)
-    modes.execute([{ playerId, held: "pasteRotate" }]);
-  expect(e.session.isInBuildMode).toBe(true);
-  expect(e.session.clipboard).toBeDefined();
-  modes.execute([{ playerId, held: "pasteRotate" }]);
-  expect(e.session.isInBuildMode).toBe(false);
-  expect(e.session.clipboard).toBeUndefined();
 });
 
 it("undo does not enter build mode in an existing inactive session", () => {
@@ -367,3 +366,82 @@ it("undo does not enter build mode in an existing inactive session", () => {
     ),
   );
 });
+
+it("retains the selection across build tool swaps and resets the leave grace", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.array(
+        fc.constantFrom<HeldBuildItem>(
+          "wand",
+          "pasteRotate",
+          "pastePlace",
+          "undo",
+        ),
+        {
+          minLength: 1,
+        },
+      ),
+      fc.boolean(),
+      (a, b, tools, active) => {
+        const repo = new FakeSessions();
+        const modes = new UpdateBuildModes(
+          repo,
+          new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+        );
+        if (active) {
+          for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+            modes.execute([{ playerId, held: "wand" }]);
+        }
+        const session = repo.getOrCreate(playerId);
+
+        const first = tapBlock(session.flow, overworld, a, stone);
+        const selection = confirmEndpointHeight(
+          tapBlock(first, overworld, b, stone),
+        );
+        session.setFlow(selection);
+        const tick = (held: HeldBuildItem) =>
+          modes.execute([{ playerId, held }]);
+        const almostLeave = () => {
+          for (let i = 0; i < BUILD_SPEC.modeLeaveTicks - 1; i++) tick("none");
+          expect(session.flow).toBe(selection);
+        };
+        for (const tool of tools) {
+          almostLeave();
+          for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++) tick(tool);
+          expect(session.flow).toBe(selection);
+        }
+        almostLeave();
+        tick("none");
+        expect(session.flow.kind).toBe("idle");
+        expect(session.isInBuildMode).toBe(false);
+      },
+    ),
+  );
+});
+
+it.each(["pasteRotate", "pastePlace"] as const)(
+  "handles holding %s during live height",
+  (held) => {
+    const repo = new FakeSessions();
+    const modes = new UpdateBuildModes(
+      repo,
+      new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+    );
+    const session = repo.getOrCreate(playerId);
+
+    const first = tapBlock(
+      session.flow,
+      overworld,
+      { x: 0, y: 0, z: 0 },
+      stone,
+    );
+    session.setFlow(tapBlock(first, overworld, { x: 2, y: 1, z: 2 }, stone));
+    for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++)
+      modes.execute([{ playerId, held }]);
+    expect(session.flow.kind).toBe(
+      held === "pasteRotate" ? "baseHeight" : "idle",
+    );
+  },
+);
