@@ -1,7 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { DutchOvenActions } from "../../../src/application/camp/dutchOven";
 import type { FirePitActions } from "../../../src/application/camp/firePit";
-import type { FirePitWorld } from "../../../src/application/camp/ports/firePit";
 import type { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
@@ -94,7 +93,7 @@ function handlers() {
     { check: checkHostedItems } as unknown as HostedItemsGuard,
     campTopHosts(),
   );
-  registerFirePit({ toggle } as unknown as FirePitActions, {} as FirePitWorld);
+  registerFirePit({ toggle } as unknown as FirePitActions);
   const press = (held: string | undefined = DUTCH_OVEN_ITEM) => {
     const event = {
       cancel: false,
@@ -224,8 +223,8 @@ it("shares the covered property and returns the host's actual position and yaw",
   });
   ovens.setCovered(id, true);
   expect(pits.isCovered(id)).toBe(true);
-  pits.setCovered(id, false);
-  expect(ovens.isCovered(id)).toBe(false);
+  ovens.setCovered(id, false);
+  expect(pits.isCovered(id)).toBe(false);
 });
 
 it("switches physics with the host and defers cleanup in unloaded blocks", () => {

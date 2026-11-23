@@ -32,7 +32,6 @@ export class FakeRoofTentWorld implements RoofTentWorld {
     this.calls.push(`remove:${id}`);
     this.hosts.delete(id);
     this.paints.delete(id);
-    return false;
   });
   ownerOf = vi.fn<RoofTentWorld["ownerOf"]>(() => PLAYER);
   hostOf = (id: RoofTentId): Host => this.hosts.get(id) ?? { kind: "ground" };
