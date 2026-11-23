@@ -33,7 +33,7 @@ export interface HostedEntityKind {
 
 export class TopHostRegistry {
   private readonly hosts = new Map<string, TopHostType>();
-  private readonly kinds = new Map<HostedKindId, HostedEntityKind>();
+  private readonly kinds = new Map<string, HostedEntityKind>();
 
   registerHost(type: TopHostType): void {
     this.hosts.set(type.hostType, type);
@@ -41,6 +41,10 @@ export class TopHostRegistry {
 
   registerHosted(kind: HostedEntityKind): void {
     this.kinds.set(kind.kind, kind);
+  }
+
+  hasHostedKind(name: string): name is HostedKindId {
+    return this.kinds.has(name);
   }
 
   hostTypeOf(entity: Entity): TopHostType | undefined {
@@ -72,10 +76,10 @@ export class TopHostRegistry {
         .getEntities({ type: kind.entityTypeId })
         .flatMap((entity) => {
           const value = entity.getDynamicProperty(kind.hostProperty);
-          const marker = decodeHost(
-            typeof value === "string" ? value : "",
-            (type, spot) => this.hosts.get(type)?.legacySpot?.(spot),
-          );
+          const marker = decodeHost(typeof value === "string" ? value : "", {
+            legacySpot: (type, spot) =>
+              this.hosts.get(type)?.legacySpot?.(spot),
+          });
           return marker.kind === "top" &&
             marker.hostType === hostType &&
             marker.id === id
