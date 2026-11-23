@@ -15,6 +15,7 @@ import {
   BEACH_CHAIR_LOUNGE_ANIMATION,
   BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_UNFOLD_EVENT,
+  FURNITURE_IDS,
 } from "../../../src/infrastructure/resort/identifiers";
 import * as blocks from "../../../src/infrastructure/shared/blocks";
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
@@ -90,6 +91,25 @@ function fixture(yaw = 0) {
     adapter: new BedrockBeachChairWorld(deps),
   };
 }
+
+it("includes furniture and all three cells of a folded beach chair", () => {
+  const f = fixture();
+  f.dimension.getEntities.mockReturnValue([
+    f.entity,
+    {
+      ...f.entity,
+      typeId: FURNITURE_IDS.washstand.entity,
+      location: { x: 11.5, y: 64, z: 20.5 },
+    },
+  ]);
+  expect(f.adapter.resortGearCells(dimensionId, f.entity.location, 3)).toEqual([
+    { x: 10, y: 64, z: 20 },
+    { x: 10, y: 64, z: 21 },
+    { x: 10, y: 64, z: 22 },
+    { x: 11, y: 64, z: 20 },
+  ]);
+});
+
 it.each([true, false])(
   "reports form and rider occupancy when folded is %s",
   (folded) => {
