@@ -9,6 +9,7 @@ import {
   standInType,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { defined } from "../support/defined";
+import { CAMPER_PACK_CONTRACT } from "../support/packContract";
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const BP = "packs/yasu_ride_bp";
@@ -52,8 +53,8 @@ describe.each(AXES)("Camper bumper stand-in along %s (ADR 0116)", (axis) => {
         height: CAMPER_SPEC.bumperBoxSize,
         pivot:
           axis === "x"
-            ? [x, CAMPER_SPEC.bumperBoxY, 0]
-            : [0, CAMPER_SPEC.bumperBoxY, x],
+            ? [x, CAMPER_PACK_CONTRACT.bumperBoxY, 0]
+            : [0, CAMPER_PACK_CONTRACT.bumperBoxY, x],
       })),
     });
     // A hit test set after spawn never reaches the client (ADR 0068, 0116).

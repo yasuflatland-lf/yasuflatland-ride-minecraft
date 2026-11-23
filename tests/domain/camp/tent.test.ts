@@ -35,6 +35,7 @@ import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { dot, forward, normalizeYaw } from "../../../src/domain/shared/vec";
 import { defined } from "../../support/defined";
+import { TENT_PACK_CONTRACT } from "../../support/packContract";
 
 const AIR = "minecraft:air";
 const YAWS: readonly TentYaw[] = [0, 90, 180, -90];
@@ -112,10 +113,10 @@ describe("tentCells (ADR 0130, 0131)", () => {
         depth <= shell.rear &&
         cell.layer + 0.5 <= shell.top;
       const tarp =
-        Math.abs(cell.x) <= shell.tarpHalfWidth &&
+        Math.abs(cell.x) <= TENT_PACK_CONTRACT.tarpHalfWidth &&
         depth >= 0 &&
         depth <= shell.front &&
-        cell.layer + 0.5 <= shell.tarpTop;
+        cell.layer + 0.5 <= TENT_PACK_CONTRACT.tarpTop;
       expect(body || tarp, JSON.stringify(cell)).toBe(true);
     }
     const inner = defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth;
@@ -135,7 +136,9 @@ describe("tentCells (ADR 0130, 0131)", () => {
     for (const cell of TRAPEZOID_LAYOUT.ceilings) {
       const shell = tentShellAt(cell.layer + 0.5);
       const onTarp = cell.depth + 0.5 <= shell.front;
-      const halfWidth = onTarp ? shell.tarpHalfWidth : shell.halfWidth;
+      const halfWidth = onTarp
+        ? TENT_PACK_CONTRACT.tarpHalfWidth
+        : shell.halfWidth;
       const near = onTarp ? 0 : shell.front;
       for (const dx of [-0.5, 0.5])
         for (const dz of [-0.5, 0.5]) {

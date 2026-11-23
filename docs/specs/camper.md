@@ -56,7 +56,7 @@
 ### Body envelope and collision
 
 - Applies to: Camper body probes and entity collision, all forms unless docked.
-- Rule: The body envelope uses `CAMPER_SPEC.bodyFront`, `bodyRear`, `bodyHalfWidth`, and `carHeight`; the engine box covers only its middle. The base components keep a 3-wide, 4-high square collision box. The docked override is 0.4 wide and high; undocking restores 3 by 4. The camper’s own custom hit test is one feet-level cube of `CAMPER_SPEC.hiddenHitboxSize`, centered at `[0, hiddenHitboxSize / 2, 0]`, hidden inside the parked center floor block.
+- Rule: The body envelope uses `CAMPER_SPEC.bodyFront`, `bodyRear`, `bodyHalfWidth`, and `carHeight`; the engine box covers only its middle. The base components keep a 3-wide, 4-high square collision box. The docked override is 0.4 wide and high; undocking restores 3 by 4. The camper’s own custom hit test is one 0.1-block cube at its feet, centered at `[0, 0.05, 0]`, hidden inside the parked center floor block.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Body: 3 wide, 7 long, 4 high."; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "The camper keeps its 3 x 4 collision box in its base components"
 - Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`

@@ -27,6 +27,10 @@ import {
   WARP_BLOCK_TYPE,
   WARP_TOOL_TYPE,
 } from "../../src/infrastructure/warp/identifiers";
+import {
+  BULLDOZER_PACK_CONTRACT,
+  SPORTSBOAT_PACK_CONTRACT,
+} from "../support/packContract";
 import { jsonFiles } from "../support/packFiles";
 import { RESORT_CATALOG_ITEMS } from "../support/resortGear";
 
@@ -54,10 +58,10 @@ const groups = [
   ]),
   group(id("resort_gear"), RESORT_CATALOG_ITEMS),
   group(
-    id(SPORTSBOAT_MONITOR.group),
+    SPORTSBOAT_PACK_CONTRACT.monitorGroup,
     SPORTSBOAT_MONITOR.tools.map(({ item }) => id(item)),
   ),
-  group(BULLDOZER_MONITOR.group, [
+  group(BULLDOZER_PACK_CONTRACT.monitorGroup, [
     SELECTION_WAND_TYPE,
     PASTE_ROTATE_TYPE,
     PASTE_PLACE_TYPE,
