@@ -1,6 +1,7 @@
 // Use case: undo the player's last edit (ADR 0178).
 import { cellsOf, sameBox, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
+import { cornerTaps } from "../../domain/build/flow/flow";
 import { beginPasteAim } from "../../domain/build/flow/paste";
 import { inDimension, withBox } from "../../domain/build/selection";
 import { isEditRefusal } from "../../domain/build/session";
@@ -72,7 +73,8 @@ export class UndoEdit {
         session.setFlow(beginPasteAim());
     } else if (
       edit.selectionBefore &&
-      flow.kind === "selected" &&
+      (flow.kind === "selected" ||
+        (entry.kind === "snapshot" && flow.kind === "baseHeight")) &&
       inDimension(flow.selection, edit.dimensionId) &&
       (entry.kind === "snapshot" ||
         (entry.record.selectionAfter &&
@@ -81,7 +83,7 @@ export class UndoEdit {
     ) {
       session.replaceSelection(
         withBox(flow.selection, edit.selectionBefore),
-        entry.kind === "cells" ? entry.record.selectionBeforeTaps : undefined,
+        edit.selectionBeforeTaps ?? cornerTaps(edit.selectionBefore),
       );
     }
     if (entry.kind === "snapshot")

@@ -12,10 +12,10 @@ The requirements did not say what happens when the vehicle is broken with occupa
 ## Decision
 
 - The vehicle item is crafted. Using it on the ground consumes one item and places one vehicle
-- When a player punches a vehicle three times, remove the vehicle and drop one vehicle item. The count is a tuning value
+- Count punches on each vehicle separately for each player. On the same player's third punch, remove the vehicle and drop one vehicle item. The count is a tuning value
 - Detect punches with `world.afterEvents.entityHitEntity`. Keep the vehicle's `damage_sensor` cancelling all damage
 - While the vehicle has occupants, punches are not counted (it does not break). So an occupant punching their own vehicle does not break it
-- Reset the count to 0 if the vehicle is not punched for a while (100 ticks)
+- If more than 100 ticks pass between a player's counted punches on that vehicle, their next punch starts a new count
 
 ## Consequences
 

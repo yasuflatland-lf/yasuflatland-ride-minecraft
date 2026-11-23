@@ -1,30 +1,27 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import { PlaceBeachChair } from "../../../../application/resort/placeBeachChair";
-import type { SwitchBeachChairForm } from "../../../../application/resort/switchBeachChairForm";
-import type { TakeBackBeachChair } from "../../../../application/resort/takeBackBeachChair";
-import type { SpaceCheck } from "../../../../application/shared/ports/space";
+import { PlaceBeachChair } from "../../../application/resort/placeBeachChair";
+import type { SwitchBeachChairForm } from "../../../application/resort/switchBeachChairForm";
+import type { TakeBackBeachChair } from "../../../application/resort/takeBackBeachChair";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
 import {
   type BeachChairPose,
   beachChairOrigin,
-} from "../../../../domain/resort/beachChair";
-import {
-  asBeachChairId,
-  type BeachChairId,
-} from "../../../../domain/resort/ids";
+} from "../../../domain/resort/beachChair";
+import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
-} from "../../../../domain/shared/ids";
-import { NAMESPACE } from "../../../shared/identifiers";
-import type { TopHostRegistry } from "../../../shared/tableTop/registry";
+} from "../../../domain/shared/ids";
+import { NAMESPACE } from "../../shared/identifiers";
+import type { TopHostRegistry } from "../../shared/tableTop/registry";
+import { BedrockBeachChairWorld } from "../bedrock/bedrockBeachChairWorld";
 import {
   BEACH_CHAIR,
   TEST_BEACH_CHAIR_FORM,
   TEST_BEACH_CHAIR_HIT,
   TEST_BEACH_CHAIR_PLACE,
-} from "../../identifiers";
-import { BedrockBeachChairWorld } from "../bedrockBeachChairWorld";
+} from "../identifiers";
 
 // Server-only hooks exercise production placement without a connected player (ADR 0010).
 export function registerTestBeachChair(

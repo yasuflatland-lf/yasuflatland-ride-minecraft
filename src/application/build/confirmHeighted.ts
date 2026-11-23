@@ -63,6 +63,7 @@ export class ConfirmHeighted {
         count,
         plan: planHeighted(spec, cmd.fill, pattern),
         selectionBefore,
+        selectionBeforeTaps: { from: flow.from, to: flow.to },
         get after() {
           return selectedBounds();
         },

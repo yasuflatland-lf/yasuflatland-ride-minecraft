@@ -4,7 +4,13 @@ import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateSelection } from "../../../src/application/build/rotateSelection";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import {
+  adjustHeight,
+  confirmLiveHeight,
+  setHeight,
+  tapAir,
+  tapBlock,
+} from "../../../src/domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -65,8 +71,8 @@ it("rotates the tapped span for any live height", () => {
       expect(session.flow).toMatchObject({
         kind: "selected",
         menuLevel: "root",
-        from,
-        to,
+        from: planRotationAboutCenter(span).target.min,
+        to: planRotationAboutCenter(span).target.max,
         selection: {
           box: planRotationAboutCenter(span).target,
           material,
@@ -98,4 +104,40 @@ it("reports no selection in another dimension and preserves live height", () => 
   expect(feedback.messages.at(-1)?.message).toBe("noSelection");
   expect(session.flow).toBe(before);
   expect(structures.calls).toEqual([]);
+});
+
+it("turns the current footprint and confirmed height when editing height again", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 3, max: 12 }),
+      fc.boolean(),
+      (height, turnFirst) => {
+        const { session, rotate, structures } = setup(height);
+        const flow = session.flow;
+        if (flow.kind !== "baseHeight") throw new Error("Expected baseHeight");
+        session.setFlow(confirmLiveHeight(flow));
+        const cmd = { playerId, dimensionId: overworld };
+        if (turnFirst) expect(rotate.execute(cmd)).toBe("rotated");
+        const selected = session.flow;
+        if (selected.kind !== "selected") throw new Error("Expected selected");
+        const before = selected.selection.box;
+        session.setFlow(setHeight(adjustHeight(selected), 1));
+        structures.calls.length = 0;
+        expect(rotate.execute(cmd)).toBe("rotated");
+        expect(structures.calls).toContainEqual({
+          kind: "capture",
+          box: before,
+          dimensionId: overworld,
+          ownerId: playerId,
+          mode: "exact",
+        });
+        const target = planRotationAboutCenter(before).target;
+        expect(session.flow).toMatchObject({
+          selection: { box: target },
+          from: { ...target.min, y: from.y },
+          to: { ...target.max, y: to.y },
+        });
+      },
+    ),
+  );
 });

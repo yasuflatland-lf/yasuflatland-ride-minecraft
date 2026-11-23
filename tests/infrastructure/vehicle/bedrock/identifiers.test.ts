@@ -27,9 +27,7 @@ import {
   OWNER_PROPERTY,
   ramMountOf,
   STARTER_RECEIVED_PROPERTY,
-  TEST_DECOR_EVENT,
   TEST_INPUT_EVENT,
-  TEST_TOOL_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { CORE_PROPERTY_NAMES } from "../../../support/coreContract";
 
@@ -124,8 +122,6 @@ describe("identifiers (ADR 0047)", () => {
       LIT_CELLS_PROPERTY,
       TEST_INPUT_EVENT,
       DECOR_PROPERTY,
-      TEST_DECOR_EVENT,
-      TEST_TOOL_EVENT,
       ...["form", "bank", "gear_down"].map(entityPropertyId),
       ...["gravity_on", "gravity_off"].map(entityEventId),
       ...PAINTS.map(paintEvent),

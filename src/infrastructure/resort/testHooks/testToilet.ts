@@ -1,13 +1,13 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { ShowSound } from "../../../../application/resort/ports/showSound";
-import type { ShowStates } from "../../../../application/resort/showStates";
-import { UseToilet } from "../../../../application/resort/useToilet";
-import { WatchToiletDismount } from "../../../../application/resort/watchToiletDismount";
-import type { SpaceCheck } from "../../../../application/shared/ports/space";
-import { asFurnitureId, type FurnitureId } from "../../../../domain/resort/ids";
-import { asPlayerId } from "../../../../domain/shared/ids";
-import { TEST_TOILET } from "../../identifiers";
-import { BedrockToiletWorld } from "../bedrockToiletWorld";
+import type { ShowSound } from "../../../application/resort/ports/showSound";
+import type { ShowStates } from "../../../application/resort/showStates";
+import { UseToilet } from "../../../application/resort/useToilet";
+import { WatchToiletDismount } from "../../../application/resort/watchToiletDismount";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
+import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
+import { asPlayerId } from "../../../domain/shared/ids";
+import { BedrockToiletWorld } from "../bedrock/bedrockToiletWorld";
+import { TEST_TOILET } from "../identifiers";
 
 export function registerTestToilet(
   states: ShowStates,

@@ -1,32 +1,25 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { type CellBox, contains, volume } from "../../../src/domain/build/box";
+import {
+  boxFromSize,
+  cellBox,
+  contains,
+  volume,
+} from "../../../src/domain/build/box";
 import {
   planRotationAboutCenter,
   type RotationPlan,
 } from "../../../src/domain/build/rotation/rotateBox";
-import type { Cell } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -10000, max: 10000 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimension = fc.integer({ min: 1, max: 1024 });
 const size = fc.record({ x: dimension, y: dimension, z: dimension });
 
-function boxAt(min: Cell, size: Cell): CellBox {
-  return Object.freeze({
-    min: Object.freeze({ ...min }),
-    max: Object.freeze({
-      x: min.x + size.x - 1,
-      y: min.y + size.y - 1,
-      z: min.z + size.z - 1,
-    }),
-  });
-}
-
 it("preserves volume and height with the smallest union containing both boxes", () => {
   fc.assert(
     fc.property(cell, size, (min, size) => {
-      const source = boxAt(min, size);
+      const source = boxFromSize(min, size);
       const before = structuredClone(source);
       const plan: RotationPlan = planRotationAboutCenter(source);
       expect(volume(plan.target)).toBe(volume(source));
@@ -64,7 +57,7 @@ it("preserves volume and height with the smallest union containing both boxes", 
 it("keeps a square footprint in the same box", () => {
   fc.assert(
     fc.property(cell, dimension, dimension, (min, side, height) => {
-      const source = boxAt(min, { x: side, y: height, z: side });
+      const source = boxFromSize(min, { x: side, y: height, z: side });
       expect(planRotationAboutCenter(source).target).toEqual(source);
     }),
   );
@@ -73,7 +66,7 @@ it("keeps a square footprint in the same box", () => {
 it("returns the original box after two turns and after four", () => {
   fc.assert(
     fc.property(cell, size, (min, size) => {
-      const source = boxAt(min, size);
+      const source = boxFromSize(min, size);
       const once = planRotationAboutCenter(source).target;
       const twice = planRotationAboutCenter(once).target;
       expect(twice).toEqual(source);
@@ -88,10 +81,10 @@ it("returns the original box after two turns and after four", () => {
 it("swaps the horizontal sides about the center, truncating half cells toward zero", () => {
   fc.assert(
     fc.property(cell, size, (min, size) => {
-      const plan = planRotationAboutCenter(boxAt(min, size));
+      const plan = planRotationAboutCenter(boxFromSize(min, size));
       const offset = Math.trunc((size.x - size.z) / 2);
       expect(plan.target).toEqual(
-        boxAt(
+        boxFromSize(
           { x: min.x + offset, y: min.y, z: min.z - offset },
           {
             x: size.z,
@@ -124,7 +117,7 @@ it("swaps the horizontal sides about the center, truncating half cells toward ze
 
 it("does not freeze or retain mutable input corners", () => {
   const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
-  const plan = planRotationAboutCenter(source);
+  const plan = planRotationAboutCenter(cellBox(source.min, source.max));
   const before = structuredClone(plan);
   expect(Object.isFrozen(source)).toBe(false);
   expect(Object.isFrozen(source.min)).toBe(false);
@@ -137,7 +130,7 @@ it("does not freeze or retain mutable input corners", () => {
 it("keeps the center within half a cell and returns the box after four turns", () => {
   fc.assert(
     fc.property(cell, size, fc.integer({ min: 1, max: 12 }), (min, size, n) => {
-      const source = boxAt(min, size);
+      const source = boxFromSize(min, size);
       let target = source;
       for (let i = 0; i < n; i++) {
         target = planRotationAboutCenter(target).target;

@@ -27,10 +27,11 @@ import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/b
 import { BedrockRoofTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentWorld";
 import { registerRoofTentHits } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentHits";
 import { registerRoofTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentLifecycle";
+import { registerRoofTentOccupantCleanup } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentOccupantCleanup";
 import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/roofTentPlacement";
-import { registerTestRoofTent } from "../../../src/infrastructure/camp/bedrock/handlers/testRoofTent";
 import { RoofTentHosts } from "../../../src/infrastructure/camp/bedrock/roofTentHosts";
 import * as ids from "../../../src/infrastructure/camp/identifiers";
+import { registerTestRoofTent } from "../../../src/infrastructure/camp/testHooks/roofTent";
 import { paintEvent } from "../../../src/infrastructure/shared/dyes";
 
 const game = vi.hoisted(() => {
@@ -168,7 +169,7 @@ function fire(name: string, event: unknown) {
 }
 function registerLifecycle(
   guard = new RoofTentHostGuard(tents, host, leave),
-  hosts = new RoofTentHosts(host),
+  hosts = new RoofTentHosts(host, new Map()),
 ) {
   registerRoofTentLifecycle(occupants, guard, hosts, cleanup, (id) =>
     tents.isRemoving(id),
@@ -574,12 +575,14 @@ it("restricts test hooks to the server and seats stand-ins through the adapters"
   const place = new PlaceRoofTent(tents, host);
   const execute = vi.spyOn(place, "execute").mockReturnValue(true);
   const guard = new RoofTentHostGuard(tents, host, leave);
+  const driverOverrides = new Map<string, string>();
   registerTestRoofTent(
     place,
     new FoldRoofTent(tents),
     guard,
     occupants,
-    new RoofTentHosts(host),
+    host,
+    driverOverrides,
   );
   const hook = (id: string, message: string, sourceType = "Server") =>
     fire("script:scriptEventReceive", { id, message, sourceType });
@@ -595,13 +598,16 @@ it("restricts test hooks to the server and seats stand-ins through the adapters"
   expect(occupants.occupantOf(asRoofTentId("tent"))).toBe("cow");
   expect(cow.teleport).toHaveBeenCalledOnce();
   const vehicle = entity("host", "yasu_ride:suv");
+  hook(ids.TEST_ROOF_TENT_DRIVER_SEAT_EVENT, "host cow", "Entity");
+  expect(driverOverrides.has("host")).toBe(false);
   hook(ids.TEST_ROOF_TENT_DRIVER_SEAT_EVENT, "host cow");
+  expect(driverOverrides.get("host")).toBe("cow");
   hook(ids.TEST_ROOF_TENT_HOST_REMOVE_EVENT, "host");
   expect(vehicle.remove).toHaveBeenCalledOnce();
 });
 
 it("converts a positively loaded host removal into guard evidence without treating unloads as removals", () => {
-  const hosts = new RoofTentHosts(host);
+  const hosts = new RoofTentHosts(host, new Map());
   const guard = new RoofTentHostGuard(tents, hosts.lookup, leave);
   registerLifecycle(guard, hosts);
   const vehicle = entity("host", "yasu_ride:suv");
@@ -631,12 +637,14 @@ it("converts a positively loaded host removal into guard evidence without treati
   expect(tent.remove).toHaveBeenCalledOnce();
 });
 it("recognizes a test driver only while its stand-in is valid", () => {
-  const hosts = new RoofTentHosts(host);
+  const driverOverrides = new Map([["host", "cow"]]);
+  const hosts = new RoofTentHosts(host, driverOverrides);
   const cow = entity("cow", "minecraft:cow");
-  hosts.testDriver("host", "cow");
   expect(hosts.lookup("host")).toEqual({ ...state, driverPresent: true });
   cow.remove();
   expect(hosts.lookup("host")).toEqual(state);
+  hosts.removed("host");
+  expect(driverOverrides.has("host")).toBe(false);
 });
 
 it("consumes and refunds only the captured roof tent slot on a failed Survival placement", () => {
@@ -1085,6 +1093,44 @@ it("restores occupied ceilings and clears unoccupied saved ceilings after reload
   game.dimension.getBlock.mockClear();
   restored.syncCeiling(asRoofTentId("tent"));
   expect(game.dimension.getBlock).not.toHaveBeenCalled();
+});
+
+it("keeps an unloaded ceiling cell on exit and retries it on a later restore scan", () => {
+  const tent = spawn();
+  const { blocks, throwing } = ceilingTerrain();
+  const id = asRoofTentId("tent");
+  occupants.setOccupant(id, PLAYER);
+  const [unloaded, ...loaded] = savedCeiling(tent) as [Cell, ...Cell[]];
+  throwing.add(cellKey(unloaded));
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    occupants.setOccupant(id, undefined);
+    expect(savedCeiling(tent)).toEqual([unloaded]);
+    expect(occupants.ceilingOwner(DIM, unloaded, ids.TENT_CEILING_BLOCK)).toBe(
+      id,
+    );
+    expect(blocks.get(cellKey(unloaded))).toBe(ids.TENT_CEILING_BLOCK);
+    for (const cell of loaded)
+      expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+
+    registerRoofTentOccupantCleanup(leave, occupants, () => [id]);
+    const tick = game.runInterval.mock.lastCall?.[0] as () => void;
+    tick();
+    expect(savedCeiling(tent)).toEqual([unloaded]);
+    throwing.clear();
+    game.dimension.getBlock.mockClear();
+    for (let i = 0; i < 20; i++) tick();
+    expect(game.dimension.getBlock).toHaveBeenCalledExactlyOnceWith(unloaded);
+    expect(blocks.get(cellKey(unloaded))).toBe("minecraft:air");
+    expect(
+      tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY),
+    ).toBeUndefined();
+    expect(
+      occupants.ceilingOwner(DIM, unloaded, ids.TENT_CEILING_BLOCK),
+    ).toBeUndefined();
+  } finally {
+    warn.mockRestore();
+  }
 });
 
 it("guards only recorded ceiling cells in their tent's dimension", () => {

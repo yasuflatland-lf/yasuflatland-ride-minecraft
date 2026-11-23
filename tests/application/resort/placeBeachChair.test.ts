@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { PlaceBeachChair } from "../../../src/application/resort/placeBeachChair";
 import {
+  beachChairCells,
   beachChairClearCells,
   beachChairPose,
   beachChairSupportCells,
@@ -74,6 +75,21 @@ it("requires solid support below all three cells", () => {
   );
 });
 
+it("refuses every occupied floor cell before payment", () => {
+  fc.assert(
+    fc.property(command, (cmd) => {
+      for (const cell of beachChairCells(beachChairPose(cmd.block, cmd.yaw))) {
+        const world = fakeBeachChairWorld();
+        world.resortGearCells.mockReturnValue([cell]);
+        expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
+        expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+        expect(world.consumeItem).not.toHaveBeenCalled();
+        expect(world.spawn).not.toHaveBeenCalled();
+      }
+    }),
+  );
+});
+
 it("spawns the chair at the supported pose", () => {
   const world = fakeBeachChairWorld();
   const dimension = asDimensionId("overworld");
@@ -96,4 +112,23 @@ it("spawns the chair at the supported pose", () => {
     head: { x: 10, y: 21, z: 32 },
     yaw: 180,
   });
+});
+
+it("shows blocked feedback when payment or spawn fails, refunding only a paid item", () => {
+  fc.assert(
+    fc.property(command, fc.boolean(), (cmd, paid) => {
+      const world = fakeBeachChairWorld();
+      world.consumeItem.mockReturnValue(paid);
+      world.spawn.mockReturnValue(undefined);
+      expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
+      expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+      expect(world.spawn).toHaveBeenCalledTimes(paid ? 1 : 0);
+      if (paid)
+        expect(world.refund).toHaveBeenCalledExactlyOnceWith(
+          cmd.player,
+          cmd.slot,
+        );
+      else expect(world.refund).not.toHaveBeenCalled();
+    }),
+  );
 });

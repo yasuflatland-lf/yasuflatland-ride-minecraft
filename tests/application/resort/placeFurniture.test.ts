@@ -1,18 +1,29 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { PlaceBeachChair } from "../../../src/application/resort/placeBeachChair";
 import { PlaceFurniture } from "../../../src/application/resort/placeFurniture";
+import {
+  beachChairCells,
+  beachChairOrigin,
+  beachChairPose,
+} from "../../../src/domain/resort/beachChair";
 import {
   FURNITURE_SPEC,
   type FurnitureKind,
+  furnitureCells,
   furnitureClearCells,
   furniturePose,
   furnitureSupportCells,
 } from "../../../src/domain/resort/furniture";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { distance3, type Vec3 } from "../../../src/domain/shared/vec";
+import { fakeBeachChairWorld } from "./fakeBeachChairWorld";
 import { fakeFurnitureWorld } from "./fakeFurnitureWorld";
 
-describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
+const furnitureKinds = Object.keys(FURNITURE_SPEC) as FurnitureKind[];
+
+describe.each(furnitureKinds)("%s", (kind) => {
   const command = fc.record({
     kind: fc.constant(kind),
     player: fc.constant(asPlayerId("p")),
@@ -81,6 +92,14 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
     );
     expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
     expect(world.layTop).not.toHaveBeenCalled();
+
+    world.showBlocked.mockClear();
+    world.spawn.mockClear();
+    world.consumeItem.mockReturnValue(false);
+    expect(place.execute(cmd)).toBe(false);
+    expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+    expect(world.spawn).not.toHaveBeenCalled();
+    expect(world.layTop).not.toHaveBeenCalled();
   });
 
   it("rejects an obstruction over any of the footprint cells before charging", () => {
@@ -126,4 +145,91 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
       }),
     );
   });
+});
+
+it("accepts a second resort placement only when its footprint is disjoint", () => {
+  const kind = fc.constantFrom(...furnitureKinds, "beach_chair" as const);
+  const heading = fc.constantFrom(0, 90, 180, 270);
+  const offset = fc.record({
+    x: fc.integer({ min: -2, max: 2 }),
+    y: fc.constantFrom(0, 0, 0, -1, 1),
+    z: fc.integer({ min: -2, max: 2 }),
+  });
+  fc.assert(
+    fc.property(
+      kind,
+      kind,
+      heading,
+      heading,
+      offset,
+      (first, second, a, b, offset) => {
+        const placed: { origin: Vec3; cells: readonly Cell[] }[] = [];
+        const occupiedNear = (_dimension: string, near: Vec3, radius: number) =>
+          placed
+            .filter(({ origin }) => distance3(near, origin) <= radius)
+            .flatMap(({ cells }) => cells);
+        const cmd = {
+          player: asPlayerId("p"),
+          dimension: asDimensionId("overworld"),
+          face: "up",
+          slot: 0,
+        };
+        function attempt(
+          kind: FurnitureKind | "beach_chair",
+          block: Cell,
+          yaw: number,
+        ) {
+          if (kind === "beach_chair") {
+            const pose = beachChairPose(block, yaw);
+            const world = fakeBeachChairWorld();
+            world.resortGearCells.mockImplementation(occupiedNear);
+            return {
+              footprint: {
+                origin: beachChairOrigin(pose),
+                cells: beachChairCells(pose),
+              },
+              world,
+              accepted: new PlaceBeachChair(world).execute({
+                ...cmd,
+                block,
+                yaw,
+              }),
+            };
+          }
+          const pose = furniturePose(block, yaw, kind);
+          const world = fakeFurnitureWorld(kind);
+          world.resortGearCells.mockImplementation(occupiedNear);
+          return {
+            footprint: { origin: pose.origin, cells: furnitureCells(pose) },
+            world,
+            accepted: new PlaceFurniture(world).execute({
+              ...cmd,
+              block,
+              yaw,
+              kind,
+            }),
+          };
+        }
+        const initial = attempt(first, { x: 0, y: 0, z: 0 }, a);
+        expect(initial.accepted).toBe(true);
+        placed.push(initial.footprint);
+        const next = attempt(second, offset, b);
+        const intersects = next.footprint.cells.some((cell) =>
+          initial.footprint.cells.some((occupied) => sameCell(cell, occupied)),
+        );
+        expect(next.accepted).toBe(!intersects);
+        if (intersects) {
+          expect(next.world.showBlocked).toHaveBeenCalledExactlyOnceWith(
+            cmd.player,
+          );
+          expect(next.world.consumeItem).not.toHaveBeenCalled();
+          expect(next.world.spawn).not.toHaveBeenCalled();
+        }
+      },
+    ),
+    {
+      numRuns: 500,
+      examples: [["beach_chair", "beach_chair", 0, 0, { x: 0, y: 0, z: 2 }]],
+    },
+  );
 });

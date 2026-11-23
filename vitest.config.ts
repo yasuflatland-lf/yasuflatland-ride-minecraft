@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  define: { __TEST_HOOKS__: "true" },
   test: {
     // Mug pair on main: 7.209, 4.857 and 4.168 s. Four times the maximum rounds up to 29 s.
     testTimeout: 29_000,

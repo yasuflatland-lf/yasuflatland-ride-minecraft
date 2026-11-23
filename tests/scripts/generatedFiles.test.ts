@@ -6,26 +6,27 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
+import manifest from "../../packs/yasu_ride_bp/manifest.json";
 
 const roots: string[] = [];
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "generated-files-"));
   roots.push(root);
-  for (const dir of ["scripts", "tools", "src"]) {
+  for (const dir of ["scripts", "tools"]) {
     mkdirSync(join(root, dir));
   }
   copyFileSync(
     "scripts/generated-files.mjs",
     join(root, "scripts/generated-files.mjs"),
   );
-  copyFileSync("scripts/package.mjs", join(root, "scripts/package.mjs"));
   writeFileSync(
     join(root, "tools/run_generators.py"),
     `from pathlib import Path
@@ -36,7 +37,7 @@ print(Path('status.json').read_text())
     join(root, "status.json"),
     JSON.stringify({ fresh: true, missing: [], stamped: true }),
   );
-  writeFileSync(join(root, "src/main.ts"), "");
+  symlinkSync(resolve("src"), join(root, "src"), "dir");
   writeFileSync(
     join(root, "scripts/build.mjs"),
     `import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
@@ -101,11 +102,85 @@ it("refuses to package missing generated outputs with the build instruction", ()
       stamped: true,
     }),
   );
-  const result = spawnSync(process.execPath, ["scripts/package.mjs"], {
+  const result = spawnSync(process.execPath, [resolve("scripts/package.mjs")], {
     cwd: root,
     encoding: "utf8",
   });
   expect(result.status).toBe(1);
   expect(result.stderr).toContain("run `pnpm build` first");
   expect(existsSync(join(root, "dist"))).toBe(false);
+});
+
+it("packages the driving-input receiver and keeps build, vehicle, camp, and resort hooks in the dev bundle only", () => {
+  const root = fixture();
+  for (const pack of ["yasu_ride_bp", "yasu_ride_rp"]) {
+    const dir = join("packs", pack);
+    mkdirSync(join(root, dir), { recursive: true });
+    copyFileSync(join(dir, "manifest.json"), join(root, dir, "manifest.json"));
+  }
+  execFileSync(process.execPath, [resolve("scripts/build.mjs")], { cwd: root });
+  const main = "yasu_ride_bp/scripts/main.js";
+  const devPath = join(root, "packs", main);
+  const dev = readFileSync(devPath, "utf8");
+
+  execFileSync(process.execPath, [resolve("scripts/package.mjs")], {
+    cwd: root,
+  });
+  const archive = `yasuflatland-ride-${manifest.header.version.join(".")}.mcaddon`;
+  const release = execFileSync(
+    "unzip",
+    ["-p", join(root, "dist", archive), main],
+    {
+      encoding: "utf8",
+      maxBuffer: 8 * 1024 * 1024,
+    },
+  );
+  for (const marker of [
+    "replyWhenSettled",
+    "registerTestEdit",
+    "registerTestToilet",
+    "registerTestFurniture",
+    "registerTestHeldItem",
+    "registerTestTool",
+    "registerTestDecor",
+    "test_held_item",
+    "test_tool",
+    "test_decor",
+  ]) {
+    expect(dev).toContain(marker);
+    expect(release).not.toContain(marker);
+  }
+  const campEvents = [
+    "test_chair_hit",
+    "test_noga_chair_hit",
+    "test_table_hit",
+    "test_dutch_oven_on_top",
+    "test_dutch_oven_on_table",
+    "test_dutch_oven_host",
+    "test_dutch_oven_on_pit",
+    "test_dutch_oven_simmer",
+    "test_dutch_oven_hit",
+    "test_fire_pit",
+    "test_fire_pit_hit",
+    "test_gas_lantern_on_top",
+    "test_gas_lantern_on_table",
+    "test_gas_lantern",
+    "test_gas_lantern_hit",
+    "test_tent_pitch",
+    "test_tent_fold_legacy",
+    "test_tent_hit",
+    "test_tent_flap",
+    "test_tent_lantern",
+    "test_roof_tent_place",
+    "test_roof_tent_hit",
+    "test_roof_tent_host_remove",
+    "test_roof_tent_occupant_seat",
+    "test_roof_tent_driver_seat",
+  ];
+  expect(campEvents.filter((event) => !dev.includes(`${event}"`))).toEqual([]);
+  expect(campEvents.filter((event) => release.includes(`${event}"`))).toEqual(
+    [],
+  );
+  expect(release).toContain("parseTestInputMessage");
+  expect(readFileSync(devPath, "utf8")).toBe(dev);
 });

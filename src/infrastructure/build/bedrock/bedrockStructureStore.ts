@@ -13,7 +13,7 @@ import type {
   CaptureMode,
   CaptureRefusal,
 } from "../../../application/build/ports/structures";
-import type { CellBox } from "../../../domain/build/box";
+import { boxFromSize, type CellBox } from "../../../domain/build/box";
 import {
   NO_TURN,
   type QuarterTurn,
@@ -128,14 +128,7 @@ export class BedrockStructureStore implements BuildStructureStore {
       if (!structure) return false;
       const dimension = world.getDimension(dimensionId);
       const size = rotatedSize(structure.size, turn);
-      const box = {
-        min: anchor,
-        max: {
-          x: anchor.x + size.x - 1,
-          y: anchor.y + size.y - 1,
-          z: anchor.z + size.z - 1,
-        },
-      };
+      const box = boxFromSize(anchor, size);
       const before = new Set(
         entitiesInside(dimension, box).map((entity) => entity.id),
       );

@@ -1,9 +1,4 @@
-import {
-  type Dimension,
-  type Entity,
-  ItemStack,
-  world,
-} from "@minecraft/server";
+import { type Dimension, type Entity, ItemStack } from "@minecraft/server";
 import type { FurnitureTopBlocksWorld } from "../../../application/resort/ports/furnitureTopBlocks";
 import type {
   FurnitureTakeBackWorld,
@@ -15,6 +10,7 @@ import {
   FURNITURE_SPEC,
   type FurnitureKind,
   type FurniturePose,
+  furniturePoseAt,
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import {
@@ -31,20 +27,21 @@ import {
   overlaps,
   type TopRect,
 } from "../../../domain/shared/tableTop";
-import { blockIn, isSolidTop, safeBlockAt } from "../../shared/blocks";
-import { spawnWithRollback } from "../../shared/entities";
+import { blockIn, safeBlockAt } from "../../shared/blocks";
+import {
+  gearEntities,
+  gearFeedback,
+  gearGroundChecks,
+  giveBack,
+  spawnIn,
+} from "../../shared/gearEntity";
 import { BedrockGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
   readSavedCells,
   writeSavedCells,
 } from "../../shared/laidBlockLayer";
-import {
-  consumeHeld,
-  giveOrDrop,
-  playerById,
-  showActionBar,
-} from "../../shared/players";
+import { consumeHeld, giveOrDrop, playerById } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DINING_TABLE_TOP,
@@ -52,14 +49,27 @@ import {
   FURNITURE_TOP_CELLS,
   furnitureKindOf,
 } from "../identifiers";
+import { resortGearCells } from "./resortGearCells";
 
 // A block spans 16 px on each horizontal axis.
 const CELL_FOOTPRINT_PX = { halfX: 8, halfZ: 8 };
+const entities = gearEntities<FurnitureId>({
+  has: (typeId) => furnitureKindOf(typeId, "entity") !== undefined,
+});
+const feedback = gearFeedback("furniture");
 
 export class BedrockFurnitureWorld
   extends BedrockGroundCells
   implements FurnitureWorld, FurnitureTakeBackWorld, FurnitureTopBlocksWorld
 {
+  entity = entities.entity;
+  remove = entities.remove;
+  showBlocked = feedback.showBlocked;
+  showHitsLeft = feedback.showHitsLeft;
+  showTaken = feedback.showTaken;
+  readonly isSolidTop: SpaceCheck;
+  readonly isCampSpace: SpaceCheck;
+
   private readonly layer: LaidBlockLayer;
   private readonly tops = new Map<
     FurnitureId,
@@ -73,23 +83,14 @@ export class BedrockFurnitureWorld
     },
   ) {
     super((dimension, cell) => deps.isVehicleSpace(dimension, cell));
+    ({ isSolidTop: this.isSolidTop, isCampSpace: this.isCampSpace } =
+      gearGroundChecks(deps));
 
     this.layer = new LaidBlockLayer(
       DINING_TABLE_TOP,
       deps.isVehicleSpace,
       "furniture top",
     );
-  }
-  entity(id: FurnitureId): Entity | undefined {
-    try {
-      const entity = world.getEntity(id);
-      return entity?.isValid &&
-        furnitureKindOf(entity.typeId, "entity") !== undefined
-        ? entity
-        : undefined;
-    } catch {
-      return undefined;
-    }
   }
   kindOf(id: FurnitureId): FurnitureKind | undefined {
     const entity = this.entity(id);
@@ -110,14 +111,13 @@ export class BedrockFurnitureWorld
     );
   }
   showRefused(player: PlayerId, reason: "occupied" | "somethingOnTop"): void {
-    this.show(player, reason === "occupied" ? "occupied" : "something_on_top");
+    feedback.showRefused(
+      player,
+      reason === "occupied" ? "occupied" : "something_on_top",
+      [],
+    );
   }
-  isSolidTop(dimension: DimensionId, cell: Cell): boolean {
-    return isSolidTop(dimension, cell);
-  }
-  isCampSpace(dimension: DimensionId, cell: Cell): boolean {
-    return this.deps.isCampSpace(dimension, cell);
-  }
+  resortGearCells = resortGearCells;
   consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean {
     const entity = playerById(player);
     return (
@@ -131,15 +131,12 @@ export class BedrockFurnitureWorld
       giveOrDrop(entity, [new ItemStack(FURNITURE_IDS[kind].item, 1)]);
   }
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined {
-    const at = pose.origin;
-    const typeId = FURNITURE_IDS[pose.kind].entity;
-    let spawnDimension: Dimension;
-    try {
-      spawnDimension = world.getDimension(dimension);
-    } catch {
-      return undefined;
-    }
-    const entity = spawnWithRollback(spawnDimension, typeId, at, pose.yaw);
+    const entity = spawnIn(
+      dimension,
+      FURNITURE_IDS[pose.kind].entity,
+      pose.origin,
+      pose.yaw,
+    );
     return entity && asFurnitureId(entity.id);
   }
   remember(entity: Entity): { dimension: Dimension; cells: Cell[] } {
@@ -223,11 +220,9 @@ export class BedrockFurnitureWorld
   private topCells(entity: Entity): Cell[] {
     const kind = furnitureKindOf(entity.typeId, "entity");
     if (kind === undefined || !FURNITURE_SPEC[kind].top) return [];
-    return diningTableTopCells({
-      kind,
-      origin: entity.location,
-      yaw: snapYaw4(entity.getRotation().y),
-    });
+    return diningTableTopCells(
+      furniturePoseAt(kind, entity.location, snapYaw4(entity.getRotation().y)),
+    );
   }
   private cellOverlaps(
     entity: Entity,
@@ -287,30 +282,6 @@ export class BedrockFurnitureWorld
     const receiver = playerById(player);
     const kind = this.kindOf(id);
     if (kind === undefined) return;
-    const item = new ItemStack(FURNITURE_IDS[kind].item, 1);
-    if (receiver) giveOrDrop(receiver, [item]);
-    else entity.dimension.spawnItem(item, entity.location);
-  }
-  remove(id: FurnitureId): void {
-    this.entity(id)?.remove();
-  }
-  showBlocked(player: PlayerId): void {
-    this.show(player, "blocked");
-  }
-  showHitsLeft(player: PlayerId, left: number): void {
-    this.show(player, "hits_left", [String(left)]);
-  }
-  showTaken(player: PlayerId): void {
-    this.show(player, "taken");
-  }
-  private show(
-    player: PlayerId,
-    message: string,
-    withArgs: string[] = [],
-  ): void {
-    showActionBar(player, {
-      translate: `yasu_ride.furniture.${message}`,
-      with: withArgs,
-    });
+    giveBack(entity, FURNITURE_IDS[kind].item, receiver);
   }
 }

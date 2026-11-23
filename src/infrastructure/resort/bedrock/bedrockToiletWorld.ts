@@ -1,22 +1,19 @@
-import { type Entity, world } from "@minecraft/server";
 import type { ToiletWorld } from "../../../application/resort/ports/toiletWorld";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { FURNITURE_SPEC } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
-import { TOILET_SPEC } from "../../../domain/resort/shows";
+import { toiletExit } from "../../../domain/resort/toiletExit";
 import { cellCenter, cellOf } from "../../../domain/shared/cells";
-import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { forward } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
-import { entityOfType } from "../../shared/entities";
+import { gearEntities, gearFeedback } from "../../shared/gearEntity";
 import { NAMESPACE } from "../../shared/identifiers";
-import { playerById, showActionBar } from "../../shared/players";
+import { playerById } from "../../shared/players";
 import { makeSafeStand, seatRider } from "../../shared/seating";
 import {
   FURNITURE_IDS,
@@ -24,21 +21,18 @@ import {
   TOILET_LID_OPEN,
 } from "../identifiers";
 
+const entities = gearEntities<FurnitureId>(FURNITURE_IDS.toilet.entity);
+const feedback = gearFeedback("toilet");
+
 export class BedrockToiletWorld implements ToiletWorld {
+  entity = entities.entity;
+
   constructor(
     private readonly deps: {
       isVehicleSpace: SpaceCheck;
       isCampSpace: SpaceCheck;
     },
   ) {}
-
-  entity(id: FurnitureId): Entity | undefined {
-    try {
-      return entityOfType(world, id, FURNITURE_IDS.toilet.entity);
-    } catch {
-      return undefined;
-    }
-  }
 
   riderOf(id: FurnitureId): PlayerId | undefined {
     const rider = this.entity(id)
@@ -96,28 +90,13 @@ export class BedrockToiletWorld implements ToiletWorld {
       isCampSpace: (cell) => this.deps.isCampSpace(dimensionId, cell),
     });
     const origin = cellOf(toilet.location);
-    const facing = forward(snapYaw4(toilet.getRotation().y));
-    const start = {
-      x: origin.x + Math.round(facing.x * TOILET_SPEC.exitFrontOffset),
-      y: origin.y,
-      z: origin.z + Math.round(facing.z * TOILET_SPEC.exitFrontOffset),
-    };
-    const feet = searchExitCell(
-      start,
-      (cell) => cell.x === origin.x && cell.z === origin.z,
-      {
-        radius: TOILET_SPEC.exitSearchRadius,
-        up: TOILET_SPEC.exitSearchUp,
-        down: TOILET_SPEC.exitSearchDown,
-      },
-      (cell) => isSafe(dimension, cell),
+    const feet = toiletExit(origin, snapYaw4(toilet.getRotation().y), (cell) =>
+      isSafe(dimension, cell),
     );
     if (feet) player.teleport(cellCenter(feet), { dimension });
   }
 
   showRefused(playerId: PlayerId, reason: "occupied" | "flushing"): void {
-    showActionBar(playerId, {
-      translate: `yasu_ride.toilet.${reason}`,
-    });
+    feedback.showRefused(playerId, reason);
   }
 }

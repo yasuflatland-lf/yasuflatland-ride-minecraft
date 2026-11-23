@@ -6,19 +6,24 @@ export interface TakeBackEffects {
   showRemaining(left: number): void;
 }
 
-/** Registers one hit; on the last one drops and removes the item, otherwise shows the hits left. */
+/** Registers one hit; on the last one drops and removes the item in the given order, otherwise shows the hits left. */
 export function handleHit<Id>(
   counters: HitCounters<Id>,
   id: Id,
   now: number,
   effects: TakeBackEffects,
-): void {
+  order: "dropThenRemove" | "removeThenDrop" = "dropThenRemove",
+): { broken: boolean } {
   counters.forgetStale(now);
-  const result = counters.hit(id, now);
-  if (result.broken) {
+  const { broken, hitsLeft } = counters.hit(id, now);
+  if (!broken) {
+    effects.showRemaining(hitsLeft);
+  } else if (order === "removeThenDrop") {
+    effects.remove();
+    effects.drop();
+  } else {
     effects.drop();
     effects.remove();
-    return;
   }
-  effects.showRemaining(result.hitsLeft);
+  return { broken };
 }

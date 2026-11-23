@@ -1,9 +1,4 @@
-import {
-  type Dimension,
-  type Entity,
-  ItemStack,
-  world,
-} from "@minecraft/server";
+import type { Entity } from "@minecraft/server";
 import type { BeachChairFormWorld } from "../../../application/resort/ports/beachChairForm";
 import type { BeachChairRiderWorld } from "../../../application/resort/ports/beachChairRider";
 import type {
@@ -21,7 +16,7 @@ import {
 import { beachChairExit } from "../../../domain/resort/beachChairExit";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../domain/resort/spec";
-import { type Cell, cellCenter } from "../../../domain/shared/cells";
+import { cellCenter } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import {
   asDimensionId,
@@ -29,11 +24,16 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { isSolidTop } from "../../shared/blocks";
-import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import {
+  gearEntities,
+  gearFeedback,
+  gearGroundChecks,
+  giveBack,
+  spawnIn,
+} from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { NAMESPACE } from "../../shared/identifiers";
-import { giveOrDrop, playerById, showActionBar } from "../../shared/players";
+import { playerById } from "../../shared/players";
 import { makeSafeStand, seatRider } from "../../shared/seating";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
@@ -45,6 +45,11 @@ import {
   BEACH_CHAIR_LOUNGE_CONTROLLER,
   BEACH_CHAIR_UNFOLD_EVENT,
 } from "../identifiers";
+import { resortGearCells } from "./resortGearCells";
+
+const entities = gearEntities<BeachChairId>(BEACH_CHAIR);
+const feedback = gearFeedback("beach_chair");
+
 export class BedrockBeachChairWorld
   extends BedrockPaidGroundCells
   implements
@@ -53,6 +58,14 @@ export class BedrockBeachChairWorld
     BeachChairFormWorld,
     BeachChairRiderWorld
 {
+  entity = entities.entity;
+  remove = entities.remove;
+  showBlocked = feedback.showBlocked;
+  showHitsLeft = feedback.showHitsLeft;
+  showTaken = feedback.showTaken;
+  readonly isSolidTop: SpaceCheck;
+  readonly isCampSpace: SpaceCheck;
+
   constructor(
     private readonly deps: {
       topHosts: TopHostRegistry;
@@ -64,6 +77,8 @@ export class BedrockBeachChairWorld
       (dimension, cell) => deps.isVehicleSpace(dimension, cell),
       BEACH_CHAIR_ITEM,
     );
+    ({ isSolidTop: this.isSolidTop, isCampSpace: this.isCampSpace } =
+      gearGroundChecks(deps));
   }
   state(id: BeachChairId): ChairState | undefined {
     const entity = this.entity(id);
@@ -79,13 +94,14 @@ export class BedrockBeachChairWorld
     player: PlayerId,
     reason: "occupied" | "somethingOnTop" | "wrongForm",
   ): void {
-    this.show(
+    feedback.showRefused(
       player,
       reason === "occupied"
         ? "occupied"
         : reason === "wrongForm"
           ? "folded"
           : "something_on_top",
+      [],
     );
   }
   riderOf(id: BeachChairId): PlayerId | undefined {
@@ -140,32 +156,17 @@ export class BedrockBeachChairWorld
     );
     if (feet) player.teleport(cellCenter(feet), { dimension });
   }
-  entity(id: BeachChairId): Entity | undefined {
-    try {
-      return entityOfType(world, id, BEACH_CHAIR);
-    } catch {
-      return undefined;
-    }
-  }
-  isSolidTop(dimension: DimensionId, cell: Cell): boolean {
-    return isSolidTop(dimension, cell);
-  }
-  isCampSpace(dimension: DimensionId, cell: Cell): boolean {
-    return this.deps.isCampSpace(dimension, cell);
-  }
+  resortGearCells = resortGearCells;
   spawn(
     dimension: DimensionId,
     pose: BeachChairPose,
   ): BeachChairId | undefined {
-    const at = beachChairOrigin(pose);
-    const typeId = BEACH_CHAIR;
-    let spawnDimension: Dimension;
-    try {
-      spawnDimension = world.getDimension(dimension);
-    } catch {
-      return undefined;
-    }
-    const entity = spawnWithRollback(spawnDimension, typeId, at, pose.yaw);
+    const entity = spawnIn(
+      dimension,
+      BEACH_CHAIR,
+      beachChairOrigin(pose),
+      pose.yaw,
+    );
     return entity && asBeachChairId(entity.id);
   }
   setForm(id: BeachChairId, form: ChairForm): void {
@@ -200,30 +201,6 @@ export class BedrockBeachChairWorld
     const entity = this.entity(id);
     if (!entity) return;
     const receiver = player === undefined ? undefined : playerById(player);
-    const item = new ItemStack(BEACH_CHAIR_ITEM, 1);
-    if (receiver) giveOrDrop(receiver, [item]);
-    else entity.dimension.spawnItem(item, entity.location);
-  }
-  remove(id: BeachChairId): void {
-    this.entity(id)?.remove();
-  }
-  showBlocked(player: PlayerId): void {
-    this.show(player, "blocked");
-  }
-  showHitsLeft(player: PlayerId, left: number): void {
-    this.show(player, "hits_left", [String(left)]);
-  }
-  showTaken(player: PlayerId): void {
-    this.show(player, "taken");
-  }
-  private show(
-    player: PlayerId,
-    message: string,
-    withArgs: string[] = [],
-  ): void {
-    showActionBar(player, {
-      translate: `yasu_ride.beach_chair.${message}`,
-      with: withArgs,
-    });
+    giveBack(entity, BEACH_CHAIR_ITEM, receiver);
   }
 }

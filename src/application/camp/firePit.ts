@@ -47,9 +47,9 @@ export class FirePitActions {
     return true;
   }
 
-  hit(id: FirePitId, player: PlayerId, tick: number): boolean {
+  hit(id: FirePitId, player: PlayerId | undefined, tick: number): boolean {
     if (!canFoldFirePit(this.world.isCovered(id))) {
-      this.world.showCoveredHint(player);
+      if (player !== undefined) this.world.showCoveredHint(player);
       return false;
     }
     let taken = false;
@@ -59,7 +59,9 @@ export class FirePitActions {
         this.world.removeFirePit(id);
         taken = true;
       },
-      showRemaining: (left) => this.world.showHitsLeft(player, left),
+      showRemaining: (left) => {
+        if (player !== undefined) this.world.showHitsLeft(player, left);
+      },
     });
     return taken;
   }

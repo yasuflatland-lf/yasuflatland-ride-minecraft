@@ -37,6 +37,7 @@ it("grows the inclusive height-step box from its base without changing the flow"
           dimensionId,
           base,
           from: a,
+          to: b,
           heightedKind: kind,
           previous: height,
           heightLocked,

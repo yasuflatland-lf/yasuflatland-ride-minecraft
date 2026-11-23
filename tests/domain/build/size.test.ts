@@ -3,8 +3,8 @@ import { expect, it } from "vitest";
 import {
   boxFromSize,
   boxWithHeight,
+  cellBox,
   contains,
-  rotatedQuarter,
   sizeOf,
   unionOf,
   volume,
@@ -14,14 +14,13 @@ const coordinate = fc.integer({ min: -20, max: 20 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimension = fc.integer({ min: 1, max: 6 });
 const size = fc.record({ x: dimension, y: dimension, z: dimension });
-const box = fc.tuple(cell, size).map(([min, dimensions]) => ({
-  min,
-  max: {
+const box = fc.tuple(cell, size).map(([min, dimensions]) =>
+  cellBox(min, {
     x: min.x + dimensions.x - 1,
     y: min.y + dimensions.y - 1,
     z: min.z + dimensions.z - 1,
-  },
-}));
+  }),
+);
 
 it("reconstructs a box from its minimum and size", () => {
   fc.assert(
@@ -36,14 +35,6 @@ it("computes volume from the dimensions", () => {
     fc.property(box, (b) => {
       const { x, y, z } = sizeOf(b);
       expect(volume(b)).toBe(x * y * z);
-    }),
-  );
-});
-
-it("restores the size after two quarter rotations", () => {
-  fc.assert(
-    fc.property(size, (s) => {
-      expect(rotatedQuarter(rotatedQuarter(s))).toEqual(s);
     }),
   );
 });

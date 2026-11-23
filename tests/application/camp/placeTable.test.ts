@@ -50,6 +50,33 @@ describe("placing a camp table", () => {
     expect(world.spawnTable).not.toHaveBeenCalled();
   });
 
+  it("checks each ground block before its column and completes that column before moving on", () => {
+    const world = fakeWorld();
+    const first = cmd.blockLocation;
+    const second = { ...first, x: first.x + 1 };
+    world.isOwnBlock.mockImplementation(
+      (_dimension, cell) => cell.x === second.x,
+    );
+    expect(new PlaceTable(world).execute(cmd)).toBe(false);
+    expect(world.isOwnBlock.mock.calls).toEqual([
+      [dimensionId, first],
+      [dimensionId, second],
+    ]);
+    expect(world.isAir.mock.calls).toEqual([
+      [dimensionId, { ...first, y: first.y + 1 }],
+      [dimensionId, { ...first, y: first.y + 2 }],
+    ]);
+    const [firstColumn, secondColumn] =
+      world.isOwnBlock.mock.invocationCallOrder;
+    expect(firstColumn).toBeLessThan(
+      world.isAir.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(secondColumn).toBeGreaterThan(
+      world.isVehicleSpace.mock.invocationCallOrder[1] ?? Infinity,
+    );
+    expect(world.hasTableNear).not.toHaveBeenCalled();
+  });
+
   it("checks both table cells and centers the table for any yaw", () => {
     fc.assert(
       fc.property(

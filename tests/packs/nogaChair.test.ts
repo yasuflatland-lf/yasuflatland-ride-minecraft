@@ -2,7 +2,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   CHAIR_KIND_BY_ITEM,
-  CHAIR_KIND_BY_TEST_EVENT,
   CHAIR_KIND_BY_TYPE,
   CHAIR_KINDS,
 } from "../../src/infrastructure/camp/identifiers";
@@ -132,18 +131,16 @@ function poleSamples(cube: Cube): { t: number; point: Vec }[] {
 }
 
 describe("Noga Chair (ADR 0169)", () => {
-  it("routes its item, entity, and test event through the chair profile", () => {
+  it("routes its item and entity through the chair profile", () => {
     expect(profile).toEqual({
       typeId: "yasu_ride:noga_chair",
       itemId: "yasu_ride:noga_chair_item",
       family: "yasu_ride_noga_chair",
       hitsHint: "yasu_ride.hint.noga_chair_hits",
-      testHitEvent: "yasu_ride_test:test_noga_chair_hit",
     });
     for (const [map, key] of [
       [CHAIR_KIND_BY_TYPE, profile.typeId],
       [CHAIR_KIND_BY_ITEM, profile.itemId],
-      [CHAIR_KIND_BY_TEST_EVENT, profile.testHitEvent],
     ] as const)
       expect(map.get(key)).toBe("noga_chair");
   });

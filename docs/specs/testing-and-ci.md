@@ -20,7 +20,7 @@
 - Source: [0193](../adr/0193-shared-texture-tooling.md)
 - Source: [0204](../adr/0204-shard-unit-tests-across-ci-jobs.md)
 - Source: [0244](../adr/0244-gate-structure-decor-checks-on-a-player.md)
-- Excluded: [0139](../adr/0139-show-the-held-tool-on-the-cab-monitor.md): the monitor and its held-item test hook belong to the vehicle monitor specification; this spec covers the driving-input receiver only
+- Excluded: [0139](../adr/0139-show-the-held-tool-on-the-cab-monitor.md): the monitor and its held-item event protocol belong to the vehicle monitor specification
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): ADR metadata, spec structure, and documentation checks belong to the documentation specification
 
 ## Rules
@@ -102,6 +102,15 @@ Requests of at most 256 regions use five sorted orders plus 40 seeded random ord
 - Basis: [0167](../adr/0167-compound-rotation-assemblies-as-a-vehicle-neutral-rule.md), rotation-order assumption.
 - Implementation: `src/test-pack/manualProbes.ts`, `tools/gen_rotation_probe.py`, and the test packs.
 - Verification: `tests/test-pack/manualProbes.test.ts` and `tests/packs/rotationProbe.test.ts` check the handler and reference geometry. Not verified: owner device check pending.
+
+### Test hooks ship only in dev builds
+
+- Applies to: build-tool, camp, and resort test events and the vehicle events `yasu_ride:test_held_item`, `yasu_ride:test_tool`, and `yasu_ride:test_decor`.
+- Rule: `pnpm build` defines `__TEST_HOOKS__` as true for both Behavior Pack bundles. Vitest and its Stryker runner use the same value. Bootstrap calls `installBuildTestHooks`, `installVehicleTestHooks`, `installCampTestHooks`, and `installResortTestHooks` only when the flag is true. In the main pack each feature registers its hooks through its installer. Camp hooks accept only Server script events. The vehicle installer constructs `SetDecor` and registers the tool handler that calls `Vehicle.forceTool` (0171). After a dev build, `pnpm package` stages the packs under `dist/`, rebuilds the staged main script with the flag set to false, and archives both release packs. The driving-input receiver below remains available in the release.
+- Agreement: Accepted
+- Basis: [0010](../adr/0010-testing-strategy.md) Decision and Consequences.
+- Implementation: `src/buildFlags.d.ts`, `src/infrastructure/bootstrap.ts`, `src/infrastructure/build/testHooks/install.ts`, `src/infrastructure/vehicle/testHooks/install.ts`, `src/infrastructure/camp/testHooks/install.ts`, `src/infrastructure/resort/testHooks/install.ts`, `scripts/build.mjs`, `scripts/package.mjs`, `vitest.config.ts`.
+- Verification: `tests/scripts/generatedFiles.test.ts` checks the packaged script for the driving-input receiver, checks that build, vehicle, and resort hook markers and all 25 camp event IDs occur only in the dev bundle, and compares the dev bundle before and after packaging. `tests/infrastructure/vehicle/testHooks/install.test.ts` exercises all three vehicle hooks through the installed subscriptions.
 
 ### Production driving-input receiver
 
@@ -356,7 +365,6 @@ The main baseline is run 43765838821, commit `6b31f4d0`, before 3/6. The Series 
 
 ## Open issues
 
-- ADR 0010 says the test input event is `mycar:test_input`; the implementation constructs `yasu_ride:test_input` through `id()` (`src/infrastructure/vehicle/bedrock/identifiers.ts`, `src/infrastructure/shared/identifiers.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0013 says GitHub Actions are referenced by major tag in Context; the implementation also pins mise and Codecov actions to commit SHAs (`.github/workflows/unit-test.yml`, `.github/workflows/integration-test.yml`, `.github/workflows/release.yml`); the ADR needs an edit or a superseding ADR.
 - ADR 0048 says patch the Vitest runner under `patches/`, and its Consequences also describe patch-update installation failures; the implementation uses the released Stryker version in `package.json`, has no `patches/` directory or patchedDependencies, and retains only the compiler hook (`.pnpmfile.cjs`); the same ADR Consequences records that the patch was removed; the ADR needs an edit or a superseding ADR.
 - ADR 0048 says mutation excludes only main and the test runner; the implementation also excludes arena, catalog, and scenarios (`stryker.config.mjs`); ADR 0088 accounts for arena and scenarios but not catalog; the ADR needs an edit or a superseding ADR.
