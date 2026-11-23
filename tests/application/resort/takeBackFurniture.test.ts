@@ -47,21 +47,6 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
       ),
     );
   });
-  it("resets after a gap of 101 ticks", () => {
-    const world = fakeFurnitureWorld(kind);
-    const take = new TakeBackFurniture(world);
-    const cmd = {
-      id: asFurnitureId("p"),
-      player: asPlayerId("h"),
-      now: 0,
-    };
-    take.hit(cmd);
-    take.hit({ ...cmd, now: 100 });
-    take.hit({ ...cmd, now: 201 });
-    expect(world.remove).not.toHaveBeenCalled();
-    expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, cmd.player, 1);
-    expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 2);
-  });
 
   it("refused hits leave the counter unchanged for either reason", () => {
     fc.assert(

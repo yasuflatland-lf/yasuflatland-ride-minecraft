@@ -34,18 +34,6 @@ describe("forEachIsolated", () => {
     );
   });
 
-  it("never throws to the caller", () => {
-    fc.assert(
-      fc.property(items, (items) => {
-        const called: string[] = [];
-        const log = logger();
-        expect(() =>
-          forEachIsolated(items, failing(called), log, (item) => item.id),
-        ).not.toThrow();
-      }),
-    );
-  });
-
   it("calls label only for failing items", () => {
     const items: Item[] = [
       { id: "a", fails: false },

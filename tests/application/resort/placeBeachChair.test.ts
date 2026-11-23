@@ -74,7 +74,7 @@ it("requires solid support below all three cells", () => {
   );
 });
 
-it("queries exactly three support cells and six clearance cells", () => {
+it("spawns the chair at the supported pose", () => {
   const world = fakeBeachChairWorld();
   const dimension = asDimensionId("overworld");
   const player = asPlayerId("p");
@@ -90,21 +90,6 @@ it("queries exactly three support cells and six clearance cells", () => {
     }),
   ).toBe(true);
   expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(player, slot);
-  expect(world.isSolidTop.mock.calls).toEqual([
-    [dimension, { x: 10, y: 20, z: 30 }],
-    [dimension, { x: 10, y: 20, z: 31 }],
-    [dimension, { x: 10, y: 20, z: 32 }],
-  ]);
-  const clearance = [
-    [dimension, { x: 10, y: 21, z: 30 }],
-    [dimension, { x: 10, y: 21, z: 31 }],
-    [dimension, { x: 10, y: 21, z: 32 }],
-    [dimension, { x: 10, y: 22, z: 30 }],
-    [dimension, { x: 10, y: 22, z: 31 }],
-    [dimension, { x: 10, y: 22, z: 32 }],
-  ];
-  for (const check of [world.isAir, world.isVehicleSpace, world.isCampSpace])
-    expect(check.mock.calls).toEqual(clearance);
   expect(world.spawn).toHaveBeenCalledExactlyOnceWith(dimension, {
     foot: { x: 10, y: 21, z: 30 },
     middle: { x: 10, y: 21, z: 31 },

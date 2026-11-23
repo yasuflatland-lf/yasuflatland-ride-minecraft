@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { RiderEffects } from "../../../src/application/vehicle/riderEffects";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
@@ -18,78 +18,95 @@ const setup = () => {
 };
 
 describe("RiderEffects cameras", () => {
-  it("switches to third person once and back to the own view", () => {
-    const { world, riders } = setup();
-    const near = new Map<PlayerId, ChaseCamera>([[asPlayerId("p"), "near"]]);
-    riders.syncCameras(near);
-    expect(world.calls).toEqual(["camera:p:third"]);
-    riders.syncCameras(near);
-    expect(world.calls).toEqual(["camera:p:third"]);
-    riders.syncCameras(new Map<PlayerId, ChaseCamera>());
-    expect(world.calls).toEqual(["camera:p:third", "camera:p:own"]);
-  });
-
-  it("switches from near to far", () => {
-    const { world, riders } = setup();
-    riders.syncCameras(
-      new Map<PlayerId, ChaseCamera>([[asPlayerId("p"), "near"]]),
+  it("reconciles each rider's camera with successful changes and warns once until success", () => {
+    const players = ["a", "b", "c"].map(asPlayerId);
+    const camera = fc.option(
+      fc.constantFrom<ChaseCamera>("near", "mid", "far"),
+      {
+        nil: undefined,
+      },
     );
-    riders.syncCameras(
-      new Map<PlayerId, ChaseCamera>([[asPlayerId("p"), "far"]]),
-    );
-    expect(world.calls).toEqual(["camera:p:third", "camera:p:far"]);
-  });
+    const tick = fc.record({
+      wanted: fc.tuple(camera, camera, camera),
+      failing: fc.option(fc.constantFrom(...players), { nil: undefined }),
+    });
 
-  it("logs a failing camera switch once until it succeeds", () => {
-    const { world, log, riders } = setup();
-    const near = new Map<PlayerId, ChaseCamera>([[asPlayerId("p"), "near"]]);
-    const cameraLines = () => log.lines.filter((l) => l.includes("camera p"));
-    world.failCameraOn = "p";
-    riders.syncCameras(near);
-    riders.syncCameras(near);
-    riders.syncCameras(near);
-    expect(cameraLines()).toHaveLength(1);
-    expect(world.calls).toEqual([]);
-    world.failCameraOn = undefined;
-    riders.syncCameras(near);
-    expect(world.calls).toEqual(["camera:p:third"]);
-    world.failCameraOn = "p";
-    riders.syncCameras(new Map<PlayerId, ChaseCamera>());
-    expect(cameraLines()).toHaveLength(2);
+    fc.assert(
+      fc.property(fc.array(tick, { minLength: 12, maxLength: 36 }), (ticks) => {
+        const { world, log, riders } = setup();
+        const setCamera = vi.spyOn(world, "setChaseCamera");
+        const model = players.map((id) => ({
+          id,
+          applied: undefined as ChaseCamera | undefined,
+          warned: false,
+        }));
+
+        for (const { wanted, failing } of ticks) {
+          const desired = new Map<PlayerId, ChaseCamera>();
+          const calls: [PlayerId, ChaseCamera | undefined][] = [];
+          const warnings: string[] = [];
+          for (const [index, state] of model.entries()) {
+            const next = wanted[index];
+            if (next !== undefined) desired.set(state.id, next);
+            if (next === state.applied) continue;
+
+            calls.push([state.id, next]);
+            if (state.id === failing) {
+              if (!state.warned)
+                warnings.push(`camera ${state.id}: Error: camera`);
+              state.warned = true;
+            } else {
+              state.applied = next;
+              state.warned = false;
+            }
+          }
+
+          setCamera.mockClear();
+          log.lines.length = 0;
+          world.failCameraOn = failing;
+          riders.syncCameras(desired);
+
+          expect([...setCamera.mock.calls].sort()).toEqual(calls.sort());
+          expect(log.lines).toEqual(warnings);
+          for (const { id, applied } of model)
+            expect(riders.isThirdPerson(id)).toBe(applied !== undefined);
+          expect(riders.isThirdPerson(asPlayerId("absent"))).toBe(false);
+        }
+      }),
+    );
   });
 });
 
 describe("RiderEffects water breathing", () => {
-  it("refreshes breathing only on interval ticks", () => {
+  it("refreshes breathing only on interval ticks and isolates a failing rider", () => {
+    const players = ["a", "b", "c"].map(asPlayerId);
     fc.assert(
-      fc.property(fc.nat({ max: 10_000 }), (tick) => {
-        const { world, log, riders } = setup();
-        riders.refreshWaterBreathing(
-          new Set([asPlayerId("a"), asPlayerId("b")]),
-          tick,
-        );
-        expect(world.calls).toEqual(
-          tick % SPEC.waterBreathingInterval === 0
-            ? [
-                `breathing:a:${SPEC.waterBreathingTicks}`,
-                `breathing:b:${SPEC.waterBreathingTicks}`,
-              ]
-            : [],
-        );
-        expect(log.lines).toEqual([]);
-      }),
+      fc.property(
+        fc.nat({ max: 10_000 }),
+        fc.integer({ min: 0, max: SPEC.waterBreathingInterval - 1 }),
+        fc.option(fc.constantFrom(...players), { nil: undefined }),
+        (interval, offset, failing) => {
+          const { world, log, riders } = setup();
+          world.failBreathingOn = failing;
+          riders.refreshWaterBreathing(
+            new Set(players),
+            interval * SPEC.waterBreathingInterval + offset,
+          );
+          expect(world.calls).toEqual(
+            offset === 0
+              ? players
+                  .filter((id) => id !== failing)
+                  .map((id) => `breathing:${id}:${SPEC.waterBreathingTicks}`)
+              : [],
+          );
+          expect(log.lines).toEqual(
+            offset === 0 && failing !== undefined
+              ? [`breathing ${failing}: Error: breathing`]
+              : [],
+          );
+        },
+      ),
     );
-  });
-
-  it("one failing rider does not stop the others", () => {
-    const { world, log, riders } = setup();
-    world.failBreathingOn = "bad";
-    riders.refreshWaterBreathing(
-      new Set([asPlayerId("bad"), asPlayerId("good")]),
-      0,
-    );
-    expect(world.calls).toEqual([`breathing:good:${SPEC.waterBreathingTicks}`]);
-    expect(log.lines).toEqual(["breathing bad: Error: breathing"]);
   });
 });
 
@@ -101,32 +118,4 @@ describe("RiderEffects fire protection", () => {
     expect(world.calls).toEqual(["fire:good"]);
     expect(log.lines).toEqual(["fire protection bad: Error: fire"]);
   });
-});
-
-it("tracks successful camera changes for feedback, including failed sets and clears", () => {
-  fc.assert(
-    fc.property(
-      fc.constantFrom<ChaseCamera>("near", "mid", "far"),
-      fc.boolean(),
-      (camera, fail) => {
-        const { world, riders } = setup();
-        const playerId = asPlayerId("p");
-        const desired = new Map([[playerId, camera]]);
-        expect(riders.isThirdPerson(playerId)).toBe(false);
-        world.failCameraOn = fail ? "p" : undefined;
-        riders.syncCameras(desired);
-        expect(riders.isThirdPerson(playerId)).toBe(!fail);
-        world.failCameraOn = undefined;
-        riders.syncCameras(desired);
-        expect(riders.isThirdPerson(playerId)).toBe(true);
-        expect(riders.isThirdPerson(asPlayerId("other"))).toBe(false);
-        world.failCameraOn = fail ? "p" : undefined;
-        riders.syncCameras(new Map());
-        expect(riders.isThirdPerson(playerId)).toBe(fail);
-        world.failCameraOn = undefined;
-        riders.syncCameras(new Map());
-        expect(riders.isThirdPerson(playerId)).toBe(false);
-      },
-    ),
-  );
 });

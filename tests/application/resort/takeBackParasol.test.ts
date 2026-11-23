@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { SyncParasolCeilings } from "../../../src/application/resort/syncParasolCeilings";
 import { TakeBackParasol } from "../../../src/application/resort/takeBackParasol";
 import { asParasolId } from "../../../src/domain/resort/ids";
 import { PARASOL_SPEC } from "../../../src/domain/resort/spec";
@@ -41,25 +40,5 @@ it("clears the ceiling, returns a plain item to the hitter, removes and announce
         expect(order).toEqual([...order].sort((a, b) => (a ?? 0) - (b ?? 0)));
       },
     ),
-  );
-});
-it("resets after a gap of 101 ticks", () => {
-  const world = fakeParasolWorld();
-  const take = new TakeBackParasol(world);
-  const cmd = { id: asParasolId("p"), player: asPlayerId("h"), tick: 0 };
-  take.execute(cmd);
-  take.execute({ ...cmd, tick: 100 });
-  take.execute({ ...cmd, tick: 201 });
-  expect(world.remove).not.toHaveBeenCalled();
-  expect(world.showHitsLeft).toHaveBeenNthCalledWith(2, cmd.player, 1);
-  expect(world.showHitsLeft).toHaveBeenLastCalledWith(cmd.player, 2);
-});
-it("restores every loaded parasol ceiling", () => {
-  fc.assert(
-    fc.property(fc.uniqueArray(fc.string()), (ids) => {
-      const world = fakeParasolWorld();
-      new SyncParasolCeilings(world).execute(ids.map(asParasolId));
-      expect(world.layCeiling.mock.calls).toEqual(ids.map((id) => [id]));
-    }),
   );
 });

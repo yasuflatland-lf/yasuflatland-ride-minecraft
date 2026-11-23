@@ -40,7 +40,7 @@ it("refuses table form and another rider without seating or posing", () => {
 it("only refreshes while riding and places beside exactly once after dismount", () => {
   fc.assert(
     fc.property(
-      fc.integer({ min: 1, max: 40 }),
+      fc.integer({ min: 0, max: 40 }),
       fc.integer({ min: 1, max: 40 }),
       (riding, empty) => {
         const { world, action } = fixture();
@@ -57,24 +57,6 @@ it("only refreshes while riding and places beside exactly once after dismount", 
       },
     ),
   );
-});
-it("tracks immediate dismount before the first refresh", () => {
-  const { world, action } = fixture();
-  action.execute({ id, player });
-  action.refresh([id]);
-  action.refresh([id]);
-  expect(world.placeBeside).toHaveBeenCalledExactlyOnceWith(id, player);
-});
-it("restores an existing rider without reseating and forgets unloaded chairs", () => {
-  const { world, action } = fixture();
-  world.riderOf.mockReturnValue(player);
-  action.refresh([id]);
-  expect(world.playLounge).toHaveBeenCalledExactlyOnceWith(player);
-  expect(world.seat).not.toHaveBeenCalled();
-  action.refresh([]);
-  world.riderOf.mockReturnValue(undefined);
-  action.refresh([id]);
-  expect(world.placeBeside).not.toHaveBeenCalled();
 });
 it("does not pose after failed seating or reseat the same rider", () => {
   const { world, action } = fixture();

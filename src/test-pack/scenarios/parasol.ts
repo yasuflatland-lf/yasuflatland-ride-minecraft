@@ -14,9 +14,10 @@ import {
   TEST_PARASOL_HIT,
   TEST_PARASOL_PLACE,
 } from "../../infrastructure/resort/identifiers";
-import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
+import { paintEvent } from "../../infrastructure/shared/dyes";
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
+import { PAINT_VARIANT } from "./support/paintContract";
 
 async function course(a: Arena, rain: boolean): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);

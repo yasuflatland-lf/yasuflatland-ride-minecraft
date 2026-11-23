@@ -1,11 +1,11 @@
 import { expect, it } from "vitest";
 import { TAP_TARGET_TYPE } from "../../src/infrastructure/build/identifiers";
+import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
+import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import {
-  CHAIR_KINDS,
   ROOF_TENT_FAMILY,
   TENT_FAMILY,
-} from "../../src/infrastructure/camp/identifiers";
-import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+} from "../../src/test-pack/scenarios/support/tentContract";
 
 import { type Json, jsonFileEntries } from "../support/packFiles";
 
