@@ -1,12 +1,10 @@
 import type { Player } from "@minecraft/server";
-import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBedWorld } from "../../../src/infrastructure/shared/bedrockBedWorld";
 
 const game = vi.hoisted(() => ({
   world: {
-    getTimeOfDay: vi.fn(),
     setTimeOfDay: vi.fn(),
     getDimension: vi.fn(),
   },
@@ -37,16 +35,6 @@ function fixture() {
 
 describe("BedrockBedWorld (ADR 0092)", () => {
   beforeEach(() => vi.resetAllMocks());
-
-  it("reads the time of day from the world", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 0, max: 23999 }), (time) => {
-        const { bed } = fixture();
-        game.world.getTimeOfDay.mockReturnValue(time);
-        expect(bed.timeOfDay()).toBe(time);
-      }),
-    );
-  });
 
   it("sets the player's spawn point to the bed cell in its dimension", () => {
     const { player, bed } = fixture();

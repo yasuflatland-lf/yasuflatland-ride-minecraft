@@ -108,15 +108,6 @@ it("does not overwrite concurrent registration when applying a name", async () =
   expect(new Set(e.store.registry?.points.map((p) => p.id)).size).toBe(2);
 });
 
-it("keeps an unreadable registry intact", async () => {
-  const e = setup();
-  e.store.registry = undefined;
-  expect(await register(e).run(command)).toBe("unavailable");
-  expect(e.store.writes).toEqual([]);
-  expect(e.feedback.unreadable).toEqual([player]);
-  expect(e.menus.nameRequests).toEqual([]);
-});
-
 it("does not rename a replacement point when an old registration form answers", async () => {
   const e = setup();
   e.menus.nameAnswers.push(

@@ -6,7 +6,6 @@ import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../domain/vehicle/kinds/suv/spec";
 import {
-  ROOF_TENT_FAMILY,
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
   ROOF_TENT_OCCUPIED_PROPERTY,
@@ -17,11 +16,13 @@ import {
   TEST_ROOF_TENT_OCCUPANT_SEAT_EVENT,
   TEST_ROOF_TENT_PLACE_EVENT,
 } from "../../infrastructure/camp/identifiers";
-import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
+import { paintEvent } from "../../infrastructure/shared/dyes";
 import { ENTITY_TYPE } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { type Arena, spawnCar, wait } from "../arena";
 import { type Outcome, runCourse, type StepSink } from "../outcome";
 import { summonCow } from "./shared";
+import { PAINT_VARIANT } from "./support/paintContract";
+import { ROOF_TENT_FAMILY } from "./support/tentContract";
 
 // Mirror roof_tent.se.json suv_bounds for the ladder variant.
 const SUV_BOUNDS_HALF_WIDTH = 2.6;

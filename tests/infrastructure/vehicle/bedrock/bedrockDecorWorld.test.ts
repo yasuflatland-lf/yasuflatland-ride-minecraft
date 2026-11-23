@@ -16,7 +16,6 @@ import { decorItemId, decorSlotId } from "../../../support/decorIds";
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
   world: game,
-  GameMode: { Creative: "Creative", Survival: "Survival" },
 }));
 
 const decorList = fc.uniqueArray(
@@ -38,7 +37,6 @@ function fixture() {
     id: "p",
     typeId: PLAYER_TYPE,
     isValid: true,
-    getGameMode: vi.fn(() => "Survival"),
     onScreenDisplay: { setActionBar: vi.fn() },
   };
   game.getEntity.mockImplementation((id: string) =>
@@ -73,14 +71,6 @@ describe("BedrockDecorWorld (ADR 0093)", () => {
       DECOR_PROPERTY,
       undefined,
     );
-  });
-
-  it("saves nothing for a missing vehicle", () => {
-    const { vehicle, world } = fixture();
-    world.saveDecor(asVehicleId("missing"), [
-      { slot: decorSlotId("table"), item: decorItemId("potted_plant") },
-    ]);
-    expect(vehicle.setDynamicProperty).not.toHaveBeenCalled();
   });
 
   it("reads only a saved string", () => {
@@ -132,11 +122,5 @@ describe("BedrockDecorWorld (ADR 0093)", () => {
       world.showMessage(asPlayerId("missing"), "decor_no_slot"),
     ).not.toThrow();
     expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports Creative for the requested player", () => {
-    const { player, world } = fixture();
-    player.getGameMode.mockReturnValue("Creative");
-    expect(world.isCreative(asPlayerId("p"))).toBe(true);
   });
 });

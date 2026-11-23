@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
-import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
+import { PAINT_VARIANT } from "../../src/test-pack/scenarios/support/paintContract";
 import { defined } from "../support/defined";
 import {
   type Bone,

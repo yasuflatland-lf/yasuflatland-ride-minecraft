@@ -337,7 +337,7 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   },
   {
     rule: "harness",
-    test: /^src\/test-pack\/(?:scenarios\/shared\.ts$|[^/]+$)/,
+    test: /^src\/test-pack\/(?:scenarios\/(?:shared\.ts$|support\/)|[^/]+$)/,
     impact: "all",
   },
   {

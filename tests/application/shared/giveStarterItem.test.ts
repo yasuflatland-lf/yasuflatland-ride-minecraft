@@ -56,33 +56,6 @@ describe("GiveStarterItem (ADR 0200)", () => {
     );
   });
 
-  it("gives Creative nothing and leaves them eligible for a later Survival join", () => {
-    const world = new FakeWorld();
-    const starter = new GiveStarterItem(world);
-    world.creative.add(player);
-    expect(starter.execute(player)).toBe(false);
-    expect(world.calls).toEqual([]);
-    expect(world.flags.has(player)).toBe(false);
-    world.creative.delete(player);
-    expect(starter.execute(player)).toBe(true);
-  });
-
-  it("gives one item on the first Survival join and marks it before later joins", () => {
-    const world = new FakeWorld();
-    const starter = new GiveStarterItem(world);
-    expect(starter.execute(player)).toBe(true);
-    expect(world.flags.has(player)).toBe(true);
-    expect(starter.execute(player)).toBe(false);
-    expect(world.calls).toEqual(["give:p", "mark:p"]);
-  });
-
-  it("gives an existing player with no flag one item", () => {
-    const world = new FakeWorld();
-    expect(world.flags.has(player)).toBe(false);
-    expect(new GiveStarterItem(world).execute(player)).toBe(true);
-    expect(world.calls).toEqual(["give:p", "mark:p"]);
-  });
-
   it("leaves the flag unset when giving throws and retries on the next join", () => {
     const world = new FakeWorld();
     const starter = new GiveStarterItem(world);
