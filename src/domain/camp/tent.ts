@@ -122,10 +122,6 @@ function faceToward(v: Vec2): TentFace {
 
 const scaled = (v: Vec2, k: number): Vec2 => ({ x: v.x * k, z: v.z * k });
 
-export function lanternCell(pose: TentPose): Cell {
-  return tentCellAt(pose, LAYOUT.lantern);
-}
-
 export function tentCells(
   pose: TentPose,
   state: TentState,
