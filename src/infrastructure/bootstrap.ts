@@ -4,6 +4,7 @@ import { excludedEntityType } from "./build/excludedEntityType";
 import { installBuild } from "./build/install";
 import { installBuildTestHooks } from "./build/testHooks/install";
 import { installCamp } from "./camp/install";
+import { installCampTestHooks } from "./camp/testHooks/install";
 import { installResort } from "./resort/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { TopHostRegistry } from "./shared/tableTop/registry";
@@ -44,6 +45,7 @@ export function bootstrap(): void {
   });
   if (__TEST_HOOKS__) {
     installBuildTestHooks(build);
+    installCampTestHooks(camp);
     installVehicleTestHooks(vehicles.testHooks);
   }
   installWarp();

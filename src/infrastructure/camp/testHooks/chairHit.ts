@@ -1,8 +1,16 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { HitChair } from "../../../../application/camp/hitChair";
-import { asChairId } from "../../../../domain/camp/chair";
-import { NAMESPACE } from "../../../shared/identifiers";
-import { CHAIR_KIND_BY_TEST_EVENT } from "../../identifiers";
+import type { HitChair } from "../../../application/camp/hitChair";
+import { asChairId, type ChairKindId } from "../../../domain/camp/chair";
+import { NAMESPACE } from "../../shared/identifiers";
+import {
+  TEST_LOW_CHAIR_HIT_EVENT,
+  TEST_NOGA_CHAIR_HIT_EVENT,
+} from "../identifiers";
+
+const CHAIR_KIND_BY_TEST_EVENT = new Map<string, ChairKindId>([
+  [TEST_LOW_CHAIR_HIT_EVENT, "low_chair"],
+  [TEST_NOGA_CHAIR_HIT_EVENT, "noga_chair"],
+]);
 
 // Lets in-game tests hit a chair, which a test has no player to do (ADR 0010, 0122).
 export function registerTestChairHit(hitChair: HitChair): void {

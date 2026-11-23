@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  CHAIR_KIND_BY_TEST_EVENT,
   CHAIR_KINDS,
+  TEST_LOW_CHAIR_HIT_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 
 describe("chair kind identifiers", () => {
-  it.each(["typeId", "itemId", "family", "hitsHint", "testHitEvent"] as const)(
+  it.each(["typeId", "itemId", "family", "hitsHint"] as const)(
     "keeps %s distinct across chair kinds",
     (field) => {
       const values = Object.values(CHAIR_KINDS).map(
@@ -15,9 +15,7 @@ describe("chair kind identifiers", () => {
     },
   );
 
-  it("routes the original Low Chair hit command (ADR 0122)", () => {
-    expect(CHAIR_KIND_BY_TEST_EVENT.get("yasu_ride:test_chair_hit")).toBe(
-      "low_chair",
-    );
+  it("keeps the original Low Chair hit command (ADR 0122)", () => {
+    expect(TEST_LOW_CHAIR_HIT_EVENT).toBe("yasu_ride:test_chair_hit");
   });
 });

@@ -7,6 +7,7 @@ import { installBuild } from "../../src/infrastructure/build/install";
 import { installBuildTestHooks } from "../../src/infrastructure/build/testHooks/install";
 import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
+import { installCampTestHooks } from "../../src/infrastructure/camp/testHooks/install";
 import { installResort } from "../../src/infrastructure/resort/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { TopHostRegistry } from "../../src/infrastructure/shared/tableTop/registry";
@@ -22,6 +23,12 @@ vi.mock("@minecraft/server-ui", () => ({
 const isFleetEntityType = vi.fn(() => false);
 const testHooks = {} as ReturnType<typeof installVehicles>["testHooks"];
 const vehicleHost = () => ({ status: "unknown" as const });
+type CampParts = ReturnType<typeof installCamp>;
+const campHookParts = {
+  gear: {} as CampParts["gear"],
+  tent: {} as CampParts["tent"],
+  roof: {} as CampParts["roof"],
+};
 
 const game = vi.hoisted(() => {
   // Every event a feature subscribes to records its handlers under its name.
@@ -68,6 +75,9 @@ vi.mock("../../src/infrastructure/vehicle/testHooks/install", () => ({
 vi.mock("../../src/infrastructure/camp/install", () => ({
   installCamp: vi.fn(),
 }));
+vi.mock("../../src/infrastructure/camp/testHooks/install", () => ({
+  installCampTestHooks: vi.fn(),
+}));
 vi.mock("../../src/infrastructure/build/install", () => ({
   installBuild: vi.fn(),
 }));
@@ -93,6 +103,7 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
     return { isVehicleSpace, vehicleHost, isFleetEntityType, testHooks };
   });
   vi.mocked(installCamp).mockReturnValue({
+    ...campHookParts,
     isCampSpace,
     switchTargets: [],
     placeHostedOnTop: () => false,
@@ -180,6 +191,7 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
     };
   });
   vi.mocked(installCamp).mockReturnValue({
+    ...campHookParts,
     isCampSpace: () => false,
     switchTargets,
     placeHostedOnTop: () => false,
@@ -201,17 +213,20 @@ it("installs build last and passes both space checks", () => {
     isFleetEntityType,
     testHooks,
   });
-  vi.mocked(installCamp).mockReturnValue({
+  const camp = {
+    ...campHookParts,
     isCampSpace,
     switchTargets: [],
     placeHostedOnTop: () => false,
-  });
+  };
+  vi.mocked(installCamp).mockReturnValue(camp);
   const build = {} as ReturnType<typeof installBuild>;
   vi.mocked(installBuild).mockReturnValueOnce(build);
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
   expect(installVehicleTestHooks).toHaveBeenCalledExactlyOnceWith(testHooks);
   expect(installBuildTestHooks).toHaveBeenCalledExactlyOnceWith(build);
+  expect(installCampTestHooks).toHaveBeenCalledExactlyOnceWith(camp);
   const excluded =
     vi.mocked(installBuild).mock.lastCall?.[0].isExcludedEntityType;
   expect(excluded?.("yasu_ride:camp_table")).toBe(true);
