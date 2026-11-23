@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DECOR_SLOTS } from "../../src/domain/vehicle/kinds/camper/decor";
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import { roomCells } from "../../src/domain/vehicle/kinds/camper/roomCells";
-import {
-  CAMPER_SPEC,
-  COUNTER_HEIGHT,
-} from "../../src/domain/vehicle/kinds/camper/spec";
+import { COUNTER_HEIGHT } from "../../src/domain/vehicle/kinds/camper/spec";
 import {
   CAMPER_BED_BLOCK,
   CAMPER_BED_COMPONENT,
@@ -27,6 +24,7 @@ import {
   ROOM_LIT_STATE,
   ROOM_OPEN_STATE,
 } from "../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { CAMPER_PACK_CONTRACT } from "../support/packContract";
 
 const BP = "packs/yasu_ride_bp";
 const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
@@ -280,7 +278,7 @@ it("hides the camper's own hitbox in the parked floor block under its center and
   ];
   // The bumper boxes stand on the bumper stand-in, since an entity's boxes never turn
   // with it; the camper keeps one box set from spawn, where no tap reaches it (ADR 0116).
-  const size = CAMPER_SPEC.hiddenHitboxSize;
+  const size = CAMPER_PACK_CONTRACT.hiddenHitboxSize;
   expect(entity.components["minecraft:custom_hit_test"]).toEqual({
     hitboxes: [{ width: size, height: size, pivot: [0, size / 2, 0] }],
   });
