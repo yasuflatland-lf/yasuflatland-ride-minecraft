@@ -11,6 +11,7 @@ import {
   toDriveInput,
 } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
+import { toolBindings } from "../../monitor/monitor";
 import { MOTION } from "../../motion/constants";
 import { DOCK, heldStep, pushesStick, StillTimer } from "../../motion/dock";
 import {
@@ -41,7 +42,12 @@ import {
   type SPORTSBOAT_ENTITY,
   trimCommand,
 } from "./entity";
-import { ICEBREAKER_SWITCH_ITEM } from "./equipment";
+import {
+  ICEBREAKER_OFF,
+  ICEBREAKER_ON,
+  ICEBREAKER_SWITCH_ITEM,
+  SPORTSBOAT_MONITOR,
+} from "./equipment";
 import {
   bowBlocked,
   icebreakerColumns,
@@ -143,6 +149,14 @@ export class SportsboatDrive implements Drive {
   private restoredDocked: boolean;
   private readonly trimSync = new SyncedValue<number>();
   private readonly rollSync = new SyncedValue<number>();
+  private readonly tools = toolBindings(SPORTSBOAT_MONITOR, {
+    [ICEBREAKER_SWITCH_ITEM]: {
+      get: () => (this.icebreakerOn ? ICEBREAKER_ON : ICEBREAKER_OFF),
+      set: (state) => {
+        this.icebreakerOn = state === ICEBREAKER_ON;
+      },
+    },
+  });
 
   constructor(
     yaw: number,
@@ -199,15 +213,11 @@ export class SportsboatDrive implements Drive {
   }
 
   toolState(item: string): string | undefined {
-    if (item !== ICEBREAKER_SWITCH_ITEM) return undefined;
-    return this.icebreakerOn ? "on" : "off";
+    return this.tools.toolState(item);
   }
 
   setToolState(item: string, state: string): boolean {
-    if (item !== ICEBREAKER_SWITCH_ITEM || (state !== "on" && state !== "off"))
-      return false;
-    this.icebreakerOn = state === "on";
-    return true;
+    return this.tools.setToolState(item, state);
   }
 
   resync(): void {
