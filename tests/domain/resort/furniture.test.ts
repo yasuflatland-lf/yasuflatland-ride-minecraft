@@ -7,9 +7,11 @@ import {
   furnitureCells,
   furnitureClearCells,
   furniturePose,
+  furniturePoseAt,
   furnitureSupportCells,
+  overlapsAny,
 } from "../../../src/domain/resort/furniture";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, sameCell } from "../../../src/domain/shared/cells";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 import { forward } from "../../../src/domain/shared/vec";
 
@@ -37,6 +39,9 @@ describe("furniture placement", () => {
             const pose = furniturePose(block, facing, kind);
             const spec = FURNITURE_SPEC[kind];
             const floor = furnitureCells(pose);
+            expect(
+              furnitureCells(furniturePoseAt(kind, pose.origin, pose.yaw)),
+            ).toEqual(floor);
             expect(floor).toHaveLength(spec.cells.length);
             expect(new Set(floor.map(cellKey)).size).toBe(floor.length);
             expect(floor[0]).toEqual({ ...block, y: block.y + 1 });
@@ -135,6 +140,25 @@ describe("furniture placement", () => {
       { x: -3, y: 1, z: 4 },
     ]);
   });
+});
+
+it("detects a shared cell by all three coordinates", () => {
+  const nearbyCell = fc.record({
+    x: fc.integer({ min: -2, max: 2 }),
+    y: fc.integer({ min: -2, max: 2 }),
+    z: fc.integer({ min: -2, max: 2 }),
+  });
+  fc.assert(
+    fc.property(
+      fc.array(nearbyCell),
+      fc.array(nearbyCell),
+      (cells, occupied) => {
+        expect(overlapsAny(cells, occupied)).toBe(
+          cells.some((cell) => occupied.some((other) => sameCell(cell, other))),
+        );
+      },
+    ),
+  );
 });
 
 it("offers a tabletop only on the dining table", () => {

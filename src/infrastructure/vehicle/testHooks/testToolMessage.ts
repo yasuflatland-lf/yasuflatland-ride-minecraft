@@ -1,5 +1,10 @@
-import type { ForceToolCommand } from "../../../application/vehicle/switchTool";
-import { asVehicleId } from "../../../domain/shared/ids";
+import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
+
+interface ForceToolCommand {
+  vehicleId: VehicleId;
+  item: string;
+  state: string;
+}
 
 /** `<vehicleId>,<bareItem>,<state>` sets a monitor tool through the server-only test hook. */
 export function parseTestToolMessage(
