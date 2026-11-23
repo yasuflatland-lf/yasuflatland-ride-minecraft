@@ -9,7 +9,7 @@ import {
   storageDoors,
   storageFurniture,
 } from "./dooredStorage";
-import type { LocalCell } from "./localCell";
+import { CEILING_LAYER, type LocalCell } from "./localCell";
 import {
   COUNTER_HEIGHT,
   DRAWER_BOTTOM_Y,
@@ -165,18 +165,15 @@ const SHOWER_TOILET_CELLS = [
 ] as const satisfies readonly LocalCell[];
 
 const STOVE_CELL = { x: -1, z: -2, layer: 1 } as const satisfies LocalCell;
-// The wall cabinet hangs under the ceiling plate, in the ceiling layer (roomGeometry.ts CEILING_LAYER),
-// one compartment over the sink and one over the stove (ADR 0103, 0114).
-const CABINET_LAYER = 3;
 const SINK_CABINET_CELL = {
   x: -1,
   z: -1,
-  layer: CABINET_LAYER,
+  layer: CEILING_LAYER,
 } as const satisfies LocalCell;
 const STOVE_CABINET_CELL = {
   x: -1,
   z: -2,
-  layer: CABINET_LAYER,
+  layer: CEILING_LAYER,
 } as const satisfies LocalCell;
 // The compartment floor's top above the cabinet cell's bottom, in pixels: model y 51
 // (tools/gen_camper.py CABINET_Y) in a cell from 48 (ADR 0114).
@@ -211,7 +208,7 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, "cabinet"> = {
       opening: {
         kind: "hinged",
         hinge: 1,
-        plate: { x: 0, z: SINK_CABINET_CELL.z, layer: CABINET_LAYER },
+        plate: { x: 0, z: SINK_CABINET_CELL.z, layer: CEILING_LAYER },
       },
       slots: compartmentSlots(
         "cabinet",
@@ -227,7 +224,7 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, "cabinet"> = {
       opening: {
         kind: "hinged",
         hinge: -1,
-        plate: { x: 0, z: STOVE_CABINET_CELL.z, layer: CABINET_LAYER },
+        plate: { x: 0, z: STOVE_CABINET_CELL.z, layer: CEILING_LAYER },
       },
       slots: compartmentSlots(
         "cabinet",

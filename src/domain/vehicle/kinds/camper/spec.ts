@@ -49,6 +49,10 @@ export const DRAWER_HIT_PROFILE = Object.freeze({
   },
 });
 
+const RIDEABLE_SEAT_HEIGHTS = Object.freeze({ front: 1.5, dinette: 1.2 });
+// On the parked room's floor, below its roof (ADR 0068).
+const ROOM_FEET = Object.freeze([0.5, 3.5] as const);
+
 // The camper's own tuning values (ADR 0067). Values marked "as the SUV" repeat the SUV's
 // numbers because the owner asked for the same behavior; they are not shared constants.
 export const CAMPER_SPEC = Object.freeze({
@@ -71,6 +75,7 @@ export const CAMPER_SPEC = Object.freeze({
   // Body (model units / 16, tools/gen_camper.py)
   carHeight: 4.0, // the roof, 64 px up
   hitboxFront: 1.5, // the collision box's front; the step probe lifts the box, not the nose (ADR 0004)
+  stepLaneOffset: 0.8,
   bodyFront: 3.7, // the front bumper
   bodyRear: 3.9, // the rear ladder
   bodyHalfWidth: 1.5, // the tires' outer faces
@@ -97,15 +102,19 @@ export const CAMPER_SPEC = Object.freeze({
   // Parked, the middle box stands in the front end wall's column: parking accepts ground
   // only in its foot, and the dock's wall blocks above would read as more ground (ADR 0119)
   bumperParkedMaxLift: 1,
-  // Midpoint of the front rideable seats at 1.5 and the dinette seats at 1.2 (ADR 0154).
-  seatAimHeight: 1.35,
+  rideableSeatHeights: RIDEABLE_SEAT_HEIGHTS,
+  deckSeatHeight: 0.52,
+  roomFeet: ROOM_FEET,
+  doorStepPx: 8,
+  seatAimHeight:
+    (RIDEABLE_SEAT_HEIGHTS.front + RIDEABLE_SEAT_HEIGHTS.dinette) / 2,
   // Below half the smallest seat gap, hypot(0.25, 1.1) = 1.128, so aim balls never overlap.
   seatAimRadius: 0.5,
   // Hints (ADR 0086), in blocks
   bumperHintReach: 1.5,
   bumperHintFeet: [-1, 1.5], // from the ground in front of the bumper up to standing on a 1-block step
   seatHintReach: 1.5,
-  seatHintFeet: [0.5, 3.5], // on the parked room's floor, below its roof (ADR 0068)
+  seatHintFeet: ROOM_FEET,
   // Flight (ADR 0021, 0032), as the SUV
   doubleTapTicks: ticks(8),
   takeoffTicks: ticks(20),
@@ -178,7 +187,7 @@ export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
   gearDownHeight: CAMPER_SPEC.gearDownHeight,
   gearProbeOffset: CAMPER_SPEC.gearProbeOffset,
   hitboxFront: CAMPER_SPEC.hitboxFront,
-  stepLaneOffset: 0.8,
+  stepLaneOffset: CAMPER_SPEC.stepLaneOffset,
   air: CAMPER_AIR,
   water: CAMPER_WATER,
   waterPolicy: "submerge",

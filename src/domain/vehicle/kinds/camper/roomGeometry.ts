@@ -8,6 +8,8 @@ import {
 } from "./furniture";
 import { localCellAt } from "./parkPose";
 
+export { CEILING_LAYER, INSIDE_LAYERS, ROOF_LAYER } from "./localCell";
+
 // In cells from the center cell: x = left (-1..1), z = forward (-3..3), as in the
 // spike (docs/spikes/camper.md).
 export const HALF_X = 1;
@@ -33,14 +35,6 @@ export const FURNITURE_BLOCKS: readonly {
 
 // The ground cell just outside the door.
 export const EXIT = { x: -WALL_X - 1, z: 0 } as const;
-
-// A plate at the top of the third layer leaves 2.81 blocks of headroom over the
-// floor and puts the roof top 4.0 blocks up, flush with the fourth layer (ADR 0068).
-export const CEILING_LAYER = 3;
-
-export const INSIDE_LAYERS = [1, 2] as const;
-
-export const ROOF_LAYER = 4;
 
 export const AIR = "minecraft:air";
 

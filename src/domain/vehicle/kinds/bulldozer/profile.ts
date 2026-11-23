@@ -58,6 +58,6 @@ export const BULLDOZER_MOTION: MotionLimits = Object.freeze({
 });
 // Read by stepMotion and stepMediumMotion but without effect: the bulldozer never creeps or handbrakes.
 export const BULLDOZER_TYRES: TyreLimits = Object.freeze({
-  handbrakeGrip: 1,
-  creepSpeed: 0,
+  handbrakeGrip: BULLDOZER_SPEC.handbrakeGrip,
+  creepSpeed: BULLDOZER_SPEC.creepSpeed,
 });
