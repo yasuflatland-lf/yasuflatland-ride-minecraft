@@ -15,6 +15,7 @@ import {
   type TentPose,
   tentCells,
 } from "../../../src/domain/camp/tent";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import {
   type LaidCell,
   relayCells,
@@ -720,7 +721,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
   });
 });
 
-const POSE: TentPose = { x: 110, y: -60, z: 46, yaw: 180 };
+const POSE: TentPose = { x: 110, y: -60, z: 46, yaw: snapYaw(180) };
 const fakeRegistry = (ids: string[]) =>
   ({
     all: () =>

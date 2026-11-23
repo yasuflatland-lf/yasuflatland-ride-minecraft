@@ -3,7 +3,11 @@
 import { BlockPermutation } from "@minecraft/server";
 import { isFlapId } from "../../../domain/camp/flaps";
 import { TENT_SPEC } from "../../../domain/camp/spec";
-import type { TentBlock, TentId } from "../../../domain/camp/tent";
+import type {
+  TentBlock,
+  TentId,
+  TentPlateSide,
+} from "../../../domain/camp/tent";
 import type { LaidCell } from "../../../domain/shared/laidCells";
 import { type CellCodec, CellLayer } from "../../shared/laidCells";
 import {
@@ -21,6 +25,8 @@ import {
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null;
 
+const SIDES: readonly TentPlateSide[] = ["-z", "+z", "-x", "+x"];
+
 function isTentBlock(v: unknown): v is TentBlock {
   if (!isRecord(v)) return false;
   if (v.type === "ceiling") return true;
@@ -29,15 +35,37 @@ function isTentBlock(v: unknown): v is TentBlock {
   if (v.type === "lantern") return typeof v.lit === "boolean";
   return (
     v.type === "wall" &&
-    typeof v.face === "number" &&
-    [0, 1, 2, 3].includes(v.face)
+    typeof v.face === "string" &&
+    SIDES.includes(v.face as TentPlateSide)
   );
 }
 
 export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
   property: TENT_CELLS_PROPERTY,
-  // No older shape exists yet.
-  upgrade: (saved) => saved,
+  upgrade: (saved) => {
+    if (
+      !isRecord(saved) ||
+      !isRecord(saved.block) ||
+      saved.block.type !== "wall"
+    )
+      return saved;
+    const face = saved.block.face;
+    if (
+      typeof face !== "number" ||
+      !Number.isInteger(face) ||
+      face < 0 ||
+      face >= SIDES.length
+    )
+      return saved;
+    return { ...saved, block: { ...saved.block, face: SIDES[face] } };
+  },
+  encode: (cell) =>
+    cell.block.type === "wall"
+      ? {
+          ...cell,
+          block: { ...cell.block, face: SIDES.indexOf(cell.block.face) },
+        }
+      : cell,
   isCell: (v): v is LaidCell<TentBlock> =>
     isRecord(v) &&
     Number.isInteger(v.x) &&
@@ -76,7 +104,7 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
     switch (block.type) {
       case "wall":
         return BlockPermutation.resolve(TENT_WALL_BLOCK, {
-          [TENT_FACE_STATE]: block.face,
+          [TENT_FACE_STATE]: SIDES.indexOf(block.face),
         });
       case "flap":
         return BlockPermutation.resolve(TENT_FLAP_BLOCK, {
