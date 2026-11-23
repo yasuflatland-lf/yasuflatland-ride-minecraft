@@ -7,8 +7,6 @@ import { TOILET_SPEC, WASHSTAND_SPEC } from "../../../src/domain/resort/shows";
 import { BedrockShowSound } from "../../../src/infrastructure/resort/bedrock/bedrockShowSound";
 import { BedrockToiletWorld } from "../../../src/infrastructure/resort/bedrock/bedrockToiletWorld";
 import { BedrockWashstandWorld } from "../../../src/infrastructure/resort/bedrock/bedrockWashstandWorld";
-import { registerTestToilet } from "../../../src/infrastructure/resort/bedrock/handlers/testToilet";
-import { registerTestWashstand } from "../../../src/infrastructure/resort/bedrock/handlers/testWashstand";
 import {
   FURNITURE_IDS,
   TEST_TOILET,
@@ -17,6 +15,8 @@ import {
   TOILET_LID_OPEN,
   WASHSTAND_RUNNING,
 } from "../../../src/infrastructure/resort/identifiers";
+import { registerTestToilet } from "../../../src/infrastructure/resort/testHooks/testToilet";
+import { registerTestWashstand } from "../../../src/infrastructure/resort/testHooks/testWashstand";
 import { fakeToiletWorld } from "../../application/resort/fakeToiletWorld";
 import { fakeWashstandWorld } from "../../application/resort/fakeWashstandWorld";
 

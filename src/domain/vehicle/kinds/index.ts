@@ -78,14 +78,24 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
     }),
   });
 
+const MONITOR_TOOLS = VEHICLE_KINDS.flatMap(
+  (kind) => KINDS[kind].profile.monitor?.tools ?? [],
+);
+
 export const MONITOR_TOOL_ITEMS: readonly string[] = Object.freeze([
-  ...new Set(
-    VEHICLE_KINDS.flatMap(
-      (kind) =>
-        KINDS[kind].profile.monitor?.tools.map((tool) => tool.item) ?? [],
-    ),
-  ),
+  ...new Set(MONITOR_TOOLS.map((tool) => tool.item)),
 ]);
+
+export function toolFeedback(item: string, state: string): string | undefined {
+  for (const tool of MONITOR_TOOLS)
+    if (
+      tool.item === item &&
+      tool.feedback !== undefined &&
+      tool.states.includes(state)
+    )
+      return `${tool.feedback}_${state}`;
+  return undefined;
+}
 
 export const fleetLimitOf: FleetLimitOf = (kind) =>
   KINDS[kind].profile.fleetLimit;

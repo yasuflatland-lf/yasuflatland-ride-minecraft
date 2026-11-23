@@ -26,9 +26,6 @@ import { registerTentHits } from "../../../src/infrastructure/camp/bedrock/handl
 import { registerTentLifecycle } from "../../../src/infrastructure/camp/bedrock/handlers/tentLifecycle";
 import { registerTentLoop } from "../../../src/infrastructure/camp/bedrock/handlers/tentLoop";
 import { registerTentPlacement } from "../../../src/infrastructure/camp/bedrock/handlers/tentPlacement";
-import { registerTestChairHit } from "../../../src/infrastructure/camp/bedrock/handlers/testHit";
-import { registerTestTent } from "../../../src/infrastructure/camp/bedrock/handlers/testTent";
-import { registerTestTentLantern } from "../../../src/infrastructure/camp/bedrock/handlers/testTentLantern";
 import { TENT_CELL_CODEC } from "../../../src/infrastructure/camp/bedrock/tentBlocks";
 import { TentFlapStore } from "../../../src/infrastructure/camp/bedrock/tentFlapStore";
 import {
@@ -37,12 +34,17 @@ import {
   TENT_ITEM,
   TENT_LANTERN_PROPERTY,
   TENT_TYPE,
+  TEST_LOW_CHAIR_HIT_EVENT,
+  TEST_NOGA_CHAIR_HIT_EVENT,
   TEST_TENT_FOLD_LEGACY_EVENT,
   TEST_TENT_HIT_EVENT,
   TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
 import type { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
+import { registerTestChairHit } from "../../../src/infrastructure/camp/testHooks/chairHit";
+import { registerTestTent } from "../../../src/infrastructure/camp/testHooks/tent";
+import { registerTestTentLantern } from "../../../src/infrastructure/camp/testHooks/tentLantern";
 import { dyeOf } from "../../../src/infrastructure/shared/dyes";
 import { NAMESPACE } from "../../../src/infrastructure/shared/identifiers";
 import type { CellLayer } from "../../../src/infrastructure/shared/laidCells";
@@ -270,7 +272,7 @@ describe("registerTestChairHit (ADR 0010, 0122)", () => {
     const { execute, hitChair } = fakeHitChair();
     registerTestChairHit(hitChair);
     subscribed(game.script)({
-      id: CHAIR_KINDS.noga_chair.testHitEvent,
+      id: TEST_NOGA_CHAIR_HIT_EVENT,
       sourceType: "Server",
       message: " noga-id ",
     });
@@ -291,7 +293,7 @@ describe("registerTestChairHit (ADR 0010, 0122)", () => {
           const { execute, hitChair } = fakeHitChair();
           registerTestChairHit(hitChair);
           subscribed(game.script)({
-            id: CHAIR_KINDS.low_chair.testHitEvent,
+            id: TEST_LOW_CHAIR_HIT_EVENT,
             sourceType: "Server",
             message: `${pad}${id}${pad}`,
           });
@@ -312,12 +314,12 @@ describe("registerTestChairHit (ADR 0010, 0122)", () => {
     const handler = subscribed(game.script);
     handler({ id: "yasu_ride:other", sourceType: "Server", message: "chair" });
     handler({
-      id: CHAIR_KINDS.low_chair.testHitEvent,
+      id: TEST_LOW_CHAIR_HIT_EVENT,
       sourceType: "Entity",
       message: "chair",
     });
     handler({
-      id: CHAIR_KINDS.low_chair.testHitEvent,
+      id: TEST_LOW_CHAIR_HIT_EVENT,
       sourceType: "Server",
       message: "  ",
     });

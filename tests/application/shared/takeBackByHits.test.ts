@@ -5,35 +5,46 @@ import { HitCounters, hitRule } from "../../../src/domain/shared/hitCounter";
 import { ticks } from "../../../src/domain/shared/ticks";
 
 describe("handleHit", () => {
-  it("drops and removes once on the last hit of a quick run, showing the count before", () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 6 }),
-        fc.integer({ min: 0, max: 1000 }),
-        (hits, start) => {
-          const rule = hitRule(hits, ticks(40));
-          const counters = new HitCounters<string>(rule);
-          const log: string[] = [];
-          const effects = {
-            drop: () => log.push("drop"),
-            remove: () => log.push("remove"),
-            showRemaining: (n: number) => log.push(`left${n}`),
-          };
-          for (let i = 0; i < hits; i++)
-            handleHit(counters, "a", start + i, effects);
-          const expected = [
-            ...Array.from(
-              { length: hits - 1 },
-              (_, i) => `left${hits - 1 - i}`,
-            ),
-            "drop",
-            "remove",
-          ];
-          expect(log).toEqual(expected);
-        },
-      ),
-    );
-  });
+  it.each([
+    [undefined, ["drop", "remove"]],
+    ["dropThenRemove", ["drop", "remove"]],
+    ["removeThenDrop", ["remove", "drop"]],
+  ] as const)(
+    "reports the breaking hit and runs effects in order %s",
+    (order, expectedEffects) => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 6 }),
+          fc.integer({ min: 0, max: 1000 }),
+          (hits, start) => {
+            const rule = hitRule(hits, ticks(40));
+            const counters = new HitCounters<string>(rule);
+            const log: string[] = [];
+            const effects = {
+              drop: () => log.push("drop"),
+              remove: () => log.push("remove"),
+              showRemaining: (n: number) => log.push(`left${n}`),
+            };
+            for (let i = 0; i < hits; i++) {
+              expect(
+                handleHit(counters, "a", start + i, effects, order),
+              ).toEqual({
+                broken: i === hits - 1,
+              });
+            }
+            const expected = [
+              ...Array.from(
+                { length: hits - 1 },
+                (_, i) => `left${hits - 1 - i}`,
+              ),
+              ...expectedEffects,
+            ];
+            expect(log).toEqual(expected);
+          },
+        ),
+      );
+    },
+  );
 
   it("resets the count exactly when a hit gap exceeds resetTicks", () => {
     fc.assert(

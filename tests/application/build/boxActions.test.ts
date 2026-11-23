@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
 import { AIR } from "../../../src/domain/build/blockState";
+import { cellBox } from "../../../src/domain/build/box";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -22,10 +23,7 @@ it("stores the player's facing when copying the confirmed selection", () => {
         session.confirmBox(
           selectionOf(
             overworld,
-            {
-              min: { x: 0, y: 0, z: 0 },
-              max: { x: side, y: side, z: side },
-            },
+            cellBox({ x: 0, y: 0, z: 0 }, { x: side, y: side, z: side }),
             AIR,
           ),
         );

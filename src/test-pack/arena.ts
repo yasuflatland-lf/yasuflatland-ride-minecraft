@@ -12,11 +12,11 @@ import {
   TENT_TYPE,
 } from "../infrastructure/camp/identifiers";
 import {
-  TEST_DECOR_EVENT as DECOR_EVENT,
   ENTITY_TYPE,
   TEST_INPUT_EVENT as INPUT_EVENT,
   SEAT_FILLER_TYPE,
 } from "../infrastructure/vehicle/bedrock/identifiers";
+import { TEST_DECOR_EVENT as DECOR_EVENT } from "../infrastructure/vehicle/testHooks/identifiers";
 
 import {
   areaBounds,

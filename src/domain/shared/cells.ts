@@ -4,6 +4,18 @@ import type { Vec3 } from "./vec";
 /** Block cell, as integer coordinates. */
 export type Cell = Vec3;
 
+export function parseCell(raw: unknown): Cell | undefined {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const { x, y, z } = raw as Cell;
+  if (
+    !Number.isSafeInteger(x) ||
+    !Number.isSafeInteger(y) ||
+    !Number.isSafeInteger(z)
+  )
+    return undefined;
+  return { x, y, z };
+}
+
 export function cellOf(v: Vec3): Cell {
   return { x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z) };
 }

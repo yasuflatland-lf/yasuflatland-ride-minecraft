@@ -9,7 +9,7 @@ import { RotateBox } from "../../application/build/rotateBox";
 import { RotateSelection } from "../../application/build/rotateSelection";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { blockStateOf } from "../../domain/build/blockState";
-import { cellsOf, contains } from "../../domain/build/box";
+import { cellBox, cellsOf, contains } from "../../domain/build/box";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
 import { sameCell } from "../../domain/shared/cells";
@@ -26,7 +26,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   const repo = new InMemorySessionRepository();
   const playerId = asPlayerId(`rotate_box_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
-  const source = { min: a.at(20, a.gy, 20), max: a.at(24, a.gy + 3, 26) };
+  const source = cellBox(a.at(20, a.gy, 20), a.at(24, a.gy + 3, 26));
   const plan = planRotationAboutCenter(source);
   const neighbor = { ...plan.target.min, y: a.gy + 1 };
   let protectedCell: Vector3 | undefined;

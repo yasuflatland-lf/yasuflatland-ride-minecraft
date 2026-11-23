@@ -5,7 +5,7 @@ import {
   BULLDOZER_WIDE_BLADE,
 } from "../../domain/vehicle/kinds/bulldozer/spec";
 import { riderHeldOf } from "../../infrastructure/vehicle/bedrock/heldBlock";
-import { TEST_HELD_ITEM_EVENT } from "../../infrastructure/vehicle/bedrock/identifiers";
+import { TEST_HELD_ITEM_EVENT } from "../../infrastructure/vehicle/testHooks/identifiers";
 import { type Arena, drive, wait } from "../arena";
 import { type Outcome, runCourse, type StepSink } from "../outcome";
 import {

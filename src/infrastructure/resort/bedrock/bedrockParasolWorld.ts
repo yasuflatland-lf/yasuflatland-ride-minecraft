@@ -1,9 +1,4 @@
-import {
-  type Dimension,
-  type Entity,
-  ItemStack,
-  world,
-} from "@minecraft/server";
+import { type Dimension, type Entity, world } from "@minecraft/server";
 import type {
   ParasolTakeBackWorld,
   ParasolWorld,
@@ -22,21 +17,30 @@ import {
   sameCell,
 } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
-import { isSolidTop, safeBlockAt } from "../../shared/blocks";
-import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { safeBlockAt } from "../../shared/blocks";
+import {
+  gearEntities,
+  gearFeedback,
+  gearGroundChecks,
+  giveBack,
+  spawnIn,
+} from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
   LaidBlockLayer,
   readSavedCells,
   writeSavedCells,
 } from "../../shared/laidBlockLayer";
-import { giveOrDrop, playerById, showActionBar } from "../../shared/players";
+import { playerById } from "../../shared/players";
 import {
   BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
   PARASOL_CEILING_BLOCK,
   PARASOL_CEILING_PROPERTY,
 } from "../identifiers";
+
+const entities = gearEntities<ParasolId>(BEACH_PARASOL);
+const feedback = gearFeedback("parasol");
 
 interface CeilingRecord {
   dimension: Dimension;
@@ -47,37 +51,32 @@ export class BedrockParasolWorld
   extends BedrockPaidGroundCells
   implements ParasolWorld, ParasolTakeBackWorld
 {
+  entity = entities.entity;
+  remove = entities.remove;
+  showBlocked = feedback.showBlocked;
+  showHitsLeft = feedback.showHitsLeft;
+  showTaken = feedback.showTaken;
+  readonly isSolidTop: SpaceCheck;
+  readonly isCampSpace: SpaceCheck;
+
   private readonly layer: LaidBlockLayer;
   private readonly ceilings = new Map<ParasolId, CeilingRecord>();
-  constructor(
-    private readonly deps: {
-      isVehicleSpace: SpaceCheck;
-      isCampSpace: SpaceCheck;
-    },
-  ) {
+  constructor(deps: {
+    isVehicleSpace: SpaceCheck;
+    isCampSpace: SpaceCheck;
+  }) {
     super(
       (dimension, cell) => deps.isVehicleSpace(dimension, cell),
       BEACH_PARASOL_ITEM,
     );
+    ({ isSolidTop: this.isSolidTop, isCampSpace: this.isCampSpace } =
+      gearGroundChecks(deps));
 
     this.layer = new LaidBlockLayer(
       PARASOL_CEILING_BLOCK,
       deps.isVehicleSpace,
       "parasol ceiling",
     );
-  }
-  entity(id: ParasolId): Entity | undefined {
-    try {
-      return entityOfType(world, id, BEACH_PARASOL);
-    } catch {
-      return undefined;
-    }
-  }
-  isSolidTop(dimension: DimensionId, cell: Cell): boolean {
-    return isSolidTop(dimension, cell);
-  }
-  isCampSpace(dimension: DimensionId, cell: Cell): boolean {
-    return this.deps.isCampSpace(dimension, cell);
   }
   baseCellsNear(dimension: DimensionId, at: Cell, radius: number): Cell[] {
     // An axis-aligned query includes every base in the Chebyshev spacing cube.
@@ -95,15 +94,12 @@ export class BedrockParasolWorld
       }));
   }
   spawn(dimension: DimensionId, pose: ParasolPose): ParasolId | undefined {
-    const at = cellCenter(pose.base);
-    const typeId = BEACH_PARASOL;
-    let spawnDimension: Dimension;
-    try {
-      spawnDimension = world.getDimension(dimension);
-    } catch {
-      return undefined;
-    }
-    const entity = spawnWithRollback(spawnDimension, typeId, at, pose.yaw);
+    const entity = spawnIn(
+      dimension,
+      BEACH_PARASOL,
+      cellCenter(pose.base),
+      pose.yaw,
+    );
     return entity && asParasolId(entity.id);
   }
   remember(entity: Entity): CeilingRecord {
@@ -201,30 +197,6 @@ export class BedrockParasolWorld
     const entity = this.entity(id);
     if (!entity) return;
     const receiver = player === undefined ? undefined : playerById(player);
-    const item = new ItemStack(BEACH_PARASOL_ITEM, 1);
-    if (receiver) giveOrDrop(receiver, [item]);
-    else entity.dimension.spawnItem(item, entity.location);
-  }
-  remove(id: ParasolId): void {
-    this.entity(id)?.remove();
-  }
-  showBlocked(player: PlayerId): void {
-    this.show(player, "blocked");
-  }
-  showHitsLeft(player: PlayerId, left: number): void {
-    this.show(player, "hits_left", [String(left)]);
-  }
-  showTaken(player: PlayerId): void {
-    this.show(player, "taken");
-  }
-  private show(
-    player: PlayerId,
-    message: string,
-    withArgs: string[] = [],
-  ): void {
-    showActionBar(player, {
-      translate: `yasu_ride.parasol.${message}`,
-      with: withArgs,
-    });
+    giveBack(entity, BEACH_PARASOL_ITEM, receiver);
   }
 }

@@ -1,4 +1,4 @@
-import { volume } from "../../domain/build/box";
+import { cellBox, volume } from "../../domain/build/box";
 import { isFillMaterial } from "../../domain/build/edit/guard";
 import { chooseTerrain } from "../../domain/build/flow/flow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -33,10 +33,10 @@ export class ChooseTerrain {
     if (!fitsTerrainLimit(area)) {
       const box =
         op === "fillBelow"
-          ? {
-              min: { x: area.minX, y: BUILD_SPEC.worldBottomY, z: area.minZ },
-              max: { x: area.maxX, y: area.higherY, z: area.maxZ },
-            }
+          ? cellBox(
+              { x: area.minX, y: BUILD_SPEC.worldBottomY, z: area.minZ },
+              { x: area.maxX, y: area.higherY, z: area.maxZ },
+            )
           : removeAboveBox(area);
       this.feedback.showMessage(playerId, "tooLarge", box ? volume(box) : 0);
       return;

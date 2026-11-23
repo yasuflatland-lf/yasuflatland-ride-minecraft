@@ -1,6 +1,7 @@
 import { StructureRotation } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellBox } from "../../../src/domain/build/box";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -50,7 +51,7 @@ const dimension = {
 };
 const dim = asDimensionId("overworld");
 const owner = asPlayerId("-4294967295");
-const box = { min: { x: 10, y: 64, z: -5 }, max: { x: 12, y: 67, z: -1 } };
+const box = cellBox({ x: 10, y: 64, z: -5 }, { x: 12, y: 67, z: -1 });
 const handle = structureHandle("yasu_build:box_test_1");
 const WARP_BLOCK = "yasu_build:warp_block";
 const store = () => new BedrockStructureStore(isFleetEntityType, [WARP_BLOCK]);
@@ -97,7 +98,7 @@ it("refuses oversized and out-of-height captures without reading blocks", () => 
   expect(
     adapter.capture(
       dim,
-      { min: box.min, max: { ...box.max, x: box.min.x + 64 } },
+      cellBox(box.min, { ...box.max, x: box.min.x + 64 }),
       owner,
       "exact",
     ),
@@ -107,7 +108,7 @@ it("refuses oversized and out-of-height captures without reading blocks", () => 
     expect(
       adapter.capture(
         dim,
-        { min: { ...box.min, y }, max: { ...box.max, y } },
+        cellBox({ ...box.min, y }, { ...box.max, y }),
         owner,
         "exact",
       ),
@@ -117,7 +118,7 @@ it("refuses oversized and out-of-height captures without reading blocks", () => 
     expect(
       adapter.capture(
         dim,
-        { min: { ...box.min, y }, max: { ...box.max, y } },
+        cellBox({ ...box.min, y }, { ...box.max, y }),
         owner,
         "exact",
       ),
@@ -258,7 +259,7 @@ it("clears ordinary entities but preserves players, fleet entities and outside e
 });
 
 it("fills every chunk with air without destroy and reports command failures", () => {
-  const large = { min: { x: 0, y: 0, z: 0 }, max: { x: 63, y: 255, z: 63 } };
+  const large = cellBox({ x: 0, y: 0, z: 0 }, { x: 63, y: 255, z: 63 });
   expect(store().clearBlocks(dim, large)).toBe(true);
   expect(engine.runCommand).toHaveBeenCalledTimes(32);
   expect(engine.runCommand).toHaveBeenNthCalledWith(

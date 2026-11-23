@@ -21,9 +21,11 @@ import { id } from "../../infrastructure/shared/identifiers";
 import {
   ENTITY_TYPE,
   entityPropertyId,
+} from "../../infrastructure/vehicle/bedrock/identifiers";
+import {
   TEST_HELD_ITEM_EVENT,
   TEST_TOOL_EVENT,
-} from "../../infrastructure/vehicle/bedrock/identifiers";
+} from "../../infrastructure/vehicle/testHooks/identifiers";
 import { type Arena, drive, wait, withCar } from "../arena";
 import { type Outcome, runCourse, type StepSink } from "../outcome";
 import { hitTick, judgeRam, PUSH_WINDOW, type RamSample } from "../ramJudge";

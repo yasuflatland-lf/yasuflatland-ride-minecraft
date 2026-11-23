@@ -1,17 +1,17 @@
 // Lets in-game tests pitch and hit a tent, which a test has no player to do (ADR 0010, 0131).
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { FoldLegacyTents } from "../../../../application/camp/foldLegacyTents";
-import type { PitchTent } from "../../../../application/camp/pitchTent";
-import type { TakeDownTent } from "../../../../application/camp/takeDownTent";
-import { asTentId } from "../../../../domain/camp/tent";
-import { asDimensionId } from "../../../../domain/shared/ids";
-import { NAMESPACE } from "../../../shared/identifiers";
+import type { FoldLegacyTents } from "../../../application/camp/foldLegacyTents";
+import type { PitchTent } from "../../../application/camp/pitchTent";
+import type { TakeDownTent } from "../../../application/camp/takeDownTent";
+import { asTentId } from "../../../domain/camp/tent";
+import { asDimensionId } from "../../../domain/shared/ids";
+import { NAMESPACE } from "../../shared/identifiers";
 import {
   TEST_TENT_FOLD_LEGACY_EVENT,
   TEST_TENT_HIT_EVENT,
   TEST_TENT_PITCH_EVENT,
-} from "../../identifiers";
-import type { DynamicPropertyTentRegistry } from "../../persistence/tentRegistry";
+} from "../identifiers";
+import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 
 const OVERWORLD = asDimensionId("minecraft:overworld");
 

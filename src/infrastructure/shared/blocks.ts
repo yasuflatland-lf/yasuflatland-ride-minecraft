@@ -7,6 +7,7 @@ import {
 } from "@minecraft/server";
 import { type Cell, cellCenter, sameCell } from "../../domain/shared/cells";
 import type { DimensionId } from "../../domain/shared/ids";
+import type { StandSample } from "../../domain/shared/standing";
 import type { Vec3 } from "../../domain/shared/vec";
 
 /** The block at `cell`, or undefined for an unknown dimension, an unloaded chunk, or a cell outside the world. */
@@ -16,6 +17,34 @@ export function safeBlockAt(
 ): Block | undefined {
   try {
     return dimension?.getBlock(cell);
+  } catch {
+    return undefined;
+  }
+}
+
+export function sampleBlock(
+  dimension: Dimension,
+  cell: Cell,
+  { probeSolidity = true } = {},
+): StandSample | undefined {
+  try {
+    const block = dimension.getBlock(cell);
+    if (!block) return undefined;
+    const { typeId, isAir, isLiquid } = block;
+    // BDS 1.26.63.1 includes the origin cell; starting below it tests the wrong block.
+    const hit = probeSolidity
+      ? dimension.getBlockAbove(cell, {
+          maxDistance: 1,
+          includeLiquidBlocks: false,
+          includePassableBlocks: false,
+        })
+      : undefined;
+    return {
+      typeId,
+      isAir,
+      isLiquid,
+      solidTop: hit !== undefined && sameCell(hit.location, cell),
+    };
   } catch {
     return undefined;
   }

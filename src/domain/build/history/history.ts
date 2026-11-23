@@ -2,11 +2,13 @@
 import type { DimensionId } from "../../shared/ids";
 import type { CellBox } from "../box";
 import type { EditRecord } from "../edit/change";
+import type { Taps } from "../flow/flow";
 import type { StructureHandle } from "../structure/handle";
 
 export interface SnapshotRecord {
   readonly paste?: true;
   readonly selectionBefore?: CellBox;
+  readonly selectionBeforeTaps?: Taps;
   readonly dimensionId: DimensionId;
   /** The box that was overwritten. */
   readonly box: CellBox;
@@ -34,7 +36,7 @@ export function withEntry(
   if (
     entry.kind === "cells" &&
     entry.record.changes.length === 0 &&
-    !entry.record.selectionBeforeTaps
+    !entry.record.keepEmpty
   )
     return { history, dropped: [] };
   const entries = [...history.entries, entry];

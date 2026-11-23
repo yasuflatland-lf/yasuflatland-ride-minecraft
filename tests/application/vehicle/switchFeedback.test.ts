@@ -7,6 +7,12 @@ import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback"
 import { SwitchHeadlights } from "../../../src/application/vehicle/switchHeadlights";
 import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
+import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import {
+  profileOf,
+  toolFeedback,
+} from "../../../src/domain/vehicle/kinds/index";
+import { readLang } from "../../support/lang";
 import { riderView } from "../../support/riders";
 import { FakeClock, FakeWorld, InMemoryRepo, snapshot } from "./fakes";
 
@@ -17,6 +23,8 @@ const cases = [
   ["wide_blade_switch", "wide", "wide_blade_wide"],
   ["road_paver_switch", "off", "road_paver_off"],
   ["road_paver_switch", "on", "road_paver_on"],
+  ["icebreaker_switch", "off", "icebreaker_off"],
+  ["icebreaker_switch", "on", "icebreaker_on"],
   ["headlight_switch", "off", "headlights_off"],
   ["headlight_switch", "on", "headlights_on"],
 ] as const;
@@ -45,20 +53,30 @@ it("maps each new state to a translated message only in the chase camera", () =>
   );
 });
 
-it("has translations for every switch message", () => {
-  const langs = ["en_US", "ja_JP"].map((locale) =>
-    readFileSync(`packs/yasu_ride_rp/texts/${locale}.lang`, "utf8"),
-  );
-  for (const [, , key] of cases) {
-    for (const lang of langs) {
-      expect(
-        lang
-          .split("\n")
-          .some((line) => line.startsWith(`yasu_ride.message.${key}=`)),
-      ).toBe(true);
+const texts = "packs/yasu_ride_rp/texts";
+const locales: string[] = JSON.parse(
+  readFileSync(`${texts}/languages.json`, "utf8"),
+);
+
+it.each(locales)(
+  "translates every declared tool state and headlight message in %s",
+  (locale) => {
+    const lang = readLang(`${texts}/${locale}.lang`);
+    for (const kind of VEHICLE_KINDS) {
+      for (const { item, states } of profileOf(kind).monitor?.tools ?? []) {
+        for (const state of states) {
+          const message = toolFeedback(item, state);
+          expect(message, `${kind}: ${item} ${state}`).toBeDefined();
+          expect(lang.get(`yasu_ride.message.${message}`)).toBeTruthy();
+        }
+      }
     }
-  }
-});
+    for (const [item, , key] of cases) {
+      if (item === "headlight_switch")
+        expect(lang.get(`yasu_ride.message.${key}`)).toBeTruthy();
+    }
+  },
+);
 
 it("ignores unsupported items and states, including inherited object keys", () => {
   fc.assert(

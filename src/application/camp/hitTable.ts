@@ -13,10 +13,10 @@ export class HitTable {
   execute(cmd: {
     tableId: TableId;
     tick: number;
-    playerId: PlayerId;
+    playerId?: PlayerId;
   }): boolean {
     if (this.world.itemsOnTable(cmd.tableId) > 0) {
-      this.world.showOvenOnTop(cmd.playerId);
+      if (cmd.playerId !== undefined) this.world.showOvenOnTop(cmd.playerId);
       return false;
     }
     let taken = false;
@@ -26,7 +26,10 @@ export class HitTable {
         this.world.removeTable(cmd.tableId);
         taken = true;
       },
-      showRemaining: (left) => this.world.showHitsLeft(cmd.playerId, left),
+      showRemaining: (left) => {
+        if (cmd.playerId !== undefined)
+          this.world.showHitsLeft(cmd.playerId, left);
+      },
     });
     return taken;
   }

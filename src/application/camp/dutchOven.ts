@@ -174,7 +174,7 @@ export class DutchOvenActions {
     }
   }
 
-  hit(id: DutchOvenId, player: PlayerId, tick: number): boolean {
+  hit(id: DutchOvenId, player: PlayerId | undefined, tick: number): boolean {
     let taken = false;
     handleHit(this.hits, id, tick, {
       drop: () => {
@@ -191,7 +191,9 @@ export class DutchOvenActions {
         this.world.removeDutchOven(id);
         taken = true;
       },
-      showRemaining: (left) => this.world.showHitsLeft(player, left),
+      showRemaining: (left) => {
+        if (player !== undefined) this.world.showHitsLeft(player, left);
+      },
     });
     return taken;
   }
