@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
@@ -11,18 +10,6 @@ import { CamperRoomDecor } from "../../../../../src/domain/vehicle/kinds/camper/
 import { decorItemId } from "../../../../support/decorIds";
 
 const gear = fc.constantFrom(...CAMPING_GEAR_IDS);
-const savedEntry = fc.record({
-  slot: fc.oneof(
-    fc.constantFrom(...DECOR_SLOTS.map(({ id }) => id)),
-    fc.constantFrom("stove_rear", "shelf_low", "shelf_high_front", "old_slot"),
-    fc.string(),
-  ),
-  item: fc.oneof(
-    gear,
-    gear,
-    fc.constantFrom("lava_lamp", "oil_lamp", "lantern", "unknown_gear"),
-  ),
-});
 const setCalls = fc.array(
   fc.tuple(
     fc.constantFrom(...DECOR_SLOTS.map(({ id }) => id)),
@@ -30,39 +17,11 @@ const setCalls = fc.array(
   ),
 );
 
-it("restores saved decor in the pre-extraction order", () => {
-  const hook = { slot: "ceiling_hook", item: "macrame_planter" };
-  const savedArrays = fc.sample(fc.array(savedEntry, { maxLength: 40 }), {
-    seed: 2093,
-    numRuns: 200,
-  });
-  savedArrays.push([
-    { slot: "old_slot", item: "potted_plant" },
-    { slot: "stove_rear", item: "enamel_kettle" },
-    { slot: "stove", item: "mug_pair" },
-    { slot: "shelf_low", item: "cactus_pot" },
-    { slot: "counter", item: "lantern" },
-    hook,
-    hook,
-    hook,
-  ]);
-  const restored = savedArrays.map((entries) => {
-    const json = JSON.stringify(entries);
-    return CamperRoomDecor.restore(json).all();
-  });
-  const digest = createHash("sha256")
-    .update(JSON.stringify(restored))
-    .digest("hex");
-  // Captured from CamperDrive before extracting the restore logic.
-  expect(digest).toBe(
-    "25d7e6141b2aafff0a3dd6f210d018be590c119e16a8abd10ce02069b5e16c97",
-  );
-});
-
 it("keeps set sequences within the save budget and uses each place at most once", () => {
   fc.assert(
     fc.property(setCalls, (calls) => {
       const decor = CamperRoomDecor.restore(undefined);
+      expect(decorFits(decor.all())).toBe(true);
       let allAccepted = true;
       for (const [slot, item] of calls) {
         allAccepted = decor.set(slot, item) && allAccepted;

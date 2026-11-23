@@ -147,17 +147,22 @@ describe("buildLayout", () => {
     );
   });
 
-  it("checks every room when validating mattresses", () => {
+  it("requires every mattress cell to fit in at least one room", () => {
     const base = spec();
+    const twoRooms = {
+      ...base,
+      rooms: [
+        { halfWidth: 0, depthFrom: 2, depthTo: 3, layerTo: 0 },
+        ...base.rooms,
+      ],
+    };
+    expect(buildLayout(twoRooms).mattresses).toEqual(base.mattresses);
     expect(() =>
       buildLayout({
-        ...base,
-        rooms: [
-          { halfWidth: 0, depthFrom: 2, depthTo: 3, layerTo: 0 },
-          ...base.rooms,
-        ],
+        ...twoRooms,
+        mattresses: [base.mattresses[0], [{ x: -2, depth: 5, layer: 0 }]],
       }),
-    ).not.toThrow();
+    ).toThrow("Tent mattress cell must be inside a room");
   });
 
   it("rejects cells outside the clear box", () => {

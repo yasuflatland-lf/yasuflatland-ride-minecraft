@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
-import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import type { DecorPlacement } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DriveStep,
   TickContext,
@@ -27,7 +27,10 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import { DOOR_STEPS } from "../../../../../src/domain/vehicle/kinds/camper/doorSwing";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
-import { STORAGE_DOORS } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  type DecorSlot,
+  STORAGE_DOORS,
+} from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import {
   NATURAL_GROUND,
   parkCheckCells,
@@ -74,13 +77,11 @@ const inCells = (cells: readonly (typeof DECOR_CELLS)[number][]) =>
   );
 const decor = fc.subarray([...DECOR_CELLS]).chain(inCells);
 const shuffledDecor = fc.shuffledSubarray([...DECOR_CELLS]).chain(inCells);
-const cellOf = (slot: string) => {
-  const cell = decorSlot(decorSlotId(slot))?.cell;
-  return cell && `${cell.x},${cell.z},${cell.layer}`;
+// Pair ends and the two drawers each have their own place, even in a shared block.
+const placeOf = (slot: DecorSlot) => {
+  const { x, z, layer } = slot.cell;
+  return slot.pair ? slot.id : `${x},${z},${layer},${slot.door ?? ""}`;
 };
-// Where a slot's item goes: its cell, or its own end on the table or in a compartment (ADR 0108).
-const placeOf = (slot: string) =>
-  decorSlot(decorSlotId(slot))?.pair ? slot : cellOf(slot);
 const slotNamed = (id: string) =>
   defined(
     DECOR_SLOTS.find((s) => s.id === id),
@@ -823,57 +824,6 @@ it("restores saved decor and moves an entry of a removed slot to the first free 
   ).toEqual(expected);
 });
 
-it("moves a hanging item of a removed slot to the free ceiling hook (ADR 0103)", () => {
-  const saved = JSON.stringify([
-    {
-      slot: decorSlotId("wall_cabinet_rear"),
-      item: decorItemId("macrame_planter"),
-    },
-  ]);
-  expect(
-    camperRoom(
-      new CamperDrive(37, { [CAMPER_SAVED.decor]: saved }),
-    ).decor.decor(),
-  ).toEqual([{ slot: "ceiling_hook", item: "macrame_planter" }]);
-});
-
-// One item per standing cell fills every standing slot (ADR 0107).
-const standingCells = DECOR_CELLS.filter(({ slots }) => !slots[0]?.hanging);
-// Every standing cell full: its first slot, or both ends of a shelf board or the table (ADR 0108).
-const fullSlots = standingCells.flatMap(({ slots }) =>
-  slots
-    .filter((s, i) => i === 0 || s.pair)
-    .map((s) => ({ slot: s.id, item: decorItemId("mug_pair") })),
-);
-const cabinetEntries = [
-  { slot: decorSlotId("wall_cabinet_front"), item: decorItemId("book_stack") },
-  { slot: decorSlotId("wall_cabinet_rear"), item: decorItemId("toaster") },
-];
-
-it("stows an entry of a removed slot when no slot that takes its item is free, and lists it last (ADR 0103)", () => {
-  expect(standingCells).toHaveLength(11);
-  const f = fixture(JSON.stringify([...fullSlots, ...cabinetEntries]));
-  expect(f.room.decor.decor()).toEqual([...fullSlots, ...cabinetEntries]);
-  expect(
-    f.room.decor.setDecor(decorSlotId("wall_cabinet_front"), undefined),
-  ).toBe(false);
-  f.park();
-  expect(
-    f.room.decor.placeDecor(
-      decorSlotId("wall_cabinet_front"),
-      decorItemId("cushion"),
-    ),
-  ).toBe(false);
-  const laid = defined(f.step().dock, "laid dock").cells;
-  expect(
-    laid.filter((c) => ["decor", "decorPair"].includes(c.block.type)),
-  ).toEqual(decorCells(f.pose, fullSlots));
-  expect(laid.filter((c) => c.block.type === "furniture")).toEqual(
-    furnitureCells(f.pose, fullSlots),
-  );
-  expect(f.room.decor.decor()).toEqual([...fullSlots, ...cabinetEntries]);
-});
-
 it("restores each new standing item in every accepting standing slot", () => {
   fc.assert(
     fc.property(fc.integer(), (yaw) => {
@@ -906,88 +856,102 @@ it("restores each new standing item in every accepting standing slot", () => {
   );
 });
 
-it("stows dashboard items unchanged when clearance refuses them and the hook is taken", () => {
-  const entries = [
-    { slot: "dashboard_center", item: "macrame_planter" },
-    { slot: "dashboard_left", item: "macrame_planter" },
-    { slot: "ceiling_hook", item: "potted_plant" },
-    { slot: "dashboard_center", item: "potted_plant" },
-  ];
-  const placed = [
-    {
-      slot: decorSlotId("dashboard_center"),
-      item: decorItemId("potted_plant"),
-    },
-    { slot: decorSlotId("ceiling_hook"), item: decorItemId("potted_plant") },
-  ];
-  const f = fixture(JSON.stringify(entries));
-  expect(f.room.decor.decor()).toEqual([...placed, ...entries.slice(0, 2)]);
-  f.park();
-  const laid = defined(f.step().dock, "laid dock").cells;
-  expect(
-    laid.filter((c) => ["decor", "decorPair"].includes(c.block.type)),
-  ).toEqual(decorCells(f.pose, placed));
-});
-
-it("never loses a saved item when restoring (ADR 0103)", () => {
+it("restores saved decor to the first free accepting slot or stows it unchanged (ADR 0103)", () => {
+  const everyDoor = new Set(STORAGE_DOORS.map((d) => d.id));
   const slotId = fc.constantFrom(
     ...DECOR_SLOTS.map((s) => s.id),
-    "wall_cabinet_front",
-    "wall_cabinet_rear",
-    "nowhere",
+    decorSlotId("wall_cabinet_front"),
+    decorSlotId("wall_cabinet_rear"),
+    decorSlotId("nowhere"),
   );
   const entry = fc.record({
     slot: slotId,
-    item: fc.constantFrom(...CAMPING_GEAR_IDS),
+    item: fc.constantFrom(...CAMPING_GEAR_IDS).map(decorItemId),
   });
+  const savedEntry = (slot: string, item: string): DecorPlacement => ({
+    slot: decorSlotId(slot),
+    item: decorItemId(item),
+  });
+  const fullStandingSlots = DECOR_CELLS.flatMap(({ slots }) =>
+    slots
+      .filter((slot, i) => !slot.hanging && (i === 0 || slot.pair || slot.door))
+      .map((slot) => savedEntry(slot.id, "mug_pair")),
+  );
+  const items = (list: readonly DecorPlacement[]) =>
+    list.map((e) => e.item).sort();
+
   fc.assert(
-    fc.property(fc.array(entry, { maxLength: 16 }), (entries) => {
-      const saved = JSON.stringify(entries);
-      const parsed = parseDecor(saved);
-      const d = camperRoom(
-        new CamperDrive(0, { [CAMPER_SAVED.decor]: saved }),
-      ).decor.decor();
-      const items = (list: readonly { item: string }[]) =>
-        list.map((e) => e.item).sort();
-      expect(items(d)).toEqual(items(parsed));
-      const roundTrip = new CamperDrive(0, {
-        [CAMPER_SAVED.decor]: JSON.stringify(d),
+    fc.property(fc.array(entry, { maxLength: 40 }), (entries) => {
+      const placedByPlace = new Map<string, DecorPlacement>();
+      const displaced = entries.filter((e) => {
+        const slot = decorSlot(e.slot);
+        if (!slot || (slot.items && !slot.items.includes(e.item))) return true;
+        const place = placeOf(slot);
+        if (placedByPlace.has(place)) return true;
+        placedByPlace.set(place, e);
+        return false;
       });
-      expect(items(camperRoom(roundTrip).decor.decor())).toEqual(items(parsed));
-      // A known slot keeps its entry unless an earlier entry took its place: its cell, or
-      // its own end of a shelf board or the table (ADR 0107, 0108).
-      for (const [i, e] of parsed.entries()) {
-        const place = placeOf(e.slot);
-        if (
-          place &&
-          slotsFor(e.item, new Set(STORAGE_DOORS.map((d) => d.id))).some(
-            (s) => s.id === e.slot,
-          ) &&
-          !parsed.slice(0, i).some((o) => placeOf(o.slot) === place)
-        )
-          expect(d).toContainEqual(e);
-      }
-      // The placed entries come first, one per place; a stowed entry follows, and every
-      // slot that takes its item has its place taken.
-      const placed = d.filter((e, i) => {
-        const place = placeOf(e.slot);
-        const slot = DECOR_SLOTS.find((s) => s.id === e.slot);
-        // A stowed entry may name a free slot that refuses its item.
-        return (
-          place !== undefined &&
-          slot !== undefined &&
-          (slot.items === undefined || slot.items.includes(e.item)) &&
-          !d.slice(0, i).some((o) => placeOf(o.slot) === place)
+
+      const stowed: DecorPlacement[] = [];
+      for (const e of displaced) {
+        const free = slotsFor(e.item, everyDoor).find(
+          (slot) => !placedByPlace.has(placeOf(slot)),
         );
-      });
-      expect(new Set(placed.map((e) => e.slot)).size).toBe(placed.length);
-      const takenPlaces = new Set(placed.map((e) => placeOf(e.slot)));
-      for (const e of d.slice(placed.length)) {
-        expect(placed).not.toContain(e);
-        for (const s of slotsFor(e.item))
-          expect(takenPlaces.has(placeOf(s.id))).toBe(true);
+        if (free) placedByPlace.set(placeOf(free), { ...e, slot: free.id });
+        else stowed.push(e);
       }
+      const placed = [...placedByPlace.values()].sort(
+        (a, b) => slotIndex(a) - slotIndex(b),
+      );
+
+      const f = fixture(JSON.stringify(entries));
+      const restored = f.room.decor.decor();
+      expect(restored).toEqual([...placed, ...stowed]);
+      expect(items(restored)).toEqual(items(entries));
+      const reloaded = fixture(JSON.stringify(restored));
+      expect(items(reloaded.room.decor.decor())).toEqual(items(entries));
+
+      f.park();
+      for (const e of stowed.filter((e) => decorSlot(e.slot) === undefined)) {
+        expect(f.room.decor.setDecor(e.slot, undefined)).toBe(false);
+        expect(f.room.decor.placeDecor(e.slot, e.item)).toBe(false);
+      }
+      const laid = defined(f.step().dock, "laid dock").cells;
+      expect(
+        laid.filter(
+          (c) => c.block.type === "decor" || c.block.type === "decorPair",
+        ),
+      ).toEqual(decorCells(f.pose, placed));
+      expect(laid.filter((c) => c.block.type === "furniture")).toEqual(
+        furnitureCells(f.pose, placed),
+      );
+      expect(f.room.decor.decor()).toEqual(restored);
     }),
+    {
+      examples: [
+        [
+          [
+            savedEntry("wall_cabinet_rear", "macrame_planter"),
+            savedEntry("nowhere", "mug_pair"),
+          ],
+        ],
+        [
+          [
+            ...fullStandingSlots,
+            savedEntry("wall_cabinet_front", "book_stack"),
+            savedEntry("wall_cabinet_rear", "toaster"),
+          ],
+        ],
+        [
+          [
+            savedEntry("dashboard_center", "macrame_planter"),
+            savedEntry("dashboard_left", "macrame_planter"),
+            savedEntry("ceiling_hook", "potted_plant"),
+            savedEntry("dashboard_center", "potted_plant"),
+          ],
+        ],
+      ],
+    },
   );
 });
 
