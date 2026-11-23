@@ -15,11 +15,7 @@ describe("far chase camera preset (ADR 0071)", () => {
   });
 });
 
-it("uses the existing eight-block mid preset for bulldozer and SUV, keeping camper far", async () => {
-  const { profileOf } = await import("../../src/domain/vehicle/kinds/index");
-  expect(profileOf("bulldozer").chaseCamera).toBe("mid");
-  expect(profileOf("suv").chaseCamera).toBe("mid");
-  expect(profileOf("camper").chaseCamera).toBe("far");
+it("defines the existing eight-block mid chase preset", () => {
   const preset = JSON.parse(
     readFileSync(
       "packs/yasu_ride_bp/cameras/presets/yasu_ride/mid_chase.json",

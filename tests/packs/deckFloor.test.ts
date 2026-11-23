@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   DECK_FLOOR_BLOCK,
@@ -39,10 +38,12 @@ describe("Boat deck floor (ADR 0063)", () => {
   });
 
   it("defines one collision height permutation for each pixel from 1 to 16", () => {
-    expect(block.description.states).toEqual({ "yasu_ride:height": heights });
+    expect(block.description.states).toEqual({
+      [DECK_FLOOR_HEIGHT_STATE]: heights,
+    });
     expect(block.permutations).toEqual(
       heights.map((height) => ({
-        condition: `q.block_state('yasu_ride:height') == ${height}`,
+        condition: `q.block_state('${DECK_FLOOR_HEIGHT_STATE}') == ${height}`,
         components: {
           "minecraft:collision_box": {
             origin: [-8, 0, -8],
@@ -57,22 +58,6 @@ describe("Boat deck floor (ADR 0063)", () => {
   // they must name the block and the state the pack actually defines.
   it("is the block the script lays floors with", () => {
     expect(DECK_FLOOR_BLOCK).toBe(block.description.identifier);
-  });
-
-  it("selects each collision height by the state the script sets", () => {
-    const states = block.description.states as Record<string, number[]>;
-    fc.assert(
-      fc.property(fc.integer({ min: 1, max: 16 }), (height) => {
-        expect(states[DECK_FLOOR_HEIGHT_STATE]).toContain(height);
-        expect(
-          block.permutations.some(
-            (p) =>
-              p.condition ===
-              `q.block_state('${DECK_FLOOR_HEIGHT_STATE}') == ${height}`,
-          ),
-        ).toBe(true);
-      }),
-    );
   });
 
   it("references the hidden-cube model and hides its bone (ADR 0101)", () => {

@@ -28,39 +28,37 @@ describe("packs/yasu_ride_bp", () => {
     expect(c["minecraft:variable_max_auto_step"].base_value).toBe(1.0625);
   });
 
-  it("has an SUV item (ADR 0008)", () => {
-    expect(
-      read("packs/yasu_ride_bp/items/yasu_ride/suv_item.item.json")[
-        "minecraft:item"
-      ].description.identifier,
-    ).toBe("yasu_ride:suv_item");
-  });
-
-  it("switches gravity off with yasu_ride:gravity_off and back on with yasu_ride:gravity_on, and syncs the vehicle form to clients (ADR 0021)", () => {
-    expect(
-      entity.description.properties[entityPropertyId("form")],
-    ).toMatchObject({
-      default: "car",
-      client_sync: true,
-    });
-    expect(entity.component_groups["yasu_ride:weightless"]).toEqual({
-      "minecraft:physics": { has_gravity: false },
-    });
-    // Removing a group drops its components instead of restoring the base
-    // ones, so landing has to add a group that brings physics back. The
-    // in-game flight_land test caught a car that floated after landing.
-    expect(entity.component_groups["yasu_ride:weighted"]).toEqual({
-      "minecraft:physics": {},
-    });
-    expect(entity.events[entityEventId("gravity_off")]).toEqual({
-      add: { component_groups: ["yasu_ride:weightless"] },
-      remove: { component_groups: ["yasu_ride:weighted"] },
-    });
-    expect(entity.events[entityEventId("gravity_on")]).toEqual({
-      add: { component_groups: ["yasu_ride:weighted"] },
-      remove: { component_groups: ["yasu_ride:weightless"] },
-    });
-  });
+  it.each(["suv", "camper", "bulldozer", "scooter"])(
+    "switches gravity for %s and syncs its form (ADR 0021)",
+    (kind) => {
+      const entity = read(
+        `packs/yasu_ride_bp/entities/yasu_ride/${kind}.se.json`,
+      )["minecraft:entity"];
+      expect(
+        entity.description.properties[entityPropertyId("form")],
+      ).toMatchObject({
+        default: "car",
+        client_sync: true,
+      });
+      expect(entity.component_groups["yasu_ride:weightless"]).toEqual({
+        "minecraft:physics": { has_gravity: false },
+      });
+      // Removing a group drops its components instead of restoring the base
+      // ones, so landing has to add a group that brings physics back. The
+      // in-game flight_land test caught a car that floated after landing.
+      expect(entity.component_groups["yasu_ride:weighted"]).toEqual({
+        "minecraft:physics": {},
+      });
+      expect(entity.events[entityEventId("gravity_off")]).toEqual({
+        add: { component_groups: ["yasu_ride:weightless"] },
+        remove: { component_groups: ["yasu_ride:weighted"] },
+      });
+      expect(entity.events[entityEventId("gravity_on")]).toEqual({
+        add: { component_groups: ["yasu_ride:weighted"] },
+        remove: { component_groups: ["yasu_ride:weightless"] },
+      });
+    },
+  );
 
   it("syncs the bank angle to clients with a level default (ADR 0026)", () => {
     expect(

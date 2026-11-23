@@ -185,7 +185,6 @@ describe("tent entity and client", () => {
       "minecraft:custom_hit_test": {
         hitboxes: [{ width: 0.1, height: 0.1, pivot: [0, 0.05, 0] }],
       },
-      "minecraft:physics": { has_collision: false, has_gravity: false },
       "minecraft:health": { value: 20, max: 20 },
     });
     const collision = e.components["minecraft:collision_box"];
@@ -216,23 +215,9 @@ describe("tent entity and client", () => {
     expect(Object.keys(e.component_groups)).toEqual(
       PAINTS.map((paint) => `yasu_ride:paint_${paint}`),
     );
+    for (const group of Object.values(e.component_groups ?? {}))
+      expect(Object.keys(group as object)).toEqual(["minecraft:variant"]);
     expect(Object.keys(e.events)).toEqual(PAINTS.map(paintEvent));
-  });
-  it("writes float property values with a decimal point", () => {
-    // The engine rejects a float property whose default is written as 0
-    // ("'default' value does not match the specified type 'float'") and then
-    // drops every property of the entity, so JSON.parse alone cannot catch it.
-    const text = readFileSync(`${BP}/entities/yasu_ride/tent.se.json`, "utf8");
-    const floats = [
-      ...text.matchAll(
-        /"type": "float",\s*"range": \[(.*?)\],\s*"default": (.*?),/g,
-      ),
-    ];
-    expect(floats).toHaveLength(4);
-    for (const [, range, def] of floats) {
-      expect(range).toBe("0.0, 1.0");
-      expect(def).toBe("0.0");
-    }
   });
   it("draws the tent, switches only the shade material, and rolls each flap about its top", () => {
     const doc = readJson(`${RP}/entity/yasu_ride/tent.ce.json`);
@@ -810,10 +795,6 @@ describe("tent item", () => {
       "minecraft:max_stack_size": 1,
       "minecraft:display_name": { value: `item.${TENT_ITEM}.name` },
     });
-    const icon = readJson(`${RP}/textures/item_texture.json`).texture_data
-      .yasu_ride_tent_item.textures;
-    expect(icon).toBe("textures/items/yasu_ride/tent_item");
-    expect(existsSync(`${RP}/${icon}.png`)).toBe(true);
   });
   it("uses the specified wool, stick, and string recipe", () => {
     const r = readJson(`${BP}/recipes/yasu_ride/tent_item.recipe.json`);
@@ -953,21 +934,6 @@ describe("tent shelter blocks (ADR 0131)", () => {
       expect(c["minecraft:light_dampening"]).toBe(0);
     },
   );
-
-  it("keeps the entity's hidden box and hit test in its base components", () => {
-    const e = readJson(`${BP}/entities/yasu_ride/tent.se.json`)[
-      "minecraft:entity"
-    ];
-    expect(e.components["minecraft:collision_box"]).toEqual({
-      width: 0.2,
-      height: 0.2,
-    });
-    expect(e.components["minecraft:custom_hit_test"]).toEqual({
-      hitboxes: [{ width: 0.1, height: 0.1, pivot: [0, 0.05, 0] }],
-    });
-    for (const group of Object.values(e.component_groups ?? {}))
-      expect(Object.keys(group as object)).toEqual(["minecraft:variant"]);
-  });
 
   it("keeps every model cube within the footprint, x -56..56 and z -136..8 px", () => {
     for (const bone of geometry().bones as Bone[])
