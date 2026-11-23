@@ -1,6 +1,5 @@
 import { ticks } from "../../../shared/ticks";
-import type { Medium } from "../../motion/motion";
-import type { TransformingSpec } from "../../motion/transforming";
+import { transformingSpecOf } from "../../motion/transforming";
 
 // The scooter's own tuning values (ADR 0055); ground speeds are copies of the SUV's numbers, not imports (ADR 0050).
 export const SCOOTER_SPEC = Object.freeze({
@@ -60,37 +59,7 @@ export const SCOOTER_SPEC = Object.freeze({
   standSpeed: 0.01, // blocks/tick for lowering the stand, tuned independently of the dock tolerance
 } as const);
 
-const SCOOTER_AIR: Medium = Object.freeze({
-  drag: SCOOTER_SPEC.flightDrag,
-  maxSpeed: SCOOTER_SPEC.maxSpeed,
-});
-export const SCOOTER_WATER: Medium = Object.freeze({
-  drag: SCOOTER_SPEC.waterDrag,
-  maxSpeed: SCOOTER_SPEC.maxWaterSpeed,
-});
-
-export const SCOOTER_TRANSFORMING: TransformingSpec = Object.freeze({
-  carHeight: SCOOTER_SPEC.carHeight,
-  doubleTapTicks: SCOOTER_SPEC.doubleTapTicks,
-  takeoffTicks: SCOOTER_SPEC.takeoffTicks,
-  takeoffClimb: SCOOTER_SPEC.takeoffClimb,
-  landingSink: SCOOTER_SPEC.landingSink,
-  maxClimb: SCOOTER_SPEC.maxClimb,
-  flightVerticalDrag: SCOOTER_SPEC.flightVerticalDrag,
-  waterVerticalDrag: SCOOTER_SPEC.waterVerticalDrag,
-  floatDraft: SCOOTER_SPEC.floatDraft,
-  floatGain: SCOOTER_SPEC.floatGain,
-  surfaceRise: SCOOTER_SPEC.surfaceRise,
-  submarineStepProbeDrop: SCOOTER_SPEC.submarineStepProbeDrop,
-  maxBank: SCOOTER_SPEC.maxBank,
-  bankRate: SCOOTER_SPEC.bankRate,
-  bankSink: SCOOTER_SPEC.bankSink,
-  gearDownHeight: SCOOTER_SPEC.gearDownHeight,
-  gearProbeOffset: SCOOTER_SPEC.gearProbeOffset,
-  hitboxFront: SCOOTER_SPEC.hitboxFront,
-  stepLaneOffset: SCOOTER_SPEC.stepLaneOffset,
+export const SCOOTER_TRANSFORMING = transformingSpecOf(SCOOTER_SPEC, {
   bankEasing: "smooth",
-  air: SCOOTER_AIR,
-  water: SCOOTER_WATER,
   waterPolicy: "surface",
 });
