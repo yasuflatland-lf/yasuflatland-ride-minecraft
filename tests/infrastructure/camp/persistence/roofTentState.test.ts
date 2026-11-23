@@ -8,10 +8,8 @@ import {
   encodeSpawnSetters,
 } from "../../../../src/infrastructure/camp/persistence/roofTentState";
 
-it("round-trips finite saved exits and setter lists in their original order", () => {
-  const coordinate = fc
-    .double({ noNaN: true, noDefaultInfinity: true })
-    .map((value) => (value === 0 ? 0 : value));
+it("round-trips safe integer saved exits and setter lists in their original order", () => {
+  const coordinate = fc.maxSafeInteger();
   fc.assert(
     fc.property(
       fc.record({ x: coordinate, y: coordinate, z: coordinate }),
@@ -34,6 +32,8 @@ it.each([
   "[]",
   '{"x":1,"y":2}',
   '{"x":1,"y":"2","z":3}',
+  '{"x":1,"y":2,"z":3.5}',
+  '{"x":1,"y":2,"z":9007199254740992}',
   '{"x":1,"y":2,"z":1e999}',
 ])("ignores invalid saved exits: %s", (raw) => {
   expect(decodeExit(raw)).toBeUndefined();

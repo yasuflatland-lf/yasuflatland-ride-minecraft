@@ -17,16 +17,16 @@ On 2026-10-12, the dev BDS served a Resource Pack with the sports boat's bow ris
   - `yasu_ride_rp/manifest.json`: the Resource Pack manifest with `header.version` and every module version set to the dev version
   - `yasu_ride_bp/manifest.json`: the Behavior Pack manifest with its dependency on the Resource Pack (`b5d52b53-d112-4da1-9c1a-b95db192f94a`) set to the dev version
   - Everything else in both manifests stays as committed. The test Behavior Pack does not depend on the Resource Pack and is served as committed
-- The dev version is `[major, minor, 10000 + counter]`: major and minor come from the committed Resource Pack manifest, and the counter is the greater of the previous counter plus one and the whole seconds since 2026-01-01 UTC, with a minimum of 1. The counter is stored in `server/data/dev-pack-version.json`; a missing or unreadable file uses the time floor. Releases bump the patch one at a time from small numbers (0.1.50), so a patch of 10001 or more does not match current releases
+- The dev version is `[major, minor, 10000 + counter]`: major and minor from the committed Resource Pack manifest, and a counter in `server/data/dev-pack-version.json` that goes up by one on every run. A missing or unreadable state file starts the counter at 1. Releases bump the patch one at a time from small numbers (0.1.50), so a patch of 10001 or more never matches a release, and each start serves a version that no earlier start in this checkout has served
 - The world's `world_resource_packs.json` and `world_behavior_packs.json` are written from the same generated manifests, so the world registration and the served packs always agree
 - `server/compose.yaml` keeps the directory bind mounts of the packs, so `pnpm build` and `/reload` still pick up script changes live, and adds read-only single-file bind mounts of the generated manifests over `/data/resource_packs/yasu_ride_rp/manifest.json` and `/data/behavior_packs/yasu_ride_bp/manifest.json`. They set `create_host_path: false`, so `docker compose up` fails when the manifests were not generated instead of mounting an empty directory
 - `pnpm server:restart` runs `docker compose -f server/compose.yaml down` and then the `pnpm server:up` flow. Restarts go through it, not `docker restart`, so the version goes up
 
 ## Consequences
 
-- With the counter state intact, a device downloads the Resource Pack again after `pnpm server:up` or `pnpm server:restart`, even when nothing changed. The pack is small and the server is on the LAN, so this costs little
+- A device always downloads the Resource Pack again after `pnpm server:up` or `pnpm server:restart`, even when nothing changed. The pack is small and the server is on the LAN, so this costs little
 - A `docker restart` or `docker compose restart` keeps the previous dev version. That is harmless when the Resource Pack did not change, and wrong when it did, so AGENTS.md says to use `pnpm server:restart`
-- Each checkout and worktree has its own `server/data/` and so its own counter. The time floor makes collisions between checkouts less likely, but starts in the same second can still share a version. A lost state file can also reuse a version if the clock has not passed the previous counter, including after rapid starts or a clock rollback
+- Each checkout and worktree has its own `server/data/` and so its own counter. Two checkouts that serve the dev BDS to the same device can still reach the same dev version, for example 0.1.10003 in both. Revisit, for example by adding a per-checkout offset or a timestamp, if that happens in practice
 - If the committed major or minor goes down, a dev version can repeat one served before. Releases only go up, so this is not expected
 - The CI in-game tests run `scripts/setup-dev-world.mjs` before `docker compose up`, as before, so they get the generated manifests too
 - Release checks (`scripts/check-rp-version.mjs`, 0015) still read the committed manifests and are unaffected

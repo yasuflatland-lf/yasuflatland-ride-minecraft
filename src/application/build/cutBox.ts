@@ -40,7 +40,9 @@ export class CutBox implements BoxAction {
     }
     const handle = this.structures.capture(dimensionId, box, playerId, "copy");
     if (handle === "tooLarge" || handle === "unreadable") {
-      this.feedback.showMessage(playerId, "tooLarge", count);
+      if (handle === "tooLarge")
+        this.feedback.showMessage(playerId, "tooLarge", count);
+      else this.feedback.showMessage(playerId, "copyUnreadable");
       return false;
     }
     const snapshot = this.structures.capture(
@@ -51,7 +53,9 @@ export class CutBox implements BoxAction {
     );
     if (snapshot === "tooLarge" || snapshot === "unreadable") {
       this.structures.discard(handle);
-      this.feedback.showMessage(playerId, "tooLarge", count);
+      if (snapshot === "tooLarge")
+        this.feedback.showMessage(playerId, "tooLarge", count);
+      else this.feedback.showMessage(playerId, "copyUnreadable");
       return false;
     }
     this.structures.clearEntities(dimensionId, box);
