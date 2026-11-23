@@ -8,7 +8,6 @@ import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { OpenGift } from "../../../application/vehicle/openGift";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
-import type { SetDecor } from "../../../application/vehicle/room/setDecor";
 import type { SwitchCeilingLights } from "../../../application/vehicle/room/switchCeilingLights";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
@@ -32,10 +31,7 @@ import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerStandIns } from "./handlers/standIn";
 import { registerStarter } from "./handlers/starter";
-import { registerTestDecor } from "./handlers/testDecor";
-import { registerTestHeldItem } from "./handlers/testHeldItem";
 import { registerTestInput } from "./handlers/testInput";
-import { registerTestTool } from "./handlers/testTool";
 import { toolSwitchTarget } from "./handlers/toolSwitch";
 import { MONITOR_TOOL_TYPES } from "./identifiers";
 
@@ -51,12 +47,10 @@ export function registerSubscriptions(
     headlights: SwitchHeadlights;
     ceilingLights: SwitchCeilingLights;
     tool: SwitchTool;
-    decor: SetDecor;
     hints: ShowVehicleHints;
     board: BoardVehicle;
   },
   testInputs: VehicleTestStore<RawInput>,
-  testHeldItems: VehicleTestStore<string>,
   dockCellOwner: (
     dimensionId: DimensionId,
     cell: Vec3,
@@ -68,10 +62,7 @@ export function registerSubscriptions(
   installKind();
   registerDrive(useCases.drive, useCases.hints);
   registerFleet(useCases.limit);
-  registerTestTool(useCases.tool);
-  registerTestDecor(useCases.decor);
   registerTestInput(testInputs);
-  registerTestHeldItem(testHeldItems);
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
   registerStandIns(useCases.board);

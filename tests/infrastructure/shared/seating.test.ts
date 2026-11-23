@@ -87,11 +87,16 @@ it("returns failed mounts and lets the caller handle engine errors", () => {
   expect(() => f.seat()).toThrow("unloaded");
 });
 
-it("requires a solid floor and two air cells outside vehicle and camp space", () => {
+it("requires a dry, non-decoration floor and two air cells outside vehicle and camp space", () => {
+  const acceptedFloors = [
+    "minecraft:stone",
+    "minecraft:torch",
+    "minecraft:magma",
+  ];
   fc.assert(
     fc.property(
       fc.constantFrom(
-        "minecraft:stone",
+        ...acceptedFloors,
         "minecraft:air",
         "minecraft:water",
         ...CLEARABLE_DECORATIONS,
@@ -113,7 +118,14 @@ it("requires a solid floor and two air cells outside vehicle and camp space", ()
                 isLiquid: floor === "minecraft:water",
               };
             }
-            return { isAir: air[cell.y] };
+            return {
+              typeId: air[cell.y] ? "minecraft:air" : "minecraft:short_grass",
+              isAir: air[cell.y],
+              isLiquid: false,
+            };
+          },
+          getBlockAbove: () => {
+            throw Error("seat exits do not need a solidity probe");
           },
         };
         const isSafe = makeSafeStand({
@@ -123,7 +135,7 @@ it("requires a solid floor and two air cells outside vehicle and camp space", ()
         expect(
           isSafe(dimension as unknown as Dimension, { x: 0, y: 0, z: 0 }),
         ).toBe(
-          floor === "minecraft:stone" &&
+          acceptedFloors.includes(floor) &&
             air.every(Boolean) &&
             !vehicle.some(Boolean) &&
             !camp.some(Boolean),
@@ -133,20 +145,24 @@ it("requires a solid floor and two air cells outside vehicle and camp space", ()
   );
 });
 
-it("accepts a supported clear standing cell and rejects an unavailable head cell", () => {
+it.each([0, 1])("rejects an unavailable body cell at height %s", (y) => {
   const getBlock = vi.fn((cell: Cell) => ({
-    typeId: cell.y === -1 ? "minecraft:stone" : "minecraft:air",
+    typeId: cell.y === -1 ? "minecraft:torch" : "minecraft:air",
     isAir: cell.y !== -1,
     isLiquid: false,
   }));
-  const dimension = { getBlock } as unknown as Dimension;
+  const getBlockAbove = vi.fn(() => {
+    throw Error("unavailable");
+  });
+  const dimension = { getBlock, getBlockAbove } as unknown as Dimension;
   const isSafe = makeSafeStand({
     isVehicleSpace: () => false,
     isCampSpace: () => false,
   });
   expect(isSafe(dimension, { x: 0, y: 0, z: 0 })).toBe(true);
+  expect(getBlockAbove).not.toHaveBeenCalled();
   getBlock.mockImplementation((cell) => {
-    if (cell.y === 1) throw Error("unloaded");
+    if (cell.y === y) throw Error("unloaded");
     return { typeId: "minecraft:stone", isAir: cell.y !== -1, isLiquid: false };
   });
   expect(isSafe(dimension, { x: 0, y: 0, z: 0 })).toBe(false);

@@ -20,6 +20,7 @@ import {
   parkPose,
 } from "../../domain/vehicle/kinds/camper/parkPose";
 import { CAMPER_ROOM } from "../../domain/vehicle/kinds/camper/room";
+import { CAMPER_SAVED } from "../../domain/vehicle/kinds/camper/saved";
 import {
   CAMPER_SPEC,
   DRAWER_GEAR_IDS,
@@ -355,6 +356,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     );
     const reloaded = fixture(a, f.carrier, {
       docked: true,
+      [CAMPER_SAVED.laid]: true,
       dockDecor: saved,
       drawer_top: f.carrier.getProperty(id("drawer_top")),
       drawer_bottom: f.carrier.getProperty(id("drawer_bottom")),
@@ -436,6 +438,7 @@ export function camperDrawersRestore(a: Arena): Promise<Outcome> {
     );
     const parkedAgain = fixture(a, f.carrier, {
       docked: true,
+      [CAMPER_SAVED.laid]: true,
       dockDecor: savedDecor(f.carrier),
       drawer_top: f.carrier.getProperty(id("drawer_top")),
       drawer_bottom: f.carrier.getProperty(id("drawer_bottom")),

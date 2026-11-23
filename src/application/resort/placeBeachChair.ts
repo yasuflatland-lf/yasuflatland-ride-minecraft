@@ -1,8 +1,14 @@
 import {
+  beachChairCells,
   beachChairClearCells,
+  beachChairOrigin,
   beachChairPose,
   beachChairSupportCells,
 } from "../../domain/resort/beachChair";
+import {
+  overlapsAny,
+  RESORT_GEAR_QUERY_RADIUS,
+} from "../../domain/resort/furniture";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canUseBlockTop } from "../shared/groundPlacement";
@@ -36,6 +42,12 @@ export class PlaceBeachChair {
       )
         return blocked();
     }
+    const occupied = this.world.resortGearCells(
+      dimension,
+      beachChairOrigin(pose),
+      RESORT_GEAR_QUERY_RADIUS,
+    );
+    if (overlapsAny(beachChairCells(pose), occupied)) return blocked();
     const result = placePaid(this.world, { player, slot }, () =>
       this.world.spawn(dimension, pose),
     );

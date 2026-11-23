@@ -111,7 +111,7 @@ it("refuses to package missing generated outputs with the build instruction", ()
   expect(existsSync(join(root, "dist"))).toBe(false);
 });
 
-it("packages the driving-input receiver and keeps build hooks in the dev bundle only", () => {
+it("packages the driving-input receiver and keeps build, vehicle, camp, and resort hooks in the dev bundle only", () => {
   const root = fixture();
   for (const pack of ["yasu_ride_bp", "yasu_ride_rp"]) {
     const dir = join("packs", pack);
@@ -140,10 +140,47 @@ it("packages the driving-input receiver and keeps build hooks in the dev bundle 
     "registerTestEdit",
     "registerTestToilet",
     "registerTestFurniture",
+    "registerTestHeldItem",
+    "registerTestTool",
+    "registerTestDecor",
+    "test_held_item",
+    "test_tool",
+    "test_decor",
   ]) {
     expect(dev).toContain(marker);
     expect(release).not.toContain(marker);
   }
+  const campEvents = [
+    "test_chair_hit",
+    "test_noga_chair_hit",
+    "test_table_hit",
+    "test_dutch_oven_on_top",
+    "test_dutch_oven_on_table",
+    "test_dutch_oven_host",
+    "test_dutch_oven_on_pit",
+    "test_dutch_oven_simmer",
+    "test_dutch_oven_hit",
+    "test_fire_pit",
+    "test_fire_pit_hit",
+    "test_gas_lantern_on_top",
+    "test_gas_lantern_on_table",
+    "test_gas_lantern",
+    "test_gas_lantern_hit",
+    "test_tent_pitch",
+    "test_tent_fold_legacy",
+    "test_tent_hit",
+    "test_tent_flap",
+    "test_tent_lantern",
+    "test_roof_tent_place",
+    "test_roof_tent_hit",
+    "test_roof_tent_host_remove",
+    "test_roof_tent_occupant_seat",
+    "test_roof_tent_driver_seat",
+  ];
+  expect(campEvents.filter((event) => !dev.includes(`${event}"`))).toEqual([]);
+  expect(campEvents.filter((event) => release.includes(`${event}"`))).toEqual(
+    [],
+  );
   expect(release).toContain("parseTestInputMessage");
   expect(readFileSync(devPath, "utf8")).toBe(dev);
 });

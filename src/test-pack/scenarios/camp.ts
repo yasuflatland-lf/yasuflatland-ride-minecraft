@@ -1,5 +1,6 @@
 // In-game checks of the camp feature's low chair (ADR 0122).
 import { type Entity, system, type Vector3 } from "@minecraft/server";
+import type { ChairKindId } from "../../domain/camp/chair";
 import {
   DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
@@ -33,6 +34,8 @@ import {
   TEST_GAS_LANTERN_EVENT,
   TEST_GAS_LANTERN_HIT_EVENT,
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
+  TEST_LOW_CHAIR_HIT_EVENT,
+  TEST_NOGA_CHAIR_HIT_EVENT,
   TEST_TABLE_HIT_EVENT,
 } from "../../infrastructure/camp/identifiers";
 import { type Arena, wait } from "../arena";
@@ -72,15 +75,20 @@ const ovensNear = (a: Arena, at: Vector3) =>
 const lanternsNear = (a: Arena, at: Vector3) =>
   a.dim.getEntities({ type: GAS_LANTERN_TYPE, location: at, maxDistance: 2 });
 
+const CHAIR_HIT_EVENTS: Readonly<Record<ChairKindId, string>> = {
+  low_chair: TEST_LOW_CHAIR_HIT_EVENT,
+  noga_chair: TEST_NOGA_CHAIR_HIT_EVENT,
+};
+
 /** Runs a scenario once per chair kind, passing only when every kind passes. */
 async function forEveryChairKind(
-  scenario: (profile: ChairProfile) => Promise<Outcome>,
+  scenario: (profile: ChairProfile, kind: ChairKindId) => Promise<Outcome>,
   onStep: StepSink,
 ): Promise<Outcome> {
   return runCourse(
-    Object.entries(CHAIR_KINDS).map(([name, profile]) => ({
+    (Object.keys(CHAIR_KINDS) as ChairKindId[]).map((name) => ({
       name,
-      run: () => scenario(profile),
+      run: () => scenario(CHAIR_KINDS[name], name),
     })),
     { stopOnFail: false, onStep },
   );
@@ -92,7 +100,8 @@ export async function lowChairSeatAndTakeBack(
   onStep: StepSink,
 ): Promise<Outcome> {
   return forEveryChairKind(
-    (profile) => lowChairSeatAndTakeBackForKind(a, profile),
+    (profile, kind) =>
+      lowChairSeatAndTakeBackForKind(a, profile, CHAIR_HIT_EVENTS[kind]),
     onStep,
   );
 }
@@ -100,6 +109,7 @@ export async function lowChairSeatAndTakeBack(
 async function lowChairSeatAndTakeBackForKind(
   a: Arena,
   profile: ChairProfile,
+  hitEvent: string,
 ): Promise<Outcome> {
   const at = a.at(CELL.x + 0.5, a.gy, CELL.z + 0.5);
   a.dim.runCommand(`summon ${profile.typeId} ${at.x} ${at.y} ${at.z}`);
@@ -110,7 +120,7 @@ async function lowChairSeatAndTakeBackForKind(
   })[0];
   if (!chair) return { pass: false, detail: "chair not spawned" };
   const chairItems = () => droppedItems(a, at, profile.itemId);
-  const hit = () => system.sendScriptEvent(profile.testHitEvent, chair.id);
+  const hit = () => system.sendScriptEvent(hitEvent, chair.id);
   try {
     const seats = chair.getComponent("minecraft:rideable")?.seatCount;
     const family = chair.matches({ families: [profile.family] });

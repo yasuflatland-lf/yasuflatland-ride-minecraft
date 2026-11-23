@@ -55,6 +55,21 @@ it("shares one warning across block failures and persistence failures for each o
   }
 });
 
+it("returns only unreadable recorded cells for a later clear", () => {
+  const dimension = {
+    getBlock: ({ x }: { x: number }) => {
+      if (x === 1) throw new Error("Unloaded chunk");
+      if (x === 2) return undefined;
+      return { typeId: "minecraft:stone" };
+    },
+  } as unknown as Dimension;
+  const cells = [0, 1, 2].map((x) => ({ x, y: 4, z: 0 }));
+  const layer = new LaidBlockLayer("test:ceiling", () => false, "test shelter");
+  const warn = vi.fn();
+  expect(layer.clear(dimension, cells, warn)).toEqual(cells.slice(1));
+  expect(warn).toHaveBeenCalledExactlyOnceWith(new Error("Unloaded chunk"));
+});
+
 it("uses the configured block and preserves replacements and unrecorded ceilings", () => {
   const blocks = new Map([
     [0, { typeId: "minecraft:air", isAir: true, setPermutation: vi.fn() }],

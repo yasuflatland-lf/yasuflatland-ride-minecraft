@@ -565,46 +565,37 @@ it("checks both exit cells before parking and leaves overflow standing when the 
   );
 });
 
-it("recovers an unlaid parked room once, clearing matching plants before laying even after a blocked check", () => {
+it("recovers a clear unlaid room immediately and clears matching plants once", () => {
   fc.assert(
-    fc.property(
-      fc.boolean(),
-      fc.integer({ min: 0, max: 18 }),
-      (blocked, index) => {
-        const f = fixture();
-        const drive = new CamperDrive(f.pose.yaw, {
-          form: "car",
-          docked: true,
-          [CAMPER_SAVED.laid]: false,
-        });
-        const lower = defined(wallFootCells(f.pose)[index], "wall foot");
-        const upper = { ...lower, y: lower.y + 1 };
-        for (const cell of [lower, upper])
-          f.blocks.set(cellKey(cell), "minecraft:tall_grass");
-        if (blocked)
-          f.blocks.set(
-            cellKey(defined(cargoCells(f.pose)[0], "cargo cell")),
-            "minecraft:stone",
-          );
-        const out = drive.step(undefined, f.ctx);
-        expect(out.clear).toEqual([
-          { ...upper, typeId: "minecraft:tall_grass" },
-          { ...lower, typeId: "minecraft:tall_grass" },
-        ]);
-        expect(out.dock?.cells).toEqual([
-          ...roomCells(f.pose, false),
-          ...furnitureCells(f.pose, []),
-          ...compartmentCells(f.pose, [], new Set()),
-        ]);
-        expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
-          ...parkCheckCells(f.pose),
-          ...wallFootCells(f.pose),
-        ]);
-        for (let tick = 0; tick < 30; tick++)
-          expect(drive.step(undefined, f.ctx).clear).toEqual([]);
-        expect(f.blockTypes).toHaveBeenCalledTimes(1);
-      },
-    ),
+    fc.property(fc.integer({ min: 0, max: 18 }), (index) => {
+      const f = fixture();
+      const drive = new CamperDrive(f.pose.yaw, {
+        form: "car",
+        docked: true,
+        [CAMPER_SAVED.laid]: false,
+      });
+      const lower = defined(wallFootCells(f.pose)[index], "wall foot");
+      const upper = { ...lower, y: lower.y + 1 };
+      for (const cell of [lower, upper])
+        f.blocks.set(cellKey(cell), "minecraft:tall_grass");
+      const out = drive.step(undefined, f.ctx);
+      expect(out.clear).toEqual([
+        { ...upper, typeId: "minecraft:tall_grass" },
+        { ...lower, typeId: "minecraft:tall_grass" },
+      ]);
+      expect(out.dock?.cells).toEqual([
+        ...roomCells(f.pose, false),
+        ...furnitureCells(f.pose, []),
+        ...compartmentCells(f.pose, [], new Set()),
+      ]);
+      expect(f.blockTypes).toHaveBeenCalledExactlyOnceWith([
+        ...parkCheckCells(f.pose),
+        ...wallFootCells(f.pose),
+      ]);
+      for (let tick = 0; tick < 30; tick++)
+        expect(drive.step(undefined, f.ctx).clear).toEqual([]);
+      expect(f.blockTypes).toHaveBeenCalledTimes(1);
+    }),
   );
 });
 

@@ -16,6 +16,7 @@ import {
   TEST_GAS_LANTERN_HIT_EVENT,
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
 } from "../../../src/infrastructure/camp/identifiers";
+import { registerTestGasLantern } from "../../../src/infrastructure/camp/testHooks/gasLantern";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identifiers";
 import { campTopHosts } from "../../support/campTopHosts";
 import { defined } from "../../support/defined";
@@ -101,11 +102,14 @@ function fixture() {
     isHostAreaLoaded: () => true,
     hostExists: () => true,
   };
+  const actions = new GasLanternActions(world);
+  const topHosts = campTopHosts();
   registerGasLantern(
-    new GasLanternActions(world),
+    actions,
     world as unknown as BedrockGasLanternWorld,
-    campTopHosts(),
+    topHosts,
   );
+  registerTestGasLantern(actions, topHosts);
   return world;
 }
 
@@ -195,8 +199,11 @@ it("accepts the take-back test hook only from the server for a Gas Lantern", () 
   send("Entity");
   send("Server", "missing");
   send("Server", "lantern", "yasu_ride:test_fire_pit_hit");
+  send("Server");
+  send("Server");
+  expect(world.dropItem).not.toHaveBeenCalled();
+  send("Server");
   expect(world.showHitsLeft).not.toHaveBeenCalled();
-  for (let i = 0; i < 3; i++) send("Server");
   expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern");
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith("lantern");
 });
@@ -234,25 +241,28 @@ it("shares the hit and server switch cooldown, rejects non-server switches, and 
 
 function tableHandlers() {
   const placeOnTable = vi.fn<GasLanternActions["placeOnTable"]>();
+  const actions = {
+    placeOnTable,
+    placeOnTop: (
+      _surface: unknown,
+      {
+        host,
+        hostType: _hostType,
+        ...cmd
+      }: import("../../../src/application/shared/placeOnTop").TopRequest,
+    ) =>
+      placeOnTable({
+        ...cmd,
+        table: host as import("../../../src/domain/camp/table").TableId,
+      }),
+  } as unknown as GasLanternActions;
+  const topHosts = campTopHosts();
   const placeHostedOnTop = registerGasLantern(
-    {
-      placeOnTable,
-      placeOnTop: (
-        _surface: unknown,
-        {
-          host,
-          hostType: _hostType,
-          ...cmd
-        }: import("../../../src/application/shared/placeOnTop").TopRequest,
-      ) =>
-        placeOnTable({
-          ...cmd,
-          table: host as import("../../../src/domain/camp/table").TableId,
-        }),
-    } as unknown as GasLanternActions,
+    actions,
     { relayLoaded: vi.fn() } as unknown as BedrockGasLanternWorld,
-    campTopHosts(),
+    topHosts,
   );
+  registerTestGasLantern(actions, topHosts);
   const interact = defined(game.interact.mock.calls[0]?.[0], "interact");
   const script = defined(game.script.mock.calls[0]?.[0], "script handler");
   const flush = () => {

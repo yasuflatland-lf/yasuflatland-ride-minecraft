@@ -9,12 +9,6 @@ interface SwitchToolCommand {
   vehicleId: VehicleId;
 }
 
-export interface ForceToolCommand {
-  vehicleId: VehicleId;
-  item: string;
-  state: string;
-}
-
 export class SwitchTool {
   constructor(
     private readonly repo: VehicleRepository,
@@ -28,12 +22,5 @@ export class SwitchTool {
       return false;
     this.feedback?.show(cmd.playerId, cmd.item, vehicle.toolState(cmd.item));
     return true;
-  }
-
-  /** For the server-only test hook only. */
-  force(cmd: ForceToolCommand): boolean {
-    return (
-      this.repo.get(cmd.vehicleId)?.forceTool(cmd.item, cmd.state) ?? false
-    );
   }
 }

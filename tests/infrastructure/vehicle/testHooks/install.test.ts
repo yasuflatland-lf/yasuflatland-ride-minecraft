@@ -1,0 +1,102 @@
+import {
+  type ScriptEventCommandMessageAfterEvent,
+  ScriptEventSource,
+  system,
+} from "@minecraft/server";
+import { expect, it, vi } from "vitest";
+import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { createVehicle } from "../../../../src/domain/vehicle/kinds/index";
+import { InMemoryVehicleRepository } from "../../../../src/infrastructure/vehicle/persistence/inMemoryVehicleRepository";
+import { installVehicleTestHooks } from "../../../../src/infrastructure/vehicle/testHooks/install";
+import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
+
+vi.mock("@minecraft/server", () => ({
+  ScriptEventSource: { Server: "Server", Entity: "Entity" },
+  system: { afterEvents: { scriptEventReceive: { subscribe: vi.fn() } } },
+}));
+
+function fixture() {
+  const repo = new InMemoryVehicleRepository();
+  const dozer = createVehicle("bulldozer", asVehicleId("dozer"), 0);
+  const camper = createVehicle("camper", asVehicleId("camper"), 0);
+  repo.save(dozer);
+  repo.save(camper);
+  const testHeldItems = new VehicleTestStore<string>();
+  const decorWorld = { saveDecor: vi.fn() };
+  const subscribe = vi.mocked(system.afterEvents.scriptEventReceive.subscribe);
+  subscribe.mockClear();
+  installVehicleTestHooks({ repo, decorWorld, testHeldItems });
+
+  function send(
+    id: string,
+    message: string,
+    sourceType = ScriptEventSource.Server,
+  ) {
+    for (const [receive, filter] of subscribe.mock.calls) {
+      expect(filter).toEqual({ namespaces: ["yasu_ride"] });
+      receive({
+        id,
+        message,
+        sourceType,
+      } as ScriptEventCommandMessageAfterEvent);
+    }
+  }
+  return { dozer, camper, testHeldItems, decorWorld, send };
+}
+
+it.each([
+  {
+    id: "yasu_ride:test_tool",
+    set: "dozer,blade_switch,down",
+    reset: "dozer,blade_switch,up",
+    read: ({ dozer }: ReturnType<typeof fixture>) =>
+      dozer.toolState("blade_switch"),
+    initial: "up",
+    expected: "down",
+    final: "up",
+  },
+  {
+    id: "yasu_ride:test_decor",
+    set: "camper,table,potted_plant",
+    reset: "camper,table,clear",
+    read: ({ decorWorld }: ReturnType<typeof fixture>) =>
+      decorWorld.saveDecor.mock.lastCall,
+    initial: undefined,
+    expected: ["camper", [{ slot: "table", item: "potted_plant" }]],
+    final: ["camper", []],
+  },
+  {
+    id: "yasu_ride:test_held_item",
+    set: "dozer,yasu_ride:blade_switch",
+    reset: "dozer,clear",
+    read: ({ dozer, testHeldItems }: ReturnType<typeof fixture>) =>
+      testHeldItems.get(dozer.id),
+    initial: undefined,
+    expected: "yasu_ride:blade_switch",
+    final: undefined,
+  },
+])(
+  "dispatches $id only from valid server events",
+  ({ id, set, reset, read, initial, expected, final }) => {
+    const parts = fixture();
+    parts.send(id, set, ScriptEventSource.Entity);
+    parts.send("yasu_ride:other", set);
+    expect(read(parts)).toEqual(initial);
+    parts.send(id, set);
+    expect(read(parts)).toEqual(expected);
+    using warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    parts.send(id, "invalid");
+    expect(warn).toHaveBeenCalledOnce();
+    expect(read(parts)).toEqual(expected);
+    parts.send(id, reset);
+    expect(read(parts)).toEqual(final);
+  },
+);
+
+it("ignores tool commands for a missing vehicle or a vehicle without that tool", () => {
+  const { camper, dozer, send } = fixture();
+  send("yasu_ride:test_tool", "missing,blade_switch,down");
+  send("yasu_ride:test_tool", "camper,blade_switch,down");
+  expect(camper.toolState("blade_switch")).toBeUndefined();
+  expect(dozer.toolState("blade_switch")).toBe("up");
+});

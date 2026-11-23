@@ -19,7 +19,6 @@ import { PlaceDecor } from "../../application/vehicle/room/placeDecor";
 import { PressShowerToilet } from "../../application/vehicle/room/pressShowerToilet";
 import { PressStorage } from "../../application/vehicle/room/pressStorage";
 import { RemoveDecor } from "../../application/vehicle/room/removeDecor";
-import { SetDecor } from "../../application/vehicle/room/setDecor";
 import { SwitchCeilingLights } from "../../application/vehicle/room/switchCeilingLights";
 import { UseDockDoor } from "../../application/vehicle/room/useDockDoor";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
@@ -51,6 +50,7 @@ import { installCamper } from "./kinds/camper/install";
 import { readCamperRestored } from "./kinds/camper/restored";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
 import { InMemoryVehicleRepository } from "./persistence/inMemoryVehicleRepository";
+import type { VehicleTestHookParts } from "./testHooks/install";
 import { VehicleTestStore } from "./testInput/vehicleTestStore";
 
 /**
@@ -65,6 +65,7 @@ export function installVehicles(deps: {
 }): {
   isVehicleSpace: SpaceCheck;
   vehicleHost: VehicleHostLookup;
+  testHooks: VehicleTestHookParts;
   isFleetEntityType: (typeId: string) => boolean;
 } {
   const repo = new InMemoryVehicleRepository();
@@ -110,7 +111,6 @@ export function installVehicles(deps: {
       ),
       ceilingLights: new SwitchCeilingLights(repo, systemClock),
       tool: new SwitchTool(repo, systemClock, feedback),
-      decor: new SetDecor(decorWorld, repo),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,
@@ -119,7 +119,6 @@ export function installVehicles(deps: {
       board: new BoardVehicle(repo),
     },
     testInputs,
-    testHeldItems,
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     () =>
       installCamper(
@@ -147,6 +146,7 @@ export function installVehicles(deps: {
   registerCutDrops((entity) => bedrock.sweepCutDrop(entity));
   return {
     isFleetEntityType,
+    testHooks: { repo, decorWorld, testHeldItems },
     vehicleHost: (vehicleId) => bedrock.hostState(vehicleId),
     isVehicleSpace: (dimensionId, cell) =>
       bedrock.isVehicleSpace(dimensionId, cell),

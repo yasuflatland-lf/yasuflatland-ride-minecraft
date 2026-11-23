@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { parseTestDecorMessage } from "../../../../src/infrastructure/vehicle/testInput/testDecorMessage";
+import { parseTestDecorMessage } from "../../../../src/infrastructure/vehicle/testHooks/testDecorMessage";
 
 const part = fc.string({ minLength: 1 }).filter((s) => !s.includes(","));
 const item = fc

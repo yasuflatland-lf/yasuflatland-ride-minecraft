@@ -12,6 +12,7 @@ export function fakeBeachChairWorld() {
     isSolidTop: vi.fn<BeachChairWorld["isSolidTop"]>(() => true),
     isVehicleSpace: vi.fn<BeachChairWorld["isVehicleSpace"]>(() => false),
     isCampSpace: vi.fn<BeachChairWorld["isCampSpace"]>(() => false),
+    resortGearCells: vi.fn<BeachChairWorld["resortGearCells"]>(() => []),
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
     spawn: vi.fn(

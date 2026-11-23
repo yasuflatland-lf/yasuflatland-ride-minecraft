@@ -1,8 +1,8 @@
+import { hitRule } from "../shared/hitCounter";
 import { ticks } from "../shared/ticks";
 
 export const WARP_SPEC = {
-  breakTaps: 3,
-  tapWindowTicks: ticks(10),
+  breakRule: hitRule(3, ticks(10)),
   maxPoints: 64,
   nameMaxLength: 32,
   pressDebounceTicks: ticks(5),
