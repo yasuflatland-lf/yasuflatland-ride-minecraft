@@ -1015,6 +1015,21 @@ it.each([true, false])(
   },
 );
 
+it("clears the old ceiling when an occupied roof tent moves", () => {
+  const tent = spawn();
+  const { blocks } = ceilingTerrain();
+  const id = asRoofTentId("tent");
+  occupants.setOccupant(id, PLAYER);
+  const previous = savedCeiling(tent);
+  tent.location.x += 10;
+  occupants.syncCeiling(id);
+  expect(savedCeiling(tent)).toEqual(
+    previous.map((cell) => ({ ...cell, x: cell.x + 10 })),
+  );
+  for (const cell of previous)
+    expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+});
+
 it("skips occupied, missing, unloaded and vehicle-space cells without losing successful cells", () => {
   const tent = spawn();
   const { blocks, missing, throwing } = ceilingTerrain();
