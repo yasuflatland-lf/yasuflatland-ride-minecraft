@@ -1,17 +1,15 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  DEV_EPOCH_MS,
   DEV_PATCH_BASE,
   devPackVersion,
   RESOURCE_PACK_UUID,
   readCounter,
   rewriteBehaviorPack,
   rewriteResourcePack,
-  timeFloor,
   writeDevManifests,
 } from "../../scripts/dev-pack-version.mjs";
 
@@ -51,10 +49,6 @@ const behaviorPack = fc.record({
 });
 
 describe("dev pack version", () => {
-  it("floors elapsed seconds and keeps a minimum of one", () => {
-    expect(timeFloor(DEV_EPOCH_MS - 1000)).toBe(1);
-    expect(timeFloor(DEV_EPOCH_MS + 2999)).toBe(2);
-  });
   it("keeps the committed major and minor and puts the patch at or above the dev base", () => {
     fc.assert(
       fc.property(version, counter, (committed, count) => {
@@ -184,11 +178,7 @@ describe("writing the dev manifests", () => {
     const dir = dataDir();
     const [major, minor] = committedRp.header.version;
     for (const expected of [1, 2, 3]) {
-      const { version: dev } = writeDevManifests({
-        packsDir,
-        dataDir: dir,
-        now: 0,
-      });
+      const { version: dev } = writeDevManifests({ packsDir, dataDir: dir });
       expect(dev).toEqual([major, minor, DEV_PATCH_BASE + expected]);
       const rp = readManifest(dir, "yasu_ride_rp");
       const bp = readManifest(dir, "yasu_ride_bp");
@@ -200,63 +190,12 @@ describe("writing the dev manifests", () => {
     }
   });
 
-  it.each([undefined, "{ not json"])(
-    "uses the time floor with missing or corrupt state",
-    (state) => {
-      const dir = dataDir();
-      if (state !== undefined)
-        writeFileSync(join(dir, "dev-pack-version.json"), state);
-      expect(
-        writeDevManifests({
-          packsDir,
-          dataDir: dir,
-          now: Date.UTC(2026, 0, 1) + 42_999,
-        }).version[2],
-      ).toBe(DEV_PATCH_BASE + 42);
-    },
-  );
-
-  it("increments a counter above the time floor", () => {
+  it("starts again at 1 over a corrupt state file", () => {
     const dir = dataDir();
-    writeFileSync(
-      join(dir, "dev-pack-version.json"),
-      JSON.stringify({ counter: 100 }),
-    );
-    expect(
-      writeDevManifests({
-        packsDir,
-        dataDir: dir,
-        now: Date.UTC(2026, 0, 1) + 42_000,
-      }).version[2],
-    ).toBe(DEV_PATCH_BASE + 101);
-  });
-
-  it("increases the patch on successive starts with retained state", () => {
-    fc.assert(
-      fc.property(
-        fc.option(fc.integer({ min: 1, max: 1_000_000 }), { nil: undefined }),
-        fc.nat({ max: 1_000_000 }),
-        fc.nat({ max: 1_000_000 }),
-        (previous, start, elapsed) => {
-          const dir = dataDir();
-          if (previous !== undefined)
-            writeFileSync(
-              join(dir, "dev-pack-version.json"),
-              JSON.stringify({ counter: previous }),
-            );
-          const first = writeDevManifests({
-            packsDir,
-            dataDir: dir,
-            now: Date.UTC(2026, 0, 1) + start,
-          }).version[2];
-          const second = writeDevManifests({
-            packsDir,
-            dataDir: dir,
-            now: Date.UTC(2026, 0, 1) + start + elapsed,
-          }).version[2];
-          expect(second).toBeGreaterThan(first ?? Number.POSITIVE_INFINITY);
-        },
-      ),
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "dev-pack-version.json"), "{ not json");
+    expect(writeDevManifests({ packsDir, dataDir: dir }).version[2]).toBe(
+      DEV_PATCH_BASE + 1,
     );
   });
 

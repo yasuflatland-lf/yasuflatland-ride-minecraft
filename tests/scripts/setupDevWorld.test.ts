@@ -34,15 +34,13 @@ it("registers both Resource Packs and preserves the test pack's committed versio
     for (const module of testManifest.modules) module.version = [0, 1, 7];
     writeFileSync(testPath, JSON.stringify(testManifest));
     const setup = resolve("scripts/setup-dev-world.mjs");
-    let previousPatch = 10000;
     for (let run = 1; run <= 2; run++) {
       execFileSync(process.execPath, [setup], { cwd: root });
       const world = join(root, "server/data/worlds/yasuflatland-ride-dev");
       const main = read(
         join(root, "server/data/dev-manifests/yasu_ride_rp/manifest.json"),
       );
-      expect(main.header.version[2]).toBeGreaterThan(previousPatch);
-      previousPatch = main.header.version[2];
+      expect(main.header.version[2]).toBe(10000 + run);
       expect(read(join(world, "world_resource_packs.json"))).toEqual([
         { pack_id: main.header.uuid, version: main.header.version },
         { pack_id: testManifest.header.uuid, version: [0, 1, 7] },
