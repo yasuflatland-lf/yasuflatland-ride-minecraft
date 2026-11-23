@@ -1,12 +1,22 @@
 import { TABLE_SPEC } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import type { TableWorld } from "./ports/table";
 
 export class HitTable {
-  private readonly hits = new HitCounters<TableId>(TABLE_SPEC.recovery);
+  private readonly takeBack = new TakeBackByHits<TableId>({
+    rule: TABLE_SPEC.recovery,
+    refusal: (id) =>
+      this.world.itemsOnTable(id) > 0 ? "somethingOnTop" : undefined,
+    showRefusal: (player) => this.world.showOvenOnTop(player),
+    giveBack: (id, player) => this.world.dropItem(id, player),
+    remove: (id) => this.world.removeTable(id),
+    feedback: {
+      remaining: (_id, player, left) => this.world.showHitsLeft(player, left),
+    },
+    order: ["giveBack", "remove"],
+  });
 
   constructor(private readonly world: TableWorld) {}
 
@@ -15,22 +25,6 @@ export class HitTable {
     tick: number;
     playerId?: PlayerId;
   }): boolean {
-    if (this.world.itemsOnTable(cmd.tableId) > 0) {
-      if (cmd.playerId !== undefined) this.world.showOvenOnTop(cmd.playerId);
-      return false;
-    }
-    let taken = false;
-    handleHit(this.hits, cmd.tableId, cmd.tick, {
-      drop: () => this.world.dropItem(cmd.tableId, cmd.playerId),
-      remove: () => {
-        this.world.removeTable(cmd.tableId);
-        taken = true;
-      },
-      showRemaining: (left) => {
-        if (cmd.playerId !== undefined)
-          this.world.showHitsLeft(cmd.playerId, left);
-      },
-    });
-    return taken;
+    return this.takeBack.hit(cmd.tableId, cmd.tick, cmd.playerId) === "taken";
   }
 }

@@ -25,14 +25,10 @@ it("returns a plain item to the hitter, removes and announces on the third hit",
         ]);
         take.execute({ id, player, tick: tick + gap * 2 });
         expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
-        const effects = [world.dropItem, world.remove, world.showTaken];
-        expect(effects.map((effect) => effect.mock.calls.length)).toEqual([
-          1, 1, 1,
-        ]);
-        const order = effects.map(
-          (effect) => effect.mock.invocationCallOrder[0],
-        );
-        expect(order).toEqual([...order].sort((a, b) => (a ?? 0) - (b ?? 0)));
+        expect(world.remove).toHaveBeenCalledExactlyOnceWith(id);
+        expect(world.showTaken).toHaveBeenCalledExactlyOnceWith(player);
+        expect(world.dropItem).toHaveBeenCalledBefore(world.remove);
+        expect(world.remove).toHaveBeenCalledBefore(world.showTaken);
       },
     ),
   );
@@ -89,5 +85,6 @@ it("ignores a chair that no longer exists", () => {
     tick: 0,
   });
   expect(world.showHitsLeft).not.toHaveBeenCalled();
+  expect(world.showRefused).not.toHaveBeenCalled();
   expect(world.dropItem).not.toHaveBeenCalled();
 });

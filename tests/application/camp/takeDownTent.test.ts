@@ -8,20 +8,20 @@ const TENT = asTentId("tent");
 const PLAYER = asPlayerId("p");
 
 describe("TakeDownTent (ADR 0131)", () => {
-  it.each([PLAYER, undefined])(
+  it.each([
+    [PLAYER, true],
+    [undefined, false],
+  ] as const)(
     "takes the tent down on the third hit, returning the item first, with 2 and 1 hits left before",
-    (playerId) => {
+    (playerId, loaded) => {
       const world = new FakeTentWorld();
       const take = new TakeDownTent(world);
-      const refund = vi.spyOn(world, "returnTentItem");
-      const remove = vi.spyOn(world, "removeTent");
+      if (!loaded) vi.spyOn(world, "entityLoaded").mockReturnValue(false);
       const hit = (tick: number) =>
         take.execute({ tentId: TENT, tick, playerId });
       expect(hit(0)).toBe(false);
       expect(hit(1)).toBe(false);
-      expect(refund).not.toHaveBeenCalled();
-      expect(hit(2)).toBe(true);
-      expect(world.calls.filter(([name]) => name === "showHitsLeft")).toEqual(
+      expect(world.calls).toEqual(
         playerId
           ? [
               ["showHitsLeft", playerId, 2],
@@ -29,10 +29,14 @@ describe("TakeDownTent (ADR 0131)", () => {
             ]
           : [],
       );
-      expect(refund).toHaveBeenCalledExactlyOnceWith(TENT, playerId);
-      expect(remove).toHaveBeenCalledExactlyOnceWith(TENT);
-      expect(refund).toHaveBeenCalledBefore(remove);
-      expect(world.calls).toContainEqual(["unlayBlocks", TENT]);
+      world.calls.length = 0;
+      expect(hit(2)).toBe(true);
+      expect(world.calls.filter(([name]) => name !== "entityLoaded")).toEqual([
+        ["returnTentItem", TENT, playerId],
+        ["unlayBlocks", TENT],
+        ...(loaded ? [] : [["clearBlocksByPose", TENT]]),
+        ["removeTent", TENT],
+      ]);
     },
   );
 

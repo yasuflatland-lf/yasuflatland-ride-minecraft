@@ -66,7 +66,8 @@ it("places on clear ground outside vehicle space and folds back after three hits
     [player, 1],
   ]);
   expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit, player);
-  expect(world.removeFirePit).toHaveBeenCalledOnce();
+  expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
+  expect(world.dropItem).toHaveBeenCalledBefore(world.removeFirePit);
 });
 
 it("refuses covered hits without advancing or resetting the fold counter", () => {
@@ -78,6 +79,7 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     world.isCovered.mockReturnValue(true);
     for (let tick = 3; tick <= 5; tick++)
       expect(actions.hit(pit, player, tick)).toBe(false);
+    expect(actions.hit(pit, undefined, 6)).toBe(false);
     expect(world.dropItem).not.toHaveBeenCalled();
     expect(world.removeFirePit).not.toHaveBeenCalled();
     expect(world.showHitsLeft).not.toHaveBeenCalled();
@@ -85,7 +87,7 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     expect(world.showCoveredHint).toHaveBeenLastCalledWith(player);
     world.isCovered.mockReturnValue(false);
     for (let hit = 1; hit <= 3 - previousHits; hit++)
-      expect(actions.hit(pit, player, 5 + hit)).toBe(hit === 3 - previousHits);
+      expect(actions.hit(pit, player, 6 + hit)).toBe(hit === 3 - previousHits);
     expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit, player);
     expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
   }

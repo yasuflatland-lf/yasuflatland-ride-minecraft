@@ -146,28 +146,31 @@ it("keeps cooldowns separate and records no use for a gone lantern", () => {
   ]);
 });
 
-it("clears a lit lantern's light before dropping its item and removing it", () => {
-  const { actions, world } = fixture();
-  const id = asGasLanternId("lit");
-  actions.switch(id, 0);
-  expect(actions.hit(id, player, 1)).toBe(false);
-  expect(actions.hit(id, player, 2)).toBe(false);
-  expect(world.clearLight).not.toHaveBeenCalled();
-  expect(actions.hit(id, player, 3)).toBe(true);
-  expect(world.showHitsLeft.mock.calls).toEqual([
-    [player, 2],
-    [player, 1],
-  ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
-  expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith(id);
-  expect(world.clearLight).toHaveBeenCalledExactlyOnceWith(id);
-  expect(world.clearLight.mock.invocationCallOrder[0]).toBeLessThan(
-    world.dropItem.mock.invocationCallOrder[0] ?? 0,
-  );
-  expect(world.dropItem.mock.invocationCallOrder[0]).toBeLessThan(
-    world.removeGasLantern.mock.invocationCallOrder[0] ?? 0,
-  );
-});
+it.each([player, undefined])(
+  "clears a lit lantern's light before dropping its item and removing it (player %s)",
+  (hitter) => {
+    const { actions, world } = fixture();
+    const id = asGasLanternId("lit");
+    actions.switch(id, 0);
+    expect(actions.hit(id, hitter, 1)).toBe(false);
+    expect(actions.hit(id, hitter, 2)).toBe(false);
+    expect(world.clearLight).not.toHaveBeenCalled();
+    expect(actions.hit(id, hitter, 3)).toBe(true);
+    expect(world.showHitsLeft.mock.calls).toEqual(
+      hitter === undefined
+        ? []
+        : [
+            [hitter, 2],
+            [hitter, 1],
+          ],
+    );
+    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, hitter);
+    expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith(id);
+    expect(world.clearLight).toHaveBeenCalledExactlyOnceWith(id);
+    expect(world.clearLight).toHaveBeenCalledBefore(world.dropItem);
+    expect(world.dropItem).toHaveBeenCalledBefore(world.removeGasLantern);
+  },
+);
 
 const tableCmd = { player, table: asTableId("table"), slot: 4 };
 

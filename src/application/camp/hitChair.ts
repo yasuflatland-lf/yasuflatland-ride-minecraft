@@ -1,9 +1,8 @@
 // Use case: a hit on a chair; the third in a row while nobody sits folds it back into its item (ADR 0122).
 import type { ChairId, ChairKindId } from "../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../domain/camp/spec";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import type { ChairWorld } from "./ports/chair";
 
 interface HitChairCommand {
@@ -15,26 +14,29 @@ interface HitChairCommand {
 }
 
 export class HitChair {
-  private readonly hits = new HitCounters<ChairId>(CHAIR_SPEC.recovery);
+  private readonly takeBack = new TakeBackByHits<
+    Pick<HitChairCommand, "kind" | "chairId">
+  >({
+    rule: CHAIR_SPEC.recovery,
+    key: ({ chairId }) => chairId,
+    refusal: ({ chairId, kind }) => {
+      if (this.world.kindOf(chairId) !== kind) return "wrongKind";
+      return this.world.isOccupied(chairId) ? "occupied" : undefined;
+    },
+    giveBack: ({ chairId }, player) =>
+      this.world.dropChairItem(chairId, player),
+    remove: ({ chairId }) => this.world.removeChair(chairId),
+    feedback: {
+      remaining: ({ kind }, player, left) =>
+        this.world.showHitsLeft(kind, player, left),
+    },
+    order: ["giveBack", "remove"],
+  });
 
   constructor(private readonly world: ChairWorld) {}
 
   /** Returns whether the chair was taken back. */
   execute(cmd: HitChairCommand): boolean {
-    if (this.world.kindOf(cmd.chairId) !== cmd.kind) return false;
-    if (this.world.isOccupied(cmd.chairId)) return false;
-    let taken = false;
-    handleHit(this.hits, cmd.chairId, cmd.tick, {
-      drop: () => this.world.dropChairItem(cmd.chairId, cmd.playerId),
-      remove: () => {
-        this.world.removeChair(cmd.chairId);
-        taken = true;
-      },
-      showRemaining: (left) => {
-        if (cmd.playerId !== undefined)
-          this.world.showHitsLeft(cmd.kind, cmd.playerId, left);
-      },
-    });
-    return taken;
+    return this.takeBack.hit(cmd, cmd.tick, cmd.playerId) === "taken";
   }
 }

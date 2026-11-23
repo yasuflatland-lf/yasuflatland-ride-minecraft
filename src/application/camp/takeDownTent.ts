@@ -1,11 +1,10 @@
 // Use case: a hit on a tent from outside; the third in a row while nobody is inside takes it down into its item (ADR 0131).
 import { TENT_SPEC } from "../../domain/camp/spec";
 import type { TentId } from "../../domain/camp/tent";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import type { TentWorld } from "./ports/tent";
-import { removeTent } from "./removeTent";
+import { releaseTentBlocks } from "./removeTent";
 
 interface TakeDownTentCommand {
   tentId: TentId;
@@ -15,29 +14,24 @@ interface TakeDownTentCommand {
 }
 
 export class TakeDownTent {
-  private readonly hits = new HitCounters<TentId>(TENT_SPEC.recovery);
+  private readonly takeBack = new TakeBackByHits<TentId>({
+    rule: TENT_SPEC.recovery,
+    refusal: (id) => (this.world.isOccupied(id) ? "occupied" : undefined),
+    showRefusal: (player) => this.world.showOccupied(player),
+    release: (id) => releaseTentBlocks(this.world, id),
+    // The playerless refund needs the entity or registry location.
+    giveBack: (id, player) => this.world.returnTentItem(id, player),
+    remove: (id) => this.world.removeTent(id),
+    feedback: {
+      remaining: (_id, player, left) => this.world.showHitsLeft(player, left),
+    },
+    order: ["giveBack", "release", "remove"],
+  });
 
   constructor(private readonly world: TentWorld) {}
 
   /** Returns whether the tent was taken down. */
   execute(cmd: TakeDownTentCommand): boolean {
-    if (this.world.isOccupied(cmd.tentId)) {
-      if (cmd.playerId !== undefined) this.world.showOccupied(cmd.playerId);
-      return false;
-    }
-    let takenDown = false;
-    handleHit(this.hits, cmd.tentId, cmd.tick, {
-      // The playerless refund needs the entity or registry location.
-      drop: () => this.world.returnTentItem(cmd.tentId, cmd.playerId),
-      remove: () => {
-        removeTent(this.world, cmd.tentId);
-        takenDown = true;
-      },
-      showRemaining: (left) => {
-        if (cmd.playerId !== undefined)
-          this.world.showHitsLeft(cmd.playerId, left);
-      },
-    });
-    return takenDown;
+    return this.takeBack.hit(cmd.tentId, cmd.tick, cmd.playerId) === "taken";
   }
 }

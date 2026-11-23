@@ -137,6 +137,9 @@ it("returns one oven on the third hit and hints after earlier hits", () => {
   ]);
   expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(oven, player);
   expect(world.removeDutchOven).toHaveBeenCalledExactlyOnceWith(oven);
+  expect(world.dropItem).toHaveBeenCalledBefore(
+    vi.mocked(world.removeDutchOven),
+  );
 });
 
 const pit = asFirePitId("pit");
@@ -204,6 +207,7 @@ it("uncovers an existing fire pit only on the oven's third hit", () => {
   expect(world.setCovered).not.toHaveBeenCalled();
   actions.hit(oven, player, 3);
   expect(world.setCovered).toHaveBeenCalledExactlyOnceWith(pit, false);
+  expect(world.setCovered).toHaveBeenCalledBefore(vi.mocked(world.dropItem));
 });
 
 it("removes an oven whose host vanished in loaded space with no drop, for either host kind", () => {
