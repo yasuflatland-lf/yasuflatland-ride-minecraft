@@ -70,25 +70,6 @@ describe("PlaceVehicle (ADR 0008)", () => {
     expect(world.calls).toEqual([]);
     expect(world.owners.size).toBe(0);
   });
-
-  it("does not place a vehicle when the slot no longer holds the item, such as after switching slots or dropping it (ADR 0024)", () => {
-    const world = new FakeWorld();
-    world.itemInSlot = false;
-    const repo = new InMemoryRepo();
-    expect(new PlaceVehicle(world, repo, log).execute(cmd)).toBe(false);
-    expect(world.calls).toEqual([]);
-    expect(repo.get(asVehicleId("v1"))).toBeUndefined();
-    expect(world.owners.size).toBe(0);
-  });
-
-  it("places a vehicle in creative mode without needing the item in the slot", () => {
-    const world = new FakeWorld();
-    world.creativePlayers.add("p");
-    world.itemInSlot = false;
-    expect(new PlaceVehicle(world, new InMemoryRepo(), log).execute(cmd)).toBe(
-      true,
-    );
-  });
 });
 
 describe("PlaceVehicle placement gift (ADR 0093)", () => {
@@ -207,15 +188,16 @@ const cellArb = fc.record({
 });
 
 describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
-  it("picks the same cell as the kind's placement rule with the world's water, querying only the given dimension", () => {
+  it("picks the same cell as the kind's placement rule with the world's liquids, querying only the given dimension", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...VEHICLE_KINDS),
         cellArb,
         fc.constantFrom(...FACES),
         fc.integer({ min: 0, max: 20 }),
+        fc.constantFrom("water", "lava"),
         fc.string({ minLength: 1 }).map(asDimensionId),
-        (kind, clicked, face, depth, dimensionId) => {
+        (kind, clicked, face, depth, liquid, dimensionId) => {
           const world = new FakeWorld();
           const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
           world.water = (at) =>
@@ -223,15 +205,22 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
             at.z === clicked.z &&
             at.y > clicked.y &&
             at.y <= clicked.y + depth;
+          world.lava = liquid === "lava" ? world.water : () => false;
+          if (liquid === "lava") world.water = () => false;
+          const lava = vi.spyOn(world, "isLavaAt");
           const cell = placement.cellFor(kind, dimensionId, clicked, face);
           expect(cell).toEqual(
             placementCell(
               profileOf(kind).placement,
               clicked,
               face,
-              world.water,
+              (at, queried) =>
+                queried === "water" ? world.water(at) : world.lava(at),
             ),
           );
+          expect(
+            lava.mock.calls.every(([dimension]) => dimension === dimensionId),
+          ).toBe(true);
           expect(world.waterDimensions.every((d) => d === dimensionId)).toBe(
             true,
           );
@@ -242,92 +231,6 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
           expect(world.owners.size).toBe(0);
         },
       ),
-    );
-  });
-
-  it("places a land-only kind on the clicked block from the top face only, whatever the water", () => {
-    fc.assert(
-      fc.property(
-        fc.constantFrom("suv", "camper"),
-        cellArb,
-        fc.constantFrom(...FACES),
-        fc.boolean(),
-        (kind, clicked, face, wet) => {
-          const world = new FakeWorld();
-          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
-          world.water = () => wet;
-          expect(
-            placement.cellFor(kind, asDimensionId("overworld"), clicked, face),
-          ).toEqual(face === "up" ? clicked : undefined);
-        },
-      ),
-    );
-  });
-
-  it("places the sports boat on the top water cell above the clicked bed, or on the bed when it is dry", () => {
-    fc.assert(
-      fc.property(
-        cellArb,
-        fc.integer({ min: 0, max: 16 }),
-        (clicked, depth) => {
-          const world = new FakeWorld();
-          const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
-          world.water = (at) =>
-            at.x === clicked.x &&
-            at.z === clicked.z &&
-            at.y > clicked.y &&
-            at.y <= clicked.y + depth;
-          expect(
-            placement.cellFor(
-              "sportsboat",
-              asDimensionId("overworld"),
-              clicked,
-              "up",
-            ),
-          ).toEqual({ x: clicked.x, y: clicked.y + depth, z: clicked.z });
-        },
-      ),
-    );
-  });
-
-  it("places the sports boat on the water beside a shore whose side is clicked", () => {
-    const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
-    const clicked = { x: 2, y: 5, z: 3 };
-    world.water = (at) => at.x === 3 && at.y >= 4 && at.y <= 6;
-    expect(
-      placement.cellFor(
-        "sportsboat",
-        asDimensionId("overworld"),
-        clicked,
-        "east",
-      ),
-    ).toEqual({ x: 3, y: 6, z: 3 });
-    expect(
-      placement.cellFor(
-        "sportsboat",
-        asDimensionId("overworld"),
-        clicked,
-        "west",
-      ),
-    ).toBeUndefined();
-  });
-
-  it("places on water or lava only the sports boat", () => {
-    const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
-    expect(placement.placesOnLiquid("suv")).toBe(false);
-    expect(placement.placesOnLiquid("sportsboat")).toBe(true);
-    expect(placement.placesOnLiquid("camper")).toBe(false);
-    fc.assert(
-      fc.property(fc.constantFrom(...VEHICLE_KINDS), (kind) => {
-        const world = new FakeWorld();
-        const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
-        expect(placement.placesOnLiquid(kind)).toBe(
-          profileOf(kind).placement.surfaces.includes("water") ||
-            profileOf(kind).placement.surfaces.includes("lava"),
-        );
-      }),
     );
   });
 
@@ -346,47 +249,33 @@ describe("PlaceVehicle placement cell (ADR 0050, ADR 0051)", () => {
       }),
     );
   });
-
-  it("places the sports boat on the top lava cell without allowing other kinds there", () => {
-    const world = new FakeWorld();
-    const placement = new PlaceVehicle(world, new InMemoryRepo(), log);
-    world.lava = (at) => at.x === 3 && at.z === 4 && at.y >= 5 && at.y <= 7;
-    expect(
-      placement.cellFor(
-        "sportsboat",
-        asDimensionId("nether"),
-        { x: 3, y: 4, z: 4 },
-        "up",
-      ),
-    ).toEqual({ x: 3, y: 7, z: 4 });
-    expect(
-      placement.cellFor(
-        "suv",
-        asDimensionId("nether"),
-        { x: 3, y: 6, z: 4 },
-        "east",
-      ),
-    ).toBeUndefined();
-  });
 });
 
-it("consumes the item unless the placing player is in creative mode", () => {
+it("places only when creative or the item remains in the original slot", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...VEHICLE_KINDS),
       fc.boolean(),
-      (kind, creative) => {
+      fc.boolean(),
+      (kind, creative, itemInSlot) => {
         const world = new FakeWorld();
+        const repo = new InMemoryRepo();
+        world.itemInSlot = itemInSlot;
         if (creative) world.creativePlayers.add("p");
         expect(
-          new PlaceVehicle(world, new InMemoryRepo(), log).execute({
+          new PlaceVehicle(world, repo, log).execute({
             ...cmd,
             kind,
           }),
-        ).toBe(true);
-        expect(world.calls.some((c) => c.startsWith("consume"))).toBe(
-          !creative,
+        ).toBe(creative || itemInSlot);
+        expect(world.calls.filter((c) => c.startsWith("consume"))).toEqual(
+          !creative && itemInSlot ? [`consume:p:2:${kind}`] : [],
         );
+        if (!creative && !itemInSlot) {
+          expect(world.calls).toEqual([]);
+          expect(repo.ids()).toEqual([]);
+          expect(world.owners.size).toBe(0);
+        }
       },
     ),
   );
