@@ -1,8 +1,8 @@
 import type { Dimension, Entity, Player } from "@minecraft/server";
 import type { Cell } from "../../domain/shared/cells";
-import { CLEARABLE_DECORATIONS } from "../../domain/shared/decorations";
+import { isStandable, type StandPolicy } from "../../domain/shared/standing";
 import { forward, rightOf } from "../../domain/shared/vec";
-import { safeBlockAt } from "./blocks";
+import { sampleBlock } from "./blocks";
 
 export function seatRider(
   entity: Entity,
@@ -30,22 +30,31 @@ export function seatRider(
   return entity.getComponent("minecraft:rideable")?.addRider(player) === true;
 }
 
+const SEAT_STAND_POLICY: StandPolicy = {
+  allowPassableBody: false,
+  hazards: new Set(),
+  rejectDecorationFloor: true,
+  requireSolidFloor: false,
+};
+
 export function makeSafeStand(deps: {
   isVehicleSpace(c: Cell): boolean;
   isCampSpace(c: Cell): boolean;
 }): (dimension: Dimension, c: Cell) => boolean {
-  return (dimension, cell) => {
-    const floor = safeBlockAt(dimension, { ...cell, y: cell.y - 1 });
+  const sampleOptions = { probeSolidity: false };
+  return (dimension, feetCell) => {
+    const headCell = { ...feetCell, y: feetCell.y + 1 };
+    const floor = sampleBlock(
+      dimension,
+      { ...feetCell, y: feetCell.y - 1 },
+      sampleOptions,
+    );
+    const feet = sampleBlock(dimension, feetCell, sampleOptions);
+    const head = sampleBlock(dimension, headCell, sampleOptions);
     return (
-      floor !== undefined &&
-      !floor.isAir &&
-      !floor.isLiquid &&
-      !CLEARABLE_DECORATIONS.has(floor.typeId) &&
-      [cell, { ...cell, y: cell.y + 1 }].every(
-        (at) =>
-          safeBlockAt(dimension, at)?.isAir === true &&
-          !deps.isVehicleSpace(at) &&
-          !deps.isCampSpace(at),
+      isStandable(feet, head, floor, SEAT_STAND_POLICY) &&
+      [feetCell, headCell].every(
+        (at) => !deps.isVehicleSpace(at) && !deps.isCampSpace(at),
       )
     );
   };

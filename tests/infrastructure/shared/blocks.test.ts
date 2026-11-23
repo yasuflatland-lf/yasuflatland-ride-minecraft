@@ -4,6 +4,7 @@ import { asDimensionId } from "../../../src/domain/shared/ids";
 import {
   chunkLoadedAt,
   isSolidTop,
+  sampleBlock,
 } from "../../../src/infrastructure/shared/blocks";
 
 const game = vi.hoisted(() => ({
@@ -50,6 +51,38 @@ it("refuses support when the dimension lookup throws", () => {
     throw new Error("unknown dimension");
   });
   expect(isSolidTop(dimension, cell)).toBe(false);
+});
+
+describe("sampleBlock", () => {
+  const block = { typeId: "minecraft:stone", isAir: false, isLiquid: false };
+
+  it.each([
+    ["the origin", { location: cell }, true],
+    ["a different cell", { location: { ...cell, y: cell.y + 1 } }, false],
+    ["no block", undefined, false],
+  ] as const)(
+    "samples solidity when the probe finds %s",
+    (_, hit, solidTop) => {
+      const getBlock = vi.fn(() => block);
+      const getBlockAbove = vi.fn(() => hit);
+      const source = { getBlock, getBlockAbove } as unknown as Dimension;
+      expect(sampleBlock(source, cell)).toEqual({ ...block, solidTop });
+      expect(getBlock).toHaveBeenCalledExactlyOnceWith(cell);
+      expect(getBlockAbove).toHaveBeenCalledExactlyOnceWith(cell, {
+        maxDistance: 1,
+        includeLiquidBlocks: false,
+        includePassableBlocks: false,
+      });
+    },
+  );
+
+  it("returns no sample or probe when the block is unloaded", () => {
+    const getBlock = vi.fn(() => undefined);
+    const getBlockAbove = vi.fn();
+    const source = { getBlock, getBlockAbove } as unknown as Dimension;
+    expect(sampleBlock(source, cell)).toBeUndefined();
+    expect(getBlockAbove).not.toHaveBeenCalled();
+  });
 });
 
 describe("chunkLoadedAt", () => {
