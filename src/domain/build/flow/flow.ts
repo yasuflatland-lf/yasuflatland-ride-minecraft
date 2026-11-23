@@ -1,7 +1,7 @@
-import { type Cell, sameCell } from "../../shared/cells";
+import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
-import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
+import { boxOf, boxWithHeight, type CellBox, sameBox, sizeOf } from "../box";
 import { isRoofKind, stairRoofHeight } from "../roof/roof";
 import {
   type Selection,
@@ -51,6 +51,7 @@ export type BuildFlow =
       readonly base: CellBox;
       readonly selectionBefore?: CellBox;
       readonly from: Cell;
+      readonly to: Cell;
       readonly heightedKind: HeightStepKind;
       readonly previous: number;
       readonly heightLocked: boolean;
@@ -96,6 +97,15 @@ export function tapsOf(flow: BuildFlow): Taps | undefined {
 /** Uses the minimum and maximum corners as the first and second taps. */
 export function cornerTaps(box: CellBox): Taps {
   return { from: box.min, to: box.max };
+}
+
+/** Rotate moves the footprint while terrain operations keep their two height limits. */
+export function tapsForBox(box: CellBox, previousTaps: Taps): Taps {
+  const { from, to } = previousTaps;
+  return {
+    from: { ...box.min, y: Math.min(from.y, to.y) },
+    to: { ...box.max, y: Math.max(from.y, to.y) },
+  };
 }
 
 type Point1Flow = Extract<BuildFlow, { kind: "point1" }>;
@@ -207,7 +217,7 @@ export function liveHeightBox(flow: BaseHeightFlow): CellBox {
 }
 
 function tappedSpanBox(flow: BaseHeightFlow): CellBox {
-  const span = boxOf(flow.from, flow.to);
+  const span = flow.selection.box;
   return boxWithHeight(span, tappedSpanHeight(span));
 }
 
@@ -331,6 +341,7 @@ export function chooseHeighted(
       ? { selectionBefore: box }
       : {}),
     from: flow.from,
+    to: flow.to,
     heightedKind: kind,
     previous,
     heightLocked: locked || stairRoof,
@@ -342,15 +353,8 @@ export function chooseHeighted(
 export function selectedStairRow(
   flow: Extract<BuildFlow, { kind: "selected" }>,
 ): StairRow | undefined {
-  const row = stairRowOf(cornerTaps(flow.selection.box));
-  if (!row) return undefined;
-  if (row.along === undefined) {
-    return sameCell(flow.from, row.min) && sameCell(flow.to, row.min)
-      ? row
-      : undefined;
-  }
-  // Rotate can change the row axis while preserving the original taps.
-  return stairRowOf(flow)?.along ? row : undefined;
+  const row = stairRowOf(flow);
+  return row && sameBox(row, flow.selection.box) ? row : undefined;
 }
 
 export function chooseStairs(flow: BuildFlow, op: StairOp): BuildFlow {

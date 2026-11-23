@@ -24,6 +24,7 @@ export interface AppliedChange {
 }
 
 export interface EditRecord {
+  readonly keepEmpty?: true;
   readonly selectionBefore?: CellBox;
   readonly selectionBeforeTaps?: Taps;
   readonly selectionAfter?: CellBox;

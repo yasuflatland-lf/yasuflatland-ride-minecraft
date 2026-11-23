@@ -182,6 +182,7 @@ describe("EditJobs properties", () => {
         dimensionId: overworld,
         base: boxOf(cell, cell),
         from: cell,
+        to: cell,
         heightedKind: "cylinder",
         previous: 1,
         heightLocked: false,
