@@ -4,6 +4,7 @@ import {
   GAS_LANTERN_FOOTPRINT_PX,
 } from "../../../src/domain/camp/spec";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
 import {
   CAMP_TABLE_TYPE,
@@ -13,8 +14,7 @@ import {
   GAS_LANTERN_HOSTED_EVENT,
   GAS_LANTERN_TYPE,
 } from "../../../src/infrastructure/camp/identifiers";
-import { BedrockGasLanternWorld } from "../../support/campTopAdapters";
-import { itemsOnTable } from "../../support/campTopHosts";
+import { campTopHosts, itemsOnTable } from "../../support/campTopHosts";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn(), getDimension: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
@@ -62,7 +62,7 @@ it("spawns a hosted lantern at the table's yaw, marks its host, and stops its fa
   const spawnEntity = vi.fn(() => lantern);
   game.getDimension.mockReturnValue({ spawnEntity });
   const lanterns = new BedrockGasLanternWorld(
-    { isVehicleSpace: () => false },
+    { isVehicleSpace: () => false, topHosts: campTopHosts() },
     createGasLanternLight(),
   );
   const at = { x: 1, y: 64.75, z: 2 };

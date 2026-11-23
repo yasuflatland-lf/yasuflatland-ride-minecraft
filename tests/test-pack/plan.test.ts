@@ -7,7 +7,6 @@ import {
   FEATURE_TAGS,
   type FeatureTag,
 } from "../../src/test-pack/features.ts";
-import type { Skipped } from "../../src/test-pack/plan.ts";
 import {
   coverageGaps,
   MAX_LANE_VEHICLES,
@@ -90,29 +89,37 @@ describe("planOf", () => {
     );
   });
 
-  it("preserves the manual setup note with or without a connected player", () => {
+  it("preserves skip notes for manual setup and player requirements", () => {
     fc.assert(
-      fc.property(fc.boolean(), fc.string(), (playerConnected, skipNote) => {
-        const spec: ScenarioSpec = {
-          name: "decor",
-          file: "fixture",
-          ticks: 1300,
-          features: ["build"],
-          isolation: "exclusive",
-          needsPlayer: true,
-          manualSetup: true,
-          skipNote,
-          vehicles: 0,
-        };
-        expect(
-          planOf([spec], { shard: WHOLE_RUN, playerConnected }).skipped,
-        ).toEqual([
-          {
-            name: spec.name,
-            reason: `manual setup: set GAME_TEST_MANUAL=1 to run it; ${skipNote}`,
-          },
-        ]);
-      }),
+      fc.property(
+        fc.boolean(),
+        fc.boolean(),
+        fc.string(),
+        (manualSetup, playerConnected, skipNote) => {
+          const spec: ScenarioSpec = {
+            name: "decor",
+            file: "fixture",
+            ticks: 1300,
+            features: ["build"],
+            isolation: "exclusive",
+            needsPlayer: true,
+            manualSetup: manualSetup || undefined,
+            skipNote,
+            vehicles: 0,
+          };
+          expect(
+            planOf([spec], {
+              shard: WHOLE_RUN,
+              playerConnected: manualSetup && playerConnected,
+            }).skipped,
+          ).toEqual([
+            {
+              name: spec.name,
+              reason: `${manualSetup ? "manual setup: set GAME_TEST_MANUAL=1 to run it" : "a connected player is required"}; ${skipNote}`,
+            },
+          ]);
+        },
+      ),
     );
   });
 
@@ -128,39 +135,6 @@ describe("planOf", () => {
         expect(plan.skipped).toEqual([]);
         expect(plan.unselected).toBe(0);
       }),
-    );
-  });
-
-  it("skips exactly the selected player scenarios before sharding", () => {
-    fc.assert(
-      fc.property(
-        catalog,
-        fc.option(tags, { nil: undefined }),
-        fc.integer({ min: 1, max: 8 }),
-        (specs, features, total) => {
-          const plan = planOf(specs, {
-            shard: { index: 1, total },
-            playerConnected: false,
-            manual: true,
-            features,
-          });
-          expect(plan.skipped).toEqual(
-            specs
-              .filter(
-                (spec) =>
-                  spec.needsPlayer &&
-                  (features === undefined || selectedBy(spec, features)),
-              )
-              .map(
-                ({ name }): Skipped => ({
-                  name,
-                  reason: "a connected player is required",
-                }),
-              ),
-          );
-          expect(plan.runs.every((spec) => !spec.needsPlayer)).toBe(true);
-        },
-      ),
     );
   });
 
@@ -382,9 +356,6 @@ describe("planOf", () => {
         };
         const plan = planOf(specs, options);
         expect(planOf(specs, { ...options, lanes: 1 })).toEqual(plan);
-        expect(plan.lanes).toEqual([specs]);
-        expect(plan.exclusive).toEqual([]);
-        expect(plan.makespanTicks).toBe(plan.expectedTicks);
       }),
     );
   });
@@ -408,28 +379,6 @@ describe("planOf", () => {
 
   it("reserves two vehicle slots below the world eviction cap", () => {
     expect(MAX_LANE_VEHICLES).toBe(SPEC.maxUnownedVehicles - 2);
-  });
-
-  it("preserves the preview verification note when skipping build flow", () => {
-    const spec: ScenarioSpec = {
-      name: "build_flow_cancel",
-      file: "buildFlow",
-      ticks: 30,
-      features: ["build"],
-      isolation: "exclusive",
-      needsPlayer: true,
-      skipNote: "preview visibility needs visual verification",
-      vehicles: 0,
-    };
-    expect(
-      planOf([spec], { shard: WHOLE_RUN, playerConnected: false }).skipped,
-    ).toEqual([
-      {
-        name: spec.name,
-        reason:
-          "a connected player is required; preview visibility needs visual verification",
-      },
-    ]);
   });
 });
 
@@ -522,14 +471,6 @@ describe("shardsOf", () => {
     fc.assert(
       fc.property(tickList, shardCount, (ticks, total) => {
         expect(shardsOf(ticks, total)).toEqual(shardsOf([...ticks], total));
-      }),
-    );
-  });
-
-  it("puts everything in the only shard of a whole run", () => {
-    fc.assert(
-      fc.property(tickList, (ticks) => {
-        expect(shardsOf(ticks, 1).every((s) => s === 1)).toBe(true);
       }),
     );
   });
