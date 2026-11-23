@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { PlaceBeachChair } from "../../../src/application/resort/placeBeachChair";
 import {
+  beachChairCells,
   beachChairClearCells,
   beachChairPose,
   beachChairSupportCells,
@@ -67,6 +68,21 @@ it("requires solid support below all three cells", () => {
           (_dimension, cell) => cellKey(cell) !== cellKey(support),
         );
         expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
+        expect(world.consumeItem).not.toHaveBeenCalled();
+        expect(world.spawn).not.toHaveBeenCalled();
+      }
+    }),
+  );
+});
+
+it("refuses every occupied floor cell before payment", () => {
+  fc.assert(
+    fc.property(command, (cmd) => {
+      for (const cell of beachChairCells(beachChairPose(cmd.block, cmd.yaw))) {
+        const world = fakeBeachChairWorld();
+        world.resortGearCells.mockReturnValue([cell]);
+        expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
+        expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
         expect(world.consumeItem).not.toHaveBeenCalled();
         expect(world.spawn).not.toHaveBeenCalled();
       }

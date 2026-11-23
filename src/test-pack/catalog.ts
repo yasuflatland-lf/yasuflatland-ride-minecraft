@@ -164,6 +164,15 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "resort_gear_overlap",
+    file: "resortGearOverlap",
+    ticks: 10,
+    features: ["resort"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 0,
+  },
+  {
     name: "dining_table_top_overlap",
     file: "diningTable",
     ticks: 32, // Estimate until the first BDS run.
