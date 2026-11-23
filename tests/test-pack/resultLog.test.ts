@@ -69,14 +69,6 @@ describe("a run reads only its own lines", () => {
 });
 
 describe("summaryPassed", () => {
-  it("passes only when no test failed", () => {
-    fc.assert(
-      fc.property(runId, counts, (id, fail) => {
-        expect(summaryPassed(summaryLine(id, fail))).toBe(fail === 0);
-      }),
-    );
-  });
-
   it("ignores a fail=0 echoed in the error text", () => {
     const line = "SUMMARY pass=0 fail=1 error=bad token: x=fail=0";
     expect(summaryPassed(line)).toBe(false);

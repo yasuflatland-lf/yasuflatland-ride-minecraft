@@ -66,7 +66,6 @@ describe("defaultLanesOf", () => {
       }),
     );
   });
-
   it("always returns a lane count from 1 to 8", () => {
     fc.assert(
       fc.property(context, value, (env, GAME_TEST_LANES) => {
@@ -285,9 +284,27 @@ describe("token validators", () => {
 });
 
 describe("shardFrom", () => {
-  it("rejects an index of 0, above the total, or a malformed text", () => {
-    for (const text of ["0/2", "3/2", "1/0", "1-2", "1/2/3", "", " 1/2"])
+  it("accepts canonical integer shards exactly within their total", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -5, max: 105 }),
+        fc.integer({ min: -5, max: 105 }),
+        (index, total) => {
+          expect(shardFrom(`${index}/${total}`)).toEqual(
+            index >= 1 && index <= total && total <= 99
+              ? { index, total }
+              : undefined,
+          );
+        },
+      ),
+    );
+    for (const text of ["1-2", "1/2/3", "", " 1/2"])
       expect(shardFrom(text)).toBeUndefined();
+    fc.assert(
+      fc.property(fc.string(), (text) => {
+        expect(() => shardFrom(text)).not.toThrow();
+      }),
+    );
   });
 });
 
