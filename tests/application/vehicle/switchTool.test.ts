@@ -6,6 +6,7 @@ import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
   createVehicle,
+  profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../src/domain/vehicle/spec";
@@ -55,19 +56,41 @@ it("reports the new tool state only for successful chase-camera switches", () =>
   fc.assert(
     fc.property(
       fc.constantFrom(
-        ["blade_switch", "up", "down", "blade_up", "blade_down"],
+        ["bulldozer", "blade_switch", "up", "down", "blade_up", "blade_down"],
         [
+          "bulldozer",
           "wide_blade_switch",
           "wide",
           "normal",
           "wide_blade_wide",
           "wide_blade_normal",
         ],
-        ["road_paver_switch", "on", "off", "road_paver_on", "road_paver_off"],
+        [
+          "bulldozer",
+          "road_paver_switch",
+          "on",
+          "off",
+          "road_paver_on",
+          "road_paver_off",
+        ],
+        [
+          "sportsboat",
+          "icebreaker_switch",
+          "on",
+          "off",
+          "icebreaker_on",
+          "icebreaker_off",
+        ],
       ),
       fc.boolean(),
-      ([item, first, second, firstKey, secondKey], thirdPerson) => {
-        const repo = bulldozerRepo();
+      ([kind, item, first, second, firstKey, secondKey], thirdPerson) => {
+        const repo = new InMemoryRepo();
+        const offset = defined(profileOf(kind).seats.positions[0], "seat 0");
+        repo.save(
+          rebuildVehicle(kind, vehicleId, 0, [{ ...driver, offset }], {
+            blade: 0,
+          }),
+        );
         const clock = new FakeClock();
         const messages: string[] = [];
         const feedback = new SwitchFeedback(
