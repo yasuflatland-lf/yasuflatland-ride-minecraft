@@ -5,12 +5,52 @@ import {
   cellKey,
   cellOf,
   offsetToCellCenter,
+  parseCell,
   sameCell,
 } from "../../../src/domain/shared/cells";
 
 import { sameLocalCell } from "../../../src/domain/vehicle/kinds/camper/furniture";
 
 const cell = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
+
+describe("parseCell", () => {
+  it("preserves safe integer coordinates", () => {
+    const coordinate = fc.maxSafeInteger();
+    fc.assert(
+      fc.property(
+        fc.record({ x: coordinate, y: coordinate, z: coordinate }),
+        (c) => {
+          expect(parseCell({ ...c, extra: true })).toEqual(c);
+        },
+      ),
+    );
+  });
+
+  it("rejects an invalid coordinate on any axis", () => {
+    const invalidCoordinate = fc.oneof(
+      fc.integer().map((n) => n + 0.5),
+      fc.integer().map(String),
+      fc.constantFrom(undefined, null, NaN, Infinity, -Infinity),
+      fc.constantFrom(Number.MAX_SAFE_INTEGER + 1, Number.MIN_SAFE_INTEGER - 1),
+    );
+    fc.assert(
+      fc.property(
+        cell,
+        fc.constantFrom("x", "y", "z"),
+        invalidCoordinate,
+        (c, axis, value) => {
+          expect(parseCell({ ...c, [axis]: value })).toBeUndefined();
+        },
+      ),
+    );
+  });
+
+  it("rejects values without coordinates", () => {
+    for (const raw of [undefined, null, 1, "{}", [], {}]) {
+      expect(parseCell(raw)).toBeUndefined();
+    }
+  });
+});
 
 it("compares integer cells reflexively and symmetrically by their keys", () => {
   fc.assert(
