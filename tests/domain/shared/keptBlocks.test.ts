@@ -1,12 +1,19 @@
 import { MinecraftBlockTypes } from "@minecraft/vanilla-data";
 import { expect, it } from "vitest";
+import { BUILD_KEPT_BLOCKS } from "../../../src/domain/build/edit/guard";
 import { KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 
-it("lists each kept block once, as a real vanilla block id (ADR 0137)", () => {
-  const vanilla = new Set<string>(Object.values(MinecraftBlockTypes));
-  expect(new Set(KEPT_BLOCKS).size).toBe(KEPT_BLOCKS.length);
-  for (const id of KEPT_BLOCKS) expect(vanilla.has(id), id).toBe(true);
-});
+it.each([
+  { rule: "bulldozer protection (ADR 0137)", blocks: KEPT_BLOCKS },
+  { rule: "build protection (ADR 0178)", blocks: BUILD_KEPT_BLOCKS },
+])(
+  "lists each kept block once as a real vanilla block id for $rule",
+  ({ blocks }) => {
+    const vanilla = new Set<string>(Object.values(MinecraftBlockTypes));
+    expect(new Set(blocks).size).toBe(blocks.length);
+    for (const id of blocks) expect(vanilla.has(id), id).toBe(true);
+  },
+);
 it("keeps air, the liquids, and every block that holds items (ADR 0137)", () => {
   expect(KEPT_BLOCKS).toHaveLength(70);
   expect(KEPT_BLOCKS).toEqual(

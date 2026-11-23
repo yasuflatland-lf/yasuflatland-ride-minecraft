@@ -3,7 +3,6 @@ import { expect, it } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf, snapYaw } from "../../../../../src/domain/shared/facing";
-import { asVehicleId } from "../../../../../src/domain/shared/ids";
 import {
   dot,
   forward,
@@ -12,7 +11,6 @@ import {
   rightOf,
 } from "../../../../../src/domain/shared/vec";
 import { inBox } from "../../../../../src/domain/vehicle/dock/dock";
-import { VEHICLE_KINDS } from "../../../../../src/domain/vehicle/kind";
 import {
   DECOR_CELLS,
   DECOR_SLOTS,
@@ -56,10 +54,6 @@ import {
   holdsCargo,
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
-import {
-  CAMPER_ROOM,
-  createVehicle,
-} from "../../../../../src/domain/vehicle/kinds/index";
 import { seatWorldPositions } from "../../../../../src/domain/vehicle/seats";
 import { camperRoom } from "../../../../support/camperRoom";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
@@ -1203,36 +1197,3 @@ it("preserves the results of generated storage press sequences", () => {
     ]
   `);
 });
-
-it.each(VEHICLE_KINDS)(
-  "offers the room capability only to the camper (%s)",
-  (kind) => {
-    const vehicle = createVehicle(kind, asVehicleId("room-test"), 0);
-    const room = vehicle.capability(CAMPER_ROOM);
-    if (kind !== "camper") {
-      expect(room).toBeUndefined();
-      return;
-    }
-
-    expect(room).toMatchObject({
-      decor: {
-        decor: expect.any(Function),
-        setDecor: expect.any(Function),
-        decorSlotFor: expect.any(Function),
-        placeDecor: expect.any(Function),
-        removeDecor: expect.any(Function),
-      },
-      storage: {
-        drawerTarget: expect.any(Function),
-        pressStorage: expect.any(Function),
-      },
-      fixtures: {
-        useDockDoor: expect.any(Function),
-        pressShowerToilet: expect.any(Function),
-        bedSpawnCell: expect.any(Function),
-      },
-    });
-    expect(Object.isFrozen(room)).toBe(true);
-    expect(vehicle.capability(CAMPER_ROOM)).toBe(room);
-  },
-);

@@ -61,7 +61,7 @@
 - Agreement: Accepted
 - Basis: [0220](../adr/0220-separate-room-capability-from-drive.md) Decision
 - Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/kinds/index.ts`; `src/application/vehicle/room/pressStorage.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/room.test.ts` checks the hosts and compares generated storage press sequences with their recorded results. `tests/application/vehicle/room/placeDecor.test.ts` checks the no-slot result when a vehicle has no room.
+- Verification: `tests/domain/vehicle/kinds/camper/room.test.ts` compares generated storage press sequences with their recorded results. `tests/domain/vehicle/vehicle.test.ts` "exposes a room only for kinds with the room capability" checks that the camper returns the same frozen room and that other kinds return no room. `tests/application/vehicle/room/placeDecor.test.ts` checks the no-slot result when a vehicle has no room.
 
 ### Furniture table
 

@@ -149,7 +149,7 @@
 - Agreement: Proposed
 - Basis: [0136](../adr/0136-bulldozer.md) Decision, "Tracks run in car form only. Right travel advances by `speed - degToRad(yawDelta) * halfGauge`, left by `speed + degToRad(yawDelta) * halfGauge`."
 - Implementation: `src/domain/vehicle/kinds/bulldozer/tracks.ts`; `src/domain/vehicle/kinds/bulldozer/drive.ts`; `src/domain/vehicle/kinds/bulldozer/entity.ts`; `src/domain/vehicle/kinds/bulldozer/spec.ts`; `packs/yasu_ride_rp/animations/yasu_ride/bulldozer.anim.json`
-- Verification: `tests/domain/vehicle/kinds/bulldozer/tracks.test.ts` covers straight and pivot travel, phase periodicity, and spin; `drive.test.ts` covers opposite pivot tracks, freezing outside car form, changed-only delivery, and resync. `tests/packs/bulldozer.test.ts` checks property-driven animation. Not verified: perceived track direction and smoothness on PC/mobile; the manual driving and appearance acceptance of 0136 remains pending.
+- Verification: `tests/domain/vehicle/kinds/bulldozer/tracks.test.ts` covers straight and pivot travel, phase periodicity, and spin; `drive.test.ts` covers delivery of spin and phase from pivot travel, freezing outside car form, changed-only delivery, and resync. `tests/packs/bulldozer.test.ts` checks property-driven animation. Not verified: perceived track direction and smoothness on PC/mobile; the manual driving and appearance acceptance of 0136 remains pending.
 
 ## Open issues
 

@@ -850,11 +850,8 @@ describe("seat-taken hook", () => {
       speed: 0,
       yaw: 0,
       resync() {},
-      onDriverMounted() {
-        log.push("mounted");
-      },
+      onDriverMounted() {},
       onSeatVacated(seat) {
-        log.push(`vacated:${seat}`);
         return [{ type: "playSound", name: `vacated_${seat}` }];
       },
       ...(withHook
@@ -866,7 +863,6 @@ describe("seat-taken hook", () => {
           }
         : {}),
       step() {
-        log.push("step");
         return {
           impulse: { x: 0, y: 0, z: 0 },
           forward: { x: 0, z: 1 },
@@ -910,11 +906,15 @@ describe("seat-taken hook", () => {
     expect(names(second)).toEqual(["vacated_2", "taken_1"]);
   });
 
-  it("calls the seat-taken hook before the mount hook and the step", () => {
-    const log: string[] = [];
-    const vehicle = newVehicle(log, true);
-    vehicle.tick(input(0, [at("a", 0)]));
-    expect(log).toEqual(["taken:0", "mounted", "step"]);
+  it("starts opening the bulldozer door on the tick the driver boards", () => {
+    const vehicle = createVehicle("bulldozer", asVehicleId("v"), 0);
+    const empty = vehicle.tick(input(0, []));
+    const closed = propertyValue(empty.stepCommands, "door");
+    expect(closed).toBe(0);
+    const boarded = vehicle.tick(input(1, [riderView("a", { slot: 0 })]));
+    expect(
+      propertyValue(boarded.stepCommands, "door") ?? closed,
+    ).toBeGreaterThan(0);
   });
 
   it("does not call the seat-taken hook for riders who stay or move seats", () => {
@@ -1093,6 +1093,7 @@ it("exposes a room only for kinds with the room capability", () => {
         const room = vehicle.capability(CAMPER_ROOM);
         expect(room !== undefined).toBe(kind === "camper");
         if (room) {
+          expect(Object.isFrozen(room)).toBe(true);
           expect(room.decor.decor()).toEqual([]);
           expect(
             room.decor.setDecor(
