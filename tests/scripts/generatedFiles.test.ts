@@ -111,7 +111,7 @@ it("refuses to package missing generated outputs with the build instruction", ()
   expect(existsSync(join(root, "dist"))).toBe(false);
 });
 
-it("packages the driving-input receiver and keeps build hooks in the dev bundle only", () => {
+it("packages the driving-input receiver and keeps build and vehicle hooks in the dev bundle only", () => {
   const root = fixture();
   for (const pack of ["yasu_ride_bp", "yasu_ride_rp"]) {
     const dir = join("packs", pack);
@@ -135,7 +135,16 @@ it("packages the driving-input receiver and keeps build hooks in the dev bundle 
       maxBuffer: 8 * 1024 * 1024,
     },
   );
-  for (const marker of ["replyWhenSettled", "registerTestEdit"]) {
+  for (const marker of [
+    "replyWhenSettled",
+    "registerTestEdit",
+    "registerTestHeldItem",
+    "registerTestTool",
+    "registerTestDecor",
+    "test_held_item",
+    "test_tool",
+    "test_decor",
+  ]) {
     expect(dev).toContain(marker);
     expect(release).not.toContain(marker);
   }

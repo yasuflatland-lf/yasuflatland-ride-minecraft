@@ -5,7 +5,6 @@ import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
-  createVehicle,
   profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
@@ -22,35 +21,6 @@ const driver: RiderView = {
   yaw: 0,
   raw: { moveX: 0, moveY: 0, jump: false },
 };
-
-function bulldozerRepo(): InMemoryRepo {
-  const repo = new InMemoryRepo();
-  repo.save(rebuildVehicle("bulldozer", vehicleId, 0, [driver], { blade: 0 }));
-  return repo;
-}
-
-it("forces the blade for the test hook, and nothing for an unknown vehicle or a kind without a blade", () => {
-  const repo = bulldozerRepo();
-  repo.save(createVehicle("suv", asVehicleId("suv"), 0));
-  const use = new SwitchTool(repo, new FakeClock());
-  expect(use.force({ vehicleId, item: "blade_switch", state: "up" })).toBe(
-    true,
-  );
-  expect(
-    use.force({
-      vehicleId: asVehicleId("unknown"),
-      item: "blade_switch",
-      state: "up",
-    }),
-  ).toBe(false);
-  expect(
-    use.force({
-      vehicleId: asVehicleId("suv"),
-      item: "blade_switch",
-      state: "up",
-    }),
-  ).toBe(false);
-});
 
 it("reports the new tool state only for successful chase-camera switches", () => {
   fc.assert(
@@ -116,8 +86,6 @@ it("reports the new tool state only for successful chase-camera switches", () =>
         expect(use.execute(cmd)).toBe(true);
         expect(repo.get(vehicleId)?.toolState(item)).toBe(second);
         expect(messages).toEqual(thirdPerson ? [firstKey, secondKey] : []);
-        use.force({ vehicleId, item, state: first });
-        expect(messages).toHaveLength(thirdPerson ? 2 : 0);
       },
     ),
   );

@@ -186,6 +186,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/infrastructure/camp/identifiers.ts",
   "src/infrastructure/shared/identifiers.ts",
   "src/infrastructure/vehicle/bedrock/identifiers.ts",
+  "src/infrastructure/vehicle/testHooks/identifiers.ts",
 ];
 
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {

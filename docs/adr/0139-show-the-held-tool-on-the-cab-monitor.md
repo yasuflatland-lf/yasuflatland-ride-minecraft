@@ -37,7 +37,7 @@ The Behavior Pack pins `@minecraft/server` at 2.2.0, while `package.json` pins i
    - In the client entity, list the monitor controller before the controller that holds blended materials, and only when `query.property('yasu_ride:monitor') > 0`. Draw the opaque overlay first, then blend the glass over it.
    - Place the visible face at least 0.1 px in front of the screen plate it covers. Value 0 draws nothing, leaving the existing palette screen visible.
 9. **Catalog consistency.** Check that the creative group in `crafting_item_catalog.json` contains every tool in the monitor rule (0178). The tests look up each group by its ID in `tests/support/packContract.ts`.
-10. **Test hook.** Add the server-only script event `yasu_ride:test_held_tool`, with message `<vehicleId>,<bareItem>` or `<vehicleId>,clear`. It supplies the held tool only when there is no driver, as `testInput` does (0010).
+10. **Test hook.** Dev builds register the server-only script event `yasu_ride:test_held_item`, with message `<vehicleId>,<namespacedItemId>` or `<vehicleId>,clear` (0181). It supplies the held tool only when there is no driver, as `testInput` does (0010).
 11. **Adding a tool.** For a kind that already has a monitor, adding a tool requires only data and table entries, with no new branching. Implement the checks below with the feature so each missed step is caught.
 
 | Step                                                                                           | Caught by                                                                                                                                                        |

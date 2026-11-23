@@ -11,6 +11,7 @@ import { installResort } from "../../src/infrastructure/resort/install";
 import type { SwitchTarget } from "../../src/infrastructure/shared/switchRouter";
 import { TopHostRegistry } from "../../src/infrastructure/shared/tableTop/registry";
 import { installVehicles } from "../../src/infrastructure/vehicle/install";
+import { installVehicleTestHooks } from "../../src/infrastructure/vehicle/testHooks/install";
 import { installWarp } from "../../src/infrastructure/warp/install";
 
 vi.mock("@minecraft/server-ui", () => ({
@@ -19,6 +20,7 @@ vi.mock("@minecraft/server-ui", () => ({
 }));
 
 const isFleetEntityType = vi.fn(() => false);
+const testHooks = {} as ReturnType<typeof installVehicles>["testHooks"];
 const vehicleHost = () => ({ status: "unknown" as const });
 
 const game = vi.hoisted(() => {
@@ -60,6 +62,9 @@ vi.mock("@minecraft/server", () => ({
 vi.mock("../../src/infrastructure/vehicle/install", () => ({
   installVehicles: vi.fn(),
 }));
+vi.mock("../../src/infrastructure/vehicle/testHooks/install", () => ({
+  installVehicleTestHooks: vi.fn(),
+}));
 vi.mock("../../src/infrastructure/camp/install", () => ({
   installCamp: vi.fn(),
 }));
@@ -85,7 +90,7 @@ it("wires space both ways through a late-bound camp reference (ADR 0129)", () =>
   const isCampSpace = vi.fn<SpaceCheck>();
   vi.mocked(installVehicles).mockImplementation((deps) => {
     expect(deps.isCampSpace(dim, at)).toBe(false);
-    return { isVehicleSpace, vehicleHost, isFleetEntityType };
+    return { isVehicleSpace, vehicleHost, isFleetEntityType, testHooks };
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
@@ -121,6 +126,7 @@ it("lets the vehicles see a registered tent, and the chair stand on its floor bu
     isVehicleSpace: () => false,
     vehicleHost,
     isFleetEntityType,
+    testHooks,
   });
   game.getDynamicProperty.mockReturnValue(
     JSON.stringify([
@@ -166,7 +172,12 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   let before: readonly SwitchTarget[] | undefined;
   vi.mocked(installVehicles).mockImplementation((deps) => {
     before = deps.laterSwitchTargets();
-    return { isVehicleSpace: () => false, vehicleHost, isFleetEntityType };
+    return {
+      isVehicleSpace: () => false,
+      vehicleHost,
+      isFleetEntityType,
+      testHooks,
+    };
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace: () => false,
@@ -188,6 +199,7 @@ it("installs build last and passes both space checks", () => {
     isVehicleSpace,
     vehicleHost,
     isFleetEntityType,
+    testHooks,
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
@@ -198,6 +210,7 @@ it("installs build last and passes both space checks", () => {
   vi.mocked(installBuild).mockReturnValueOnce(build);
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
+  expect(installVehicleTestHooks).toHaveBeenCalledExactlyOnceWith(testHooks);
   expect(installBuildTestHooks).toHaveBeenCalledExactlyOnceWith(build);
   const excluded =
     vi.mocked(installBuild).mock.lastCall?.[0].isExcludedEntityType;

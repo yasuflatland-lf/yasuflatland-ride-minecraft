@@ -1,11 +1,11 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import type { SwitchTool } from "../../../../application/vehicle/switchTool";
-import { NAMESPACE } from "../../../shared/identifiers";
-import { parseTestToolMessage } from "../../testInput/testToolMessage";
-import { TEST_TOOL_EVENT } from "../identifiers";
+import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
+import { NAMESPACE } from "../../shared/identifiers";
+import { TEST_TOOL_EVENT } from "./identifiers";
+import { parseTestToolMessage } from "./testToolMessage";
 
 // Lets in-game tests set a monitor tool without a player (ADR 0171).
-export function registerTestTool(tool: SwitchTool): void {
+export function registerTestTool(repo: VehicleRepository): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (
@@ -18,7 +18,7 @@ export function registerTestTool(tool: SwitchTool): void {
         console.warn(`[${NAMESPACE}] ignored test tool: ${ev.message}`);
         return;
       }
-      tool.force(cmd);
+      repo.get(cmd.vehicleId)?.forceTool(cmd.item, cmd.state);
     },
     { namespaces: [NAMESPACE] },
   );
