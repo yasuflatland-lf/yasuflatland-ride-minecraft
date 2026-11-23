@@ -7,8 +7,6 @@ import type {
   RoofTentRefusal,
 } from "../../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
-import { cellCenter } from "../../../domain/shared/cells";
-import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { decodeHost, encodeHost } from "../../../domain/shared/hosted";
 import {
   asPlayerId,
@@ -17,8 +15,9 @@ import {
 } from "../../../domain/shared/ids";
 import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { blockIn } from "../../shared/blocks";
 import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
-import { entityOfType } from "../../shared/entities";
+import { entityOfType, hasEntityNear } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { id } from "../../shared/identifiers";
 import {
@@ -123,39 +122,22 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     const target = receiver ?? roofTentEntity(id);
     if (target) giveBack(target, ROOF_TENT_ITEM, receiver);
   }
-  groundFree(dimensionId: DimensionId, cell: Vec3): boolean {
-    try {
-      const dimension = world.getDimension(dimensionId);
-      const ground = dimension.getBlock(cell);
-      if (
-        !ground ||
-        ground.isAir ||
-        ground.isLiquid ||
-        CLEARABLE_DECORATIONS.has(ground.typeId)
-      )
-        return false;
-      // The fixed two-block box reaches into the cells beside its center.
-      for (const dx of [-1, 0, 1])
-        for (const dz of [-1, 0, 1])
-          for (const dy of [1, 2]) {
-            const at = { x: cell.x + dx, y: cell.y + dy, z: cell.z + dz };
-            if (
-              dimension.getBlock(at)?.isAir !== true ||
-              this.deps.isVehicleSpace(dimensionId, at) ||
-              this.deps.isCampSpace(dimensionId, at)
-            )
-              return false;
-          }
-      return (
-        dimension.getEntities({
-          type: ROOF_TENT_TYPE,
-          location: cellCenter(cell, 1),
-          maxDistance: 2,
-        }).length === 0
-      );
-    } catch {
-      return false;
-    }
+  blockAt = blockIn;
+  isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean {
+    return this.deps.isVehicleSpace(dimension, cell);
+  }
+  isCampSpace(dimension: DimensionId, cell: Vec3): boolean {
+    return this.deps.isCampSpace(dimension, cell);
+  }
+  hasRoofTentNear(dimension: DimensionId, at: Vec3): boolean {
+    return (
+      hasEntityNear(
+        dimension,
+        ROOF_TENT_TYPE,
+        at,
+        ROOF_TENT_SPEC.groundSpacing,
+      ) ?? true
+    );
   }
   loaded(): readonly RoofTentId[] {
     return loadedEntityIds(ROOF_TENT_TYPE).map(asRoofTentId);

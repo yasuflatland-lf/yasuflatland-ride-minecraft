@@ -13,6 +13,7 @@ import {
   furniturePoseAt,
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
+import { CELL_FOOTPRINT_PX } from "../../../domain/resort/spec";
 import { type Cell, cellCenter } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
@@ -43,8 +44,6 @@ import {
 } from "../identifiers";
 import { resortGearCells } from "./resortGearCells";
 
-// A block spans 16 px on each horizontal axis.
-const CELL_FOOTPRINT_PX = { halfX: 8, halfZ: 8 };
 const entities = gearEntities<FurnitureId>({
   has: (typeId) => furnitureKindOf(typeId, "entity") !== undefined,
 });

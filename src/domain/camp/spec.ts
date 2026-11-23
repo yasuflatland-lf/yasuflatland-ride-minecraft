@@ -8,6 +8,8 @@ import { ticks } from "../shared/ticks";
 
 // Every tuning value of the low chair (ADR 0122).
 export const CHAIR_SPEC = Object.freeze({
+  /** Measured halfway through a settling chair's fall, within its own cell (ADR 0122). */
+  sameCellDistance: 0.75,
   /** The chair turns to face the player in steps of this many degrees. */
   yawStep: 45,
   /** Air blocks needed above the clicked block: the chair, then a seated player's head. */
@@ -19,6 +21,7 @@ export const CHAIR_SPEC = Object.freeze({
 });
 
 export const TABLE_SPEC = Object.freeze({
+  spacing: 1.75,
   clearance: 2,
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
@@ -26,6 +29,7 @@ export const TABLE_SPEC = Object.freeze({
 });
 
 export const DUTCH_OVEN_SPEC = Object.freeze({
+  spacing: 0.5,
   /** A vanilla sound played at the oven on each lid flip, so no sound file ships (ADR 0191). */
   lidSound: soundId("open.iron_trapdoor"),
   /** The item's yaw snaps to this many degrees. */
@@ -150,6 +154,7 @@ export const GAS_LANTERN_SPEC = Object.freeze({
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
+  groundSpacing: 2,
   /** Blocks in front of the tent where the exit search starts when no host gives an entrance. */
   exitFallbackDistance: 2,
   /** Ring search around the saved entrance; the same reach as the toilet and the beach chair. */

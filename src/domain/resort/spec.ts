@@ -4,6 +4,8 @@ import { GEAR_RECOVERY } from "../shared/hitCounter";
 import type { Paint } from "../shared/paint";
 import { ticks } from "../shared/ticks";
 
+export const CELL_FOOTPRINT_PX = Object.freeze({ halfX: 8, halfZ: 8 });
+
 export const RESORT_REFUSES: readonly ProtectedSpace[] = Object.freeze([
   "vehicle",
   "camp",

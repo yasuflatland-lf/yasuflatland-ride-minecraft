@@ -4,7 +4,11 @@ import { TABLE_SPEC } from "../../../domain/camp/spec";
 import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import {
+  entityOfType,
+  hasEntityNear,
+  spawnWithRollback,
+} from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showActionBar, showHitsLeftHint } from "../../shared/players";
@@ -38,11 +42,8 @@ export class BedrockTableWorld
 
   hasTableNear(dimensionId: DimensionId, at: Vec3): boolean {
     return (
-      world.getDimension(dimensionId).getEntities({
-        type: CAMP_TABLE_TYPE,
-        location: at,
-        maxDistance: 1.75,
-      }).length > 0
+      hasEntityNear(dimensionId, CAMP_TABLE_TYPE, at, TABLE_SPEC.spacing) ??
+      true
     );
   }
 
