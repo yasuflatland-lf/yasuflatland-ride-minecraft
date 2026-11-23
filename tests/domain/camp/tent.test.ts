@@ -8,7 +8,6 @@ import {
   type GroundReading,
   insideTent,
   inTentFootprint,
-  lanternCell,
   PITCHED_STATE,
   type PitchSurvey,
   planPitch,
@@ -34,6 +33,7 @@ import {
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { dot, forward, normalizeYaw } from "../../../src/domain/shared/vec";
+import { lanternCell } from "../../../src/test-pack/scenarios/support/tentContract";
 import { defined } from "../../support/defined";
 import { TENT_PACK_CONTRACT } from "../../support/packContract";
 
