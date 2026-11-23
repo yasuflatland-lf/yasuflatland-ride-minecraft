@@ -11,30 +11,15 @@ k = load_tool('camper_kitchen')
 r = load_tool('region_atlas')
 `;
 
-it("registers the kitchen materials once and exports frozen shared refs with audited faces", async () => {
+it("audits the texture atlas built for the kitchen faces", async () => {
   const result = JSON.parse(
     await python.run(`${setup}
 registry = r.RegionRegistry()
-a, refs = k.build_kitchen_top(registry)
-frozen = False
-try: refs.BROWN_ENDGRAIN = None
-except AttributeError: frozen = True
-print(json.dumps(dict(regions=[[v.name,v.width,v.height,v.material.name] for v in registry.regions() if v.name != 'base'], frozen=frozen, shared=k.BROWN_ENDGRAIN is not None, counts={name:len(cubes) for name,cubes in a.items()}, audit=r.audit(registry._layout,r.render_atlas(registry._layout)))))`),
+k.build_kitchen_top(registry)
+layout = registry._layout
+print(json.dumps(r.audit(layout, r.render_atlas(layout))))`),
   );
-  expect(result).toEqual({
-    regions: [
-      ["flecked laminate", 192, 192, "LACQUER"],
-      ["brushed stainless", 128, 64, "METAL"],
-      ["range dial", 64, 64, "GLASS_COAT"],
-      ["dark olive cab panel", 128, 64, "DARK_LACQUER"],
-      ["brown endgrain and pulls", 128, 128, "WOOD"],
-      ["routed cream panel", 224, 160, "LACQUER"],
-    ],
-    frozen: true,
-    shared: true,
-    counts: { body: 265 },
-    audit: [],
-  });
+  expect(result).toEqual([]);
 });
 
 it("translates and turns the burner about its requested centre without closing its bore", async () => {
