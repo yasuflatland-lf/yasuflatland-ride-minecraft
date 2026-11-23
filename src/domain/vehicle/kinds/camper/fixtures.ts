@@ -1,11 +1,11 @@
 import { Debounce } from "../../../shared/debounce";
-import { SyncedValue } from "../../../shared/syncedValue";
 import { TapToggle } from "../../../shared/tapToggle";
 import type { Vec3 } from "../../../shared/vec";
 import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import type { RestoredOf } from "../../entityContract";
 import { SPEC } from "../../spec";
+import { SyncedCommands } from "../../syncedCommands";
 import { DOOR_STEPS, restoredDoorStep, stepOpening } from "./doorSwing";
 import {
   type CAMPER_ENTITY,
@@ -18,18 +18,32 @@ import {
 import { inShowerToilet } from "./roomCells";
 import { CAMPER_SPEC } from "./spec";
 
+interface FixtureValues {
+  doorStep?: number;
+  showerDoorStep?: number;
+  showerRunning?: boolean;
+  ceilingLights?: boolean;
+}
+
 export class CamperFixtures {
   private readonly doorToggle = new TapToggle(CAMPER_SPEC.doorSwingTicks);
-  private readonly doorStepSync = new SyncedValue<number>();
   // The shower door swings in the entry door's DOOR_STEPS (ADR 0094).
   private readonly showerDoorToggle = new TapToggle(CAMPER_SPEC.doorSwingTicks);
-  private readonly showerDoorStepSync = new SyncedValue<number>();
   private showerTicks = 0;
-  private readonly showerSync = new SyncedValue<boolean>();
   private readonly ceilingLightSwitch = new Debounce(
     SPEC.headlightSwitchCooldown,
   );
-  private readonly ceilingLightsSync = new SyncedValue<boolean>();
+  private readonly synced = new SyncedCommands<FixtureValues>()
+    .add(
+      (v) => v.doorStep,
+      (step) => doorCommand(step / DOOR_STEPS),
+    )
+    .add(
+      (v) => v.showerDoorStep,
+      (step) => showerDoorCommand(step / DOOR_STEPS),
+    )
+    .add((v) => v.showerRunning, showerCommand)
+    .add((v) => v.ceilingLights, ceilingLightsCommand);
   private clickPending = false;
 
   private constructor(
@@ -112,29 +126,24 @@ export class CamperFixtures {
 
   doorCommands(): EngineCommand[] {
     this.doorStep = stepOpening(this.doorStep, this.entryOpen);
-    const step = this.doorStepSync.next(this.doorStep);
-    return step === undefined ? [] : [doorCommand(step / DOOR_STEPS)];
+    return this.synced.next({ doorStep: this.doorStep });
   }
 
   showerCommands(): EngineCommand[] {
     this.showerDoorStep = stepOpening(this.showerDoorStep, this.showerOpen);
-    const door = this.showerDoorStepSync.next(this.showerDoorStep);
-    const running = this.showerSync.next(this.showerTicks > 0);
+    const commands = this.synced.next({
+      showerDoorStep: this.showerDoorStep,
+      showerRunning: this.showerTicks > 0,
+    });
     this.showerTicks = Math.max(this.showerTicks - 1, 0);
-    return [
-      ...(door === undefined ? [] : [showerDoorCommand(door / DOOR_STEPS)]),
-      ...(running === undefined ? [] : [showerCommand(running)]),
-    ];
+    return commands;
   }
 
   ceilingLightCommands(): EngineCommand[] {
-    const on = this.ceilingLightsSync.next(this.lightsOn);
-    const click = this.clickPending;
+    const commands = this.synced.next({ ceilingLights: this.lightsOn });
+    if (this.clickPending) commands.push(SWITCH_CLICK);
     this.clickPending = false;
-    return [
-      ...(on === undefined ? [] : [ceilingLightsCommand(on)]),
-      ...(click ? [SWITCH_CLICK] : []),
-    ];
+    return commands;
   }
 
   shutForDeparture(): void {
@@ -149,9 +158,6 @@ export class CamperFixtures {
   }
 
   resync(): void {
-    this.doorStepSync.resync();
-    this.showerDoorStepSync.resync();
-    this.showerSync.resync();
-    this.ceilingLightsSync.resync();
+    this.synced.resync();
   }
 }
