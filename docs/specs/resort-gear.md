@@ -230,7 +230,7 @@
 - Agreement: Proposed
 - Basis: [0242](../adr/0242-dining-table-top-interactions.md); Dining set design, Taps on the block and Sharing the top.
 - Implementation: `src/infrastructure/resort/bedrock/handlers/furnitureTopInteraction.ts`; `src/infrastructure/resort/bedrock/bedrockFurnitureWorld.ts`; `src/application/shared/placeOnTop.ts`
-- Verification: Unit tests cover forwarding, directional destination guards, obstruction before payment, and unchanged placement when the callback is absent. `dining_table_top_overlap` passed on the dev BDS on 2026-11-10, covering both placement orders and separate tables. Manual mobile lantern, oven, and block placement remains pending.
+- Verification: `tests/infrastructure/resort/testFurniture.test.ts` checks that the server hook forwards a requested hosted item kind only after registration. Unit tests cover forwarding, directional destination guards, obstruction before payment, and unchanged placement when the callback is absent. `dining_table_top_overlap` passed on the dev BDS on 2026-11-10, covering both placement orders and separate tables. Manual mobile lantern, oven, and block placement remains pending.
 
 ## Open issues
 

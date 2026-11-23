@@ -1,6 +1,6 @@
 import type { HostedKindPort } from "./ports/hostedKind";
 
-/** Removes items whose table or Fire Pit is gone, with no drop (ADR 0185). */
+/** Removes items whose tabletop or fixed-spot host is gone, with no drop (ADR 0185). */
 export class HostedItemsGuard {
   constructor(private readonly kinds: readonly HostedKindPort[]) {}
 
