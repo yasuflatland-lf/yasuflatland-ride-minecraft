@@ -15,11 +15,8 @@ import {
   sameBox,
   volume,
 } from "../../../src/domain/build/box";
-import {
-  type BuildFlow,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";

@@ -12,6 +12,7 @@ import {
 } from "../../motion/dockEntity";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SPEC } from "../../spec";
+import { SyncedCommands } from "../../syncedCommands";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
 import { decorCells, furnitureCells } from "./decorCells";
 import { CamperFixtures } from "./fixtures";
@@ -45,7 +46,9 @@ export class CamperDrive extends TransformingDrive {
   private readonly storage: CamperStorage;
   private readonly roomDecor: CamperRoomDecor;
   private readonly room: CamperRoom;
-  private readonly dockedResend = new DockedResend();
+  private readonly dockedSync = new SyncedCommands<
+    [wasParked: boolean, parked: boolean]
+  >().include(new DockedResend(), (values) => values);
 
   constructor(yaw: number, restored: CamperRestored) {
     super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
@@ -168,7 +171,7 @@ export class CamperDrive extends TransformingDrive {
 
   override resync(): void {
     super.resync();
-    this.dockedResend.resync();
+    this.dockedSync.resync();
     this.fixtures.resync();
     this.storage.resync();
   }
@@ -177,13 +180,13 @@ export class CamperDrive extends TransformingDrive {
     const wasParked =
       this.parking.pose !== undefined || this.parking.recovering;
     const step = this.stepCamper(raw, ctx);
-    const resend = this.dockedResend.next(
+    const resend = this.dockedSync.next([
       wasParked,
       this.parking.pose !== undefined,
-    );
-    return resend === undefined
+    ]);
+    return resend.length === 0
       ? step
-      : { ...step, commands: [...step.commands, resend] };
+      : { ...step, commands: [...step.commands, ...resend] };
   }
 
   private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {

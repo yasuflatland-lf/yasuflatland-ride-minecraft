@@ -3,12 +3,12 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
-  type BuildFlow,
   chooseHeighted,
-  openBuildMenu,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
+import { openBuildMenu } from "../../../src/domain/build/flow/menu";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
 import {

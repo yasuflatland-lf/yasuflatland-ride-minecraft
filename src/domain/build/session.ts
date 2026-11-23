@@ -5,8 +5,10 @@ import { clamp } from "../shared/vec";
 import { boxWithHeight } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
-import { type BuildFlow, cancel, type Taps } from "./flow/flow";
 import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
+import type { BuildFlow } from "./flow/state";
+import { cancel } from "./flow/stepBack";
+import type { Taps } from "./flow/taps";
 import {
   EMPTY_HISTORY,
   type SnapshotRecord,

@@ -12,12 +12,12 @@ The Beach Chair design needs resort hosts to accept camp items without imports b
 
 ## Decision
 
-Bootstrap creates one `TopHostRegistry` and passes it to camp and resort installation. Camp registers the Camp Table surface, availability predicate, refusal hints, and legacy spot mapping, plus the oven and lantern entity types, host properties, and footprints. Resort receives the registry but registers nothing in this refactor.
+Bootstrap creates one `TopHostRegistry` and passes it to camp and resort installation. Camp registers the Camp Table surface, availability predicate, refusal hints, and legacy spot mapping, plus the oven and lantern entity types, host properties, and footprints under branded kind IDs assigned in camp. Resort registers the folded Beach Chair and the Dining Table as hosts. Its tabletop test hook looks up the requested item kind in the same registry.
 
-Shared infrastructure resolves registered hosts and scans their dimension for registered hosted entities. A host must currently pass its availability predicate. Shared aiming uses the registered surface height. Camp handlers expose a placement callback for future block forwarding and use the same tick deduplication and deferred execution for entity and callback interactions.
+Shared infrastructure resolves registered hosts and scans their dimension for registered hosted entities. A host must currently pass its availability predicate. Shared aiming uses the registered surface height. Camp handlers expose a placement callback for Dining Table block interactions and use the same tick deduplication and deferred execution for entity and callback interactions.
 
-The shared tabletop rule uses the payment and spawn rollback in 0185 for every registered host. The Fire Pit keeps its fixed oven spot. The guard checks host existence regardless of host type; a change of table availability alone does not remove hosted items.
+The shared tabletop rule uses the payment and spawn rollback in 0185 for every registered host. Camp declares the Fire Pit as a fixed-spot host when decoding saved item markers. A fixed-spot host accepts an integer spot index and rejects point coordinates. The guard checks host existence regardless of host type; a change of table availability alone does not remove hosted items.
 
 ## Consequences
 
-Camp Tables and folded Beach Chairs accept items through the registry. Camp owns its identifiers and legacy marker migration; shared code imports no feature. Hosts register their own surfaces without changing camp handlers; the later Beach Chair integration uses entity interactions and removes the unused forwarding callback. Registry wiring is explicit at installation, and no global registry is created by adapters.
+Camp Tables and folded Beach Chairs accept items through the registry. Camp owns its identifiers and legacy marker migration; shared code imports no feature. Hosts register their own surfaces without changing camp handlers. The folded Beach Chair uses entity interactions. Registry wiring is explicit at installation, and no global registry is created by adapters.

@@ -9,7 +9,7 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { tapBlock } from "../../../src/domain/build/flow/flow";
+import { tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";

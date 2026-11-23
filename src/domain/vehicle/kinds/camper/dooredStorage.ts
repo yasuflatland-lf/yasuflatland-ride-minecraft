@@ -2,11 +2,11 @@
 // only while their door is open. Each unit is a definition (furniture.ts); this module holds
 // the code every unit shares and no unit's data (ADR 0114, 0121).
 
-import { SyncedValue } from "../../../shared/syncedValue";
 import { TapToggle } from "../../../shared/tapToggle";
 import type { DecorItemId, StoragePress } from "../../dock/decor";
 import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
+import { SyncedCommands } from "../../syncedCommands";
 import { DOOR_STEPS, restoredDoorStep, stepOpening } from "./doorSwing";
 import type {
   DecorSlot,
@@ -146,8 +146,9 @@ interface DoorState {
   open: boolean;
   step: number;
   readonly toggle: TapToggle;
-  readonly sync: SyncedValue<number>;
 }
+
+type DoorCommand<Id> = (id: Id, open: number) => EngineCommand;
 
 /**
  * The doors of the camper's storage, each with opening progress in DOOR_STEPS on its own and acting at
@@ -155,6 +156,7 @@ interface DoorState {
  */
 export class StorageDoors<Id extends string> {
   private readonly states: ReadonlyMap<Id, DoorState>;
+  private readonly openings = new SyncedCommands<DoorCommand<Id>>();
 
   /** `restoredOpen` gives a door's saved opening progress; a camper that was not `docked` starts with every door shut. */
   constructor(
@@ -171,15 +173,23 @@ export class StorageDoors<Id extends string> {
             open: step * 2 >= DOOR_STEPS,
             step,
             toggle: new TapToggle(CAMPER_SPEC.doorSwingTicks),
-            sync: new SyncedValue<number>(),
           },
         ];
       }),
     );
+    for (const [id, door] of this.states) {
+      this.openings.add(
+        () => {
+          door.step = stepOpening(door.step, door.open);
+          return door.step;
+        },
+        (step, command) => command(id, step / DOOR_STEPS),
+      );
+    }
   }
 
   resync(): void {
-    for (const door of this.states.values()) door.sync.resync();
+    this.openings.resync();
   }
 
   /** The doors open or opening: their compartments take and give items. */
@@ -205,14 +215,8 @@ export class StorageDoors<Id extends string> {
   }
 
   /** Advances opening progress one step, in door order, and returns commands the entity lacks. */
-  swingCommands(
-    command: (id: Id, open: number) => EngineCommand,
-  ): EngineCommand[] {
-    return [...this.states].flatMap(([id, door]) => {
-      door.step = stepOpening(door.step, door.open);
-      const step = door.sync.next(door.step);
-      return step === undefined ? [] : [command(id, step / DOOR_STEPS)];
-    });
+  swingCommands(command: DoorCommand<Id>): EngineCommand[] {
+    return this.openings.next(command);
   }
 
   /**

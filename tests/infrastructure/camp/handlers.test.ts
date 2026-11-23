@@ -164,15 +164,6 @@ describe("registerChairHits (ADR 0122)", () => {
 });
 
 describe("registerChairPlacement (ADR 0122)", () => {
-  const FACES = {
-    Up: "up",
-    Down: "down",
-    North: "north",
-    South: "south",
-    East: "east",
-    West: "west",
-  } as const;
-
   function setup(cell: { x: number; y: number; z: number } | undefined) {
     const cellFor = vi.fn(() => cell);
     const execute = vi.fn(() => true);
@@ -201,37 +192,35 @@ describe("registerChairPlacement (ADR 0122)", () => {
     return { cellFor, execute, press };
   }
 
-  it("asks for the cell with the clicked face, whichever face it is", () => {
-    fc.assert(
-      fc.property(fc.constantFrom(...Object.keys(FACES)), (face) => {
-        vi.clearAllMocks();
-        const { cellFor, press } = setup(undefined);
-        press({ blockFace: face });
-        expect(cellFor).toHaveBeenCalledWith(
-          "overworld",
-          { x: 1, y: 2, z: 3 },
-          FACES[face as keyof typeof FACES],
-        );
-      }),
-    );
-  });
+  it.each(["Down", "North", "South", "East", "West"])(
+    "leaves presses on the %s face uncancelled",
+    (face) => {
+      const { press } = setup({ x: 1, y: 2, z: 3 });
+      expect(press({ blockFace: face }).cancel).toBe(false);
+      expect(game.run).not.toHaveBeenCalled();
+    },
+  );
 
-  it("cancels the press and places the chair on the next tick", () => {
-    const cell = { x: 1, y: 2, z: 3 };
-    const { execute, press } = setup(cell);
-    const ev = press();
-    expect(ev.cancel).toBe(true);
-    expect(execute).not.toHaveBeenCalled();
-    defined(game.run.mock.calls[0]?.[0], "next tick")();
-    expect(execute).toHaveBeenCalledWith({
-      playerId: "p",
-      dimensionId: "overworld",
-      kind: "low_chair",
-      blockLocation: cell,
-      yaw: 45,
-      slot: 4,
-    });
-  });
+  it.each(["low_chair", "noga_chair"] as const)(
+    "cancels the press and places the %s on the next tick",
+    (kind) => {
+      const cell = { x: 1, y: 2, z: 3 };
+      const { cellFor, execute, press } = setup(cell);
+      const ev = press({ itemStack: { typeId: CHAIR_KINDS[kind].itemId } });
+      expect(cellFor).toHaveBeenCalledExactlyOnceWith("overworld", cell, "up");
+      expect(ev.cancel).toBe(true);
+      expect(execute).not.toHaveBeenCalled();
+      defined(game.run.mock.calls[0]?.[0], "next tick")();
+      expect(execute).toHaveBeenCalledExactlyOnceWith({
+        playerId: "p",
+        dimensionId: "overworld",
+        kind,
+        blockLocation: cell,
+        yaw: 45,
+        slot: 4,
+      });
+    },
+  );
 
   it("places once per player per tick, however often the press repeats", () => {
     const { press } = setup({ x: 1, y: 2, z: 3 });
