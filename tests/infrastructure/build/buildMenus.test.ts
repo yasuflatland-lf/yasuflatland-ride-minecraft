@@ -19,22 +19,22 @@ import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
-  type BuildFlow,
   chooseHeighted,
-  chooseTerrain,
-  fixStairGoal,
-  openBuildMenu,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import {
   buildMenu,
   contentsMenu,
+  openBuildMenu,
   pasteMenu,
   shapeMenu,
   terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
+import { fixStairGoal } from "../../../src/domain/build/flow/stairFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";

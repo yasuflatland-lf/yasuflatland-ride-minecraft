@@ -7,7 +7,7 @@ import type {
   HeightedPlacement,
   HeightedVolume,
   HeightStepSpec,
-} from "./geometry";
+} from "./types";
 
 function* columns(base: CellBox) {
   for (const { u, v, wall } of ellipseCells({

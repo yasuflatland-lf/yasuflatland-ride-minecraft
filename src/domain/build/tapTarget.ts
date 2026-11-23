@@ -1,5 +1,5 @@
 import type { Cell } from "../shared/cells";
-import type { BuildFlow } from "./flow/flow";
+import type { BuildFlow } from "./flow/state";
 
 export function endMarkerCell(
   flow: BuildFlow,

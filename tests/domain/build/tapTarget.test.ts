@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import type { BuildFlow } from "../../../src/domain/build/flow/flow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { tapTargetCell } from "../../../src/domain/build/tapTarget";

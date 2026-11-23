@@ -577,6 +577,26 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
       ["main-imports-only-bootstrap"],
     ],
     [
+      "build domain importing types in a cycle",
+      {
+        "src/domain/build/a.ts":
+          'import type { B } from "./b"; export type A = { b: B };',
+        "src/domain/build/b.ts":
+          'import type { A } from "./a"; export type B = { a: A };',
+      },
+      ["no-circular"],
+    ],
+    [
+      "another domain feature importing types in a cycle",
+      {
+        "src/domain/vehicle/a.ts":
+          'import type { B } from "./b"; export type A = { b: B };',
+        "src/domain/vehicle/b.ts":
+          'import type { A } from "./a"; export type B = { a: A };',
+      },
+      [],
+    ],
+    [
       "unresolvable import",
       {
         "src/domain/vehicle/x.ts": importX("./missing"),
