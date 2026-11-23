@@ -69,6 +69,14 @@ it("lays a ceiling after placing a parasol and shows feedback if placement fails
   expect(place.execute(cmd)).toBe(false);
   expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
   expect(world.layCeiling).not.toHaveBeenCalled();
+
+  world.showBlocked.mockClear();
+  world.spawn.mockClear();
+  world.consumeItem.mockReturnValue(false);
+  expect(place.execute(cmd)).toBe(false);
+  expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
+  expect(world.spawn).not.toHaveBeenCalled();
+  expect(world.layCeiling).not.toHaveBeenCalled();
 });
 
 it("rejects an obstruction in any translated foot cell before charging", () => {

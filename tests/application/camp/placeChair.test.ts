@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   PlaceChair,
   type PlaceChairCommand,
@@ -90,6 +90,30 @@ describe("PlaceChair (ADR 0122)", () => {
         },
       ),
     );
+  });
+
+  it("checks vehicle space only at the seat, before checking the two air cells", () => {
+    const blockLocation = { x: 0, y: 64, z: 0 };
+    const world = new FakeChairWorld();
+    world.vehicleSpace.add(up(blockLocation, 2));
+    const ownBlock = vi.spyOn(world, "isOwnBlock");
+    const vehicle = vi.spyOn(world, "isVehicleSpace");
+    const air = vi.spyOn(world, "isAir");
+    const nearby = vi.spyOn(world, "hasChairAt");
+    expect(
+      new PlaceChair(world).execute(cmdOf({ blockLocation, yaw: 0, slot: 0 })),
+    ).toBe(true);
+    expect(ownBlock).toHaveBeenCalledBefore(vehicle);
+    expect(vehicle).toHaveBeenCalledExactlyOnceWith(DIM, {
+      ...blockLocation,
+      y: 65,
+    });
+    expect(vehicle).toHaveBeenCalledBefore(air);
+    expect(air.mock.calls).toEqual([
+      [DIM, { ...blockLocation, y: 65 }],
+      [DIM, { ...blockLocation, y: 66 }],
+    ]);
+    expect(air).toHaveBeenCalledBefore(nearby);
   });
 
   describe("cellFor", () => {
