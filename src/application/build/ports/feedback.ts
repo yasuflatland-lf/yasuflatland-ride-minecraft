@@ -1,5 +1,6 @@
 import type { BlockState } from "../../../domain/build/blockState";
 import type { PreviewSet } from "../../../domain/build/preview/preview";
+import type { Facing4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
@@ -44,7 +45,7 @@ export type BuildMode = {
   kind: "pasteReady";
   size: { x: number; y: number; z: number };
   blockCount: number;
-  degrees: 0 | 90 | 180 | 270;
+  degrees: Facing4;
 };
 
 export interface BuildFeedback {

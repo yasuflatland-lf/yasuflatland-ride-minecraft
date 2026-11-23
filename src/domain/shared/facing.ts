@@ -6,7 +6,7 @@ export const QUARTER_TURN = 90;
 /** Quarter-turn index, clockwise from yaw 0 through 270. */
 export type Quarter = 0 | 1 | 2 | 3;
 
-/** Cardinal yaw in [0, 360) for resort and roof tent pose tables. */
+/** Cardinal rotation in [0, 360). */
 export type Facing4 = 0 | 90 | 180 | 270;
 
 /** Entity rotation in (-180, 180], snapped to a whole step. */
@@ -31,6 +31,10 @@ export function quarterOf(yaw: number): Quarter {
   return (((Math.round(yaw / QUARTER_TURN) % 4) + 4) % 4) as Quarter;
 }
 
+export function quarterDegrees(q: Quarter): Facing4 {
+  return (q * QUARTER_TURN) as Facing4;
+}
+
 export function snapYaw4(yaw: number): Facing4 {
-  return (quarterOf(yaw) * QUARTER_TURN) as Facing4;
+  return quarterDegrees(quarterOf(yaw));
 }

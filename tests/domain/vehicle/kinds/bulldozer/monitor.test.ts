@@ -39,10 +39,12 @@ function groupItems(qualifiedName: string): string[] {
 describe("bulldozer cab monitor rule (ADR 0139)", () => {
   it("shows only items of its creative group", () => {
     const items = groupItems(BULLDOZER_PACK_CONTRACT.monitorGroup);
-    expect(BULLDOZER_MONITOR.tools).toContainEqual({
-      item: ROAD_PAVER_SWITCH_ITEM,
-      states: ["off", "on"],
-    });
+    expect(BULLDOZER_MONITOR.tools).toContainEqual(
+      expect.objectContaining({
+        item: ROAD_PAVER_SWITCH_ITEM,
+        states: ["off", "on"],
+      }),
+    );
     for (const { item } of BULLDOZER_MONITOR.tools)
       expect(items).toContain(`${NAMESPACE}:${item}`);
   });

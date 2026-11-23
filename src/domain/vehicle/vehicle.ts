@@ -1,11 +1,7 @@
 // Aggregate for one vehicle: wires its drive to its seating, cooldowns, and hit count.
 
 import { Debounce } from "../shared/debounce";
-import {
-  EMPTY_COUNTER,
-  type HitCounter,
-  registerHit,
-} from "../shared/hitCounter";
+import { HitCounters, hitRule } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
 import { isDyeable } from "../shared/paint";
 import { SyncedValue } from "../shared/syncedValue";
@@ -53,6 +49,7 @@ import {
 } from "./standIn";
 
 const HALF_BLOCK = 0.5;
+const TAKE_BACK_RULE = hitRule(SPEC.hitsToBreak, SPEC.hitResetTicks);
 
 /** What a rider holds, read once per tick. The tool is the bare yasu_ride item ID for the monitor (ADR 0139); the block is the namespaced block the item places as itself (ADR 0181). Either may be absent. */
 export interface RiderHeld {
@@ -167,7 +164,7 @@ export class Vehicle {
   private readonly switchCooldown = new Debounce(SPEC.headlightSwitchCooldown);
   // Its own cooldown, so monitor tools and light switches never block each other (ADR 0171).
   private readonly toolCooldown = new Debounce(SPEC.toolSwitchCooldown);
-  private hitCounter: HitCounter = EMPTY_COUNTER;
+  private readonly hitCounters = new HitCounters<PlayerId>(TAKE_BACK_RULE);
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private docked = false;
   private driverSeatFree = true;
@@ -499,12 +496,9 @@ export class Vehicle {
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
-  receiveHit(tick: number): boolean {
-    const r = registerHit(this.hitCounter, tick, this.crew.occupied, {
-      hits: SPEC.hitsToBreak,
-      resetTicks: SPEC.hitResetTicks,
-    });
-    this.hitCounter = r.counter;
-    return r.broken;
+  receiveHit(playerId: PlayerId, tick: number): boolean {
+    if (this.crew.occupied) return false;
+    this.hitCounters.forgetStale(tick);
+    return this.hitCounters.hit(playerId, tick).broken;
   }
 }

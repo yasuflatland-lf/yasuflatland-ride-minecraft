@@ -57,7 +57,7 @@ export const SCOOTER_SPEC = Object.freeze({
   // Degrees of total body roll (lean - bank): three steps fit the ground range
   // (maxLean 20), the last equals maxLean + maxBank. The Resource Pack's lean animations use these angles.
   rollLevelAngles: Object.freeze([7, 14, 20, 35, 50] as const),
-  standSpeed: 0.01, // blocks/tick below which the scooter counts as stopped
+  standSpeed: 0.01, // blocks/tick for lowering the stand, tuned independently of the dock tolerance
 } as const);
 
 const SCOOTER_AIR: Medium = Object.freeze({

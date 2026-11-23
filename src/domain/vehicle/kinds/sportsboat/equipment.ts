@@ -1,6 +1,8 @@
 import type { MonitorRule } from "../../monitor/monitor";
 
 export const ICEBREAKER_SWITCH_ITEM = "icebreaker_switch";
+export const ICEBREAKER_OFF = "off";
+export const ICEBREAKER_ON = "on";
 
 /** The items the Sports Boat Equipment Box holds, in creative group order (ADR 0171). */
 export const SPORTSBOAT_EQUIPMENT_IDS: readonly string[] = Object.freeze([
@@ -11,7 +13,8 @@ export const SPORTSBOAT_MONITOR: MonitorRule = Object.freeze({
   tools: Object.freeze([
     Object.freeze({
       item: ICEBREAKER_SWITCH_ITEM,
-      states: Object.freeze<[string, ...string[]]>(["off", "on"]),
+      states: Object.freeze([ICEBREAKER_OFF, ICEBREAKER_ON] as const),
+      feedback: "icebreaker",
     }),
   ]),
 });

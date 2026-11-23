@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
+import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
   CAMPER_AIR,
@@ -21,7 +22,7 @@ function context(): TickContext {
     location: { x: 0.5, y: 64, z: 0.5 },
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
-    blockTypes: () => [],
+    blockTypes: (cells) => cells.map(() => AIR),
     solidAt: (offset) => offset.y < 0,
     waterAt: () => false,
   };
@@ -232,6 +233,65 @@ it.each([
     }
   },
 );
+
+it("undocks and drives on when the restored unlaid room fails the park check", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(0, 90, 180, -90),
+      fc.integer({ min: 0, max: 167 }),
+      fc.constantFrom("minecraft:stone", "minecraft:water", undefined),
+      (yaw, blocker, typeId) => {
+        const drive = new CamperDrive(yaw, {
+          form: "car",
+          docked: true,
+          door: 1,
+          ceiling_lights: true,
+          [CAMPER_SAVED.laid]: false,
+        });
+        const ctx = context();
+        ctx.blockTypes = (cells) =>
+          cells.map((_, i) => {
+            if (i === blocker) return typeId;
+            return i === (blocker + 1) % 168 ? "minecraft:short_grass" : AIR;
+          });
+        const raw = { moveX: 0, moveY: 1, jump: false };
+        const out = drive.step(raw, ctx);
+        expect(out.dock).toBeUndefined();
+        expect(out.clear ?? []).toEqual([]);
+        expect(out.depart).toBeUndefined();
+        expect(drive.inspect().parked).toBe(false);
+        expect(drive.speed).toBeGreaterThan(0);
+        expect(out.commands.slice(0, 2)).toEqual([
+          { type: "triggerEvent", name: "undock" },
+          { type: "setProperty", name: "docked", value: false },
+        ]);
+        expect(out.commands).toContainEqual({
+          type: "setProperty",
+          name: "door",
+          value: 0,
+        });
+        expect(out.commands).toContainEqual({
+          type: "setProperty",
+          name: "ceiling_lights",
+          value: false,
+        });
+
+        drive.resync();
+        const next = drive.step(raw, { ...ctx, tick: 1 });
+        expect(next.dock).toBeUndefined();
+        expect(next.commands).not.toContainEqual({
+          type: "triggerEvent",
+          name: "undock",
+        });
+        expect(next.commands).toContainEqual({
+          type: "setProperty",
+          name: "docked",
+          value: false,
+        });
+      },
+    ),
+  );
+});
 
 it("resync resends all room properties with current values while driving or parked", () => {
   fc.assert(

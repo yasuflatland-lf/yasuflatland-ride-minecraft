@@ -5,7 +5,7 @@ import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import { type RawInput, toDriveInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import { monitorTool } from "../../monitor/monitor";
+import { toolBindings } from "../../monitor/monitor";
 import { climbInput, type Form } from "../../motion/forms";
 import type { GroundInput, MotionResult } from "../../motion/motion";
 import { pivotGroundStep, pivotMediumStep } from "../../motion/pivot";
@@ -45,11 +45,6 @@ import {
   trackPhase,
   trackSpin,
 } from "./tracks";
-
-interface ToolBinding {
-  readonly get: () => string;
-  readonly set: (state: string) => void;
-}
 
 const TRACK_SIDES = ["r", "l"] as const;
 
@@ -141,28 +136,27 @@ export class BulldozerDrive extends TransformingDrive {
     r: new SyncedValue<number>(),
     l: new SyncedValue<number>(),
   };
-  private readonly tools: Readonly<Record<string, ToolBinding>> = Object.freeze(
-    {
-      [BLADE_SWITCH_ITEM]: {
-        get: () => (this.bladeTargetRaised ? "up" : "down"),
-        set: (state) => {
-          this.bladeTargetRaised = state === "up";
-        },
-      },
-      [ROAD_PAVER_SWITCH_ITEM]: {
-        get: () => (this.roadPaverOn ? "on" : "off"),
-        set: (state) => {
-          this.roadPaverOn = state === "on";
-        },
-      },
-      [WIDE_BLADE_SWITCH_ITEM]: {
-        get: () => (this.wideBlade ? "wide" : "normal"),
-        set: (state) => {
-          this.wideBlade = state === "wide";
-        },
+  private readonly tools = toolBindings(BULLDOZER_MONITOR, {
+    [BLADE_SWITCH_ITEM]: {
+      // The monitor shows the target before the blade finishes easing (ADR 0139).
+      get: () => (this.bladeTargetRaised ? "up" : "down"),
+      set: (state) => {
+        this.bladeTargetRaised = state === "up";
       },
     },
-  );
+    [ROAD_PAVER_SWITCH_ITEM]: {
+      get: () => (this.roadPaverOn ? "on" : "off"),
+      set: (state) => {
+        this.roadPaverOn = state === "on";
+      },
+    },
+    [WIDE_BLADE_SWITCH_ITEM]: {
+      get: () => (this.wideBlade ? "wide" : "normal"),
+      set: (state) => {
+        this.wideBlade = state === "wide";
+      },
+    },
+  });
 
   constructor(yaw: number, restored: RestoredOf<typeof BULLDOZER_ENTITY>) {
     super(
@@ -189,19 +183,12 @@ export class BulldozerDrive extends TransformingDrive {
     this.resync();
   }
 
-  /** The monitor state of a held tool; the blade shows its target, so a switch shows at once (ADR 0139). */
   toolState(item: string): string | undefined {
-    return Object.hasOwn(this.tools, item)
-      ? this.tools[item]?.get()
-      : undefined;
+    return this.tools.toolState(item);
   }
 
   setToolState(item: string, state: string): boolean {
-    const tool = monitorTool(BULLDOZER_MONITOR, item);
-    if (!tool?.states.includes(state) || !Object.hasOwn(this.tools, item))
-      return false;
-    this.tools[item]?.set(state);
-    return true;
+    return this.tools.setToolState(item, state);
   }
 
   private bladeTargetSteps(): number {

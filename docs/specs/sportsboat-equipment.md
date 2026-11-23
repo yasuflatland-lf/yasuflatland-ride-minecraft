@@ -6,6 +6,7 @@
 - Source: [0174](../adr/0174-show-only-the-icebreaker-switch-in-the-equipment-group.md)
 - Source: [0175](../adr/0175-keep-the-icebreaker-cut-above-the-hull-floor.md)
 - Source: [0178](../adr/0178-bulldozer-build-tools-in-a-separate-namespace.md)
+- Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Excluded: [0198](../adr/0198-one-build-wand-without-a-bulldozer.md): supersedes the build tools and build-mode interaction in 0178, not the Sports Boat Equipment group's position or its monitor rules
 
 - Excluded: [0232](../adr/0232-undo-skips-conflicting-cells.md): conditional build Undo belongs to the build tools spec.
@@ -73,8 +74,17 @@
 - Rule: `Vehicle.switchTool` accepts only the crew driver and a declared monitor tool supported by the drive. A valid use advances to the next declared state, wrapping from `on` to `off`. All monitor tools on that vehicle share an idle cooldown `SPEC.toolSwitchCooldown`, separate from the light switch; even a cooldown-rejected use restarts the idle interval. `yasu_ride:icebreaker` is a bool, default false, with `client_sync: false`. The drive restores only literal true as ON; fresh or other restored values mean OFF. State changes emit a property command, and resync resends it. The entity contract lists `icebreaker` among restored properties. In dev builds the server-only `yasu_ride:test_tool` event calls `Vehicle.forceTool`, which bypasses driver and cooldown checks and rejects unknown items and invalid states.
 - Agreement: Proposed
 - Basis: [0171](../adr/0171-sports-boat-equipment-and-icebreaker-mode.md) Decision 5, "One use by the driver advances the held tool to the next entry in its `states` list, wrapping around."; [0171](../adr/0171-sports-boat-equipment-and-icebreaker-mode.md) Decision 5, "The icebreaker state is the bool entity property `yasu_ride:icebreaker`, default false, with no client synchronization needed."; [0171](../adr/0171-sports-boat-equipment-and-icebreaker-mode.md) Decision 5, "Restore it when rebuilding the boat after a reload. A new boat starts with the mode off."
-- Implementation: `src/domain/vehicle/vehicle.ts` (`switchTool`, `forceTool`); `src/domain/vehicle/monitor/monitor.ts` (`nextToolState`); `src/domain/vehicle/spec.ts`; `src/domain/shared/debounce.ts`; `src/domain/vehicle/kinds/sportsboat/drive.ts`; `src/domain/vehicle/kinds/sportsboat/entity.ts`; `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`
+- Implementation: `src/domain/vehicle/vehicle.ts` (`switchTool`, `forceTool`); `src/domain/vehicle/monitor/monitor.ts` (`nextToolState`, `toolBindings`); `src/domain/vehicle/spec.ts`; `src/domain/shared/debounce.ts`; `src/domain/vehicle/kinds/sportsboat/drive.ts`; `src/domain/vehicle/kinds/sportsboat/entity.ts`; `packs/yasu_ride_bp/entities/yasu_ride/sportsboat.se.json`
 - Verification: `tests/domain/vehicle/kinds/sportsboat/equipment.test.ts` covers literal-true restoration, state round trips, command synchronization, invalid inputs and driver-only off/on/off cycling. Shared switching is covered by `tests/application/vehicle/switchTool.test.ts`; restored property reading by `tests/infrastructure/vehicle/bedrock/bedrockVehicleWorld.test.ts`. Assertions inspected only. Not verified: touch-repeat behavior or persistence across an actual reload/restart; manual B42, B44 and B45 are `unverified`.
+
+### Icebreaker switch feedback
+
+- Applies to: Successful use of the Icebreaker Switch by a driver with a tracked chase camera.
+- Rule: The action bar displays the new mode using `yasu_ride.message.icebreaker_off` or `yasu_ride.message.icebreaker_on`. The sports boat drive does not request a chase camera during normal operation. Feedback follows the last camera successfully applied by `RiderEffects`.
+- Agreement: Accepted
+- Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
+- Implementation: `src/domain/vehicle/kinds/sportsboat/equipment.ts` (`SPORTSBOAT_MONITOR`); `src/domain/vehicle/kinds/index.ts` (`toolFeedback`); `src/application/vehicle/switchFeedback.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
+- Verification: `tests/application/vehicle/switchTool.test.ts` checks both states and successful-switch gating. `tests/application/vehicle/switchFeedback.test.ts` checks the keys in every pack locale. On-device action-bar rendering remains unverified.
 
 ### Cut trigger, probe strip and recut limit
 
