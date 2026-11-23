@@ -36,7 +36,6 @@ vi.mock(
 it("wires the decor use cases and the dock owner lookups into the subscriptions (ADR 0093, 0096)", () => {
   installVehicles({
     isCampSpace: () => false,
-    wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
   const [useCases, , , dockCellOwner, installKind] = defined(
@@ -70,7 +69,6 @@ it("wires the decor use cases and the dock owner lookups into the subscriptions 
 it("returns the vehicles' space check for other features (ADR 0122)", () => {
   const { isVehicleSpace, vehicleHost } = installVehicles({
     isCampSpace: () => false,
-    wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
   expect(vehicleHost("missing")).toEqual({ status: "unknown" });
@@ -84,7 +82,6 @@ it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
   const isCampSpace = vi.fn(() => true);
   installVehicles({
     isCampSpace,
-    wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
   const useCases = vi.mocked(registerSubscriptions).mock.lastCall?.[0];
@@ -108,7 +105,6 @@ it("passes the later targets and monitor tool to the subscriptions (ADR 0134, 01
   const laterSwitchTargets = () => [];
   installVehicles({
     isCampSpace: () => false,
-    wantsChaseCamera: () => false,
     laterSwitchTargets,
   });
   expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
@@ -123,7 +119,6 @@ it("subscribes the blade-cut drop sweep once (ADR 0137)", () => {
   vi.mocked(world.afterEvents.entitySpawn.subscribe).mockClear();
   installVehicles({
     isCampSpace: () => false,
-    wantsChaseCamera: () => false,
     laterSwitchTargets: () => [],
   });
   expect(world.afterEvents.entitySpawn.subscribe).toHaveBeenCalledTimes(1);

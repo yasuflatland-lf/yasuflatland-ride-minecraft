@@ -1,7 +1,6 @@
 // Wires the vehicle feature's repositories, port implementations, and use cases
 // together.
 
-import type { ChaseCameraWish } from "../../application/shared/ports/chaseCamera";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
 import { SleepInBed } from "../../application/shared/sleepInBed";
@@ -57,13 +56,11 @@ import { VehicleTestStore } from "./testInput/vehicleTestStore";
 /**
  * Installs the vehicle feature. The returned check lets bootstrap hand other
  * features the vehicles' space without them importing this feature. Camp's check
- * comes through bootstrap too, and so do the chase camera wish (whether another
- * feature wants a seated rider in the chase camera) and the switch targets of
+ * comes through bootstrap too, along with the switch targets of
  * other features, which the switch router asks after the vehicle's (ADR 0046, 0122, 0129).
  */
 export function installVehicles(deps: {
   isCampSpace: SpaceCheck;
-  wantsChaseCamera: ChaseCameraWish;
   laterSwitchTargets: () => readonly SwitchTarget[];
 }): {
   isVehicleSpace: SpaceCheck;
@@ -91,13 +88,7 @@ export function installVehicles(deps: {
   const feedback = new SwitchFeedback(bedrock, riders);
   registerSubscriptions(
     {
-      drive: new DriveVehicles(
-        bedrock,
-        repo,
-        log,
-        deps.wantsChaseCamera,
-        riders,
-      ),
+      drive: new DriveVehicles(bedrock, repo, log, riders),
       place: new PlaceVehicle(
         new BedrockPlacementWorld(inventory, index, deps.isCampSpace),
         repo,
