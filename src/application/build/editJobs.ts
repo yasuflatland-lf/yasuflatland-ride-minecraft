@@ -14,7 +14,7 @@ import {
 } from "../../domain/build/edit/change";
 import { completionMessage } from "../../domain/build/edit/completion";
 import { isKeptState } from "../../domain/build/edit/guard";
-import { airPressOffersUndo } from "../../domain/build/flow/flow";
+import { airPressOffersUndo } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { cellKey } from "../../domain/shared/cells";

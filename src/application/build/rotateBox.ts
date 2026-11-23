@@ -1,5 +1,6 @@
 import { cellsOf, volume } from "../../domain/build/box";
-import { tapsForBox, withoutStepBack } from "../../domain/build/flow/flow";
+import { withoutStepBack } from "../../domain/build/flow/stepBack";
+import { tapsForBox } from "../../domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { inDimension, withBox } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";

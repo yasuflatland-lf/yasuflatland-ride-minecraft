@@ -10,8 +10,8 @@ import {
   cellsOf,
   volume,
 } from "../../../src/domain/build/box";
-import { cornerTaps } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";

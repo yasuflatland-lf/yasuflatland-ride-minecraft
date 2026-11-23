@@ -128,43 +128,51 @@ const handlerCases = [
 describe.each(handlerCases)(
   "$name handlers",
   ({ item, entity, placementFields, hitTime, defersHit, setup }) => {
-    it("defers placement, captures the command, cancels duplicates and ignores unrelated presses", () => {
-      const { place } = setup();
-      const press = game.handlers.get("playerInteractWithBlock");
-      const ev = {
-        isFirstEvent: true,
-        itemStack: { typeId: item },
-        player: new game.Player(),
-        block: {
-          dimension: { id: "overworld" },
-          location: { x: 1, y: 2, z: 3 },
-        },
-        blockFace: "Up",
-        cancel: false,
-      };
-      press?.({ ...ev, isFirstEvent: false });
-      press?.({ ...ev, itemStack: { typeId: "other" } });
-      expect(game.run).not.toHaveBeenCalled();
-      press?.(ev);
-      press?.(ev);
-      expect(ev.cancel).toBe(true);
-      expect(place).not.toHaveBeenCalled();
-      expect(game.run).toHaveBeenCalledOnce();
-      ev.block.location.x = 99;
-      game.run.mock.calls[0]?.[0]();
-      expect(place).toHaveBeenCalledExactlyOnceWith({
-        player: "p",
-        dimension: "overworld",
-        block: { x: 1, y: 2, z: 3 },
-        face: "up",
-        yaw: 90,
-        slot: 2,
-        ...placementFields,
-      });
-      game.tick++;
-      press?.(ev);
-      expect(game.run).toHaveBeenCalledTimes(2);
-    });
+    it.each([
+      ["Up", "up"],
+      ["North", "other"],
+    ])(
+      "cancels a %s press and defers one placement with the captured command",
+      (blockFace, face) => {
+        const { place } = setup();
+        const press = game.handlers.get("playerInteractWithBlock");
+        const ev = {
+          isFirstEvent: true,
+          itemStack: { typeId: item },
+          player: new game.Player(),
+          block: {
+            dimension: { id: "overworld" },
+            location: { x: 1, y: 2, z: 3 },
+          },
+          blockFace,
+          cancel: false,
+        };
+        press?.({ ...ev, isFirstEvent: false });
+        press?.({ ...ev, itemStack: { typeId: "other" } });
+        expect(game.run).not.toHaveBeenCalled();
+        press?.(ev);
+        const duplicate = { ...ev, cancel: false };
+        press?.(duplicate);
+        expect(duplicate.cancel).toBe(true);
+        expect(ev.cancel).toBe(true);
+        expect(place).not.toHaveBeenCalled();
+        expect(game.run).toHaveBeenCalledOnce();
+        ev.block.location.x = 99;
+        game.run.mock.calls[0]?.[0]();
+        expect(place).toHaveBeenCalledExactlyOnceWith({
+          player: "p",
+          dimension: "overworld",
+          block: { x: 1, y: 2, z: 3 },
+          face,
+          yaw: 90,
+          slot: 2,
+          ...placementFields,
+        });
+        game.tick++;
+        press?.(ev);
+        expect(game.run).toHaveBeenCalledTimes(2);
+      },
+    );
 
     it("recovers only matching entities hit by a player, once per tick", () => {
       const { recover } = setup();
@@ -310,7 +318,7 @@ it("wires the scan interval, shared block guard and both space checks", () => {
 it("clears confirmed removals but preserves unloaded chunks and still-loaded entities", () => {
   const remember = vi
     .spyOn(BedrockParasolWorld.prototype, "remember")
-    .mockReturnValue({ dimension: {} as never, cells: [] });
+    .mockImplementation(() => {});
   const clear = vi
     .spyOn(BedrockParasolWorld.prototype, "clearCeiling")
     .mockReturnValue(true);

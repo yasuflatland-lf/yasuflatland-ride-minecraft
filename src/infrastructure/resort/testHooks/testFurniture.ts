@@ -89,7 +89,8 @@ export function registerTestFurniture(
         const [kind, ...coordinates] = ev.message.trim().split(/\s+/);
         const [x, y, z] = coordinates.map(Number);
         if (
-          (kind !== "gas_lantern" && kind !== "dutch_oven") ||
+          kind === undefined ||
+          !deps.topHosts.hasHostedKind(kind) ||
           coordinates.length !== 3 ||
           x === undefined ||
           y === undefined ||
