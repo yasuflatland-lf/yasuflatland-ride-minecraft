@@ -12,6 +12,10 @@ import { asFirePitId } from "../../../src/domain/camp/firePit";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { asTableId } from "../../../src/domain/camp/table";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import {
+  DUTCH_OVEN_ON_TOP,
+  GAS_LANTERN_ON_TOP,
+} from "../../../src/infrastructure/camp/bedrock/topHosts";
 import { fakeTableWorld } from "./fakeTableWorld";
 
 const player = asPlayerId("player");
@@ -83,9 +87,11 @@ it("charges and refunds each camp placement only when payment is owed and spawn 
           };
           const ovenActions = new DutchOvenActions(
             world as unknown as DutchOvenWorld,
+            DUTCH_OVEN_ON_TOP,
           );
           const lanternActions = new GasLanternActions(
             world as unknown as GasLanternWorld,
+            GAS_LANTERN_ON_TOP,
           );
           let placed: boolean;
           let spawn:

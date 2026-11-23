@@ -318,7 +318,7 @@ it("wires the scan interval, shared block guard and both space checks", () => {
 it("clears confirmed removals but preserves unloaded chunks and still-loaded entities", () => {
   const remember = vi
     .spyOn(BedrockParasolWorld.prototype, "remember")
-    .mockReturnValue({ dimension: {} as never, cells: [] });
+    .mockImplementation(() => {});
   const clear = vi
     .spyOn(BedrockParasolWorld.prototype, "clearCeiling")
     .mockReturnValue(true);

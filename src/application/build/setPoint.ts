@@ -1,5 +1,8 @@
 import { volume } from "../../domain/build/box";
-import { enteredBaseHeight, tapBlock } from "../../domain/build/flow/flow";
+import {
+  enteredBaseHeight,
+  tapBlock,
+} from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";

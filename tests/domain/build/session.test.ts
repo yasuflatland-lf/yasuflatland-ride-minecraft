@@ -3,11 +3,8 @@ import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
-import {
-  type BuildFlow,
-  cornerTaps,
-  tapsOf,
-} from "../../../src/domain/build/flow/flow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { cornerTaps, tapsOf } from "../../../src/domain/build/flow/taps";
 import {
   EMPTY_HISTORY,
   takeLast,
