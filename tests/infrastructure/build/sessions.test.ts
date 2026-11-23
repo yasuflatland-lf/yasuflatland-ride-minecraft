@@ -151,7 +151,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   );
   const targets = new FakeTapTargets();
   targets.show(id, { dimensionId: overworld, cell: at });
-  const clearTestInput = vi.fn();
+  const onPlayerLeave = vi.fn();
   registerSessions(
     new EndBuildSession(repo, structures, targets),
     new EndPasting(repo, structures),
@@ -159,7 +159,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
     pasteDebounce,
     rotateDebounce,
     undoDebounce,
-    clearTestInput,
+    onPlayerLeave,
   );
   engine.handlers.get("die")?.({ deadEntity: { id, typeId: "minecraft:pig" } });
   expect(session.flow.kind).toBe("selected");
@@ -171,7 +171,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   engine.handlers.get("leave")?.({ playerId: id });
   expect(repo.get(id)).toBeUndefined();
   expect(targets.placements.has(id)).toBe(false);
-  expect(clearTestInput).toHaveBeenCalledExactlyOnceWith(id);
+  expect(onPlayerLeave).toHaveBeenCalledExactlyOnceWith(id);
   expect(session.hasHistory).toBe(false);
   expect(structures.live.size).toBe(0);
   expect(debounce.press(id, 0)).toBe(true);

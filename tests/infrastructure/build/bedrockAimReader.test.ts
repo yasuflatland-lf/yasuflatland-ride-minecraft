@@ -3,11 +3,13 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
+  type AimOverride,
   BedrockAimReader,
   readInputKind,
 } from "../../../src/infrastructure/build/bedrock/bedrockAimReader";
-import { registerTestInput } from "../../../src/infrastructure/build/bedrock/handlers/testInput";
 import { TEST_INPUT_EVENT } from "../../../src/infrastructure/build/identifiers";
+import { TestAimReader } from "../../../src/infrastructure/build/testHooks/testAim";
+import { registerTestInput } from "../../../src/infrastructure/build/testHooks/testInput";
 
 const engine = vi.hoisted(() => ({
   getEntity: vi.fn(),
@@ -88,8 +90,9 @@ it("applies and clears the server's touch override for only the named player", (
   engine.getEntity.mockImplementation((playerId) =>
     playerId === id ? builder : other,
   );
-  const reader = new BedrockAimReader();
-  registerTestInput(reader);
+  const overrides = new Map<ReturnType<typeof asPlayerId>, AimOverride>();
+  const reader = new BedrockAimReader(overrides);
+  registerTestInput(new TestAimReader(overrides));
   const receive = vi
     .mocked(system.afterEvents.scriptEventReceive.subscribe)
     .mock.calls.at(-1)?.[0];

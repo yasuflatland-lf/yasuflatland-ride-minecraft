@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
+import { ROOF_TENT_PACK_CONTRACT } from "../../support/packContract";
 import { rideSeatY, seatedEyeHeight } from "../../support/roofTentSeatContract";
 
 const coordinate = fc.double({ min: -1000, max: 1000, noNaN: true });
@@ -25,13 +26,13 @@ it("keeps the seated eye at its target between the bed and ridge at any positive
       const eye =
         offset +
         rideSeatY() -
-        ROOF_TENT_SPEC.seatRiderOffset +
-        ROOF_TENT_SPEC.standingEyeHeight;
+        ROOF_TENT_PACK_CONTRACT.seatRiderOffset +
+        ROOF_TENT_PACK_CONTRACT.standingEyeHeight;
       expect(eye - offset).toBeCloseTo(seatedEyeHeight("ladder"), 10);
       expect(eye).toBeGreaterThan(offset + ROOF_TENT_SPEC.seatLift);
       expect(eye).toBeLessThan(offset + ROOF_TENT_SPEC.shellRidge);
       expect(rideSeatY()).toBeLessThan(
-        ROOF_TENT_SPEC.seatLift + ROOF_TENT_SPEC.seatRiderOffset,
+        ROOF_TENT_SPEC.seatLift + ROOF_TENT_PACK_CONTRACT.seatRiderOffset,
       );
     }),
   );
@@ -46,14 +47,14 @@ it("keeps the seated eye the same distance below each variant's ridge", () => {
         const ridge =
           variant === "ladder"
             ? ROOF_TENT_SPEC.shellRidge
-            : ROOF_TENT_SPEC.groundShellRidge;
+            : ROOF_TENT_PACK_CONTRACT.groundShellRidge;
         const eye =
           height +
           rideSeatY(variant) -
-          ROOF_TENT_SPEC.seatRiderOffset +
-          ROOF_TENT_SPEC.standingEyeHeight;
+          ROOF_TENT_PACK_CONTRACT.seatRiderOffset +
+          ROOF_TENT_PACK_CONTRACT.standingEyeHeight;
         expect(height + ridge - eye).toBeCloseTo(
-          ROOF_TENT_SPEC.eyeBelowRidge,
+          ROOF_TENT_PACK_CONTRACT.eyeBelowRidge,
           3,
         );
       },

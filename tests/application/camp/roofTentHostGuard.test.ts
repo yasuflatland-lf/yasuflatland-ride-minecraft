@@ -27,15 +27,9 @@ describe("RoofTentHostGuard", () => {
               ? { ...PRESENT, driverPresent, moving }
               : { status };
           const lookup = vi.fn(() => state);
-          const guard = new RoofTentHostGuard(
-            world,
-            lookup,
-            { eject: (id) => world.calls.push(`eject:${id}`) },
-            {
-              removed: (id, owner) =>
-                world.calls.push(`removed:${id}:${owner ?? "drop"}`),
-            },
-          );
+          const guard = new RoofTentHostGuard(world, lookup, {
+            eject: (id) => world.calls.push(`eject:${id}`),
+          });
           guard.check();
           expect(lookup).toHaveBeenCalledExactlyOnceWith("host");
           const remove =
@@ -43,14 +37,7 @@ describe("RoofTentHostGuard", () => {
             (status === "present" && (driverPresent || moving));
           const owner = owned ? PLAYER : "drop";
           expect(world.calls).toEqual(
-            remove
-              ? [
-                  "eject:tent",
-                  `return:tent:${owner}`,
-                  "remove:tent",
-                  `removed:tent:${owner}`,
-                ]
-              : [],
+            remove ? ["eject:tent", `return:tent:${owner}`, "remove:tent"] : [],
           );
         },
       ),
@@ -75,12 +62,7 @@ describe("RoofTentHostGuard", () => {
       id: asVehicleId("b"),
     });
     const lookup = vi.fn(() => ({ status: "removed" as const }));
-    new RoofTentHostGuard(
-      world,
-      lookup,
-      { eject: vi.fn() },
-      { removed: vi.fn() },
-    ).check();
+    new RoofTentHostGuard(world, lookup, { eject: vi.fn() }).check();
     expect(lookup.mock.calls).toEqual([["a"], ["b"]]);
     expect(world.loaded()).toEqual(["ground", "table"]);
   });

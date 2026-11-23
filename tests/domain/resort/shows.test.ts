@@ -5,7 +5,6 @@ import type { Ticks } from "../../../src/domain/shared/ticks";
 
 it("uses branded durations and sound ids for show tuning", () => {
   expectTypeOf(TOILET_SPEC.flushTicks).toEqualTypeOf<Ticks>();
-  expectTypeOf(TOILET_SPEC.lidOpenTicks).toEqualTypeOf<Ticks>();
   expectTypeOf(TOILET_SPEC.scanTicks).toEqualTypeOf<Ticks>();
   expectTypeOf(WASHSTAND_SPEC.runTicks).toEqualTypeOf<Ticks>();
   expectTypeOf(TOILET_SPEC.flushSound).toEqualTypeOf<SoundId>();

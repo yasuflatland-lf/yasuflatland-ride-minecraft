@@ -240,8 +240,6 @@ export function tentShellAt(height: number): {
   front: number;
   rear: number;
   top: number;
-  tarpHalfWidth: number;
-  tarpTop: number;
 } {
   const top = wallLayers + 1;
   const inset = (TENT_SPEC.leanDepth * height) / top;
@@ -250,8 +248,6 @@ export function tentShellAt(height: number): {
     front: front + inset,
     rear: TENT_SPEC.depth - inset,
     top,
-    tarpHalfWidth: TENT_SPEC.width / 2,
-    tarpTop: TENT_SPEC.tarpHeadroom + 1,
   };
 }
 
