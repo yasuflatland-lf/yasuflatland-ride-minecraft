@@ -8,7 +8,6 @@ export const SPORTSBOAT_EQUIPMENT_IDS: readonly string[] = Object.freeze([
 ]);
 
 export const SPORTSBOAT_MONITOR: MonitorRule = Object.freeze({
-  group: "sportsboat_equipment",
   tools: Object.freeze([
     Object.freeze({
       item: ICEBREAKER_SWITCH_ITEM,

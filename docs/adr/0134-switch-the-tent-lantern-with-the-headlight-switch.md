@@ -38,8 +38,8 @@ the tent stays out of scope.
   lantern takes no interior cell, so chairs and blocks still fit everywhere inside and the
   roof stays closed. A tent saved before this change is relaid by the normal diff.
 - **Light.** `tent_lantern` has the ceiling block's components and a `yasu_ride:lit` state.
-  Off, it emits `TENT_SPEC.ceilingLight`, so the shelter never drops to block light 0;
-  on, it emits 15 (`TENT_SPEC.lanternLight`), the camper's ceiling light level.
+  Its block permutations emit light level 4 when off and 15 when on.
+  The off state keeps the shelter lit, and the on state matches the camper's ceiling light level.
 - **Saved state.** The entity property `yasu_ride:lantern` is the only saved state. It lives
   through `/reload` and a restart with the entity; the tent loop reads it every tick and
   lays the lantern cell from it, so a restored tent shows its lantern on its first tick.

@@ -114,13 +114,13 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         expect(e.session.flow).toEqual({ kind: "idle" });
         expect(e.session.clipboard).toBeUndefined();
         expect(e.session.confirmedBox).toBeUndefined();
-        expect(e.session.mode).toEqual({ active: false, streak: 0 });
+        expect(e.session.isInBuildMode).toBe(false);
         const idle = e.session.flow;
         for (let i = 0; i < extraTicks + BUILD_SPEC.modeLeaveTicks; i++)
           modes.execute([{ playerId, held: "none" }]);
         expect(execute).toHaveBeenCalledExactlyOnceWith(playerId);
         expect(e.session.flow).toBe(idle);
-        expect(e.session.mode).toEqual({ active: false, streak: 0 });
+        expect(e.session.isInBuildMode).toBe(false);
       }
     }),
   );

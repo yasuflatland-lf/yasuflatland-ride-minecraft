@@ -50,7 +50,7 @@ const FULL_THROTTLE: RawInput = { moveX: 0, moveY: 1, jump: false };
 function ramAhead(over: Parameters<typeof snapshot>[1]): string[] {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
-  const uc = new DriveVehicles(world, repo, logger(), () => false);
+  const uc = new DriveVehicles(world, repo, logger());
   world.targets = [{ id: "cow", offset: { x: 0, y: 0, z: 1 } }];
   for (let tick = 0; tick < 200; tick++) {
     const speed = repo.get(asVehicleId("a"))?.speed ?? 0;
@@ -65,12 +65,7 @@ function ramAhead(over: Parameters<typeof snapshot>[1]): string[] {
 describe("DriveVehicles", () => {
   it("protects sports boat riders and occupied deck seats from fire each tick", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     world.snapshots = [
       snapshot("boat", {
         kind: "sportsboat",
@@ -145,7 +140,7 @@ describe("DriveVehicles", () => {
           const repo = new InMemoryRepo();
           repo.save(new Vehicle(asVehicleId("held"), SUV_PROFILE, drive));
           world.snapshots = [snapshot("held")];
-          new DriveVehicles(world, repo, logger(), () => false).execute(0);
+          new DriveVehicles(world, repo, logger()).execute(0);
           expect(world.held.get("held")).toEqual(hold);
           expect(world.docks.get("held")).toEqual(floor);
           expect(world.calls.some((c) => c.startsWith("motion:held:"))).toBe(
@@ -161,9 +156,7 @@ describe("DriveVehicles", () => {
     world.snapshots = [snapshot("a")];
     const holdAt = vi.spyOn(world, "holdAt");
     const layDock = vi.spyOn(world, "layDock");
-    new DriveVehicles(world, new InMemoryRepo(), logger(), () => false).execute(
-      0,
-    );
+    new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
     expect(holdAt).toHaveBeenCalledWith("a", undefined);
     expect(layDock).toHaveBeenCalledWith("a", []);
     expect(world.calls).toContain("motion:a:0");
@@ -185,7 +178,7 @@ describe("DriveVehicles", () => {
     const ids = [asVehicleId("a"), asVehicleId("b")];
     world.snapshots = ids.map((id) => snapshot(id));
     repo.save(createVehicle("suv", asVehicleId("gone"), 0));
-    const drive = new DriveVehicles(world, repo, log, () => false);
+    const drive = new DriveVehicles(world, repo, log);
 
     drive.execute(0);
     expect(tick.mock.calls.map(([id]) => id)).toEqual(ids);
@@ -215,7 +208,7 @@ describe("DriveVehicles", () => {
     repo.save(createVehicle("suv", asVehicleId("gone"), 0));
     world.snapshots = [snapshot("a")];
     world.failReleaseOn = "stuck";
-    new DriveVehicles(world, repo, log, () => false).execute(0);
+    new DriveVehicles(world, repo, log).execute(0);
     expect(world.calls.filter((c) => c.startsWith("release:"))).toEqual([
       "release:gone",
     ]);
@@ -231,7 +224,7 @@ describe("DriveVehicles", () => {
     repo.save(createVehicle("suv", id, 0));
     world.failReleaseOn = id;
     const release = vi.spyOn(world, "releaseVehicle");
-    const uc = new DriveVehicles(world, repo, log, () => false);
+    const uc = new DriveVehicles(world, repo, log);
 
     uc.execute(0);
     expect(repo.ids()).toEqual([]);
@@ -259,7 +252,7 @@ describe("DriveVehicles", () => {
     repo.save(createVehicle("suv", asVehicleId("stuck"), 0));
     world.failReleaseOn = "stuck";
     const release = vi.spyOn(world, "releaseVehicle");
-    const uc = new DriveVehicles(world, repo, log, () => false);
+    const uc = new DriveVehicles(world, repo, log);
 
     for (let tick = 0; tick < 5; tick++) uc.execute(tick);
 
@@ -275,7 +268,7 @@ describe("DriveVehicles", () => {
     repo.save(createVehicle("suv", id, 0));
     world.failReleaseOn = id;
     const release = vi.spyOn(world, "releaseVehicle");
-    const uc = new DriveVehicles(world, repo, log, () => false);
+    const uc = new DriveVehicles(world, repo, log);
 
     uc.execute(0);
     world.snapshots = [snapshot(id)];
@@ -324,7 +317,7 @@ describe("DriveVehicles", () => {
             world.failReleaseOn = attempt <= failures ? id : undefined;
             release(id);
           });
-          const uc = new DriveVehicles(world, repo, logger(), () => false);
+          const uc = new DriveVehicles(world, repo, logger());
 
           for (let tick = 0; tick <= maxFailures; tick++) {
             uc.execute(tick);
@@ -365,7 +358,7 @@ describe("DriveVehicles", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
     world.snapshots = [snapshot("a", { yaw: 30 }), snapshot("b")];
-    new DriveVehicles(world, repo, logger(), () => false).execute(0);
+    new DriveVehicles(world, repo, logger()).execute(0);
     expect(repo.ids().sort()).toEqual(["a", "b"]);
     expect(world.calls).toContain("motion:a:30");
   });
@@ -375,7 +368,7 @@ describe("DriveVehicles", () => {
     const repo = new InMemoryRepo();
     const driver = riderView("d", { offset: { x: -0.38, z: 0.2 }, yaw: 75 });
     world.snapshots = [snapshot("a", { yaw: 10, riders: [driver] })];
-    new DriveVehicles(world, repo, logger(), () => false).execute(0);
+    new DriveVehicles(world, repo, logger()).execute(0);
     expect(repo.get(asVehicleId("a"))?.yaw).toBeCloseTo(10);
     expect(world.calls).toContain("motion:a:10");
   });
@@ -385,7 +378,7 @@ describe("DriveVehicles", () => {
     const repo = new InMemoryRepo();
     world.snapshots = [snapshot("a", { velocity: { x: 0, y: 0, z: 0.5 } })];
     expect(() =>
-      new DriveVehicles(world, repo, logger(), () => false).execute(0),
+      new DriveVehicles(world, repo, logger()).execute(0),
     ).not.toThrow();
     expect(repo.get(asVehicleId("a"))?.speed).toBeLessThanOrEqual(0.0225);
   });
@@ -395,7 +388,7 @@ describe("DriveVehicles", () => {
     const log = logger();
     world.snapshots = [snapshot("bad"), snapshot("good")];
     world.failOn = "bad";
-    new DriveVehicles(world, new InMemoryRepo(), log, () => false).execute(0);
+    new DriveVehicles(world, new InMemoryRepo(), log).execute(0);
     expect(world.calls).toContain("motion:good:0");
     expect(log.lines.some((l) => l.includes("bad"))).toBe(true);
   });
@@ -434,7 +427,7 @@ describe("DriveVehicles", () => {
       ];
       world.failRunOn = { id: "bad", name };
       const run = vi.spyOn(world, "run");
-      new DriveVehicles(world, repo, log, () => false).execute(0);
+      new DriveVehicles(world, repo, log).execute(0);
       expect(run.mock.calls.filter(([id]) => id === "bad")).toHaveLength(1);
       expect(
         world.calls.some(
@@ -459,7 +452,7 @@ describe("DriveVehicles", () => {
   it("plays that seat's door sound when the driver's seat becomes empty", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const uc = new DriveVehicles(world, repo, logger(), () => false);
+    const uc = new DriveVehicles(world, repo, logger());
     const driver = riderView("d", { offset: { x: -0.38, z: 0.2 } });
     world.snapshots = [snapshot("a", { riders: [driver] })];
     uc.execute(0);
@@ -478,7 +471,7 @@ describe("DriveVehicles", () => {
         testInput: FULL_THROTTLE,
       }),
     ];
-    new DriveVehicles(world, repo, logger(), () => false).execute(0);
+    new DriveVehicles(world, repo, logger()).execute(0);
     expect(world.formOf("a")).toBe("hover");
     // A drive rebuilt in car form would send its gear down on the first tick.
     expect(world.calls).toContain("gear:a:up");
@@ -504,7 +497,7 @@ describe("DriveVehicles", () => {
           const repo = new InMemoryRepo();
           const drive = new SuvDrive(0, { form: "car" });
           repo.save(new Vehicle(id, SUV_PROFILE, drive));
-          const uc = new DriveVehicles(world, repo, logger(), () => false);
+          const uc = new DriveVehicles(world, repo, logger());
           const run = vi.spyOn(world, "run");
           const propertyNames = ["form", "bank", "gear_down"] as const;
           let previous: Partial<
@@ -564,12 +557,7 @@ describe("DriveVehicles", () => {
     "still writes $property when moving the vehicle throws",
     ({ property, inputs, value }) => {
       const world = new FakeWorld();
-      const uc = new DriveVehicles(
-        world,
-        new InMemoryRepo(),
-        logger(),
-        () => false,
-      );
+      const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
       world.failOn = "a";
       inputs.forEach((input, tick) => {
         world.snapshots = [snapshot("a", { testInput: input })];
@@ -582,7 +570,7 @@ describe("DriveVehicles", () => {
   it("writes the bank of a turn in flight as it builds, and nothing more once it holds (ADR 0026)", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const uc = new DriveVehicles(world, repo, logger(), () => false);
+    const uc = new DriveVehicles(world, repo, logger());
     const right: RawInput = { moveX: -1, moveY: 1, jump: false };
     const bankCalls = () => world.calls.filter((c) => c.startsWith("bank:"));
     const fly = (ticks: number) => {
@@ -619,9 +607,7 @@ describe("DriveVehicles", () => {
       snapshot("on", { location, yaw: 30, headlights: true }),
       snapshot("off", { location, yaw: 30 }),
     ];
-    new DriveVehicles(world, new InMemoryRepo(), logger(), () => false).execute(
-      0,
-    );
+    new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
     expect(world.shone.get("on")).toEqual(
       headlightCells(location, 30, SUV_PROFILE.beams),
     );
@@ -636,12 +622,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 
   it("switches riders of a flying vehicle to third person once, and back when they get off", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     const flying = {
       restored: () => ({ form: "hover" }) as const,
       onGround: false,
@@ -658,7 +639,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
   it("gives the view back when the vehicle lands", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const uc = new DriveVehicles(world, repo, logger(), () => false);
+    const uc = new DriveVehicles(world, repo, logger());
     const idle = { moveX: 0, moveY: 0, jump: false };
     const pressed = { ...idle, jump: true };
     const tapTwice = [pressed, idle, pressed, idle];
@@ -687,12 +668,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 
   it("pulls the camera back for a flying camper, and the mid view for a flying SUV (ADR 0071, 0170)", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     const flying = {
       restored: () => ({ form: "hover" }) as const,
       onGround: false,
@@ -708,12 +684,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 
   it("switches a rider to the new vehicle's camera when they change vehicles in flight", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     const flying = {
       restored: () => ({ form: "hover" }) as const,
       onGround: false,
@@ -731,102 +702,16 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 
   it("leaves riders of a vehicle on the ground with their own view", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     world.snapshots = [snapshot("a", { riders: [rider("p")] })];
     uc.execute(0);
     expect(cameraCalls(world)).toEqual([]);
   });
 
-  describe("chase camera wish from another feature", () => {
-    const bulldozer = (riders: ReturnType<typeof rider>[]) =>
-      snapshot("a", { kind: "bulldozer", riders });
-
-    it("switches a rider the form leaves in first person to the chase camera, and clears it when the wish ends", () => {
-      const world = new FakeWorld();
-      let wished = true;
-      const uc = new DriveVehicles(
-        world,
-        new InMemoryRepo(),
-        logger(),
-        () => wished,
-      );
-      world.snapshots = [bulldozer([rider("p")])];
-      uc.execute(0);
-      uc.execute(1);
-      expect(cameraCalls(world)).toEqual(["camera:p:mid"]);
-      wished = false;
-      uc.execute(2);
-      expect(cameraCalls(world)).toEqual(["camera:p:mid", "camera:p:own"]);
-    });
-
-    it("switches a deck-seat rider to the chase camera when the wish is true", () => {
-      const world = new FakeWorld();
-      const uc = new DriveVehicles(
-        world,
-        new InMemoryRepo(),
-        logger(),
-        (id) => id === "rear",
-      );
-      world.snapshots = [
-        snapshot("boat", {
-          kind: "sportsboat",
-          deckSeatRiders: [undefined, undefined, asPlayerId("rear")],
-        }),
-      ];
-      uc.execute(0);
-      uc.execute(1);
-      expect(cameraCalls(world)).toEqual(["camera:rear:third"]);
-    });
-
-    it("keeps the form's camera whatever the wish says", () => {
-      for (const wished of [true, false]) {
-        const world = new FakeWorld();
-        const uc = new DriveVehicles(
-          world,
-          new InMemoryRepo(),
-          logger(),
-          () => wished,
-        );
-        world.snapshots = [
-          snapshot("a", {
-            restored: () => ({ form: "hover" }) as const,
-            onGround: false,
-            riders: [rider("p")],
-          }),
-        ];
-        uc.execute(0);
-        expect(cameraCalls(world)).toEqual(["camera:p:mid"]);
-      }
-    });
-
-    it("does not ask about a player who is not seated", () => {
-      const world = new FakeWorld();
-      const asked: string[] = [];
-      const uc = new DriveVehicles(
-        world,
-        new InMemoryRepo(),
-        logger(),
-        (id) => {
-          asked.push(id);
-          return true;
-        },
-      );
-      world.snapshots = [bulldozer([])];
-      uc.execute(0);
-      expect(asked).toEqual([]);
-      expect(cameraCalls(world)).toEqual([]);
-    });
-  });
-
   it("logs a camera failure without stopping the vehicles, and retries on the next tick", () => {
     const world = new FakeWorld();
     const log = logger();
-    const uc = new DriveVehicles(world, new InMemoryRepo(), log, () => false);
+    const uc = new DriveVehicles(world, new InMemoryRepo(), log);
     world.failCameraOn = "p";
     world.snapshots = [
       snapshot("a", {
@@ -846,7 +731,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
   it("logs a camera that keeps failing once, not every tick", () => {
     const world = new FakeWorld();
     const log = logger();
-    const uc = new DriveVehicles(world, new InMemoryRepo(), log, () => false);
+    const uc = new DriveVehicles(world, new InMemoryRepo(), log);
     world.failCameraOn = "p";
     world.snapshots = [
       snapshot("a", {
@@ -862,7 +747,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
   it("logs a camera failure again when it fails after a switch that worked", () => {
     const world = new FakeWorld();
     const log = logger();
-    const uc = new DriveVehicles(world, new InMemoryRepo(), log, () => false);
+    const uc = new DriveVehicles(world, new InMemoryRepo(), log);
     const flying = {
       restored: () => ({ form: "hover" }) as const,
       onGround: false,
@@ -884,12 +769,7 @@ describe("DriveVehicles third-person camera in flight (ADR 0028)", () => {
 
   it("retries giving the view back when it fails", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     world.snapshots = [
       snapshot("a", {
         restored: () => ({ form: "hover" }),
@@ -920,7 +800,7 @@ describe("DriveVehicles submarine riders (ADR 0040)", () => {
   it("senses submersion and refreshes every rider's breathing only every second", () => {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const uc = new DriveVehicles(world, repo, logger(), () => false);
+    const uc = new DriveVehicles(world, repo, logger());
     world.snapshots = [
       snapshot("a", {
         waterDepth: SUV_SPEC.carHeight,
@@ -956,9 +836,7 @@ describe("DriveVehicles submarine riders (ADR 0040)", () => {
         riders: [rider("h")],
       }),
     ];
-    new DriveVehicles(world, new InMemoryRepo(), logger(), () => false).execute(
-      20,
-    );
+    new DriveVehicles(world, new InMemoryRepo(), logger()).execute(20);
     expect(breathingCalls(world)).toEqual([]);
   });
 
@@ -976,7 +854,7 @@ describe("DriveVehicles submarine riders (ADR 0040)", () => {
         riders: [rider("other")],
       }),
     ];
-    new DriveVehicles(world, new InMemoryRepo(), log, () => false).execute(20);
+    new DriveVehicles(world, new InMemoryRepo(), log).execute(20);
     expect(breathingCalls(world)).toEqual([
       breathing("good"),
       breathing("other"),
@@ -986,12 +864,7 @@ describe("DriveVehicles submarine riders (ADR 0040)", () => {
 
   it("switches submarine riders to third person and restores their view and stops breathing on shore", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     world.snapshots = [
       snapshot("a", {
         restored: () => ({ form: "submarine" }),
@@ -1013,12 +886,7 @@ describe("DriveVehicles submarine riders (ADR 0040)", () => {
 
   it("stops refreshing breathing once a rider leaves", () => {
     const world = new FakeWorld();
-    const uc = new DriveVehicles(
-      world,
-      new InMemoryRepo(),
-      logger(),
-      () => false,
-    );
+    const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
     world.snapshots = [
       snapshot("a", { waterDepth: SUV_SPEC.carHeight, riders: [rider("p")] }),
     ];
@@ -1045,7 +913,7 @@ it("drives a boat with water below high feet and leaves a dry boat still", () =>
           testInput: FULL_THROTTLE,
         }),
       ];
-      new DriveVehicles(world, repo, log, () => false).execute(0);
+      new DriveVehicles(world, repo, log).execute(0);
       const speed = repo.get(asVehicleId("boat"))?.speed;
       if (waterBelow) expect(speed).toBeGreaterThan(0);
       else expect(speed).toBe(0);
@@ -1064,8 +932,7 @@ it("keeps the rebuilt form on a second tick", () => {
       testInput: { moveX: 0, moveY: 0, jump: false },
     }),
   ];
-  const repo = new InMemoryRepo();
-  const uc = new DriveVehicles(world, repo, { warn: vi.fn() }, () => false);
+  const uc = new DriveVehicles(world, new InMemoryRepo(), { warn: vi.fn() });
   uc.execute(0);
   expect(world.formOf("a")).toBe("hover");
   world.snapshots = [
@@ -1091,7 +958,7 @@ it("passes deck input through and boards before keeping deck seats", () => {
   const board = vi.spyOn(world, "boardDeckRiders");
   const keep = vi.spyOn(world, "keepDeckSeats");
   const log = logger();
-  new DriveVehicles(world, new InMemoryRepo(), log, () => false).execute(0);
+  new DriveVehicles(world, new InMemoryRepo(), log).execute(0);
   expect(board).toHaveBeenCalledWith("boat");
   expect(keep).toHaveBeenCalledWith(
     "boat",
@@ -1117,9 +984,7 @@ it("lays a boat's chosen seats, with the deck seat's rider in its seat, before t
     }),
     snapshot("suv"),
   ];
-  new DriveVehicles(world, new InMemoryRepo(), logger(), () => false).execute(
-    0,
-  );
+  new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
   expect([...world.seatLayouts]).toEqual([
     ["boat", ["driver", undefined, "rear"]],
   ]);
@@ -1134,9 +999,7 @@ it("clears deck seats without boarding for ordinary motion", () => {
   world.snapshots = [snapshot("a")];
   const board = vi.spyOn(world, "boardDeckRiders");
   const keep = vi.spyOn(world, "keepDeckSeats");
-  new DriveVehicles(world, new InMemoryRepo(), logger(), () => false).execute(
-    0,
-  );
+  new DriveVehicles(world, new InMemoryRepo(), logger()).execute(0);
   expect(board).not.toHaveBeenCalled();
   expect(keep).toHaveBeenCalledWith("a", [], 0);
 });
@@ -1179,7 +1042,7 @@ describe("DriveVehicles dock ports", () => {
       }),
     ];
     const blockTypes = vi.spyOn(world, "blockTypes");
-    new DriveVehicles(world, repo, logger(), () => false).execute(0);
+    new DriveVehicles(world, repo, logger()).execute(0);
     return { world, types, at, blockTypes };
   }
 
@@ -1279,12 +1142,7 @@ describe("DriveVehicles stand-ins (ADR 0116)", () => {
         fc.integer({ min: -100, max: 100 }),
         (yaw, x, z) => {
           const world = new FakeWorld();
-          const uc = new DriveVehicles(
-            world,
-            new InMemoryRepo(),
-            logger(),
-            () => false,
-          );
+          const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
           const location = { x: x + 0.5, y: 64, z: z + 0.5 };
           world.snapshots = [
             snapshot("c", { kind: "camper", yaw, location }),
@@ -1314,7 +1172,7 @@ it("retries gravity_on after a failed landing send and logs the failure once", (
   const repo = new InMemoryRepo();
   repo.save(rebuildVehicle("suv", asVehicleId("a"), 0, [], { form: "hover" }));
   const log = logger();
-  const uc = new DriveVehicles(world, repo, log, () => false);
+  const uc = new DriveVehicles(world, repo, log);
   const run = vi.spyOn(world, "run");
   world.snapshots = [
     snapshot("a", {
@@ -1351,7 +1209,7 @@ it("resyncs after tick throws after building commands, preserving the thrown err
   });
   const resync = vi.spyOn(vehicle, "resync");
   const log = logger();
-  const uc = new DriveVehicles(world, repo, log, () => false);
+  const uc = new DriveVehicles(world, repo, log);
   world.snapshots = [snapshot("a")];
   uc.execute(0);
   expect(resync).toHaveBeenCalledTimes(1);
@@ -1373,7 +1231,7 @@ it("does not resync when a later world call throws after step commands succeeded
   const run = vi.spyOn(world, "run");
   world.snapshots = [snapshot("a")];
   world.failOn = "a";
-  const uc = new DriveVehicles(world, repo, logger(), () => false);
+  const uc = new DriveVehicles(world, repo, logger());
   uc.execute(0);
   expect(resync).not.toHaveBeenCalled();
   world.failOn = undefined;
@@ -1436,19 +1294,9 @@ describe("entity mirror (ADR 0055)", () => {
             reference.properties.set(id, { ...start });
             faulty.properties.set(id, { ...start });
             const referenceRepo = new InMemoryRepo();
-            const good = new DriveVehicles(
-              reference,
-              referenceRepo,
-              logger(),
-              () => false,
-            );
+            const good = new DriveVehicles(reference, referenceRepo, logger());
             const log = logger();
-            const failing = new DriveVehicles(
-              faulty,
-              new InMemoryRepo(),
-              log,
-              () => false,
-            );
+            const failing = new DriveVehicles(faulty, new InMemoryRepo(), log);
             // Both drives get the same snapshots and a failed send changes no vehicle
             // state (ADR 0127), so the reference heading is the faulty drive's too.
             const expectMirrored = () =>
@@ -1529,7 +1377,7 @@ it("a failed cut skips the rest of that vehicle's tick but not the other vehicle
     );
   world.snapshots = [snapshot("a"), snapshot("b")];
   world.failCutOn = "a";
-  new DriveVehicles(world, repo, logger(), () => false).execute(0);
+  new DriveVehicles(world, repo, logger()).execute(0);
   expect(world.calls).toContain("motion:b:0");
   expect(world.calls).not.toContain("motion:a:0");
   expect(world.cuts).toEqual([{ vehicleId: "b", columns: cut }]);
@@ -1556,7 +1404,7 @@ it("stands each leaving rider at their exit after the final commands", () => {
   vi.spyOn(vehicle, "tick").mockReturnValue({ ...outcome, exits });
   const run = vi.spyOn(world, "run");
   const stand = vi.spyOn(world, "standRiderAt");
-  new DriveVehicles(world, repo, logger(), () => false).execute(1);
+  new DriveVehicles(world, repo, logger()).execute(1);
   expect(stand.mock.calls).toEqual(
     exits.map((exit) => [vehicle.id, exit.playerId, exit.at]),
   );
@@ -1581,9 +1429,7 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
       }),
     }),
   ];
-  expect(() =>
-    new DriveVehicles(world, repo, log, () => false).execute(0),
-  ).not.toThrow();
+  expect(() => new DriveVehicles(world, repo, log).execute(0)).not.toThrow();
   const vehicleId = asVehicleId("car");
   expect(repo.get(vehicleId)?.capability(CAMPER_ROOM)?.decor.decor()).toEqual(
     [],
@@ -1605,7 +1451,7 @@ it("silently drops saved oil lamps and removed decor, and saves it after the nex
 it("applies scooter poses for both turning riders and none for an SUV", () => {
   const world = new FakeWorld();
   const repo = new InMemoryRepo();
-  const uc = new DriveVehicles(world, repo, logger(), () => false);
+  const uc = new DriveVehicles(world, repo, logger());
   let body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
   const applyMotion = world.applyMotion.bind(world);
   vi.spyOn(world, "applyMotion").mockImplementation((id, impulse, yaw) => {
@@ -1664,12 +1510,7 @@ it("resends rider poses after a pose port throws", () => {
   const play = vi.spyOn(world, "play").mockImplementationOnce(() => {
     throw new Error("pose send");
   });
-  const uc = new DriveVehicles(
-    world,
-    new InMemoryRepo(),
-    logger(),
-    () => false,
-  );
+  const uc = new DriveVehicles(world, new InMemoryRepo(), logger());
   uc.execute(1);
   play.mockClear();
   uc.execute(2);
@@ -1682,7 +1523,7 @@ it("resends rider poses after a pose port throws", () => {
 it("plays no door when a rider leaves a doorless scooter", () => {
   const world = new FakeWorld();
   const log = { warn: vi.fn() };
-  const drive = new DriveVehicles(world, new InMemoryRepo(), log, () => false);
+  const drive = new DriveVehicles(world, new InMemoryRepo(), log);
   const run = vi.spyOn(world, "run");
   world.snapshots = [
     snapshot("v", { kind: "scooter", riders: [riderView("driver")] }),

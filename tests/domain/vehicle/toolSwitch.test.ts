@@ -107,7 +107,6 @@ it("cycles a tool's declared states and shares its cooldown with other tools", (
           {
             ...BULLDOZER_PROFILE,
             monitor: {
-              group: "tools",
               tools: [
                 { item: "first", states },
                 { item: "second", states },

@@ -90,7 +90,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     }
   }
 
-  remove(id: RoofTentId): boolean {
+  remove(id: RoofTentId): void {
     this.deps.beforeRemove(id);
     // The entity's before-remove event fires during removal. Cleanup has run.
     this.removing.add(id);
@@ -99,7 +99,6 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     } finally {
       this.removing.delete(id);
     }
-    return true;
   }
 
   isRemoving(id: RoofTentId): boolean {

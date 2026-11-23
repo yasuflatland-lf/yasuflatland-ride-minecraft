@@ -64,7 +64,7 @@ Move only the outer rack bar from +4 to -7 model pixels; the other stays at -26.
 | SUV_DIMS.mount_bar_x (pixels)               | (-26, 4) |         (-26, -7) |
 | RP header/module and BP resource dependency |  0.1.249 |           0.1.250 |
 
-`roofTentRoofHeight` remains 2.3653125. The named `roofTentShellHalfWidth` exposes the unchanged 1.968-block tent dimension; `roofTentHardtopHalfWidth` exposes the derived conservative support width for the in-game mount assertion. `HARDTOP_TOP_Y`, `HARDTOP_FRONT_Z` and `HARDTOP_REAR_Z` name existing generator dimensions without changing the SUV geometry. `BODY_NOSE_HALF_WIDTH` and `MIRROR_OUTER_X` name the existing nose and mirror bounds; `SHELL_OUTER_HALF_WIDTH` applies the body widening ratio to the mirror edge and supplies the collision-width comparison.
+`roofTentRoofHeight` remains 2.3653125. The mount calculation uses the 1.968-block tent shell half width and the conservative hardtop half width. The pack and in-game tests use the expected widths from `tests/support/packContract.ts`. `HARDTOP_TOP_Y`, `HARDTOP_FRONT_Z` and `HARDTOP_REAR_Z` name existing generator dimensions without changing the SUV geometry. `BODY_NOSE_HALF_WIDTH` and `MIRROR_OUTER_X` name the existing nose and mirror bounds; `SHELL_OUTER_HALF_WIDTH` applies the body widening ratio to the mirror edge and supplies the collision-width comparison.
 
 ## Consequences
 

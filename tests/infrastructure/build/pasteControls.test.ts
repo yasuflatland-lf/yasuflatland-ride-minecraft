@@ -1,7 +1,6 @@
 import { type Player, world } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import { expect, it, vi } from "vitest";
-import { DescribeBuild } from "../../../src/application/build/describeBuild";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
@@ -18,7 +17,6 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
-import { registerTestPress } from "../../../src/infrastructure/build/bedrock/handlers/testPress";
 import {
   BUILD_UNDO_TYPE,
   PASTE_PLACE_TYPE,
@@ -26,6 +24,8 @@ import {
   SELECTION_WAND_TYPE,
   TEST_PRESS_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
+import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
+import { registerTestPress } from "../../../src/infrastructure/build/testHooks/testPress";
 import {
   FakeBuildPlayers,
   FakeFeedback,

@@ -101,7 +101,6 @@ it("uses the same applied camera state for driving and switch feedback", () => {
           world,
           repo,
           { warn: () => {} },
-          () => false,
           riders,
         );
         const driver = riderView("driver");

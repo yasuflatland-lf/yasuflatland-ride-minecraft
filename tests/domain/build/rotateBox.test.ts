@@ -29,14 +29,13 @@ it("preserves volume and height with the smallest union containing both boxes", 
       const source = boxAt(min, size);
       const before = structuredClone(source);
       const plan: RotationPlan = planRotationAboutCenter(source);
-      expect(plan.source).toEqual(source);
       expect(volume(plan.target)).toBe(volume(source));
       expect(plan.target.max.x - plan.target.min.x + 1).toBe(size.z);
       expect(plan.target.max.z - plan.target.min.z + 1).toBe(size.x);
       expect(plan.target.min.y).toBe(source.min.y);
       expect(plan.target.max.y).toBe(source.max.y);
       expect(Object.isFrozen(plan)).toBe(true);
-      for (const box of [plan.source, plan.target, plan.union]) {
+      for (const box of [plan.target, plan.union]) {
         expect(Object.isFrozen(box)).toBe(true);
         expect(Object.isFrozen(box.min)).toBe(true);
         expect(Object.isFrozen(box.max)).toBe(true);
@@ -101,7 +100,7 @@ it("swaps the horizontal sides about the center, truncating half cells toward ze
           },
         ),
       );
-      for (const box of [plan.source, plan.target, plan.union])
+      for (const box of [plan.target, plan.union])
         for (const value of [
           ...Object.values(box.min),
           ...Object.values(box.max),
@@ -125,14 +124,14 @@ it("swaps the horizontal sides about the center, truncating half cells toward ze
 
 it("does not freeze or retain mutable input corners", () => {
   const source = { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 2 } };
-  const before = structuredClone(source);
   const plan = planRotationAboutCenter(source);
+  const before = structuredClone(plan);
   expect(Object.isFrozen(source)).toBe(false);
   expect(Object.isFrozen(source.min)).toBe(false);
   expect(Object.isFrozen(source.max)).toBe(false);
   source.min.x = 100;
   source.max.z = 100;
-  expect(plan.source).toEqual(before);
+  expect(plan).toEqual(before);
 });
 
 it("keeps the center within half a cell and returns the box after four turns", () => {
