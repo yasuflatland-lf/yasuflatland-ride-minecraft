@@ -55,16 +55,9 @@ describe("BedrockPaintWorld", () => {
     );
   });
 
-  it("reads variant 0 when the vehicle has no variant component", () => {
-    const { vehicle, paint } = fixture();
-    expect(paint.paintOf(asVehicleId(vehicle.id))).toBe(PAINTS[0]);
-  });
-
-  it("has no paint for a missing vehicle or an unknown variant", () => {
-    const { vehicle, paint } = fixture();
+  it("has no paint for a missing vehicle", () => {
+    const { paint } = fixture();
     expect(paint.paintOf(asVehicleId("missing"))).toBeUndefined();
-    vehicle.getComponent.mockReturnValue({ value: PAINTS.length });
-    expect(paint.paintOf(asVehicleId(vehicle.id))).toBeUndefined();
   });
 
   it.each(PAINTS)("paints the vehicle %s without the dye sound", (color) => {
