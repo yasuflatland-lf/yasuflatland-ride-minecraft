@@ -1,5 +1,5 @@
 import { ItemStack, SignSide, type Vector3 } from "@minecraft/server";
-import { type CellBox, cellsOf } from "../../domain/build/box";
+import { type CellBox, cellBox, cellsOf } from "../../domain/build/box";
 import {
   type QuarterTurn,
   rotatedSize,
@@ -36,8 +36,8 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
   const store = new BedrockStructureStore(() => false);
   const dim = asDimensionId(a.dim.id);
   const owner = asPlayerId(`rotation_${a.lane.index}`);
-  const source = { min: a.at(20, a.gy, 20), max: a.at(24, a.gy + 3, 26) };
-  const destination = { min: a.at(39, a.gy, 19), max: a.at(47, a.gy + 3, 27) };
+  const source = cellBox(a.at(20, a.gy, 20), a.at(24, a.gy + 3, 26));
+  const destination = cellBox(a.at(39, a.gy, 19), a.at(47, a.gy + 3, 27));
   const anchor = a.at(40, a.gy, 20);
   const handles: StructureHandle[] = [];
   const spawned = new Set<string>();
@@ -379,7 +379,7 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     );
     clear(source);
     clear(destination);
-    const large = { min: a.at(8, a.gy, 8), max: a.at(71, a.gy + 63, 71) };
+    const large = cellBox(a.at(8, a.gy, 8), a.at(71, a.gy + 63, 71));
     const startCapture = Date.now();
     const largeHandle = store.capture(dim, large, owner, "exact");
     const captureMs = Date.now() - startCapture;

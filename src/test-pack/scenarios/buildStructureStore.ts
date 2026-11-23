@@ -7,7 +7,7 @@ import {
   type Vector3,
   world,
 } from "@minecraft/server";
-import { cellsOf } from "../../domain/build/box";
+import { cellBox, cellsOf } from "../../domain/build/box";
 import type { StructureHandle } from "../../domain/build/structure/handle";
 import { TABLE_TOP_PX } from "../../domain/camp/spec";
 import { encodeHost } from "../../domain/shared/hosted";
@@ -41,7 +41,7 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
   );
   const dim = asDimensionId(a.dim.id);
   const owner = asPlayerId(`store_probe_${a.lane.index}`);
-  const box = { min: a.at(20, a.gy, 20), max: a.at(31, a.gy + 5, 31) };
+  const box = cellBox(a.at(20, a.gy, 20), a.at(31, a.gy + 5, 31));
   const results: { name: string; pass: boolean; value: string }[] = [];
   const handles: StructureHandle[] = [];
   const spawned = new Set<string>();
@@ -141,7 +141,7 @@ export async function buildStructureStore(a: Arena): Promise<Outcome> {
       "too_large",
       store.capture(
         dim,
-        { min: box.min, max: { ...box.max, x: box.min.x + 64 } },
+        cellBox(box.min, { ...box.max, x: box.min.x + 64 }),
         owner,
         "exact",
       ) === "tooLarge",
@@ -209,7 +209,7 @@ export async function buildStructureStoreDecor(
   const bottom = a.gy;
   const from = a.at(20, bottom, 20);
   const to = a.at(31, bottom + 5, 31);
-  const box = { min: from, max: to };
+  const box = cellBox(from, to);
   const store = new BedrockStructureStore(
     (type) => isFleetEntityType(type) || type === "minecraft:armor_stand",
   );
@@ -454,8 +454,8 @@ export async function buildStructureStoreHosted(a: Arena): Promise<Outcome> {
     excludedEntityType(isFleetEntityType),
   );
   const dim = asDimensionId(a.dim.id);
-  const source = { min: a.at(20, a.gy, 20), max: a.at(25, a.gy + 4, 25) };
-  const destination = { min: a.at(30, a.gy, 20), max: a.at(35, a.gy + 4, 25) };
+  const source = cellBox(a.at(20, a.gy, 20), a.at(25, a.gy + 4, 25));
+  const destination = cellBox(a.at(30, a.gy, 20), a.at(35, a.gy + 4, 25));
   const handles: StructureHandle[] = [];
   const entities = (box: typeof source) =>
     a.dim.getEntities().filter((entity) => {
@@ -557,10 +557,7 @@ export async function buildStructureStoreUncopyable(
   const store = new BedrockStructureStore(() => false, [WARP_BLOCK_TYPE]);
   const dim = asDimensionId(a.dim.id);
   const owner = asPlayerId(`store_uncopyable_${a.lane.index}`);
-  const row = (z: number) => ({
-    min: a.at(20, a.gy, z),
-    max: a.at(21, a.gy, z),
-  });
+  const row = (z: number) => cellBox(a.at(20, a.gy, z), a.at(21, a.gy, z));
   const source = row(20);
   const copied = row(23);
   const exact = row(26);

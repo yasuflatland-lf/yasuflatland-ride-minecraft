@@ -354,7 +354,9 @@ export function selectedStairRow(
   flow: Extract<BuildFlow, { kind: "selected" }>,
 ): StairRow | undefined {
   const row = stairRowOf(flow);
-  return row && sameBox(row, flow.selection.box) ? row : undefined;
+  return row && sameBox(boxOf(row.min, row.max), flow.selection.box)
+    ? row
+    : undefined;
 }
 
 export function chooseStairs(flow: BuildFlow, op: StairOp): BuildFlow {

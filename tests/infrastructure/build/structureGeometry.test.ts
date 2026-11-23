@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { contains, volume } from "../../../src/domain/build/box";
+import { cellBox, contains, volume } from "../../../src/domain/build/box";
 import {
   fillChunks,
   isStructureTooLarge,
@@ -17,10 +17,9 @@ const boxArb = fc
     dy: fc.integer({ min: 1, max: 520 }),
     dz: fc.integer({ min: 1, max: 130 }),
   })
-  .map(({ x, y, z, dx, dy, dz }) => ({
-    min: { x, y, z },
-    max: { x: x + dx - 1, y: y + dy - 1, z: z + dz - 1 },
-  }));
+  .map(({ x, y, z, dx, dy, dz }) =>
+    cellBox({ x, y, z }, { x: x + dx - 1, y: y + dy - 1, z: z + dz - 1 }),
+  );
 
 it("partitions every box exactly into disjoint fill-sized chunks", () => {
   fc.assert(
@@ -62,12 +61,12 @@ it("classifies inclusive axis lengths independently of location and volume", () 
 
 it("accepts axis limits and refuses lengths beyond them", () => {
   const min = { x: 0, y: 0, z: 0 };
-  expect(isStructureTooLarge({ min, max: { x: 0, y: 383, z: 0 } })).toBe(false);
-  expect(isStructureTooLarge({ min, max: { x: 0, y: 384, z: 0 } })).toBe(true);
-  expect(isStructureTooLarge({ min, max: { x: 63, y: 0, z: 0 } })).toBe(false);
-  expect(isStructureTooLarge({ min, max: { x: 64, y: 0, z: 0 } })).toBe(true);
-  expect(isStructureTooLarge({ min, max: { x: 0, y: 0, z: 63 } })).toBe(false);
-  expect(isStructureTooLarge({ min, max: { x: 0, y: 0, z: 64 } })).toBe(true);
+  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 383, z: 0 }))).toBe(false);
+  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 384, z: 0 }))).toBe(true);
+  expect(isStructureTooLarge(cellBox(min, { x: 63, y: 0, z: 0 }))).toBe(false);
+  expect(isStructureTooLarge(cellBox(min, { x: 64, y: 0, z: 0 }))).toBe(true);
+  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 0, z: 63 }))).toBe(false);
+  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 0, z: 64 }))).toBe(true);
 });
 
 const ownerArb = fc

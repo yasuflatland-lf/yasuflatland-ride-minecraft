@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import { boxWithHeight, type CellBox } from "../box";
+import { boxWithHeight, type CellBox, cellBox } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
 import { isRoofKind, type RoofStyle } from "../roof/roof";
 import { cubePlacement, cubeVolume } from "./cube";
@@ -80,5 +80,5 @@ export function boundingBox(spec: HeightedSpec): CellBox {
     max.y = Math.max(max.y, y);
     max.z = Math.max(max.z, z);
   }
-  return { min, max };
+  return cellBox(min, max);
 }

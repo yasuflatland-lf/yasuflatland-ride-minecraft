@@ -1,6 +1,10 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import type { CellBox } from "../../../src/domain/build/box";
+import {
+  boxWithHeight,
+  type CellBox,
+  cellBox,
+} from "../../../src/domain/build/box";
 import { pasteOutline } from "../../../src/domain/build/preview/pasteOutline";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -16,14 +20,12 @@ const boxes = (maxSide: number, minHeight = 1) =>
       fc.integer({ min: 1, max: maxSide }),
     )
     .map(
-      ([min, width, height, depth]): CellBox => ({
-        min,
-        max: {
+      ([min, width, height, depth]): CellBox =>
+        cellBox(min, {
           x: min.x + width - 1,
           y: min.y + height - 1,
           z: min.z + depth - 1,
-        },
-      }),
+        }),
     );
 
 function bottomComplete(box: CellBox, points: Vec3[]) {
@@ -120,7 +122,7 @@ it("spends the budget on ground contact before the top ring and upper vertical e
 it("has no vertical edges for a single block of height", () => {
   fc.assert(
     fc.property(boxes(8), (box) => {
-      const flat = { ...box, max: { ...box.max, y: box.min.y } };
+      const flat = boxWithHeight(box, 1);
       expect(pasteOutline(flat, BUILD_SPEC.outlineMaxPoints).vertical).toEqual(
         [],
       );

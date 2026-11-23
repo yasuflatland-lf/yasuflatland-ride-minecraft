@@ -1,6 +1,6 @@
 import type { DimensionId } from "../shared/ids";
 import type { BlockState } from "./blockState";
-import { type CellBox, sizeOf } from "./box";
+import { type CellBox, cellBox, sizeOf } from "./box";
 import { BUILD_SPEC } from "./spec";
 
 export type Selection = Readonly<{
@@ -16,10 +16,7 @@ export function selectionOf(
 ): Selection {
   return Object.freeze({
     dimensionId,
-    box: Object.freeze({
-      min: Object.freeze({ ...box.min }),
-      max: Object.freeze({ ...box.max }),
-    }),
+    box: cellBox(box.min, box.max),
     material,
   });
 }
