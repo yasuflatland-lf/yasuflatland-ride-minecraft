@@ -2,13 +2,13 @@
 // taking down the tent (ADR 0131), of its flaps (ADR 0132), of its
 // mattresses (ADR 0133), of switching its lantern (ADR 0134), and of its
 // paint events (ADR 0135).
+
 import { type Entity, ItemStack, system } from "@minecraft/server";
 import { FLAP_IDS } from "../../domain/camp/flaps";
 import { legacyTentClearCells } from "../../domain/camp/legacyTent";
 import { TENT_SPEC } from "../../domain/camp/spec";
 import {
   type FlapId,
-  lanternCell,
   PITCHED_STATE,
   TENT_FLAPS,
   type TentPose,
@@ -25,7 +25,6 @@ import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/debounce";
 import { PAINTS } from "../../domain/shared/paint";
 import {
   TENT_CEILING_BLOCK,
-  TENT_FAMILY,
   TENT_FLAP_BLOCK,
   TENT_FLAP_PROPERTY,
   TENT_ITEM,
@@ -42,10 +41,12 @@ import {
   TEST_TENT_LANTERN_EVENT,
   TEST_TENT_PITCH_EVENT,
 } from "../../infrastructure/camp/identifiers";
-import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
+import { paintEvent } from "../../infrastructure/shared/dyes";
 import { type Arena, spawnCar, wait } from "../arena";
 import { inside, worldBounds } from "../lane";
 import type { Outcome } from "../outcome";
+import { PAINT_VARIANT } from "./support/paintContract";
+import { lanternCell, TENT_FAMILY } from "./support/tentContract";
 
 export async function tentEntityContract(a: Arena): Promise<Outcome> {
   const at = a.at(119.5, a.gy + 2, 46.5);

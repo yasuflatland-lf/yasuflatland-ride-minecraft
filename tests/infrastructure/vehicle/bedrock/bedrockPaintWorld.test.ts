@@ -3,15 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import { PAINTS } from "../../../../src/domain/shared/paint";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
-import {
-  dyeOf,
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../../../src/infrastructure/shared/dyes";
+import { dyeOf, paintEvent } from "../../../../src/infrastructure/shared/dyes";
 import type { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockPaintWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { ENTITY_TYPE } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { PAINT_VARIANT } from "../../../../src/test-pack/scenarios/support/paintContract";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({

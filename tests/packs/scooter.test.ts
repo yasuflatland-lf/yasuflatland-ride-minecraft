@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SCOOTER_PROFILE } from "../../src/domain/vehicle/kinds/scooter/profile";
-import { PAINT_VARIANT } from "../../src/infrastructure/shared/dyes";
+import { PAINT_VARIANT } from "../../src/test-pack/scenarios/support/paintContract";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { loadScooterGeo } from "../tools/helpers/scooterGeo";
 

@@ -10,7 +10,6 @@ import { RotateSelection } from "../../application/build/rotateSelection";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { blockStateOf } from "../../domain/build/blockState";
 import { cellsOf, contains } from "../../domain/build/box";
-import { selectionBoxOf } from "../../domain/build/flow/flow";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
 import { sameCell } from "../../domain/shared/cells";
@@ -21,6 +20,7 @@ import { BedrockTapTargets } from "../../infrastructure/build/bedrock/bedrockTap
 import { InMemorySessionRepository } from "../../infrastructure/build/persistence/inMemorySessionRepository";
 import { type Arena, wait } from "../arena";
 import type { Outcome } from "../outcome";
+import { selectionBoxOf } from "./support/buildSelection";
 
 export async function buildRotateBox(a: Arena): Promise<Outcome> {
   const repo = new InMemorySessionRepository();

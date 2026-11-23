@@ -3,7 +3,6 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import {
   asTentId,
-  lanternCell,
   PITCHED_STATE,
   type TentBlock,
   type TentPose,
@@ -30,6 +29,7 @@ import {
   type CellHolder,
   savedLaidCells,
 } from "../../../src/infrastructure/shared/laidCells";
+import { lanternCell } from "../../../src/test-pack/scenarios/support/tentContract";
 import { defined } from "../../support/defined";
 
 vi.mock("@minecraft/server", () => ({
