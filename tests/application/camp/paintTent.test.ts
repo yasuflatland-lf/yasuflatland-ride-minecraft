@@ -10,7 +10,6 @@ class FakeTentPaintWorld implements TentPaintWorld {
   readonly paints = new Map<TentId, Paint>();
   readonly creative = new Set<PlayerId>();
   readonly calls: string[] = [];
-  readonly sounds: TentId[] = [];
   paintOf(id: TentId) {
     return this.paints.get(id);
   }
@@ -21,9 +20,7 @@ class FakeTentPaintWorld implements TentPaintWorld {
   consumeDye(player: PlayerId, paint: Paint) {
     this.calls.push(`dye:${player}:${paint}`);
   }
-  playPaintSound(id: TentId) {
-    this.sounds.push(id);
-  }
+  playPaintSound() {}
   isCreative(player: PlayerId) {
     return this.creative.has(player);
   }
@@ -40,26 +37,22 @@ describe("PaintTent (ADR 0031, 0036, 0037, 0076)", () => {
         const world = new FakeTentPaintWorld();
         if (creative) world.creative.add(PLAYER);
         const paintTent = new PaintTent(world);
+        world.paints.set(TENT, "blue");
+        expect(
+          paintTent.execute({
+            playerId: PLAYER,
+            tentId: TENT,
+            paint: "red",
+            tick,
+          }),
+        ).toBe(true);
+        world.paints.delete(TENT);
+        world.calls.length = 0;
         expect(
           paintTent.execute({ playerId: PLAYER, tentId: TENT, paint, tick }),
         ).toBe(false);
         expect(world.calls).toEqual([]);
       }),
     );
-  });
-
-  it("restores variant 0 (khaki) with brown dye on a blue tent", () => {
-    const world = new FakeTentPaintWorld();
-    world.paints.set(TENT, "blue");
-    const paintTent = new PaintTent(world);
-    expect(
-      paintTent.execute({
-        playerId: PLAYER,
-        tentId: TENT,
-        paint: "khaki",
-        tick: 1,
-      }),
-    ).toBe(true);
-    expect(world.paints.get(TENT)).toBe("khaki");
   });
 });

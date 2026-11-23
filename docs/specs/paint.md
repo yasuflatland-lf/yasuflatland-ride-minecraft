@@ -125,7 +125,7 @@
 - Agreement: Proposed
 - Basis: [0236](../adr/0236-a-beach-parasol-in-a-new-resort-gear-group.md) Decision and beach parasol design Paint.
 - Implementation: `src/application/resort/paintParasol.ts`; `src/infrastructure/resort/bedrock/bedrockParasolPaintWorld.ts`; `src/infrastructure/resort/bedrock/handlers/hits.ts`; `src/domain/resort/spec.ts`.
-- Verification: `tests/application/resort/paintParasol.test.ts` and `tests/infrastructure/resort/hits.test.ts` check repaint and hit routing. Scenario `parasol_paint` checks each paint event; in-game execution remains unverified.
+- Verification: `tests/application/shared/repaint.test.ts` and `tests/infrastructure/resort/hits.test.ts` check repaint and hit routing. Scenario `parasol_paint` checks each paint event; in-game execution remains unverified.
 
 ## Open issues
 
