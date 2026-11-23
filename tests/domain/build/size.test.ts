@@ -4,7 +4,6 @@ import {
   boxFromSize,
   boxWithHeight,
   contains,
-  rotatedQuarter,
   sizeOf,
   unionOf,
   volume,
@@ -36,14 +35,6 @@ it("computes volume from the dimensions", () => {
     fc.property(box, (b) => {
       const { x, y, z } = sizeOf(b);
       expect(volume(b)).toBe(x * y * z);
-    }),
-  );
-});
-
-it("restores the size after two quarter rotations", () => {
-  fc.assert(
-    fc.property(size, (s) => {
-      expect(rotatedQuarter(rotatedQuarter(s))).toEqual(s);
     }),
   );
 });

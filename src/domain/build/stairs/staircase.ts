@@ -2,7 +2,7 @@ import type { Cell } from "../../shared/cells";
 import { sub3 } from "../../shared/vec";
 import { dominantHorizontalAxis } from "../axis";
 import type { Taps } from "../flow/flow";
-import { type Facing, facingVector } from "../rotation/facing";
+import { type Facing, facingOfStep, facingVector } from "../rotation/facing";
 import type { StairRow } from "./row";
 
 export interface Staircase {
@@ -26,14 +26,7 @@ export function staircaseToward(
   const run = Math.abs(offset);
   const rise = Math.max(-run, Math.min(run, hit.y - row.y));
   if (run === 0 || rise === 0) return undefined;
-  const toward =
-    axis === "x"
-      ? offset > 0
-        ? "east"
-        : "west"
-      : offset > 0
-        ? "south"
-        : "north";
+  const toward = facingOfStep(axis, offset > 0 ? 1 : -1);
   return { row, toward, run, rise };
 }
 
