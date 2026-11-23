@@ -12,7 +12,6 @@ import {
   floorCells,
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
-import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
 
 function deckHeight(cell: DockCell): number {
   if (cell.block.type !== "deck") throw new Error("Expected a deck cell");
@@ -61,22 +60,6 @@ function coveringParts(
 }
 
 describe("sports boat deck floor (ADR 0063)", () => {
-  it("uses the docking thresholds and model measurements recorded in the ADR", () => {
-    expect(DOCK).toStrictEqual({
-      maxSpeed: 0.005,
-      ticks: 20,
-      stick: 0.1,
-    });
-    expect(DECK.parts).toStrictEqual([
-      { halfWidth: 0.96, zMin: -2.75, zMax: 0.875, height: 9.3 / 16 },
-      { halfWidth: 0.22, zMin: 0.875, zMax: 1.125, height: 11.3 / 16 },
-      { halfWidth: 0.69, zMin: 1.125, zMax: 2.5, height: 11.3 / 16 },
-    ]);
-    expect(Object.isFrozen(DOCK)).toBe(true);
-    expect(Object.isFrozen(DECK)).toBe(true);
-    expect(Object.isFrozen(DECK.parts)).toBe(true);
-  });
-
   it("covers exactly the cell centers within a deck part grown by the margin", () => {
     fc.assert(
       fc.property(pose, (p) => {

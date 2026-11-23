@@ -3,11 +3,14 @@ import { expect, it } from "vitest";
 import { clamp } from "../../../../src/domain/shared/vec";
 import type { TickContext } from "../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import { BulldozerDrive } from "../../../../src/domain/vehicle/kinds/bulldozer/drive";
+import { CamperDrive } from "../../../../src/domain/vehicle/kinds/camper/drive";
 import {
   CAMPER_MOTION,
   CAMPER_TYRES,
 } from "../../../../src/domain/vehicle/kinds/camper/profile";
 import { CAMPER_TRANSFORMING } from "../../../../src/domain/vehicle/kinds/camper/spec";
+import { ScooterDrive } from "../../../../src/domain/vehicle/kinds/scooter/drive";
 import { SuvDrive } from "../../../../src/domain/vehicle/kinds/suv/drive";
 import {
   SUV_MOTION,
@@ -20,6 +23,7 @@ import {
   climbInput,
   FORMS,
   type Form,
+  isForm,
   verticalImpulse,
   verticalSpeed,
 } from "../../../../src/domain/vehicle/motion/forms";
@@ -62,6 +66,35 @@ function context(depth = 0): TickContext {
     solidAt: (offset) => offset.y < 0,
   };
 }
+
+it("restores valid forms and applies each transforming kind's water policy on its first tick", () => {
+  const saved = fc.option(fc.oneof(fc.constantFrom(...FORMS), fc.string()), {
+    nil: undefined,
+  });
+  fc.assert(
+    fc.property(saved, (value) => {
+      const restored = value === undefined ? {} : { form: value };
+      const form = isForm(value) ? value : "car";
+      for (const Drive of [
+        SuvDrive,
+        CamperDrive,
+        BulldozerDrive,
+        ScooterDrive,
+      ]) {
+        const drive = new Drive(0, restored);
+        const expected =
+          Drive === ScooterDrive && form === "submarine" ? "car" : form;
+        if (expected === form) expect(drive.form).toBe(form);
+        drive.step(IDLE, {
+          ...context(form === "submarine" ? 8 : 0),
+          onGround: false,
+        });
+        expect(drive.form).toBe(expected);
+      }
+    }),
+    { examples: [...FORMS, undefined].map((value): [typeof value] => [value]) },
+  );
+});
 
 it("uses the supplied car height to decide whether the roof is submerged", () => {
   const tall = new TransformingDrive(

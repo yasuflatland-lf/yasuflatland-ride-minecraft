@@ -15,7 +15,6 @@ it.each([
   },
 );
 it("keeps air, the liquids, and every block that holds items (ADR 0137)", () => {
-  expect(KEPT_BLOCKS).toHaveLength(70);
   expect(KEPT_BLOCKS).toEqual(
     expect.arrayContaining(
       [

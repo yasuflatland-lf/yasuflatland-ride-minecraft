@@ -60,7 +60,7 @@ export const SCOOTER_SPEC = Object.freeze({
   standSpeed: 0.01, // blocks/tick below which the scooter counts as stopped
 } as const);
 
-export const SCOOTER_AIR: Medium = Object.freeze({
+const SCOOTER_AIR: Medium = Object.freeze({
   drag: SCOOTER_SPEC.flightDrag,
   maxSpeed: SCOOTER_SPEC.maxSpeed,
 });

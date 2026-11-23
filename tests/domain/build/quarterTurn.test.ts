@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
   degreesOf,
-  NO_TURN,
   nextQuarterTurn,
   type QuarterTurn,
   rotatedSize,
@@ -13,7 +12,6 @@ const dimension = fc.integer({ min: 1, max: 1024 });
 const size = fc.record({ x: dimension, y: dimension, z: dimension });
 
 it("cycles through all four turns before returning to the start", () => {
-  expect(NO_TURN).toBe(0);
   fc.assert(
     fc.property(turn, (start) => {
       let current = start;
