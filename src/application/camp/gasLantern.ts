@@ -105,7 +105,7 @@ export class GasLanternActions {
     handleHit(this.hits, id, tick, {
       drop: () => {
         this.world.clearLight(id);
-        this.world.dropItem(id);
+        this.world.dropItem(id, player);
       },
       remove: () => {
         this.world.removeGasLantern(id);

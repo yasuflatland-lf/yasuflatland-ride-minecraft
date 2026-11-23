@@ -1,4 +1,4 @@
-import { type Dimension, type Entity, ItemStack } from "@minecraft/server";
+import type { Dimension, Entity } from "@minecraft/server";
 import type { FurnitureTopBlocksWorld } from "../../../application/resort/ports/furnitureTopBlocks";
 import type {
   FurnitureTakeBackWorld,
@@ -33,6 +33,7 @@ import {
   gearFeedback,
   gearGroundChecks,
   giveBack,
+  giveBackReceiver,
   spawnIn,
 } from "../../shared/gearEntity";
 import { BedrockGroundCells } from "../../shared/groundCells";
@@ -41,7 +42,7 @@ import {
   readSavedCells,
   writeSavedCells,
 } from "../../shared/laidBlockLayer";
-import { consumeHeld, giveOrDrop, playerById } from "../../shared/players";
+import { consumeHeld, playerById } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DINING_TABLE_TOP,
@@ -127,8 +128,7 @@ export class BedrockFurnitureWorld
   }
   refund(player: PlayerId, kind: FurnitureKind, _slot: number): void {
     const entity = playerById(player);
-    if (entity)
-      giveOrDrop(entity, [new ItemStack(FURNITURE_IDS[kind].item, 1)]);
+    if (entity) giveBack(entity, FURNITURE_IDS[kind].item, entity);
   }
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined {
     const entity = spawnIn(
@@ -279,9 +279,9 @@ export class BedrockFurnitureWorld
   dropItem(id: FurnitureId, player: PlayerId): void {
     const entity = this.entity(id);
     if (!entity) return;
-    const receiver = playerById(player);
     const kind = this.kindOf(id);
     if (kind === undefined) return;
+    const receiver = giveBackReceiver(FURNITURE_SPEC[kind].giveBack, player);
     giveBack(entity, FURNITURE_IDS[kind].item, receiver);
   }
 }

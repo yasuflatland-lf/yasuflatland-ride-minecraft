@@ -1,15 +1,26 @@
 import { system, world } from "@minecraft/server";
 import type { FirePitActions } from "../../../../application/camp/firePit";
-import { asFirePitId } from "../../../../domain/camp/firePit";
+import { asFirePitId, type FirePitId } from "../../../../domain/camp/firePit";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { allDimensions } from "../../../shared/dimensions";
 import {
+  FIRE_PIT_IGNITER_ITEM,
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
 } from "../../identifiers";
 import { registerPlaceableEntity } from "./placeable";
+
+export function toggleFirePitWithItem(
+  actions: FirePitActions,
+  id: FirePitId,
+  player: PlayerId | undefined,
+  heldItem: string | undefined,
+  slot: number,
+): void {
+  actions.toggle(id, player, heldItem === FIRE_PIT_IGNITER_ITEM, slot);
+}
 
 export function registerFirePit(actions: FirePitActions): void {
   const interactions = new TickScopedSet<PlayerId>();
@@ -30,7 +41,7 @@ export function registerFirePit(actions: FirePitActions): void {
     const id = asFirePitId(ev.target.id);
     const held = ev.itemStack?.typeId;
     const slot = ev.player.selectedSlotIndex;
-    system.run(() => actions.toggle(id, player, held, slot));
+    system.run(() => toggleFirePitWithItem(actions, id, player, held, slot));
   });
   system.runInterval(() => {
     for (const dimension of allDimensions()) {
