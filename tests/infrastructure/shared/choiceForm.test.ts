@@ -4,7 +4,6 @@ import { beforeEach, expect, it, vi } from "vitest";
 import {
   chooseFromForm,
   chooseFromFormResult,
-  entryLabel,
 } from "../../../src/infrastructure/shared/choiceForm";
 
 type Answer = {
@@ -81,17 +80,22 @@ it("returns the selected id and constructs translated labels", async () => {
       fc.array(fc.string(), { minLength: 1, maxLength: 20 }),
       fc.nat(),
       async (ids, n) => {
-        const choices = ids.map((id, i) => ({ id, textKey: `key.${i}` }));
+        const label = { translate: "label.count", with: [String(ids.length)] };
+        const choices = [
+          ...ids.map((id, i) => ({ id, textKey: `key.${i}` })),
+          { id: "count", label },
+        ];
         const selection = n % choices.length;
         ui.answers.push({ selection });
         expect(await chooseFromForm(player, "title", choices)).toBe(
-          ids[selection],
+          choices[selection]?.id,
         );
         const form = ui.forms.at(-1);
         expect(form?.heading).toEqual({ translate: "title" });
-        expect(form?.buttons).toEqual(
-          choices.map(({ textKey }) => ({ translate: textKey })),
-        );
+        expect(form?.buttons).toEqual([
+          ...ids.map((_, i) => ({ translate: `key.${i}` })),
+          label,
+        ]);
       },
     ),
   );
@@ -141,14 +145,4 @@ it("shows a body only when one is given", async () => {
   expect(ui.forms.at(-1)?.message).toEqual(body);
   expect(await chooseFromForm(player, "title", entries)).toBe("a");
   expect(ui.forms.at(-1)?.message).toBeUndefined();
-});
-
-it("translates a choice entry text key", () => {
-  expect(entryLabel({ id: "a", textKey: "label.a" })).toEqual({
-    translate: "label.a",
-  });
-});
-it("returns a choice entry's dynamic label", () => {
-  const label = { translate: "label.count", with: ["2"] };
-  expect(entryLabel({ id: "a", label })).toBe(label);
 });

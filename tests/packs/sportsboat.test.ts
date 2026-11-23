@@ -4,14 +4,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SPORTSBOAT_PROFILE } from "../../src/domain/vehicle/kinds/sportsboat/profile";
-import {
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../src/infrastructure/shared/dyes";
+import { paintEvent } from "../../src/infrastructure/shared/dyes";
 import {
   HEADLIGHTS_PROPERTY,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import { PAINT_VARIANT } from "../../src/test-pack/scenarios/support/paintContract";
 import { turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";

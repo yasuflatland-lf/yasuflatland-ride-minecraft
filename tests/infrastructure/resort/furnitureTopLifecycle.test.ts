@@ -48,7 +48,6 @@ function fixture() {
   };
   const dimension = {
     getBlock: vi.fn(() => ({ typeId: "minecraft:air" }) as object | undefined),
-    getEntities: vi.fn(() => [entity]),
   };
   const entity = {
     id: "table",
@@ -56,7 +55,12 @@ function fixture() {
     dimension,
     location: { x: 0, y: 64, z: 0 },
   };
-  game.getDimension.mockReturnValue(dimension);
+  game.getDimension.mockImplementation((name: string) => ({
+    getEntities: ({ type }: { type: string }) =>
+      type === FURNITURE_IDS.dining_table.entity
+        ? [{ ...entity, id: name }]
+        : [],
+  }));
   registerFurnitureTopLifecycle(adapter as unknown as BedrockFurnitureWorld);
   const scan = () => game.runInterval.mock.calls[0]?.[0]();
   const remove = () => {
@@ -78,15 +82,9 @@ it("remembers only top-bearing furniture and restores it on the configured inter
     FURNITURE_TOP_SYNC_TICKS,
   );
   f.scan();
-  expect(f.adapter.layTop).toHaveBeenCalledWith(asFurnitureId("table"));
-  expect(game.getDimension.mock.calls).toEqual([
-    ["overworld"],
-    ["nether"],
-    ["the_end"],
-  ]);
-  expect(f.dimension.getEntities).toHaveBeenCalledWith({
-    type: FURNITURE_IDS.dining_table.entity,
-  });
+  for (const table of ["overworld", "nether", "the_end"]) {
+    expect(f.adapter.layTop).toHaveBeenCalledWith(asFurnitureId(table));
+  }
 });
 it("defers cleanup and retries both unavailable origins and incomplete clears", () => {
   const f = fixture();

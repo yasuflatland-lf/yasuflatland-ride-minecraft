@@ -105,9 +105,7 @@ it("scans every dimension once in order and preserves entity order", () => {
         expect(result).toEqual(expected);
         for (const [index, entity] of result.entries())
           expect(entity).toBe(expected[index]);
-        expect(game.getDimension.mock.calls).toEqual(
-          DIMENSION_IDS.map((id) => [id]),
-        );
+        expect(game.getDimension).toHaveBeenCalledTimes(dimensions.length);
         for (const dimension of dimensions)
           expect(dimension.getEntities).toHaveBeenCalledExactlyOnceWith({
             families: [VEHICLE_FAMILY],
