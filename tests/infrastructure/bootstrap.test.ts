@@ -1,9 +1,10 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { PlaceChair } from "../../src/application/camp/placeChair";
 import type { SpaceCheck } from "../../src/application/shared/ports/space";
-import { asDimensionId, asPlayerId } from "../../src/domain/shared/ids";
+import { asDimensionId } from "../../src/domain/shared/ids";
 import { bootstrap } from "../../src/infrastructure/bootstrap";
 import { installBuild } from "../../src/infrastructure/build/install";
+import { installBuildTestHooks } from "../../src/infrastructure/build/testHooks/install";
 import { CHAIR_KINDS } from "../../src/infrastructure/camp/identifiers";
 import { installCamp } from "../../src/infrastructure/camp/install";
 import { installResort } from "../../src/infrastructure/resort/install";
@@ -64,6 +65,9 @@ vi.mock("../../src/infrastructure/camp/install", () => ({
 }));
 vi.mock("../../src/infrastructure/build/install", () => ({
   installBuild: vi.fn(),
+}));
+vi.mock("../../src/infrastructure/build/testHooks/install", () => ({
+  installBuildTestHooks: vi.fn(),
 }));
 vi.mock("../../src/infrastructure/resort/install", () => ({
   installResort: vi.fn(),
@@ -176,22 +180,25 @@ it("hands the vehicles the camp's switch targets once camp is installed", () => 
   expect(later?.()).toBe(switchTargets);
 });
 
-it("installs build last and passes both space checks without requesting a camera change", () => {
+it("installs build last and passes both space checks", () => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const isVehicleSpace = vi.fn<SpaceCheck>();
   const isCampSpace = vi.fn<SpaceCheck>();
-  const playerId = asPlayerId("builder");
-  vi.mocked(installVehicles).mockImplementation((deps) => {
-    expect(deps.wantsChaseCamera(playerId)).toBe(false);
-    return { isVehicleSpace, vehicleHost, isFleetEntityType };
+  vi.mocked(installVehicles).mockReturnValue({
+    isVehicleSpace,
+    vehicleHost,
+    isFleetEntityType,
   });
   vi.mocked(installCamp).mockReturnValue({
     isCampSpace,
     switchTargets: [],
     placeHostedOnTop: () => false,
   });
+  const build = {} as ReturnType<typeof installBuild>;
+  vi.mocked(installBuild).mockReturnValueOnce(build);
   bootstrap();
   expect(installBuild).toHaveBeenCalledTimes(1);
+  expect(installBuildTestHooks).toHaveBeenCalledExactlyOnceWith(build);
   const excluded =
     vi.mocked(installBuild).mock.lastCall?.[0].isExcludedEntityType;
   expect(excluded?.("yasu_ride:camp_table")).toBe(true);
@@ -216,8 +223,6 @@ it("installs build last and passes both space checks without requesting a camera
   expect(vi.mocked(installCamp).mock.invocationCallOrder[0]).toBeLessThan(
     vi.mocked(installBuild).mock.invocationCallOrder[0] ?? 0,
   );
-  const wish = vi.mocked(installVehicles).mock.lastCall?.[0].wantsChaseCamera;
-  expect(wish?.(playerId)).toBe(false);
   const protectedAt = vi.mocked(installBuild).mock.lastCall?.[0].isProtected;
   const dimension = asDimensionId("minecraft:overworld");
   const cell = { x: 1, y: 2, z: 3 };

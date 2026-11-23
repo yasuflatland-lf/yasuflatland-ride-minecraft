@@ -41,39 +41,74 @@ function setup() {
 }
 
 describe("LimitVehicles (ADR 0038)", () => {
-  it("removes the oldest loaded vehicle when a new one spawns over the limit", () => {
-    const { world, repo, fleets, uc } = setup();
-    fleets.state = { order: entries(full), evicted: [] };
-    repo.save(createVehicle("suv", asVehicleId("v0"), 0));
-    world.loaded = entries([...full, "new"]);
-    uc.spawned(entry("new"));
-    expect(world.calls).toEqual(["remove:v0"]);
-    expect(repo.get(asVehicleId("v0"))).toBeUndefined();
-    expect(fleets.state.order).toEqual(entries([...full.slice(1), "new"]));
-    expect(fleets.state.evicted).toEqual([]);
+  it("saves a found list exactly when it contains an unknown vehicle", () => {
+    fc.assert(
+      fc.property(
+        fc.shuffledSubarray(ids(SPEC.maxUnownedVehicles), { minLength: 0 }),
+        fc.shuffledSubarray(ids(SPEC.maxUnownedVehicles), { minLength: 0 }),
+        (known, found) => {
+          const { world, fleets, uc } = setup();
+          fleets.state = { order: entries(known), evicted: [] };
+          world.loaded = entries(found);
+          uc.found(entries(found));
+          expect(fleets.saves).toBe(
+            found.some((id) => !known.includes(id)) ? 1 : 0,
+          );
+          expect(world.calls).toEqual([]);
+          expect(fleets.state.order).toEqual(
+            entries([
+              ...found.filter((id) => !known.includes(id)).reverse(),
+              ...known,
+            ]),
+          );
+        },
+      ),
+    );
   });
 
-  it("removes nothing else when several spawn in one tick before their events arrive", () => {
-    const { world, fleets, uc } = setup();
-    const cars = ids(SPEC.maxUnownedVehicles + 1);
-    world.loaded = entries(cars);
-    for (const id of cars) uc.spawned(entry(id));
-    expect(world.calls).toEqual(["remove:v0"]);
-    expect(fleets.state.order).toEqual(entries(cars.slice(1)));
-  });
-
-  it("removes an evicted vehicle in an unloaded chunk when its chunk loads", () => {
-    const { world, fleets, uc } = setup();
-    fleets.state = { order: entries(full), evicted: [] };
-    world.loaded = entries(["new"]);
-    uc.spawned(entry("new"));
-    expect(world.calls).toEqual([]);
-    expect(fleets.state.evicted).toEqual(entries(["v0"]));
-
-    world.loaded = entries(["new", "v0"]);
-    uc.found(entries(["v0"]));
-    expect(world.calls).toEqual(["remove:v0"]);
-    expect(fleets.state.evicted).toEqual([]);
+  it("removes exactly the loaded evictions after spawned and found events", () => {
+    const event = fc.record({
+      op: fc.constantFrom("spawned", "found", "start"),
+      id: fc.integer({ min: 0, max: 20 }),
+      loaded: fc.shuffledSubarray(ids(21)),
+      found: fc.shuffledSubarray(ids(21)),
+    });
+    fc.assert(
+      fc.property(
+        fc.array(event, { minLength: 1, maxLength: 60 }),
+        (events) => {
+          const { world, repo, fleets, uc } = setup();
+          const model = Fleet.empty(fleetLimitOf);
+          for (const step of events) {
+            world.loaded = entries(step.loaded);
+            for (const vehicle of world.loaded)
+              repo.save(createVehicle(vehicle.kind, vehicle.id, 0));
+            if (step.op === "spawned") model.admit(entry(`v${step.id}`));
+            else
+              for (const vehicle of entries(
+                step.op === "start" ? step.loaded : step.found,
+              )) {
+                if (!model.knows(vehicle.id)) model.admitAsOldest(vehicle);
+              }
+            const removed: string[] = [];
+            for (const vehicle of world.loaded) {
+              if (model.isEvicted(vehicle.id)) {
+                removed.push(vehicle.id);
+                model.forget(vehicle.id);
+              }
+            }
+            world.calls.length = 0;
+            if (step.op === "spawned") uc.spawned(entry(`v${step.id}`));
+            else if (step.op === "start") uc.start();
+            else uc.found(entries(step.found));
+            expect(world.calls).toEqual(removed.map((id) => `remove:${id}`));
+            for (const id of removed)
+              expect(repo.get(asVehicleId(id))).toBeUndefined();
+            expect(fleets.state).toEqual(model.state());
+          }
+        },
+      ),
+    );
   });
 
   it("removes a rediscovered vehicle after its eviction falls out of tracking", () => {
@@ -109,25 +144,6 @@ describe("LimitVehicles (ADR 0038)", () => {
     expect(fleets.load().knows(oldest.id)).toBe(false);
   });
 
-  it("trims a world that already has more vehicles than the limit", () => {
-    const { world, repo, fleets, uc } = setup();
-    world.loaded = entries(ids(SPEC.maxUnownedVehicles + 3));
-    for (const { id } of world.loaded) repo.save(createVehicle("suv", id, 0));
-    uc.start();
-    // Within one scan a later id counts as older, so the last three go.
-    const removed = world.loaded
-      .slice(SPEC.maxUnownedVehicles)
-      .map((entry) => entry.id);
-    expect(world.calls).toEqual(removed.map((id) => `remove:${id}`));
-    expect(removed.map((id) => repo.get(id))).toEqual([
-      undefined,
-      undefined,
-      undefined,
-    ]);
-    expect(fleets.state.order).toHaveLength(SPEC.maxUnownedVehicles);
-    expect(fleets.state.evicted).toEqual([]);
-  });
-
   it("keeps removing the others and saves the fleet when one removal fails", () => {
     const { world, fleets, warnings, uc } = setup();
     const cars = ids(SPEC.maxUnownedVehicles + 2);
@@ -141,36 +157,6 @@ describe("LimitVehicles (ADR 0038)", () => {
     expect(warnings.some((w) => w.includes("v1"))).toBe(true);
   });
 
-  it("counts a vehicle it never saw spawn as older than the ones it did", () => {
-    const { world, fleets, uc } = setup();
-    fleets.state = { order: entries(full), evicted: [] };
-    world.loaded = entries([...full, "found"]);
-    uc.found(entries(["found"]));
-    expect(world.calls).toEqual(["remove:found"]);
-    expect(fleets.state.order).toEqual(entries(full));
-  });
-
-  it("does not save when it finds only known vehicles", () => {
-    const { world, fleets, uc } = setup();
-    fleets.state = { order: entries(["a"]), evicted: [] };
-    world.loaded = entries(["a"]);
-    uc.found(entries(["a"]));
-    expect(fleets.saves).toBe(0);
-  });
-
-  it("saves the vehicles it finds for the first time even when none is over the limit", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 1, max: SPEC.maxUnownedVehicles }), (n) => {
-        const { world, fleets, uc } = setup();
-        world.loaded = entries(ids(n));
-        uc.found(entries(ids(n)));
-        expect(world.calls).toEqual([]);
-        expect(fleets.saves).toBe(1);
-        // Within one scan a later id counts as older.
-        expect(fleets.state.order).toEqual(entries(ids(n).reverse()));
-      }),
-    );
-  });
   it("removes the loaded first boat when its owner spawns a second, leaving other owners and kinds alone", () => {
     const { world, repo, fleets, warnings, uc } = setup();
     const first = {

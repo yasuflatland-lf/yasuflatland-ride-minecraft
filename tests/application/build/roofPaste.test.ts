@@ -1,7 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { AimHeight } from "../../../src/application/build/aimHeight";
-import { CancelFlow } from "../../../src/application/build/cancelFlow";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -14,6 +13,7 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
+  cancel,
   chooseHeighted,
   setHeight,
   tapAir,
@@ -242,7 +242,7 @@ it.each([1, 5])(
         warn: () => {},
       },
     );
-    expect(undo.execute({ playerId }).restoredSelection).toEqual(original);
+    undo.execute({ playerId });
     e.jobs.step();
     expect(e.session.confirmedBox?.box).toEqual(original);
     for (const at of cellsOf(boxWithHeight(base, 3)))
@@ -449,7 +449,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   expect(e.feedback.messages.at(-1)?.message).toBe("busy");
   expect(e.session.flow).toBe(flow);
   expect(e.world.writes).toBe(0);
-  new CancelFlow(e.repo).execute({ playerId });
+  e.session.setFlow(cancel(e.session.flow));
   expect(e.session.flow).toEqual({ kind: "idle" });
 });
 

@@ -55,8 +55,7 @@ export const TEST_TABLE_HIT_EVENT = "yasu_ride_test:test_table_hit";
  * Server test hook: the message is the table entity id followed by an old spot
  * index 0 or 1, or by a local point `<x> <z>` in model pixels.
  */
-export const TEST_DUTCH_OVEN_ON_TABLE_EVENT =
-  "yasu_ride_test:test_dutch_oven_on_table";
+export const TEST_DUTCH_OVEN_ON_TABLE_EVENT = id("test_dutch_oven_on_table");
 export const TABLE_HITS_LEFT_HINT = "yasu_ride.hint.camp_table_hits";
 /** Action bar hint for each refusal of the table top rule (ADR 0185). */
 export const TABLE_TOP_REFUSAL_HINTS: Readonly<Record<TopRefusal, string>> = {
@@ -69,8 +68,7 @@ export const DUTCH_OVEN_HOST_PROPERTY = id("host");
 export const DUTCH_OVEN_HOSTED_EVENT = id("oven_hosted");
 export const DUTCH_OVEN_GROUND_EVENT = id("oven_ground");
 /** Server test hook: the message is the pit entity id; no player or item is needed. */
-export const TEST_DUTCH_OVEN_ON_PIT_EVENT =
-  "yasu_ride_test:test_dutch_oven_on_pit";
+export const TEST_DUTCH_OVEN_ON_PIT_EVENT = id("test_dutch_oven_on_pit");
 /**
  * Server test hook: the message is an oven entity id and a host marker. Dynamic
  * properties belong to the pack that wrote them, so the test pack cannot write
@@ -88,7 +86,6 @@ export const FIRE_PIT_TYPE = id("fire_pit");
 export const FIRE_PIT_ITEM = id("fire_pit_item");
 export const FIRE_PIT_COVERED_PROPERTY = id("covered");
 export const DUTCH_OVEN_ON_TOP_HINT = "yasu_ride.hint.dutch_oven_on_top";
-export const TEST_FIRE_PIT_COVER_EVENT = id("test_fire_pit_cover");
 export const TEST_FIRE_PIT_HIT_EVENT = id("test_fire_pit_hit");
 export const FIRE_PIT_LIT_PROPERTY = id("lit");
 export const FIRE_PIT_HITS_LEFT_HINT = "yasu_ride.hint.fire_pit_hits";
@@ -162,8 +159,7 @@ export const TEST_GAS_LANTERN_HIT_EVENT = id("test_gas_lantern_hit");
 export const GAS_LANTERN_HOST_PROPERTY = id("host");
 export const GAS_LANTERN_HOSTED_EVENT = id("gas_lantern_hosted");
 /** Server test hook: the message is the table entity id and a local point `<x> <z>` in model pixels. */
-export const TEST_GAS_LANTERN_ON_TABLE_EVENT =
-  "yasu_ride_test:test_gas_lantern_on_table";
+export const TEST_GAS_LANTERN_ON_TABLE_EVENT = id("test_gas_lantern_on_table");
 
 export const ROOF_TENT_TYPE = id("roof_tent");
 export const ROOF_TENT_ITEM = id("roof_tent_item");

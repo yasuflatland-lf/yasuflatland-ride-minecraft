@@ -178,10 +178,6 @@ export class BuildSession {
     return this.currentClipboard;
   }
 
-  get mode(): BuildMode {
-    return this.currentMode;
-  }
-
   get isInBuildMode(): boolean {
     return this.currentMode.active;
   }

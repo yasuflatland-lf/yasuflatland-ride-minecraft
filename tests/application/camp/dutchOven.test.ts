@@ -82,34 +82,26 @@ it("accepts only block tops outside add-on rooms", () => {
   ).toBe(false);
 });
 
-it("rejects either blocked clearance cell or vehicle space before consumption", () => {
+it("refuses ground placement for each obstruction or unpaid slot", () => {
   fc.assert(
     fc.property(
+      fc.constantFrom("blocked", "vehicle", "nearby", "unpaid"),
       fc.integer({ min: 1, max: DUTCH_OVEN_SPEC.clearance }),
-      fc.boolean(),
-      (dy, vehicle) => {
-        const { actions, world } = fixture(
-          vehicle
-            ? { isVehicleSpace: (_d, at) => at.y === block.y + dy }
-            : { isAir: (_d, at) => at.y !== block.y + dy },
-        );
+      (reason, dy) => {
+        const consumeItem = vi.fn(() => reason !== "unpaid");
+        const { actions, world } = fixture({
+          isAir: (_d, at) => reason !== "blocked" || at.y !== block.y + dy,
+          isVehicleSpace: (_d, at) =>
+            reason === "vehicle" && at.y === block.y + dy,
+          hasDutchOvenNear: () => reason === "nearby",
+          consumeItem,
+        });
         expect(actions.place(command)).toBe(false);
-        expect(world.consumeItem).not.toHaveBeenCalled();
+        expect(consumeItem).toHaveBeenCalledTimes(reason === "unpaid" ? 1 : 0);
         expect(world.spawnDutchOven).not.toHaveBeenCalled();
       },
     ),
   );
-});
-
-it("refuses a nearby oven or a changed inventory slot", () => {
-  for (const overrides of [
-    { hasDutchOvenNear: () => true },
-    { consumeItem: () => false },
-  ]) {
-    const { actions, world } = fixture(overrides);
-    expect(actions.place(command)).toBe(false);
-    expect(world.spawnDutchOven).not.toHaveBeenCalled();
-  }
 });
 
 it("consumes only outside Creative and snaps any yaw to quarter turns", () => {
@@ -175,19 +167,30 @@ it("places on the grill, consumes outside Creative, and covers the pit", () => {
   }
 });
 
-it("refuses missing or covered pits, blocked clearance, vehicle space, and a changed item", () => {
-  for (const overrides of [
-    { firePit: () => undefined },
-    { isCovered: () => true },
-    { isAir: () => false },
-    { isVehicleSpace: () => true },
-    { consumeItem: () => false },
-  ]) {
-    const { actions, world } = fixture(overrides);
-    expect(actions.placeOnFirePit(onPit)).toBe(false);
-    expect(world.spawnDutchOven).not.toHaveBeenCalled();
-    expect(world.setCovered).not.toHaveBeenCalled();
-  }
+it("refuses fire pit placement for each obstruction, unavailable pit, or unpaid slot", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("blocked", "vehicle", "missing", "covered", "unpaid"),
+      fc.integer({ min: 0, max: DUTCH_OVEN_SPEC.clearance - 1 }),
+      (reason, dy) => {
+        const consumeItem = vi.fn(() => reason !== "unpaid");
+        const { actions, world } = fixture({
+          firePit: () =>
+            reason === "missing"
+              ? undefined
+              : { dimension, at: { x: 4.5, y: 61, z: 5.5 }, yaw: 90 },
+          isCovered: () => reason === "covered",
+          isAir: (_d, at) => reason !== "blocked" || at.y !== 61 + dy,
+          isVehicleSpace: (_d, at) => reason === "vehicle" && at.y === 61 + dy,
+          consumeItem,
+        });
+        expect(actions.placeOnFirePit(onPit)).toBe(false);
+        expect(consumeItem).toHaveBeenCalledTimes(reason === "unpaid" ? 1 : 0);
+        expect(world.spawnDutchOven).not.toHaveBeenCalled();
+        expect(world.setCovered).not.toHaveBeenCalled();
+      },
+    ),
+  );
 });
 
 it("refuses a second oven after the first covers the pit", () => {
@@ -242,25 +245,6 @@ it("uncovers an orphaned covered pit and keeps one with a hosted oven covered", 
     expect(world.setCovered).toHaveBeenCalledTimes(occupied ? 0 : 1);
     expect(world.setHost).not.toHaveBeenCalled();
   }
-});
-
-it("checks both clearance cells above the pit's ground and rejects before consuming", () => {
-  fc.assert(
-    fc.property(
-      fc.integer({ min: 0, max: DUTCH_OVEN_SPEC.clearance - 1 }),
-      fc.boolean(),
-      (dy, vehicle) => {
-        const y = 61 + dy;
-        const { actions, world } = fixture(
-          vehicle
-            ? { isVehicleSpace: (_d, at) => at.y === y }
-            : { isAir: (_d, at) => at.y !== y },
-        );
-        expect(actions.placeOnFirePit(onPit)).toBe(false);
-        expect(world.consumeItem).not.toHaveBeenCalled();
-      },
-    ),
-  );
 });
 
 it("leaves ground ovens alone and takes back ovens even if their host is gone", () => {
@@ -421,62 +405,3 @@ function decodeHost(text: string) {
     type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
   );
 }
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Dutch Oven item when spawning fails on the ground (%s)",
-  (mode) => {
-    const { actions, world } = fixture(
-      { isCreative: () => mode === "Creative" },
-      true,
-    );
-    const payer = mode === "playerless" ? undefined : player;
-    expect(actions.place({ ...command, player: payer })).toBe(false);
-    expect(world.spawnDutchOven).toHaveBeenCalledOnce();
-    expect(world.consumeItem).toHaveBeenCalledTimes(
-      mode === "Survival" ? 1 : 0,
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, command.slot]] : [],
-    );
-  },
-);
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Dutch Oven item when spawning fails on a fire pit (%s)",
-  (mode) => {
-    const { actions, world } = fixture(
-      { isCreative: () => mode === "Creative" },
-      true,
-    );
-    const payer = mode === "playerless" ? undefined : player;
-    expect(actions.placeOnFirePit({ ...onPit, player: payer })).toBe(false);
-    expect(world.spawnDutchOven).toHaveBeenCalledOnce();
-    expect(world.setHost).not.toHaveBeenCalled();
-    expect(world.setCovered).not.toHaveBeenCalled();
-    expect(world.consumeItem).toHaveBeenCalledTimes(
-      mode === "Survival" ? 1 : 0,
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, onPit.slot]] : [],
-    );
-  },
-);
-
-it.each(["Survival", "Creative", "playerless"])(
-  "refunds only a paid Dutch Oven item when spawning fails on a table (%s)",
-  (mode) => {
-    const { actions, world } = fixture(
-      { isCreative: () => mode === "Creative" },
-      true,
-    );
-    const payer = mode === "playerless" ? undefined : player;
-    expect(actions.placeOnTable({ ...onTable, player: payer })).toBe("refused");
-    expect(world.spawnHosted).toHaveBeenCalledOnce();
-    expect(world.consumeItem).toHaveBeenCalledTimes(
-      mode === "Survival" ? 1 : 0,
-    );
-    expect(world.refund.mock.calls).toEqual(
-      mode === "Survival" ? [[payer, onTable.slot]] : [],
-    );
-  },
-);

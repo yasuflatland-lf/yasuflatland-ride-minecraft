@@ -9,9 +9,7 @@ import { isOwnTypeId } from "./identifiers";
 import { consumeHeld, giveOrDrop, isCreative, playerById } from "./players";
 
 /** The block and player reads every ground-placed item shares (ADR 0122, 0129). */
-export class BedrockGroundCells
-  implements Omit<GroundCellsWorld, "consumeItem">
-{
+export class BedrockGroundCells implements GroundCellsWorld {
   constructor(private readonly vehicleSpace: SpaceCheck) {}
 
   isAir(dimension: DimensionId, at: Vec3): boolean {
@@ -34,7 +32,7 @@ export class BedrockGroundCells
 /** Adds payment with one fixed item id (ADR 0024). */
 export class BedrockPaidGroundCells
   extends BedrockGroundCells
-  implements GroundCellsWorld, ItemPayment
+  implements ItemPayment
 {
   constructor(
     isVehicleSpace: SpaceCheck,

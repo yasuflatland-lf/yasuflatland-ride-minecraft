@@ -175,7 +175,7 @@ it("rotates the selected box once per press, undoes each turn with its selection
     expect(e.structures.live.size).toBe(i + 1);
   }
   for (const box of [target, wideBox]) {
-    expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: box });
+    e.undo.execute({ playerId });
     expect(e.session.flow).toMatchObject({
       kind: "selected",
       selection: selectionOf(overworld, box, stone),
@@ -218,7 +218,7 @@ it("reports no selection outside selected flow or in a different dimension", () 
 it("undo reports the pre-rotation selection and restores its box", () => {
   const e = setup();
   e.rotate.execute({ playerId, dimensionId: overworld });
-  expect(e.undo.execute({ playerId })).toEqual({ restoredSelection: wideBox });
+  e.undo.execute({ playerId });
   expect(selectionBoxOf(e.session.flow)).toEqual(wideBox);
 });
 

@@ -38,7 +38,7 @@ it("opens and closes the build menu before refreshing the preview without changi
       const preview = {
         refresh(id: typeof playerId, tick: number) {
           expect(id).toBe(playerId);
-          expect(tick).toBe(12);
+          expect(tick).toBe(0);
           levels.push(
             session.flow.kind === "selected"
               ? session.flow.menuLevel
@@ -46,9 +46,9 @@ it("opens and closes the build menu before refreshing the preview without changi
           );
         },
       };
-      new OpenBuildMenu(repo, preview).execute({ playerId, tick: 12 });
+      new OpenBuildMenu(repo, preview).execute({ playerId });
       expect(session.flow).toEqual({ ...endpoint, menuLevel: "build" });
-      new CloseBuildMenu(repo, preview).execute({ playerId, tick: 12 });
+      new CloseBuildMenu(repo, preview).execute({ playerId });
       expect(session.flow).toEqual(endpoint);
       expect(levels).toEqual(["build", "root"]);
       expect(session.hasHistory).toBe(false);

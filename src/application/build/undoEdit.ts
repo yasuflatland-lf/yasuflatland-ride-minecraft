@@ -1,5 +1,5 @@
 // Use case: undo the player's last edit (ADR 0178).
-import { type CellBox, cellsOf, sameBox, volume } from "../../domain/build/box";
+import { cellsOf, sameBox, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
 import { beginPasteAim } from "../../domain/build/flow/paste";
 import { inDimension, withBox } from "../../domain/build/selection";
@@ -22,17 +22,17 @@ export class UndoEdit {
     private readonly log: Logger,
   ) {}
 
-  execute(cmd: { playerId: PlayerId }): { restoredSelection?: CellBox } {
+  execute(cmd: { playerId: PlayerId }): void {
     const { playerId } = cmd;
     const session = this.repo.get(playerId);
     if (!session) {
       this.feedback.showMessage(playerId, "nothingToUndo");
-      return {};
+      return;
     }
     const entry = session.takeUndo();
     if (isEditRefusal(entry)) {
       this.feedback.showMessage(playerId, entry);
-      return {};
+      return;
     }
     const edit = entry.kind === "snapshot" ? entry.snapshot : entry.record;
     if (entry.kind === "snapshot") {
@@ -41,7 +41,7 @@ export class UndoEdit {
         if (!this.world.mayRestore(dimensionId, cell)) {
           session.putBackUndo(entry);
           this.feedback.showMessage(playerId, "pasteBlocked");
-          return {};
+          return;
         }
       }
       this.structures.clearEntities(dimensionId, box);
@@ -50,14 +50,14 @@ export class UndoEdit {
       if (!placed) {
         this.log.warn(`Snapshot undo failed for ${playerId}: ${handle}`);
         this.feedback.showMessage(playerId, "undoFailed");
-        return {};
+        return;
       }
     } else {
       const record = entry.record;
       const busy = session.beginEdit();
       if (busy) {
         this.feedback.showMessage(playerId, busy);
-        return {};
+        return;
       }
       this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     }
@@ -90,6 +90,5 @@ export class UndoEdit {
         "undoDone",
         volume(entry.snapshot.box),
       );
-    return { restoredSelection: edit.selectionBefore };
   }
 }

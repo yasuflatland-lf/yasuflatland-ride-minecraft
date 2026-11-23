@@ -75,12 +75,7 @@ export function installRoofTents(deps: {
   });
   const placeRoofTent = new PlaceRoofTent(roofTents, roofHosts.lookup);
   const foldRoofTent = new FoldRoofTent(roofTents);
-  const roofGuard = new RoofTentHostGuard(
-    roofTents,
-    roofHosts.lookup,
-    leave,
-    cleanup,
-  );
+  const roofGuard = new RoofTentHostGuard(roofTents, roofHosts.lookup, leave);
   const sleep = new SleepInRoofTent(roofOccupants, deps.sleep);
   const trackOccupant = registerRoofTentOccupantCleanup(
     leave,
