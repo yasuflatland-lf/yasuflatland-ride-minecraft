@@ -83,7 +83,8 @@ function fixture(blocks?: WarpBlockTaps) {
   };
 }
 
-const gap = fc.integer({ min: 1, max: WARP_SPEC.tapWindowTicks });
+const { resetTicks } = WARP_SPEC.breakRule;
+const gap = fc.integer({ min: 1, max: resetTicks });
 
 it.each([
   ["alice", "bob"],
@@ -94,7 +95,7 @@ it.each([
     const f = fixture();
     await f.run(0, { playerId: asPlayerId(first) });
     await f.run(0, { playerId: asPlayerId(second) });
-    await f.clock.advanceTo(WARP_SPEC.tapWindowTicks + 1);
+    await f.clock.advanceTo(resetTicks + 1);
     expect(f.settled).toEqual([true, true]);
   },
 );
@@ -124,12 +125,11 @@ it("settles each player's taps independently while the block remains intact", as
               (prior) =>
                 prior.player !== tap.player ||
                 (tap.tick !== prior.tick &&
-                  tap.tick - prior.tick !== WARP_SPEC.tapWindowTicks + 1),
+                  tap.tick - prior.tick !== resetTicks + 1),
             ) &&
           (i < 2 ||
-            (taps[i - 1]?.tick ?? 0) - (taps[i - 2]?.tick ?? 0) >
-              WARP_SPEC.tapWindowTicks ||
-            tap.tick - (taps[i - 1]?.tick ?? 0) > WARP_SPEC.tapWindowTicks),
+            (taps[i - 1]?.tick ?? 0) - (taps[i - 2]?.tick ?? 0) > resetTicks ||
+            tap.tick - (taps[i - 1]?.tick ?? 0) > resetTicks),
       ),
     );
   await fc.assert(
@@ -152,9 +152,7 @@ it("settles each player's taps independently while the block remains intact", as
           }),
         );
       }
-      await f.clock.advanceTo(
-        (taps.at(-1)?.tick ?? 0) + WARP_SPEC.tapWindowTicks + 1,
-      );
+      await f.clock.advanceTo((taps.at(-1)?.tick ?? 0) + resetTicks + 1);
       const expected = taps.map(
         (tap, i) =>
           !taps
@@ -162,7 +160,7 @@ it("settles each player's taps independently while the block remains intact", as
             .some(
               (later) =>
                 later.player === tap.player &&
-                later.tick - tap.tick <= WARP_SPEC.tapWindowTicks,
+                later.tick - tap.tick <= resetTicks,
             ),
       );
       expect(await Promise.all(results)).toEqual(expected);
@@ -178,12 +176,12 @@ it("cancels all pending players' taps when their shared count breaks the block",
         fc.integer({ min: 0, max: 2 }),
         fc.integer({ min: 0, max: 2 }),
       ),
-      fc.integer({ min: 1, max: WARP_SPEC.tapWindowTicks - 1 }),
+      fc.integer({ min: 1, max: resetTicks - 1 }),
       async (players, first) => {
         const f = fixture();
         await f.run(0, { playerId: asPlayerId(`player-${players[0]}`) });
         await f.run(first, { playerId: asPlayerId(`player-${players[1]}`) });
-        await f.run(WARP_SPEC.tapWindowTicks, {
+        await f.run(resetTicks, {
           playerId: asPlayerId(`player-${players[2]}`),
         });
         await f.clock.advanceTo(100);
@@ -219,9 +217,9 @@ it("opens the list once, for the last tap, when one or two taps settle", async (
       const f = fixture();
       for (let i = 0; i < count; i++) await f.run(i * g);
       const last = (count - 1) * g;
-      await f.clock.advanceTo(last + WARP_SPEC.tapWindowTicks);
+      await f.clock.advanceTo(last + resetTicks);
       expect(f.settled).toEqual(count === 2 ? [false] : []);
-      await f.clock.advanceTo(last + WARP_SPEC.tapWindowTicks + 1);
+      await f.clock.advanceTo(last + resetTicks + 1);
       expect(f.settled.filter(Boolean)).toHaveLength(1);
       expect(f.counts()).toEqual({ drops: 0, removals: 0 });
       expect(f.store.registry?.points).toHaveLength(1);
@@ -232,7 +230,7 @@ it("opens the list once, for the last tap, when one or two taps settle", async (
 it("starts the count again after a gap longer than the window", async () => {
   await fc.assert(
     fc.asyncProperty(
-      fc.integer({ min: WARP_SPEC.tapWindowTicks + 1, max: 1000 }),
+      fc.integer({ min: resetTicks + 1, max: 1000 }),
       async (g) => {
         const f = fixture();
         await f.run(0);
@@ -276,6 +274,7 @@ it("does not give an item or remove the registry entry when block removal fails"
   const p = point();
   const f = setup({ points: [p] });
   let drops = 0;
+  const clock = new Clock();
   const failure = new Error("setType failed");
   const tap = new TapWarpBlock(
     {
@@ -290,13 +289,14 @@ it("does not give an item or remove the registry entry when block removal fails"
       }),
     },
     new RemoveWarpPoint(f.store),
-    new Clock(),
+    clock,
   );
   const run = (now: number) =>
     tap.run({ playerId: player, dimension: p.dimension, cell: p.cell, now });
-  void run(0);
-  void run(1);
+  const pending = [run(0), run(1)];
   await expect(run(2)).rejects.toThrow(failure);
+  await clock.advanceTo(100);
+  expect(await Promise.all(pending)).toEqual([false, false]);
   expect(drops).toBe(0);
   expect(f.store.registry?.points).toEqual([p]);
 });

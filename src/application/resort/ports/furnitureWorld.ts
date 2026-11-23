@@ -5,6 +5,7 @@ import type {
 import type { FurnitureId } from "../../../domain/resort/ids";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
 import type { GroundCellsWorld } from "../../shared/ports/groundCells";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 import type { ItemPayment } from "../../shared/ports/itemPayment";
@@ -17,6 +18,7 @@ export interface FurnitureWorld
     Pick<FurnitureTopBlocksWorld, "layTop"> {
   isCampSpace(dimension: DimensionId, cell: Cell): boolean;
   isSolidTop(dimension: DimensionId, cell: Cell): boolean;
+  resortGearCells(dimension: DimensionId, near: Vec3, radius: number): Cell[];
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined;
   refund(player: PlayerId, kind: FurnitureKind, slot: number): void;
   consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean;

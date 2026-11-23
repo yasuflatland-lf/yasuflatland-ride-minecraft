@@ -31,10 +31,6 @@ export function boxFromSize(min: Cell, size: Size): CellBox {
   };
 }
 
-export function rotatedQuarter(size: Size): Size {
-  return { x: size.z, y: size.y, z: size.x };
-}
-
 export function unionOf(a: CellBox, b: CellBox): CellBox {
   return {
     min: {
