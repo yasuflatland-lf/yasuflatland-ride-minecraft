@@ -1,22 +1,22 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import { PlaceParasol } from "../../../../application/resort/placeParasol";
-import type { TakeBackParasol } from "../../../../application/resort/takeBackParasol";
-import type { SpaceCheck } from "../../../../application/shared/ports/space";
-import { asParasolId, type ParasolId } from "../../../../domain/resort/ids";
-import type { ParasolPose } from "../../../../domain/resort/parasolPose";
-import { cellCenter } from "../../../../domain/shared/cells";
+import { PlaceParasol } from "../../../application/resort/placeParasol";
+import type { TakeBackParasol } from "../../../application/resort/takeBackParasol";
+import type { SpaceCheck } from "../../../application/shared/ports/space";
+import { asParasolId, type ParasolId } from "../../../domain/resort/ids";
+import type { ParasolPose } from "../../../domain/resort/parasolPose";
+import { cellCenter } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
-} from "../../../../domain/shared/ids";
-import { NAMESPACE } from "../../../shared/identifiers";
+} from "../../../domain/shared/ids";
+import { NAMESPACE } from "../../shared/identifiers";
+import { BedrockParasolWorld } from "../bedrock/bedrockParasolWorld";
 import {
   BEACH_PARASOL,
   TEST_PARASOL_HIT,
   TEST_PARASOL_PLACE,
-} from "../../identifiers";
-import { BedrockParasolWorld } from "../bedrockParasolWorld";
+} from "../identifiers";
 
 // Server-only hooks exercise production placement without a connected player (ADR 0010).
 export function registerTestParasol(

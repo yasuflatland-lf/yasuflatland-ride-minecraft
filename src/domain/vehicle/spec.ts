@@ -2,6 +2,8 @@
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../shared/debounce";
 import { ticks } from "../shared/ticks";
 
+const stoppedSpeed = 0.005; // blocks/tick below which a vehicle counts as stopped (ADR 0063)
+
 export const SPEC = Object.freeze({
   // Input (ADR 0018)
   throttleDeadzone: 0.1,
@@ -10,8 +12,9 @@ export const SPEC = Object.freeze({
   // Collisions (ADR 0006)
   targetHalfWidth: 0.45,
   ramMinSpeed: 0.15,
-  // Blocks/tick: twice the 0.005 dock stopped tolerance to exclude idle and handbrake jitter.
-  hostMovingSpeed: 0.01,
+  stoppedSpeed,
+  // Ignore idle and handbrake jitter when checking a roof tent host.
+  hostMovingSpeed: 2 * stoppedSpeed,
   ramCooldown: ticks(10),
   ramDamagePerSpeed: 20,
   ramPushBase: 0.5,

@@ -433,9 +433,9 @@ describe("sports boat docking (ADR 0063)", () => {
             {},
             {
               ...SPORTSBOAT_MOTION,
-              accel: DOCK.maxSpeed,
-              reverseAccel: DOCK.maxSpeed,
-              brake: DOCK.maxSpeed / 2,
+              accel: SPEC.stoppedSpeed,
+              reverseAccel: SPEC.stoppedSpeed,
+              brake: SPEC.stoppedSpeed / 2,
               drag: 0,
             },
           );

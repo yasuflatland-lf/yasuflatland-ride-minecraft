@@ -190,9 +190,9 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
           block.typeId === WARP_BLOCK_TYPE && store.load()?.points.length === 1,
           "a single tap broke the block",
         );
-        for (let i = 0; i < WARP_SPEC.breakTaps; i++) {
+        for (let i = 0; i < WARP_SPEC.breakRule.hits; i++) {
           void taps.run({ ...command, now: system.currentTick });
-          if (i < WARP_SPEC.breakTaps - 1)
+          if (i < WARP_SPEC.breakRule.hits - 1)
             checkWarp(
               block.typeId === WARP_BLOCK_TYPE &&
                 store.load()?.points.length === 1,

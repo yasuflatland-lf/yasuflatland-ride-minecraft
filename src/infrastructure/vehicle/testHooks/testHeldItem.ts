@@ -1,8 +1,8 @@
 import { ScriptEventSource, system } from "@minecraft/server";
-import { NAMESPACE } from "../../../shared/identifiers";
-import { parseTestHeldItemMessage } from "../../testInput/testHeldItemMessage";
-import type { VehicleTestStore } from "../../testInput/vehicleTestStore";
-import { TEST_HELD_ITEM_EVENT } from "../identifiers";
+import { NAMESPACE } from "../../shared/identifiers";
+import type { VehicleTestStore } from "../testInput/vehicleTestStore";
+import { TEST_HELD_ITEM_EVENT } from "./identifiers";
+import { parseTestHeldItemMessage } from "./testHeldItemMessage";
 
 export function registerTestHeldItem(
   testHeldItems: VehicleTestStore<string>,

@@ -53,11 +53,21 @@ it("classifies inclusive axis lengths independently of location and volume", () 
     fc.property(boxArb, (box) => {
       expect(isStructureTooLarge(box)).toBe(
         box.max.x - box.min.x >= 64 ||
-          box.max.y - box.min.y >= 256 ||
+          box.max.y - box.min.y >= 384 ||
           box.max.z - box.min.z >= 64,
       );
     }),
   );
+});
+
+it("accepts axis limits and refuses lengths beyond them", () => {
+  const min = { x: 0, y: 0, z: 0 };
+  expect(isStructureTooLarge({ min, max: { x: 0, y: 383, z: 0 } })).toBe(false);
+  expect(isStructureTooLarge({ min, max: { x: 0, y: 384, z: 0 } })).toBe(true);
+  expect(isStructureTooLarge({ min, max: { x: 63, y: 0, z: 0 } })).toBe(false);
+  expect(isStructureTooLarge({ min, max: { x: 64, y: 0, z: 0 } })).toBe(true);
+  expect(isStructureTooLarge({ min, max: { x: 0, y: 0, z: 63 } })).toBe(false);
+  expect(isStructureTooLarge({ min, max: { x: 0, y: 0, z: 64 } })).toBe(true);
 });
 
 const ownerArb = fc

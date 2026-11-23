@@ -9,20 +9,27 @@ const TABLE = asTableId("table");
 const PLAYER = asPlayerId("player");
 
 describe("HitTable (ADR 0152)", () => {
-  it("takes the table back on the third hit in a row, dropping one item", () => {
-    const world = fakeWorld();
-    const hit = new HitTable(world);
-    const results = [0, 10, 20].map((tick) =>
-      hit.execute({ tableId: TABLE, tick, playerId: PLAYER }),
-    );
-    expect(results).toEqual([false, false, true]);
-    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(TABLE);
-    expect(world.removeTable).toHaveBeenCalledExactlyOnceWith(TABLE);
-    expect(vi.mocked(world.showHitsLeft).mock.calls).toEqual([
-      [PLAYER, 2],
-      [PLAYER, 1],
-    ]);
-  });
+  it.each([PLAYER, undefined])(
+    "takes the table back on the third hit in a row with player %s",
+    (playerId) => {
+      const world = fakeWorld();
+      const hit = new HitTable(world);
+      const results = [0, 10, 20].map((tick) =>
+        hit.execute({ tableId: TABLE, tick, playerId }),
+      );
+      expect(results).toEqual([false, false, true]);
+      expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(TABLE);
+      expect(world.removeTable).toHaveBeenCalledExactlyOnceWith(TABLE);
+      expect(vi.mocked(world.showHitsLeft).mock.calls).toEqual(
+        playerId === undefined
+          ? []
+          : [
+              [playerId, 2],
+              [playerId, 1],
+            ],
+      );
+    },
+  );
 });
 
 it("leaves the table and its counter alone while either half holds an oven", () => {

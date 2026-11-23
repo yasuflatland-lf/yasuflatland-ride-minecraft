@@ -6,7 +6,7 @@
 - Extends: [0050](0050-vehicle-kinds-and-per-kind-profiles.md): per-kind parameters for resort furniture
 - Extends: [0237](0237-register-tabletop-hosts-across-features.md): dining table hosting
 - Related: [0238](0238-lounge-pose-by-overriding-the-player-client-entity.md): lounge pose remains exclusive to the Beach Chair
-- Related: [0239](0239-a-beach-chair-that-folds-into-a-table.md): existing Beach Chair remains unchanged
+- Related: [0239](0239-a-beach-chair-that-folds-into-a-table.md): shared placement footprint rule
 
 ## Context
 
@@ -24,7 +24,7 @@ Toilet and Washstand extend this table with a single pressed-cell footprint, two
 
 The Dining Table has two complementary parts: a tabletop host registered through the shared registry from 0237 for Gas Lanterns and Dutch Ovens, and an invisible solid tabletop block for ordinary blocks. Later integration records, repairs, and clears laid blocks, prevents hosted items and ordinary blocks from sharing the top, and refuses recovery while anything stands on it. The initial tabletop surface has half extents 0.4 by 0.4 blocks, height 12 px, limit four, and clearance base zero.
 
-Leave the Beach Chair and its placement, recovery, folding, hosting, and lounge pose code untouched. This issue adds only furniture domain values and geometry; pack assets and in-game integration follow separately.
+Refuse placement with the existing blocked hint before payment if a floor cell overlaps the footprint of a Dining Table, Dining Chair, either sofa, Toilet, Washstand, or Beach Chair entity. Rebuild occupied footprints from entity positions and quarter-turn facings. The Beach Chair reserves its three floor cells in either form. This rule excludes the Beach Parasol and all camp gear.
 
 ## Consequences
 

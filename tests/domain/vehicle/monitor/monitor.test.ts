@@ -6,6 +6,7 @@ import {
   monitorScreen,
   monitorTool,
   nextToolState,
+  toolBindings,
 } from "../../../../src/domain/vehicle/monitor/monitor";
 import {
   monitorPropertySpec,
@@ -103,6 +104,42 @@ describe("cab monitor screens", () => {
 });
 
 describe("monitor tool switching", () => {
+  it("reads and writes only declared states through their own bindings", () => {
+    fc.assert(
+      fc.property(fc.string(), fc.string(), (on, off) => {
+        fc.pre(on !== off);
+        const invalid = `${on}${off}invalid`;
+        const states = [off, on] as const;
+        const rule: MonitorRule = {
+          tools: [
+            { item: "switch", states },
+            { item: "unbound", states },
+            { item: "constructor", states },
+          ],
+        };
+        let current = invalid;
+        const binding = {
+          get: () => current,
+          set: (state: string) => {
+            current = state;
+          },
+        };
+        const tools = toolBindings(rule, { switch: binding, extra: binding });
+        expect(tools.toolState("switch")).toBeUndefined();
+        for (const state of states) {
+          expect(tools.setToolState("switch", state)).toBe(true);
+          expect(tools.toolState("switch")).toBe(state);
+          expect(tools.setToolState("switch", invalid)).toBe(false);
+          for (const item of ["extra", "unbound", "constructor", "__proto__"]) {
+            expect(tools.toolState(item)).toBeUndefined();
+            expect(tools.setToolState(item, state)).toBe(false);
+          }
+          expect(current).toBe(state);
+        }
+      }),
+    );
+  });
+
   it("always advances to a member, starts at the first for missing states, and cycles back", () => {
     fc.assert(
       fc.property(ruleArbitrary, fc.string(), (rule, arbitrary) => {

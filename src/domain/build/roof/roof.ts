@@ -1,6 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import { type CellBox, sizeOf } from "../box";
-import type { Facing } from "../rotation/facing";
+import { type Facing, facingOfStep } from "../rotation/facing";
 
 export type RoofKind = "gable" | "hip";
 export type RoofStyle = "stepped" | "stair";
@@ -79,11 +79,11 @@ export function roofSlopeAt(spec: RoofSpec, cell: Cell): RoofSlope {
   const east = slopesX ? maxX - cell.x : Infinity;
   const north = slopesZ ? cell.z - minZ : Infinity;
   const south = slopesZ ? maxZ - cell.z : Infinity;
-  const nearest = Math.min(west, east, north, south);
-  if (west === nearest) return { kind: "slope", descends: "west" };
-  if (east === nearest) return { kind: "slope", descends: "east" };
-  if (north === nearest) return { kind: "slope", descends: "north" };
-  return { kind: "slope", descends: "south" };
+  const descends =
+    Math.min(west, east) <= Math.min(north, south)
+      ? facingOfStep("x", west <= east ? -1 : 1)
+      : facingOfStep("z", north <= south ? -1 : 1);
+  return { kind: "slope", descends };
 }
 
 function interiorAt(

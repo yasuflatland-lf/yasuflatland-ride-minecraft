@@ -490,24 +490,38 @@ describe("Vehicle (aggregate)", () => {
   });
 
   it("an empty vehicle breaks after 3 hits, but not while occupied", () => {
+    const player = asPlayerId("p");
     const empty = createVehicle("suv", asVehicleId("a"), 0);
     new Sim().run(empty, 1);
     expect([
-      empty.receiveHit(1),
-      empty.receiveHit(2),
-      empty.receiveHit(3),
+      empty.receiveHit(player, 1),
+      empty.receiveHit(player, 2),
+      empty.receiveHit(player, 3),
     ]).toEqual([false, false, true]);
 
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: IDLE }];
     const occupied = createVehicle("suv", asVehicleId("b"), 0);
     sim.run(occupied, 1);
-    expect([1, 2, 3, 4].map((t) => occupied.receiveHit(t))).toEqual([
+    expect([1, 2, 3, 4].map((t) => occupied.receiveHit(player, t))).toEqual([
       false,
       false,
       false,
       false,
     ]);
+  });
+
+  it("expires a player's hits even if another player hit the vehicle recently", () => {
+    const vehicle = createVehicle("suv", asVehicleId("a"), 0);
+    const first = asPlayerId("p1");
+    const second = asPlayerId("p2");
+    const window = SPEC.hitResetTicks;
+    expect(vehicle.receiveHit(first, 0)).toBe(false);
+    expect(vehicle.receiveHit(first, 1)).toBe(false);
+    expect(vehicle.receiveHit(second, window)).toBe(false);
+    expect(vehicle.receiveHit(first, window + 2)).toBe(false);
+    expect(vehicle.receiveHit(second, window + 3)).toBe(false);
+    expect(vehicle.receiveHit(second, window + 4)).toBe(true);
   });
 
   it("a rebuilt vehicle keeps its heading and emits no seat events on its first tick with riders already seated", () => {
@@ -1030,7 +1044,7 @@ describe("hints (ADR 0086)", () => {
     const front = { x: 0, y: 0, z: BUMPER.boxZ + BUMPER.boxHalf + 0.5 };
     expect(vehicle.hint(front, "other", "touch")).toBeUndefined();
     expect(vehicle.hint(front, "dye", "touch")).toBeUndefined();
-    expect(vehicle.receiveHit(0)).toBe(false);
+    expect(vehicle.receiveHit(asPlayerId("p"), 0)).toBe(false);
   });
 
   it("keeps a shown bumper hint for a player who steps up to the margin into the body", () => {
