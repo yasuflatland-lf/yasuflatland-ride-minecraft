@@ -25,7 +25,7 @@ The five scooter README previews include a running-board close-up; its framing i
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "`SCOOTER_SPEC` holds every number."; [0050](../adr/0050-vehicle-kinds-and-per-kind-profiles.md) Decision
 - Implementation: `src/domain/vehicle/kinds/scooter/spec.ts` (`SCOOTER_SPEC`), `src/domain/vehicle/kinds/scooter/profile.ts` (`SCOOTER_PROFILE`, `SCOOTER_MOTION`, `SCOOTER_TYRES`), `src/domain/vehicle/kinds/index.ts`, `src/infrastructure/vehicle/bedrock/identifiers.ts`
-- Verification: `tests/domain/vehicle/kinds/scooter/profile.test.ts` "matches the frozen spike's body and driver-first tandem seats"; `tests/domain/vehicle/kinds/scooter/spec.test.ts` "uses ground speed on the surface with probes inside its narrow body". Tests were read, not run for this spec.
+- Verification: `tests/domain/vehicle/kinds/scooter/profile.test.ts` "places the passenger behind the driver and fits the hitbox within placement clearance"; `tests/domain/vehicle/kinds/scooter/spec.test.ts` "keeps the medium speed limits aligned and fits the probes and body inside their envelopes". Tests were read, not run for this spec.
 
 ### Collision box and entity contract
 
@@ -43,7 +43,7 @@ The five scooter README previews include a running-board close-up; its framing i
 - Agreement: Proposed
 - Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "The step-up probe lane offset is a per-kind value"
 - Implementation: `src/domain/vehicle/kinds/scooter/drive.ts` (`ScooterDrive`), `src/domain/vehicle/kinds/scooter/spec.ts` (`stepLaneOffset`), `src/domain/vehicle/motion/stepUp.ts` (`stepLanes`)
-- Verification: `tests/domain/vehicle/kinds/scooter/spec.test.ts` "uses ground speed on the surface with probes inside its narrow body"; `tests/domain/vehicle/motion/stepUp.test.ts` "stepLanes". Tests were read, not run for this spec. Not verified: the feel on a device.
+- Verification: `tests/domain/vehicle/kinds/scooter/spec.test.ts` "keeps the medium speed limits aligned and fits the probes and body inside their envelopes"; `tests/domain/vehicle/motion/stepUp.test.ts` "stepLanes". Tests were read, not run for this spec. Not verified: the feel on a device.
 
 ### Lean and steering
 

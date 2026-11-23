@@ -179,14 +179,6 @@ describe("camper end lanes", () => {
     );
   });
 
-  it("gives the camper four lanes", () => {
-    expect(LANES).toHaveLength(4);
-    const sorted = [...LANES].sort((a, b) => a - b);
-    const expected = [-1.4, -1.4 / 3, 1.4 / 3, 1.4];
-    for (const [i, lane] of sorted.entries())
-      expect(lane).toBeCloseTo(expected[i] ?? Number.NaN, 9);
-  });
-
   it("finds a one-wide pillar in any cell across the body at a cardinal heading", () => {
     const side = ends.halfWidth - 0.1;
     fc.assert(

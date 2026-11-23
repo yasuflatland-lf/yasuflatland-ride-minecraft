@@ -42,7 +42,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "Add the kind `camper`, entity `yasu_ride:camper`, item `yasu_ride:camper_item`"; [0067](../adr/0067-camper.md) Decision, "One camper per player (0066)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `packs/yasu_ride_bp/entities/yasu_ride/camper.se.json`; `packs/yasu_ride_bp/items/yasu_ride/camper_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`
-- Verification: `tests/domain/vehicle/profile.test.ts` "sets the %s fleet limit and chase camera". Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
+- Verification: `tests/domain/vehicle/fleet/fleet.test.ts` checks per-group limits and `tests/packs/chaseCamera.test.ts` checks the camper camera preset. Recipe ingredients and identifiers read directly from the pack. Not verified: crafting or fleet limits in game; no recipe-ingredient test cited.
 
 ### Camper tuning
 
@@ -51,7 +51,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with its own `CAMPER_SPEC` (never `SUV_SPEC`)"
 - Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/drive.test.ts` "reaches 95 percent speed in 60 to 90 ticks and stays within its cap for 300 ticks"; `tests/domain/vehicle/profile.test.ts` "reads the camper's tyre values from its spec (ADR 0089)". Not verified: all flight, submarine, bank, and gear values on a client.
+- Verification: `tests/domain/vehicle/kinds/camper/drive.test.ts` "reaches 95 percent speed in 60 to 90 ticks and stays within its cap for 300 ticks". Not verified: all flight, submarine, bank, and gear values on a client.
 
 ### Body envelope and collision
 
@@ -69,7 +69,7 @@
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "It looks ahead by the velocity the engine applies this tick, not the post-friction speed"; [0067](../adr/0067-camper.md) Decision, "In car form it checks from two blocks above the feet"
 - Implementation: `src/domain/vehicle/kinds/camper/bodyGuard.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/bodyGuard.test.ts` "gives the camper four lanes", "lets layers zero and one through in car form only", "samples every block from the front to this tick's applied move, not the internal speed", "makes no queries at rest and preserves the step"; `tests/domain/vehicle/kinds/camper/drive.test.ts` "cancels the step jump when a curb lies ahead and a wall stands at the front end". Not verified: body overlap against walls on clients.
+- Verification: `tests/domain/vehicle/kinds/camper/bodyGuard.test.ts` "are center-most first, at most one block apart, and reach both sides of any body", "lets layers zero and one through in car form only", "samples every block from the front to this tick's applied move, not the internal speed", "makes no queries at rest and preserves the step"; `tests/domain/vehicle/kinds/camper/drive.test.ts` "cancels the step jump when a curb lies ahead and a wall stands at the front end". Not verified: body overlap against walls on clients.
 
 ### Placement clearance
 
@@ -87,7 +87,7 @@
 - Agreement: Proposed
 - Basis: [0067](../adr/0067-camper.md) Decision, "The camper has fixed khaki paint through `CAMPER_PROFILE.paintPolicy = fixed("khaki")` (0031, 0076)."; [0190](../adr/0190-ribbed-camper-shell-atlas.md) Decision, "Generate one khaki colour atlas, `camper.png`, from the fixed palette (0067, 0076)."
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `tools/gen_camper.py`; `packs/yasu_ride_rp/textures/entity/yasu_ride`
-- Verification: `tests/packs/camper/paints.test.ts` "generates exactly one colour atlas and no per-paint files"; `tests/domain/vehicle/profile.test.ts` "gives the camper a khaki default paint (ADR 0067, 0076)". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
+- Verification: `tests/packs/camper/paints.test.ts` "generates exactly one colour atlas and no per-paint files". `tests/application/vehicle/paintVehicle.test.ts` verifies ignored dyes; `tests/application/vehicle/normalizePaint.test.ts` verifies load normalization. Not verified: load recovery on a client.
 
 ### Model bone contract
 

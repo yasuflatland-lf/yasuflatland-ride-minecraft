@@ -25,7 +25,7 @@ The sports boat also creeps: afloat, a sideways stick drives it at 0.12 blocks/t
 
 ## Consequences
 
-- A new kind decides what Jump and a sideways stick do. It declares only the values its own mapping reads. The compiler does not catch a leftover tyre value in a kind's limits: each `*_MOTION` is built with `Object.freeze({ ... })`, and TypeScript runs no excess-property check on the result of a generic call. The tests in `profile.test.ts` that compare `SUV_MOTION` and `SPORTSBOAT_MOTION` with the whole expected object catch it
+- A new kind decides what Jump and a sideways stick do. It declares only the values its own mapping reads. The compiler does not catch a leftover tyre value in a kind's limits: each `*_MOTION` is built with `Object.freeze({ ... })`, and TypeScript runs no excess-property check on the result of a generic call.
 - `grip` stays in `MotionLimits`, because the medium step cancels sideways velocity with it in the air, under water, and afloat
 - The beached sports boat still goes through `stepMotion`, which takes `TyreLimits`. Its drive passes `{ handbrakeGrip: grip, creepSpeed }` built from its own limits. `beachedInput` never sets the handbrake or creep, so these values are never read
 - Open product question: should the sports boat keep creeping afloat? Today it does, at 0.12 blocks/tick, below the ram threshold of 0.15 (0006). Dropping it would change only `afloatInput` in the boat's drive. Revisit when that is decided

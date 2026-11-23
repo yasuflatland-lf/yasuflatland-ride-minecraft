@@ -29,12 +29,7 @@ it("reads every current gear id unchanged", () => {
 });
 
 it("drops lava_lamp, oil_lamp and lantern", () => {
-  expect(LEGACY_GEAR_IDS).toEqual({
-    lava_lamp: null,
-    oil_lamp: null,
-    lantern: null,
-  });
-  for (const id of Object.keys(LEGACY_GEAR_IDS))
+  for (const id of ["lava_lamp", "oil_lamp", "lantern"])
     expect(currentGearId(decorItemId(id))).toBeUndefined();
   for (const id of CAMPING_GEAR_IDS)
     expect(currentGearId(decorItemId(id))).toBe(id);

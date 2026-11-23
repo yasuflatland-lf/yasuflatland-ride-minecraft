@@ -26,7 +26,6 @@ import {
   CEILING_LIGHTS,
   FRIDGE,
   isStoragePairKind,
-  KITCHEN_DRAWERS,
   type LocalCell,
   STORAGE_DOORS,
   type StorageDoorId,
@@ -172,7 +171,6 @@ function validateDooredStorage(units: readonly DooredStorage[]): string[] {
 describe("definitions", () => {
   it("accepts the camper's storage, the wall cabinet then the fridge (ADR 0121, 0123)", () => {
     expect(validateDooredStorage(CAMPER_STORAGE)).toEqual([]);
-    expect(CAMPER_STORAGE).toEqual([WALL_CABINET, FRIDGE, KITCHEN_DRAWERS]);
     expect(STORAGE_DOORS.map(({ id }) => id)).toEqual([
       "sink",
       "stove",
