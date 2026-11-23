@@ -22,6 +22,7 @@ import {
   type LocalCell,
   SLEEP_BLOCKS,
   STORAGE_DOORS,
+  type StorageDoorId,
 } from "./furniture";
 import { axes, cellAt, localCellAt } from "./parkPose";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
@@ -112,8 +113,8 @@ function laidFurnitureBlock(
 function ceilingBlock(
   cell: LocalCell,
   f: Vec2,
-  open: ReadonlySet<string>,
-  doors: readonly StorageDoor[],
+  open: ReadonlySet<StorageDoorId>,
+  doors: readonly StorageDoor<StorageDoorId>[],
 ): DockBlock | undefined {
   if (compartmentDoorAt(cell, doors)) return undefined;
   const door = openPlateAt(cell, open, doors);
@@ -131,9 +132,9 @@ function ceilingBlock(
 export function roomCells(
   pose: HoldPose,
   doorOpen: boolean,
-  openStorage: ReadonlySet<string> = NO_DOORS,
+  openStorage: ReadonlySet<StorageDoorId> = NO_DOORS,
   showerDoorOpen = false,
-  doors: readonly StorageDoor[] = STORAGE_DOORS,
+  doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
 ): DockCell[] {
   const { f, l } = axes(pose.yaw);
   const ceiling = localInterior([CEILING_LAYER]).flatMap((cell) => {
@@ -245,8 +246,8 @@ export function inShowerToilet(pose: HoldPose, feet: Vec3): boolean {
  */
 export function ceilingLightCells(
   pose: HoldPose,
-  open: ReadonlySet<string> = NO_DOORS,
-  doors: readonly StorageDoor[] = STORAGE_DOORS,
+  open: ReadonlySet<StorageDoorId> = NO_DOORS,
+  doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
 ): DockCell[] {
   return CEILING_LIGHTS.filter((cell) => !openPlateAt(cell, open, doors)).map(
     (cell) => ({

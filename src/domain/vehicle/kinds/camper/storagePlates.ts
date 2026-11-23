@@ -15,6 +15,7 @@ import {
   type LocalCell,
   STORAGE_DOORS,
   type StorageCompartmentBlock,
+  type StorageDoorId,
 } from "./furniture";
 import { axes, localCellAt } from "./parkPose";
 import {
@@ -60,11 +61,11 @@ type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
 export function compartmentCells(
   pose: HoldPose,
   decor: readonly DecorPlacement[],
-  shown: ReadonlySet<string>,
-  doors: readonly StorageDoor[] = STORAGE_DOORS,
+  shown: ReadonlySet<StorageDoorId>,
+  doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
 ): CompartmentCell[] {
   const face = quarterOf(pose.yaw);
-  const groups = new Map<string, StorageDoor[]>();
+  const groups = new Map<string, StorageDoor<StorageDoorId>[]>();
   for (const door of doors) {
     const { x, z, layer } = door.compartment;
     const key = `${x},${z},${layer}`;
@@ -113,9 +114,9 @@ export function compartmentCells(
  */
 export function storagePlateCells(
   pose: HoldPose,
-  open: ReadonlySet<string>,
+  open: ReadonlySet<StorageDoorId>,
   lightsOn: boolean,
-  doors: readonly StorageDoor[] = STORAGE_DOORS,
+  doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
 ): DockCell[] {
   const { f } = axes(pose.yaw);
   return insidePlateDoors(doors)

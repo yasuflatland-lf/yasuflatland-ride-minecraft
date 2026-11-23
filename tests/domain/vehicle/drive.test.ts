@@ -3,10 +3,10 @@ import { expect, expectTypeOf, it } from "vitest";
 import { forward, normalizeYaw } from "../../../src/domain/shared/vec";
 import type { TickContext } from "../../../src/domain/vehicle/drive";
 import { SportsboatDrive } from "../../../src/domain/vehicle/kinds/sportsboat/drive";
+import { SPORTSBOAT_MOTION } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import { FORMS } from "../../../src/domain/vehicle/motion/forms";
-import { initialMotion } from "../../../src/domain/vehicle/motion/motion";
 import type { VehicleTickInput } from "../../../src/domain/vehicle/vehicle";
 import { propertyValue } from "../../support/engineCommands";
 import { waterSensors } from "../../support/waterDepth";
@@ -68,7 +68,7 @@ it("aligns a boat below mountAlignSpeed and keeps its heading at or above it, wi
       yaw,
       number(30, 90),
       number(0, MOTION.mountAlignSpeed * 0.99),
-      number(MOTION.mountAlignSpeed, 0.5),
+      number(MOTION.mountAlignSpeed, SPORTSBOAT_MOTION.maxReverse),
       (heading, turn, slow, fast) => {
         const driverYaw = heading + turn;
         for (const speed of [
@@ -79,9 +79,19 @@ it("aligns a boat below mountAlignSpeed and keeps its heading at or above it, wi
           MOTION.mountAlignSpeed,
           -MOTION.mountAlignSpeed,
         ]) {
-          const drive = new SportsboatDrive(heading, {}).restore({
-            motion: { ...initialMotion(heading), speed },
-          });
+          const drive = new SportsboatDrive(
+            heading,
+            {},
+            {
+              ...SPORTSBOAT_MOTION,
+              accel: Math.abs(speed),
+              reverseAccel: Math.abs(speed),
+            },
+          );
+          drive.step(
+            { moveX: 0, moveY: speed < 0 ? -1 : 1, jump: false },
+            stillContext(false, 0.5),
+          );
           const before = drive.yaw;
           drive.onDriverMounted(driverYaw);
           expect(drive.yaw).toBe(
@@ -89,7 +99,7 @@ it("aligns a boat below mountAlignSpeed and keeps its heading at or above it, wi
               ? normalizeYaw(driverYaw)
               : before,
           );
-          expect(drive.speed).toBe(speed);
+          expect(drive.speed).toBeCloseTo(speed, 12);
         }
       },
     ),

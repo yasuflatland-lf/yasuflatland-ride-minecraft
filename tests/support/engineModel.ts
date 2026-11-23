@@ -1,4 +1,6 @@
 import type { Vec2 } from "../../src/domain/shared/vec";
+import type { Drive, TickContext } from "../../src/domain/vehicle/drive";
+import type { RawInput } from "../../src/domain/vehicle/driveInput";
 
 export const HALF_WIDTH = 0.9;
 // Per-tick horizontal air drag. Kept apart from MOTION.airFriction so that a
@@ -52,3 +54,27 @@ export const VERTICAL_DRAG = 0.98;
 // the engine's.
 export const WATER_DRAG = 0.83;
 export const WATER_VERTICAL_DRAG = 0.84;
+
+export function driveTicks(
+  drive: Drive,
+  raw: RawInput,
+  context: TickContext,
+  ticks: number,
+  drag: number,
+): TickContext {
+  let ctx = context;
+  for (let i = 0; i < ticks; i++) {
+    const { impulse } = drive.step(raw, ctx);
+    const { velocity } = ctx;
+    ctx = {
+      ...ctx,
+      tick: ctx.tick + 1,
+      velocity: {
+        x: (velocity.x + impulse.x) * drag,
+        y: velocity.y,
+        z: (velocity.z + impulse.z) * drag,
+      },
+    };
+  }
+  return ctx;
+}

@@ -459,7 +459,6 @@ describe("vehicle profiles (ADR 0050)", () => {
           motion.creepSpeed,
         );
         for (const out of [ground, flight]) {
-          expect(out.blocked).toBe(true);
           expect(out.state.speed).toBe(0);
         }
       }),

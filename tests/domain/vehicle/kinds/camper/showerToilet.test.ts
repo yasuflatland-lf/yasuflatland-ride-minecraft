@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { expect, it, vi } from "vitest";
+import { expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
@@ -55,35 +55,40 @@ it("closes an open shower door from either side, opens a shut one from outside, 
       fc.array(press, { minLength: 1, maxLength: 12 }),
       (quarter, presses) => {
         const f = parked(quarter * 90);
-        const door = vi.spyOn(f.drive, "useShowerDoor");
-        const shower = vi.spyOn(f.drive, "runShower");
         let open = false;
+        let running = false;
+        let showerUntil = 0;
         let lastToggle = Number.NEGATIVE_INFINITY;
+        const step = () => {
+          const tick = f.ctx.tick;
+          const out = f.step();
+          for (const command of out.commands)
+            if (command.type === "setProperty" && command.name === "shower")
+              running = command.value === true;
+          expect(running).toBe(tick < showerUntil);
+          return out;
+        };
         for (const { gap, dx, dz } of presses) {
-          for (let i = 0; i < gap; i++) f.step();
+          for (let i = 0; i < gap; i++) step();
           const tick = f.ctx.tick;
           const feet = f.feetAt(dx, dz);
           const within = tick - lastToggle < SWING;
           const toDoor = open || within || !f.inside(feet);
-          door.mockClear();
-          shower.mockClear();
           const used = camperRoom(f.drive).fixtures.pressShowerToilet(
             feet,
             tick,
           );
           if (toDoor) {
-            expect(shower).not.toHaveBeenCalled();
             expect(used).toBe(!within);
             if (!within) {
               open = !open;
               lastToggle = tick;
             }
           } else {
-            expect(door).not.toHaveBeenCalled();
-            expect(shower).toHaveBeenCalledOnce();
+            showerUntil = tick + CAMPER_SPEC.showerTicks;
             expect(used).toBe(true);
           }
-          const cells = f.step().dock?.cells ?? [];
+          const cells = step().dock?.cells ?? [];
           expect(
             cells.filter((c) => c.block.type === "showerDoor"),
           ).toHaveLength(open ? 3 : 0);

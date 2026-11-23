@@ -51,7 +51,7 @@ import {
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 import { DOCK } from "../../../../../src/domain/vehicle/motion/dock";
-import { camperRoom } from "../../../../support/camperRoom";
+import { camperRoom, showerFeet } from "../../../../support/camperRoom";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 import { hingedOpening } from "../../../../support/storageOpening";
@@ -381,7 +381,7 @@ it("swings the entry, shower, and cabinet doors one step per tick until their ta
           }
           return door === "door"
             ? f.room.fixtures.useDockDoor(f.ctx.tick)
-            : f.drive.useShowerDoor(f.ctx.tick);
+            : f.room.fixtures.pressShowerToilet(f.pose, f.ctx.tick);
         };
         expect(tap(false)).toBe(false);
         f.park();
@@ -460,7 +460,7 @@ it("toggles each door once for two taps within a swing and twice for taps a swin
         const tap = (tick: number) =>
           name === "door"
             ? f.room.fixtures.useDockDoor(tick)
-            : f.drive.useShowerDoor(tick);
+            : f.room.fixtures.pressShowerToilet(f.pose, tick);
         const values: unknown[] = [];
         const step = () => {
           for (const c of f.step().commands)
@@ -1381,15 +1381,19 @@ describe("shower-toilet (ADR 0094)", () => {
 
   it("ignores the shower door and the shower until parked", () => {
     const f = fixture();
-    expect(f.drive.useShowerDoor(f.ctx.tick)).toBe(false);
-    expect(f.drive.runShower()).toBe(false);
+    expect(f.room.fixtures.pressShowerToilet(f.pose, f.ctx.tick)).toBe(false);
+    expect(
+      f.room.fixtures.pressShowerToilet(showerFeet(f.pose), f.ctx.tick),
+    ).toBe(false);
   });
 
   it("runs the shower for exactly showerTicks ticks and starts over on a new tap", () => {
     const f = fixture();
     f.park();
     f.step();
-    expect(f.drive.runShower()).toBe(true);
+    expect(
+      f.room.fixtures.pressShowerToilet(showerFeet(f.pose), f.ctx.tick),
+    ).toBe(true);
     expect(f.step().commands).toContainEqual({
       type: "setProperty",
       name: "shower",
@@ -1403,9 +1407,9 @@ describe("shower-toilet (ADR 0094)", () => {
       value: false,
     });
     const off = { type: "setProperty", name: "shower", value: false };
-    f.drive.runShower();
+    f.room.fixtures.pressShowerToilet(showerFeet(f.pose), f.ctx.tick);
     for (let i = 0; i < 50; i++) f.step();
-    f.drive.runShower();
+    f.room.fixtures.pressShowerToilet(showerFeet(f.pose), f.ctx.tick);
     for (let i = 0; i < CAMPER_SPEC.showerTicks; i++)
       expect(f.step().commands).not.toContainEqual(off);
     expect(f.step().commands).toContainEqual(off);
@@ -1415,9 +1419,9 @@ describe("shower-toilet (ADR 0094)", () => {
     const f = fixture();
     f.park();
     f.step();
-    f.drive.useShowerDoor(f.ctx.tick);
-    f.drive.runShower();
-    for (let i = 0; i < 10; i++) f.step();
+    f.room.fixtures.pressShowerToilet(showerFeet(f.pose), f.ctx.tick);
+    f.room.fixtures.pressShowerToilet(f.pose, f.ctx.tick);
+    for (let i = 0; i < CAMPER_SPEC.doorSwingTicks; i++) f.step();
     const out = f.step(PUSH);
     expect(out.commands).toContainEqual({
       type: "setProperty",
@@ -1430,7 +1434,9 @@ describe("shower-toilet (ADR 0094)", () => {
       value: false,
     });
     expect(out.depart).toBeDefined();
-    expect(f.drive.runShower()).toBe(false);
+    expect(
+      f.room.fixtures.pressShowerToilet(showerFeet(f.pose), f.ctx.tick),
+    ).toBe(false);
   });
 
   it("restores the shower door's swing but not the shower after a reload", () => {

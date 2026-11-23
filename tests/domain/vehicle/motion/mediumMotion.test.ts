@@ -218,7 +218,6 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
             limits,
             creepSpeed,
           );
-          expect(result.blocked).toBe(false);
           expect(result.state.speed).toBe(
             clamp(
               updateSpeed(
@@ -246,12 +245,11 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
     );
   });
 
-  it("never jumps a step, never reports a wall, and keeps no ground friction bookkeeping", () => {
+  it("never jumps a step and keeps no ground friction bookkeeping", () => {
     fc.assert(
       fc.property(inputs, (ins) => {
         for (const { r } of fly(ins)) {
           expect(r.jumpVelocity).toBe(0);
-          expect(r.blocked).toBe(false);
           expect(r.state.expected).toBeUndefined();
           expect(r.state.stepTicks).toBe(0);
         }
@@ -282,7 +280,7 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
     expect(length(last)).toBeGreaterThanOrEqual(SUV_SPEC.maxSpeed * 0.95);
   });
 
-  it("reports a wall and keeps the wall speed when an expected axis comes back zero (ADR 0081)", () => {
+  it("keeps the wall speed when an expected axis comes back zero (ADR 0081)", () => {
     const axisValue = fc
       .double({ min: MOTION.blockedAxisMin, max: 2, noNaN: true })
       .filter((a) => a > MOTION.blockedAxisMin)
@@ -307,7 +305,6 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
             SUV_MOTION,
             SUV_TYRES.creepSpeed,
           );
-          expect(r.blocked).toBe(true);
           const free = Math.min(
             updateSpeed(
               s.speed,
@@ -331,7 +328,7 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
     );
   });
 
-  it("does not report a wall when the velocity keeps the free-flight share of what was given", () => {
+  it("keeps the free-flight speed when the velocity keeps the expected drag share", () => {
     fc.assert(
       fc.property(flyingState, driveInput, (s, input) => {
         const e = s.mediumExpected;
@@ -344,7 +341,6 @@ describe("stepMediumMotion (ADR 0021, 0075)", () => {
           SUV_MOTION,
           SUV_TYRES.creepSpeed,
         );
-        expect(r.blocked).toBe(false);
         expect(r.state.speed).toBe(
           updateSpeed(
             s.speed,
@@ -391,13 +387,22 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             SUV_MOTION,
             SUV_TYRES.creepSpeed,
           );
-          expect(r.blocked).toBe(false);
+          const free = stepMediumMotion(
+            { ...prevState(s), mediumExpected: undefined },
+            input,
+            v,
+            AIR,
+            SUV_MOTION,
+            SUV_TYRES.creepSpeed,
+          );
+          expect(r.state.speed).toBe(free.state.speed);
+          expect(r.impulse).toEqual(free.impulse);
         },
       ),
     );
   });
 
-  it("does not report a wall when an axis keeps exactly half the drag share (ADR 0003)", () => {
+  it("retains sideways velocity when an axis keeps exactly half the drag share (ADR 0003)", () => {
     const kept = SUV_SPEC.flightDrag * MOTION.blockedRatio;
     const r = stepMediumMotion(
       prevState({ speed: 0.5, yaw: 0, mediumExpected: { x: 1, z: 1 } }),
@@ -407,10 +412,13 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
       SUV_MOTION,
       SUV_TYRES.creepSpeed,
     );
-    expect(r.blocked).toBe(false);
+    expect(kept + r.impulse.x).toBeCloseTo(
+      (kept * (1 - SUV_MOTION.grip)) / AIR.drag,
+      12,
+    );
   });
 
-  it("reports a wall when the velocity comes back reversed on an axis (ADR 0003)", () => {
+  it("drops sideways velocity when it comes back reversed (ADR 0003)", () => {
     const r = stepMediumMotion(
       prevState({ speed: 0.5, yaw: 0, mediumExpected: { x: 1, z: 1 } }),
       { throttle: 0, steer: 0, creep: false },
@@ -419,7 +427,7 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
       SUV_MOTION,
       SUV_TYRES.creepSpeed,
     );
-    expect(r.blocked).toBe(true);
+    expect(-0.5 + r.impulse.x).toBe(0);
   });
 
   it("a wall never raises the internal speed (ADR 0003)", () => {
@@ -494,7 +502,6 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
             ),
             SUV_SPEC.maxSpeed,
           );
-          expect(r.blocked).toBe(true);
           expect(Math.sign(r.state.speed) * Math.sign(free)).not.toBe(-1);
         },
       ),
@@ -510,7 +517,6 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
       SUV_MOTION,
       SUV_TYRES.creepSpeed,
     );
-    expect(r.blocked).toBe(true);
     expect(r.state.speed).toBe(0);
   });
 
@@ -537,7 +543,6 @@ describe("stepMediumMotion walls and sideways velocity (ADR 0002, 0003)", () => 
           };
           if (t === 60) impact = vel.z;
           if (t > 60) {
-            expect(r.blocked).toBe(true);
             expect(Math.abs(vel.z - impact)).toBeLessThanOrEqual(1e-6);
             expect(r.state.speed).toBeGreaterThan(0);
           }

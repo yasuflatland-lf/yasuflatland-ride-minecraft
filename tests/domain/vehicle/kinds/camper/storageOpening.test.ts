@@ -7,7 +7,10 @@ import {
   storageDoors,
 } from "../../../../../src/domain/vehicle/kinds/camper/dooredStorage";
 import { DOOR_STEPS } from "../../../../../src/domain/vehicle/kinds/camper/doorSwing";
-import { FRIDGE } from "../../../../../src/domain/vehicle/kinds/camper/furniture";
+import {
+  FRIDGE,
+  type StorageDoorId,
+} from "../../../../../src/domain/vehicle/kinds/camper/furniture";
 import { localCellAt } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import {
   storagePlateCells,
@@ -15,11 +18,11 @@ import {
   storagePressTarget,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
 
-const unit: DooredStorage = {
+const unit: DooredStorage<StorageDoorId> = {
   ...FRIDGE,
   doors: [
     {
-      id: "hinged",
+      id: "fridge_top",
       compartment: { x: -1, z: 1, layer: 1 },
       opening: {
         kind: "hinged",
@@ -29,7 +32,7 @@ const unit: DooredStorage = {
       slots: [],
     },
     {
-      id: "sliding",
+      id: "drawer_top",
       compartment: { x: -1, z: -1, layer: 1 },
       opening: { kind: "sliding" },
       slots: [],
@@ -135,7 +138,7 @@ describe("storage opening kinds", () => {
         expect(storagePlateCells(p, open, lights, sliding)).toEqual([]);
         expect(storagePlateChecks(p, sliding)).toEqual([]);
         expect(storagePlateChecks(p, doors).map(({ door }) => door.id)).toEqual(
-          ["hinged"],
+          ["fridge_top"],
         );
         for (const door of doors) {
           expect(

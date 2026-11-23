@@ -15,7 +15,7 @@
 - Rename `stepFlightMotion` to `stepMediumMotion`, and the motion state field `airExpected` to `mediumExpected`. Name the step for any medium whose engine drag the script pre-divides: air or water with gravity off, or a buoyant hull
 - Rename the test file `tests/domain/vehicle/motion/flightMotion.test.ts` to `mediumMotion.test.ts`
 - Move `MotionLimits` from `src/domain/vehicle/profile.ts` to `src/domain/vehicle/motion/limits.ts`, with no re-export from the core
-- Rename the sports boat's `BoatDrive` and `BoatDriveState` to `SportsboatDrive` and `SportsboatDriveState`, matching `SuvDrive` and `CamperDrive`
+- Rename the sports boat's `BoatDrive` to `SportsboatDrive`, matching `SuvDrive` and `CamperDrive`. The drive keeps its motion state internally. Tests prepare a moving boat by stepping it and verify its behavior through `DriveStep`
 - Behavior, every tuning value, the in-game test names (`flight_*`, `boat_*`), and every other name 0039 kept stay unchanged
 
 ## Consequences

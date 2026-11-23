@@ -497,7 +497,7 @@ describe("Motion medium contract", () => {
     fc.assert(
       fc.property(fc.boolean(), (onX) => {
         const expected = onX ? { x: 1, z: 0 } : { x: 0, z: 1 };
-        // Between the air and water wall thresholds, only air reports a wall.
+        // Between the air and water wall thresholds, only air applies the wall speed.
         const kept = ((AIR.drag + WATER.drag) / 2) * MOTION.blockedRatio;
         const velocity = { x: expected.x * kept, z: expected.z * kept };
         const state = {
@@ -505,36 +505,43 @@ describe("Motion medium contract", () => {
           speed: SUV_SPEC.maxWaterSpeed,
           mediumExpected: expected,
         };
-        expect(
-          stepMediumMotion(
-            state,
-            FULL_THROTTLE,
-            velocity,
-            WATER,
-            SUV_MOTION,
-            SUV_TYRES.creepSpeed,
-          ).blocked,
-        ).toBe(false);
-        expect(
-          stepMediumMotion(
-            state,
-            FULL_THROTTLE,
-            velocity,
-            AIR,
-            SUV_MOTION,
-            SUV_TYRES.creepSpeed,
-          ).blocked,
-        ).toBe(true);
-        expect(
-          stepMediumMotion(
-            state,
-            FULL_THROTTLE,
-            { x: 0, z: 0 },
-            WATER,
-            SUV_MOTION,
-            SUV_TYRES.creepSpeed,
-          ).blocked,
-        ).toBe(true);
+        const water = stepMediumMotion(
+          state,
+          FULL_THROTTLE,
+          velocity,
+          WATER,
+          SUV_MOTION,
+          SUV_TYRES.creepSpeed,
+        );
+        expect(water.state.speed).toBe(SUV_SPEC.maxWaterSpeed);
+        expect(dot(water.impulse, water.forward)).toBeCloseTo(
+          SUV_SPEC.maxWaterSpeed / WATER.drag - kept,
+          12,
+        );
+        const air = stepMediumMotion(
+          state,
+          FULL_THROTTLE,
+          velocity,
+          AIR,
+          SUV_MOTION,
+          SUV_TYRES.creepSpeed,
+        );
+        expect(air.state.speed).toBeCloseTo(kept, 12);
+        expect(dot(air.impulse, air.forward)).toBeCloseTo(
+          kept / AIR.drag - kept,
+          12,
+        );
+
+        const stopped = stepMediumMotion(
+          state,
+          FULL_THROTTLE,
+          { x: 0, z: 0 },
+          WATER,
+          SUV_MOTION,
+          SUV_TYRES.creepSpeed,
+        );
+        expect(stopped.state.speed).toBe(0);
+        expect(Math.hypot(stopped.impulse.x, stopped.impulse.z)).toBe(0);
       }),
     );
   });

@@ -104,14 +104,17 @@ it("routes every press height in either band to its drawer and leaves the counte
 
 it("lays one compartment for both openings and no plates", () => {
   fc.assert(
-    fc.property(fc.subarray(["drawer_top", "drawer_bottom"]), (open) => {
-      const shown = new Set(open);
-      const cells = compartmentCells(pose, [], shown, doors);
-      expect(cells).toHaveLength(1);
-      expect(cells).toEqual(compartmentCells(pose, [], new Set(), doors));
-      expect(cells[0]?.block.type).toBe("drawers");
-      expect(storagePlateCells(pose, shown, false, doors)).toEqual([]);
-    }),
+    fc.property(
+      fc.subarray(["drawer_top", "drawer_bottom"] as const),
+      (open) => {
+        const shown = new Set(open);
+        const cells = compartmentCells(pose, [], shown, doors);
+        expect(cells).toHaveLength(1);
+        expect(cells).toEqual(compartmentCells(pose, [], new Set(), doors));
+        expect(cells[0]?.block.type).toBe("drawers");
+        expect(storagePlateCells(pose, shown, false, doors)).toEqual([]);
+      },
+    ),
   );
 });
 

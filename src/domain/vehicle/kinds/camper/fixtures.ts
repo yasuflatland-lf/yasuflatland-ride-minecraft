@@ -6,7 +6,7 @@ import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import type { RestoredOf } from "../../entityContract";
 import { SPEC } from "../../spec";
-import { DOOR_STEPS, restoredDoorStep, swing } from "./doorSwing";
+import { DOOR_STEPS, restoredDoorStep, stepOpening } from "./doorSwing";
 import {
   type CAMPER_ENTITY,
   ceilingLightsCommand,
@@ -78,13 +78,13 @@ export class CamperFixtures {
     return true;
   }
 
-  useShowerDoor(tick: number): boolean {
+  private useShowerDoor(tick: number): boolean {
     if (!this.showerDoorToggle.tryToggle(tick)) return false;
     this.showerOpen = !this.showerOpen;
     return true;
   }
 
-  runShower(): boolean {
+  private runShower(): boolean {
     this.showerTicks = CAMPER_SPEC.showerTicks;
     return true;
   }
@@ -94,17 +94,12 @@ export class CamperFixtures {
    * from either side and an echo cannot start the shower (ADR 0105, 0118). A shut door
    * opens from outside; from inside, the press runs the shower (ADR 0098).
    */
-  pressShowerToilet(
-    pose: HoldPose,
-    feet: Vec3,
-    tick: number,
-    actions: Pick<CamperFixtures, "useShowerDoor" | "runShower"> = this,
-  ): boolean {
+  pressShowerToilet(pose: HoldPose, feet: Vec3, tick: number): boolean {
     const doorTakesIt =
       this.showerOpen ||
       this.showerDoorToggle.withinWindow(tick) ||
       !inShowerToilet(pose, feet);
-    return doorTakesIt ? actions.useShowerDoor(tick) : actions.runShower();
+    return doorTakesIt ? this.useShowerDoor(tick) : this.runShower();
   }
 
   /** Even an unreachable use restarts the idle time of a held switch (ADR 0024, 0115). */
@@ -116,13 +111,13 @@ export class CamperFixtures {
   }
 
   doorCommands(): EngineCommand[] {
-    this.doorStep = swing(this.doorStep, this.entryOpen);
+    this.doorStep = stepOpening(this.doorStep, this.entryOpen);
     const step = this.doorStepSync.next(this.doorStep);
     return step === undefined ? [] : [doorCommand(step / DOOR_STEPS)];
   }
 
   showerCommands(): EngineCommand[] {
-    this.showerDoorStep = swing(this.showerDoorStep, this.showerOpen);
+    this.showerDoorStep = stepOpening(this.showerDoorStep, this.showerOpen);
     const door = this.showerDoorStepSync.next(this.showerDoorStep);
     const running = this.showerSync.next(this.showerTicks > 0);
     this.showerTicks = Math.max(this.showerTicks - 1, 0);

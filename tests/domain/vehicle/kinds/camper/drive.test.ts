@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
+import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
   CAMPER_AIR,
@@ -10,7 +11,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { dockedCommand } from "../../../../../src/domain/vehicle/motion/dockEntity";
-import { camperRoom } from "../../../../support/camperRoom";
+import { camperRoom, showerFeet } from "../../../../support/camperRoom";
 import { type Body, engineStep } from "../../../../support/engineModel";
 
 function context(): TickContext {
@@ -247,7 +248,7 @@ it("resync resends all room properties with current values while driving or park
         const drive = new CamperDrive(0, {
           docked: parked,
           door: open ? 1 : 0,
-          shower_door: open ? 1 : 0,
+          shower_door: open && !running ? 1 : 0,
           cabinet_sink_door: open ? 1 : 0,
           cabinet_stove_door: open ? 1 : 0,
           fridge_top_door: open ? 1 : 0,
@@ -255,14 +256,24 @@ it("resync resends all room properties with current values while driving or park
           ceiling_lights: lights,
         });
         const raw = parked ? undefined : { moveX: 0, moveY: 1, jump: false };
+        const ctx = context();
+        const pose = parkPose(ctx.location, 0);
+        const fixtures = camperRoom(drive).fixtures;
         const current = new Map<string, unknown>();
         for (let tick = 0; tick < 40; tick++) {
-          if (tick === 20 && running) expect(drive.runShower()).toBe(parked);
-          for (const c of drive.step(raw, { ...context(), tick }).commands)
+          if (tick === 20 && running) {
+            expect(fixtures.pressShowerToilet(showerFeet(pose), tick)).toBe(
+              parked,
+            );
+            if (parked && open)
+              expect(fixtures.pressShowerToilet(pose, tick)).toBe(true);
+          }
+          for (const c of drive.step(raw, { ...ctx, tick }).commands)
             if (c.type === "setProperty") current.set(c.name, c.value);
         }
         expect(drive.inspect().parked).toBe(parked);
         expect(current.get("shower")).toBe(parked && running);
+        expect(current.get("shower_door")).toBe(parked && open ? 1 : 0);
         drive.resync();
         const out = drive.step(raw, { ...context(), tick: 40 });
         for (const name of [

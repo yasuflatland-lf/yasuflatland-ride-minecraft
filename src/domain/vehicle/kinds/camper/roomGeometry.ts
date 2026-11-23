@@ -4,6 +4,7 @@ import {
   CAMPER_FURNITURE,
   type FurnitureBlock,
   type LocalCell,
+  type StorageDoorId,
 } from "./furniture";
 import { localCellAt } from "./parkPose";
 
@@ -43,7 +44,7 @@ export const ROOF_LAYER = 4;
 
 export const AIR = "minecraft:air";
 
-export const NO_DOORS: ReadonlySet<string> = new Set();
+export const NO_DOORS: ReadonlySet<StorageDoorId> = new Set();
 
 // The side of a wall cell that faces the room, from the unit vector toward it.
 export function faceToward(v: Vec2): Face {
