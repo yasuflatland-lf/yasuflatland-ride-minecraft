@@ -484,7 +484,7 @@ it("puts a deck seat at each profile seat with the measured rises, then the comp
       const at = defined(
         seatWorldPositions(
           p,
-          defined(CAMPER_PROFILE.parkedSeats, "parked seats").positions,
+          defined(CAMPER_PROFILE.heldSeats, "parked seats").positions,
         )[0],
         "toilet position",
       );
@@ -920,7 +920,7 @@ it("puts the toilet seat inside the shower-toilet cell at the rear right at ever
   fc.assert(
     fc.property(pose, (p) => {
       const toilet = defined(
-        CAMPER_PROFILE.parkedSeats?.positions[0],
+        CAMPER_PROFILE.heldSeats?.positions[0],
         "toilet position",
       );
       const seat = defined(deckSeats(p)[4], "toilet seat");

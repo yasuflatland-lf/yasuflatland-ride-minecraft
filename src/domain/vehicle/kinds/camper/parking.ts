@@ -24,7 +24,7 @@ import {
 
 export class CamperParking {
   private parked: HoldPose | undefined;
-  private restoredDocked: boolean;
+  private restoredParked: boolean;
   // A newly parked body still collides until the dock event takes effect (ADR 0068).
   private roomLaid = false;
   private pendingClear: readonly ClearCell[] = [];
@@ -33,24 +33,24 @@ export class CamperParking {
   private stickWasPushed = false;
 
   constructor(
-    restoredDocked: boolean,
+    restoredParked: boolean,
     private readonly restoredLaid: boolean,
   ) {
-    this.restoredDocked = restoredDocked;
+    this.restoredParked = restoredParked;
   }
 
   get pose(): HoldPose | undefined {
     return this.parked;
   }
 
-  get recovering(): boolean {
-    return this.restoredDocked;
+  get resumingPark(): boolean {
+    return this.restoredParked;
   }
 
   /** Returns whether the drive must lay the recovered room before handling input. */
   recover(pose: HoldPose, ctx: TickContext): boolean {
     const clear = this.restoredLaid ? [] : this.clearFor(pose, ctx);
-    this.restoredDocked = false;
+    this.restoredParked = false;
     if (clear === undefined) return false;
     this.park(pose, clear);
     // A docked entity already has no collision, so recovery may clear and lay together.
