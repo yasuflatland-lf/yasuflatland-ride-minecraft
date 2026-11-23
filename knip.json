@@ -9,6 +9,7 @@
     "**/*.{js,mjs,cjs,jsx,tsx,mts,cts}"
   ],
   "entry": [
+    "src/buildFlags.d.ts!",
     "src/main.ts!",
     "src/test-pack/runner.ts!",
     "knip.production.mjs",

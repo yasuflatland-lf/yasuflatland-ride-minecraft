@@ -13,6 +13,7 @@ export function fakeFurnitureWorld(kind: FurnitureKind) {
     isSolidTop: vi.fn<FurnitureWorld["isSolidTop"]>(() => true),
     isVehicleSpace: vi.fn<FurnitureWorld["isVehicleSpace"]>(() => false),
     isCampSpace: vi.fn<FurnitureWorld["isCampSpace"]>(() => false),
+    resortGearCells: vi.fn<FurnitureWorld["resortGearCells"]>(() => []),
     isCreative: vi.fn(() => false),
     consumeItem: vi.fn(() => true),
     spawn: vi.fn(

@@ -10,7 +10,6 @@ import { STORAGE_DOORS } from "./furniture";
 import {
   isPassable,
   parkCheckCells,
-  parkDecorations,
   parkGround,
   planPark,
   wallFootCells,
@@ -50,31 +49,20 @@ export class CamperParking {
 
   /** Returns whether the drive must lay the recovered room before handling input. */
   recover(pose: HoldPose, ctx: TickContext): boolean {
+    const clear = this.restoredLaid ? [] : this.clearFor(pose, ctx);
     this.restoredDocked = false;
-    this.park(
-      pose,
-      this.restoredLaid ? [] : (this.clearFor(pose, ctx, true) ?? []),
-    );
+    if (clear === undefined) return false;
+    this.park(pose, clear);
     // A docked entity already has no collision, so recovery may clear and lay together.
     this.roomLaid = true;
     return !this.restoredLaid;
   }
 
-  clearFor(
-    pose: HoldPose,
-    ctx: TickContext,
-    recovering = false,
-  ): ClearCell[] | undefined {
+  clearFor(pose: HoldPose, ctx: TickContext): ClearCell[] | undefined {
     const cells = parkCheckCells(pose);
     const feet = wallFootCells(pose);
     const blocks = readBlockGroups(ctx, { cells, feet });
-    return (recovering ? parkDecorations : planPark)(
-      cells,
-      blocks.cells,
-      feet,
-      blocks.feet,
-      parkGround(pose),
-    );
+    return planPark(cells, blocks.cells, feet, blocks.feet, parkGround(pose));
   }
 
   park(pose: HoldPose, clear: readonly ClearCell[]): void {
