@@ -1,4 +1,3 @@
-import { MenuChoices } from "../bedrock/menuChoices";
 import type { installBuild } from "../install";
 import { DescribeBuild } from "./describeBuild";
 import { recordMessages } from "./recordMessages";
@@ -34,7 +33,7 @@ export function installBuildTestHooks(
   const describe = new DescribeBuild(ctx.repo);
   registerTestPress(ctx.routes, describe, messages);
   registerTestEdit(
-    new MenuChoices(ctx.repo, ctx.menuCases),
+    ctx.menuChoices,
     ctx.menuCases.setHeight,
     ctx.pressPasteAim,
     ctx.menuCases.undo,
