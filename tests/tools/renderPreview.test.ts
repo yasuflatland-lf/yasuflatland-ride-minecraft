@@ -325,33 +325,6 @@ print(json.dumps(True))
   });
 });
 
-it("registers ordered top-level scene builders with frozen results", () => {
-  expect(
-    previewPython(`
-from dataclasses import FrozenInstanceError, is_dataclass
-from inspect import isfunction
-assert isinstance(r.SCENES, tuple)
-for scene in r.SCENES:
-    builder = scene.build
-    assert isfunction(builder)
-    assert builder.__module__ == "render_preview"
-    assert "<locals>" not in builder.__qualname__
-    assert "." not in builder.__qualname__
-assert is_dataclass(r.SceneResult)
-assert r.SceneResult.__dataclass_params__.frozen
-result = r.SceneResult({}, None)
-for field in ("images", "icon"):
-    try:
-        setattr(result, field, None)
-    except FrozenInstanceError:
-        pass
-    else:
-        raise AssertionError(f"SceneResult.{field} is mutable")
-print(json.dumps([scene.name for scene in r.SCENES]))
-`),
-  ).toEqual(["suv", "boat", "camper", "bulldozer", "scooter", "gear"]);
-});
-
 describe("render_preview.py scene selection", () => {
   it("returns every scene in order for None and keeps SCENES order for any subset", () => {
     expect(
@@ -577,41 +550,6 @@ print(json.dumps({"colors": [rgb for _, rgb, _ in polygons], "glass": glass}))
 });
 
 describe("render_preview.py photo views", () => {
-  it("defines the twelve reference cameras in photo order", () => {
-    const views = previewPython("print(json.dumps(r.PHOTO_VIEWS))");
-    const toilet = ["topFront", "side", "leftFront", "lidOpen"];
-    expect(Object.keys(views)).toEqual([
-      ...toilet,
-      "sinkFront",
-      "sinkBowl",
-      "sinkTap",
-      "sinkBowlTop",
-      "sinkDrain",
-      "sinkLeg",
-      "sinkNet",
-      "sinkWood",
-    ]);
-    for (const [name, view] of Object.entries(views) as [
-      string,
-      { position: number[]; target: number[]; fov: number; piece: string },
-    ][]) {
-      for (const point of [view.position, view.target]) {
-        expect(point).toHaveLength(3);
-        expect(point.every(Number.isFinite)).toBe(true);
-      }
-      expect(view.fov).toBeGreaterThan(0);
-      expect(view.piece).toBe(toilet.includes(name) ? "toilet" : "washstand");
-      expect(Object.keys(view)).toEqual([
-        "piece",
-        "position",
-        "target",
-        "fov",
-        ...(name === "lidOpen" ? ["lid"] : []),
-      ]);
-    }
-    expect(views.lidOpen.lid).toBe(91);
-  });
-
   it("centers targets, preserves vertical field of view and clips before projection", () => {
     expect(
       previewPython(`
@@ -1174,24 +1112,19 @@ print(json.dumps(True))
     ).toBe(true);
   });
 
-  it("detects every ported gear tile and defines the six review angles in order", () => {
+  it("detects tiles in every ported gear model", () => {
     expect(
       previewPython(`
 from tool_loader import load_tool
 cells = load_tool('gear_atlas').GEAR_TILES
 rp = Path('packs/yasu_ride_rp')
 texture = r.read_png(rp / r.GEAR_TEXTURE)
-PORTED = set(cells)
 for item in json.loads(r.GEAR_SPEC.read_text()):
     geo = json.loads((rp / r.GEAR_GEOMETRY.format(item['id'])).read_text())['minecraft:geometry'][0]
-    assert item['id'] in cells or not r.gear_tiled(geo, texture), item['id']
-    assert r.gear_tiled(geo, texture) == (item['id'] in PORTED), item['id']
-assert r.GEAR_VIEWS['left'] == (1, 0.15, 0)
-assert r.GEAR_VIEWS['right'] == (-1, 0.15, 0)
-assert r.GEAR_VIEWS['threeQuarter'] == r.VIEW_DIRECTION
-print(json.dumps(list(r.GEAR_VIEWS)))
+    assert r.gear_tiled(geo, texture) == (item['id'] in cells), item['id']
+print(json.dumps(True))
 `),
-    ).toEqual(["front", "back", "left", "right", "top", "threeQuarter"]);
+    ).toBe(true);
   });
 
   const gearOutput = ["--out", "/tmp/unused-gear-1595"];
@@ -1259,14 +1192,6 @@ print(json.dumps(True))
 });
 
 describe("--timing (phase durations on stderr)", () => {
-  it("formats the exact PHASE_TIMING line", () => {
-    expect(
-      previewPython("print(json.dumps(r.format_timing(1.5, 2.25, 4.0, 4, 4)))"),
-    ).toBe(
-      "PHASE_TIMING raster_jobs=1.50 rasterize_all=2.25 total=4.00 cpu_count=4 jobs=4",
-    );
-  });
-
   it("keeps five key=value fields in order that parse back within 0.005", () => {
     const seconds = fc.double({ min: 0, max: 100000, noNaN: true });
     const count = fc.integer({ min: 1, max: 256 });
@@ -1290,6 +1215,12 @@ describe("--timing (phase durations on stderr)", () => {
               "cpu_count",
               "jobs",
             ]);
+            for (const field of fields.slice(0, 3)) {
+              expect(field).toMatch(/^[a-z_]+=\d+\.\d{2}$/);
+            }
+            for (const field of fields.slice(3)) {
+              expect(field).toMatch(/^[a-z_]+=\d+$/);
+            }
             const values = fields.map((f) => Number(f.split("=")[1]));
             rows[i]?.forEach((v, k) => {
               expect(

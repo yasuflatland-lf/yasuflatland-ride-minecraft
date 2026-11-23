@@ -59,13 +59,11 @@ const stairLabels = {
 } satisfies Record<StairContents | "cancel", string>;
 
 export interface BuildMenus {
-  showBuildMenu(player: Player): Promise<void>;
   showContentsMenu(player: Player): Promise<void>;
   showStairContentsMenu(player: Player): Promise<void>;
   showTerraceMenu(player: Player): Promise<void>;
   showUtilityMenu(player: Player): Promise<void>;
   showPasteMenu(player: Player): Promise<void>;
-  showHeightSlider(player: Player): Promise<void>;
 }
 
 export class BedrockBuildMenus implements BuildMenus {
@@ -89,10 +87,6 @@ export class BedrockBuildMenus implements BuildMenus {
         this.cases.closeBuildMenu.execute({ playerId });
       return this.shapeMenus(player, "root");
     });
-  }
-
-  showBuildMenu(player: Player): Promise<void> {
-    return this.exclusive(player, () => this.shapeMenus(player, "build"));
   }
 
   private async shapeMenus(
@@ -192,10 +186,6 @@ export class BedrockBuildMenus implements BuildMenus {
         }
       }
     });
-  }
-
-  showHeightSlider(player: Player): Promise<void> {
-    return this.exclusive(player, () => this.heightSlider(player));
   }
 
   showUtilityMenu(player: Player): Promise<void> {

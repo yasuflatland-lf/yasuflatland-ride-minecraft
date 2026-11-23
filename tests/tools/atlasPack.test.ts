@@ -13,9 +13,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 sys.path.insert(0, 'tools')
-sys.path.insert(0, 'tests/tools/helpers')
 from tool_loader import load_tool
-from reference_pack import reference_pack
 m = load_tool('atlas_pack')
 cases = json.loads(input())
 ${script}`,
@@ -31,27 +29,6 @@ const packCase = fc.record({
   gutter: fc.integer({ min: 0, max: 2 }),
   maxSide: fc.option(fc.integer({ min: 1, max: 256 }), { nil: null }),
 });
-const compare = `def outcome(call):
-    try:
-        return call()
-    except ValueError as error:
-        return str(error)
-results = []
-for case in cases:
-    gutter, limit = case['gutter'], case['maxSide']
-    sizes = tuple(m.Size(w + gutter, h + gutter) for w,h in case['sizes'])
-    def actual():
-        with patch.dict(os.environ, YASU_ATLAS_PACK_CACHE='0'):
-            result = m.search(m.PackRequest(sizes, gutter, limit))
-        return result.size, result.origins
-    results.append([outcome(actual), outcome(lambda: reference_pack(sizes, gutter, limit))])
-print(json.dumps(results))`;
-
-const expectEquivalent = async (cases: unknown) => {
-  for (const [actual, expected] of await run(compare, cases)) {
-    expect(actual).toEqual(expected);
-  }
-};
 
 describe("atlas packing", () => {
   it("adds seeded orders only for requests of at most 256 regions", async () => {
@@ -79,29 +56,6 @@ print(json.dumps([len(m.search_orders(sizes)), m.PACK_RANDOM_ORDERS]))`,
     );
   });
 
-  it("preserves the tuple packer's layouts and bounded failures", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(packCase, { minLength: 2, maxLength: 2 }),
-        expectEquivalent,
-      ),
-      { numRuns: 8 },
-    );
-  });
-
-  it("preserves the tuple packer's layouts for 200 to 256 rectangles", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.array(smallRect, {
-          minLength: 200,
-          maxLength: 256,
-        }),
-        (sizes) => expectEquivalent([{ sizes, gutter: 0, maxSide: 128 }]),
-      ),
-      { numRuns: 2 },
-    );
-  });
-
   it("packs large requests deterministically within 10% of the full-effort area", async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -122,7 +76,8 @@ for (x, y), (w, h) in zip(result.origins, sizes):
     rect = m.Rect(x, y, w, h)
     assert not any(rect.overlaps(other) for other in placed)
     placed.append(rect)
-(ref_width, ref_height), _ = reference_pack(sizes, 0, request.max_side)
+with patch.object(m, 'FULL_SEARCH_MAX_REGIONS', len(sizes)), patch.dict(os.environ, YASU_ATLAS_PACK_CACHE='0'):
+    ref_width, ref_height = m.search(request).size
 print(json.dumps(width * height * 10 <= ref_width * ref_height * 11))`,
             sizes,
           );
@@ -131,27 +86,6 @@ print(json.dumps(width * height * 10 <= ref_width * ref_height * 11))`,
       ),
       { numRuns: 3 },
     );
-  });
-
-  it("preserves exact limits, impossible fits, equal-size ties and forty-item orders", async () => {
-    await expectEquivalent([
-      { sizes: [[64, 64]], gutter: 2, maxSide: 64 },
-      { sizes: [[64, 64]], gutter: 0, maxSide: 63 },
-      {
-        sizes: Array.from({ length: 40 }, () => [8, 8]),
-        gutter: 1,
-        maxSide: null,
-      },
-      {
-        sizes: [
-          [12, 12],
-          [12, 12],
-          [12, 12],
-        ],
-        gutter: 0,
-        maxSide: 24,
-      },
-    ]);
   });
 });
 

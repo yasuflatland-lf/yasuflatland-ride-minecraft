@@ -17,7 +17,6 @@ export interface FirePitWorld
     yaw: number,
   ): FirePitId | undefined;
   isCovered(id: FirePitId): boolean;
-  setCovered(id: FirePitId, covered: boolean): void;
   showCoveredHint(player: PlayerId): void;
   isLit(id: FirePitId): boolean;
   setLit(id: FirePitId, lit: boolean): void;

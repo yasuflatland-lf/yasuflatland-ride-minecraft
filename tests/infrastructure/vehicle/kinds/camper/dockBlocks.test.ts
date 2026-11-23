@@ -382,23 +382,9 @@ describe("DockBlocks (ADR 0063)", () => {
     );
   });
 
-  it.each([
-    { raw: "{", seed: { x: 0, y: 64, z: 0 } },
-    { raw: "{}", seed: { x: 0, y: 64, z: 0 } },
-    {
-      raw: '[{"x":0,"y":0,"z":0,"height":17}]',
-      seed: { x: 0, y: 0, z: 0 },
-    },
-    {
-      raw: '[{"x":0,"y":0,"z":0,"height":0}]',
-      seed: { x: 0, y: 0, z: 0 },
-    },
-    {
-      raw: '[{"x":0.5,"y":0,"z":0,"height":1}]',
-      seed: { x: 0.5, y: 0, z: 0 },
-    },
-  ])("ignores malformed saved floor cells: $raw", ({ raw, seed }) => {
+  it.each(["{", "{}"])("ignores malformed saved floor data: %s", (raw) => {
     const f = fixture();
+    const seed = { x: 0, y: 64, z: 0 };
     f.blocks.set(cellKey(seed), { typeId: DECK_FLOOR_BLOCK });
     f.saved.set(DECK_CELLS_PROPERTY, raw);
     expect(() =>
@@ -857,157 +843,107 @@ it("reads a saved decor cell from before the spot state as standing in the cell 
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
-it.each([
-  { block: { type: "unknown" }, seed: DECK_FLOOR_BLOCK },
-  { block: { type: "deck", height: 0 }, seed: DECK_FLOOR_BLOCK },
-  { block: { type: "deck", height: 17 }, seed: DECK_FLOOR_BLOCK },
-  { block: { type: "deck", height: 1.5 }, seed: DECK_FLOOR_BLOCK },
-  { block: { type: "wall", face: -1 }, seed: CAMPER_WALL_BLOCK },
-  { block: { type: "wall", face: 4 }, seed: CAMPER_WALL_BLOCK },
-  { block: { type: "wall", face: 1.5 }, seed: CAMPER_WALL_BLOCK },
-  { block: { type: "door", face: 0, open: "true" }, seed: CAMPER_DOOR_BLOCK },
-  { block: { type: "door", face: 4, open: true }, seed: CAMPER_DOOR_BLOCK },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("Potted Plant"),
-      face: 0,
-      height: 0,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: { type: "decor", item: 3, face: 0, height: 0 },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 4,
-      height: 0,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 0,
-      height: 16,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 0,
-      height: -1,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 0,
-      height: 1.5,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 0,
-      height: 0,
-      spot: 11,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 0,
-      height: 0,
-      spot: -1,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decor",
-      item: decorItemId("potted_plant"),
-      face: 0,
-      height: 0,
-      spot: 0.5,
-    },
-    seed: decorBlockId("potted_plant"),
-  },
-  {
-    block: {
-      type: "decorPair",
-      pair: "bed",
-      face: 0,
-      height: 4,
-      end0: decorItemId("cushion"),
-    },
-    seed: pairDecorBlockId("shelf"),
-  },
-  {
-    block: {
-      type: "decorPair",
-      pair: "shelf",
-      face: 4,
-      height: 4,
-      end0: decorItemId("cushion"),
-    },
-    seed: pairDecorBlockId("shelf"),
-  },
-  {
-    block: {
-      type: "decorPair",
-      pair: "shelf",
-      face: 0,
-      height: 16,
-      end0: decorItemId("cushion"),
-    },
-    seed: pairDecorBlockId("shelf"),
-  },
-  {
-    block: { type: "decorPair", pair: "shelf", face: 0, height: 4 },
-    seed: pairDecorBlockId("shelf"),
-  },
-  {
-    block: {
-      type: "decorPair",
-      pair: "table",
-      face: 0,
-      height: 12,
-      end1: decorItemId("macrame_planter"),
-    },
-    seed: pairDecorBlockId("table"),
-  },
-  {
-    block: { type: "decorPair", pair: "table", face: 0, height: 12, end0: 3 },
-    seed: pairDecorBlockId("table"),
-  },
-  { block: { type: "furniture", height: 16 }, seed: CAMPER_FURNITURE_BLOCK },
-  { block: { type: "furniture", height: -1 }, seed: CAMPER_FURNITURE_BLOCK },
-  { block: { type: "furniture", height: 1.5 }, seed: CAMPER_FURNITURE_BLOCK },
-  { block: { type: "furniture", height: "12" }, seed: CAMPER_FURNITURE_BLOCK },
-  { block: null, seed: DECK_FLOOR_BLOCK },
-])("ignores invalid saved dock blocks: $block", ({ block, seed }) => {
-  const f = fixture();
-  const position = { x: 0, y: 64, z: 0 };
-  const raw = JSON.stringify([{ ...position, block }]);
-  f.blocks.set(cellKey(position), { typeId: seed });
-  f.saved.set(DECK_CELLS_PROPERTY, raw);
-  new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
-  expect(f.at(position).typeId).toBe(seed);
-  expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+it("ignores saved cells with a generated invalid field", () => {
+  const invalidFace = fc.constantFrom(-1, 4, 1.5);
+  const invalidHeight = fc.constantFrom(-1, 16, 1.5, "12");
+  const decor = {
+    type: "decor",
+    item: decorItemId("potted_plant"),
+    face: 0,
+    height: 0,
+    spot: 0,
+  };
+  const pair = {
+    type: "decorPair",
+    pair: "shelf",
+    face: 0,
+    height: 4,
+    end0: decorItemId("cushion"),
+  };
+  const changed = (
+    block: object,
+    seed: string,
+    field: string,
+    values: fc.Arbitrary<unknown>,
+  ) =>
+    values.map((value) => ({
+      cell: { x: 0, y: 64, z: 0, block: { ...block, [field]: value } },
+      seed,
+    }));
+  const invalid = fc.oneof(
+    changed(
+      { type: "deck", height: 1 },
+      DECK_FLOOR_BLOCK,
+      "height",
+      fc.constantFrom(0, 17, 1.5),
+    ),
+    changed({ type: "wall", face: 0 }, CAMPER_WALL_BLOCK, "face", invalidFace),
+    changed(
+      { type: "door", face: 0, open: true },
+      CAMPER_DOOR_BLOCK,
+      "face",
+      invalidFace,
+    ),
+    changed(
+      { type: "door", face: 0, open: true },
+      CAMPER_DOOR_BLOCK,
+      "open",
+      fc.constant("true"),
+    ),
+    changed(
+      decor,
+      decorBlockId("potted_plant"),
+      "item",
+      fc.constantFrom(decorItemId("Potted Plant"), 3),
+    ),
+    changed(decor, decorBlockId("potted_plant"), "face", invalidFace),
+    changed(decor, decorBlockId("potted_plant"), "height", invalidHeight),
+    changed(
+      decor,
+      decorBlockId("potted_plant"),
+      "spot",
+      fc.constantFrom(-1, 11, 0.5),
+    ),
+    changed(pair, pairDecorBlockId("shelf"), "pair", fc.constant("bed")),
+    changed(pair, pairDecorBlockId("shelf"), "face", invalidFace),
+    changed(pair, pairDecorBlockId("shelf"), "height", invalidHeight),
+    changed(
+      pair,
+      pairDecorBlockId("shelf"),
+      "end0",
+      fc.constantFrom(undefined, 3, decorItemId("macrame_planter")),
+    ),
+    changed(
+      { type: "furniture", height: 0 },
+      CAMPER_FURNITURE_BLOCK,
+      "height",
+      invalidHeight,
+    ),
+    fc.constantFrom(
+      { cell: { x: 0, y: 64, z: 0, block: null }, seed: DECK_FLOOR_BLOCK },
+      {
+        cell: { x: 0, y: 64, z: 0, block: { type: "unknown" } },
+        seed: DECK_FLOOR_BLOCK,
+      },
+      ...[0, 17].map((height) => ({
+        cell: { x: 0, y: 64, z: 0, height },
+        seed: DECK_FLOOR_BLOCK,
+      })),
+      { cell: { x: 0.5, y: 64, z: 0, height: 1 }, seed: DECK_FLOOR_BLOCK },
+    ),
+  );
+  fc.assert(
+    fc.property(invalid, ({ cell, seed }) => {
+      const f = fixture();
+      const raw = JSON.stringify([cell]);
+      f.blocks.set(cellKey(cell), { typeId: seed });
+      f.saved.set(DECK_CELLS_PROPERTY, raw);
+      new DockBlocks(noCampSpace).lay(asVehicleId(f.car.id), f.car, []);
+      expect(f.at(cell).typeId).toBe(seed);
+      expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
+    }),
+    { numRuns: 1000 },
+  );
 });
 
 it("finds only the owner of a laid door in the same dimension", () => {
@@ -1063,35 +999,34 @@ it("finds the owner of a laid furniture cell through cellOwner only (ADR 0097)",
   expect(docks.doorOwner(here, furniture)).toBeUndefined();
 });
 
-it("derives laid state and door target from saved dock cells in one property read", () => {
-  fc.assert(
-    fc.property(fc.boolean(), (open) => {
-      const f = fixture();
-      const read = vi.spyOn(f.car, "getDynamicProperty");
+it.each([true, false])(
+  "derives laid state and door target in one property read when open is %s",
+  (open) => {
+    const f = fixture();
+    const read = vi.spyOn(f.car, "getDynamicProperty");
+    expect(savedDock(f.car)).toEqual({ laid: false, doorOpen: undefined });
+    for (const raw of ["{", "{}", "[]"]) {
+      f.saved.set(DECK_CELLS_PROPERTY, raw);
       expect(savedDock(f.car)).toEqual({ laid: false, doorOpen: undefined });
-      for (const raw of ["{", "{}", "[]"]) {
-        f.saved.set(DECK_CELLS_PROPERTY, raw);
-        expect(savedDock(f.car)).toEqual({ laid: false, doorOpen: undefined });
-      }
-      f.saved.set(
-        DECK_CELLS_PROPERTY,
-        JSON.stringify([{ x: 0, y: 64, z: 0, height: 8 }]),
-      );
-      expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: undefined });
-      f.saved.set(
-        DECK_CELLS_PROPERTY,
-        JSON.stringify(
-          roomCells.map((c) =>
-            c.block.type === "door" ? { ...c, block: { ...c.block, open } } : c,
-          ),
+    }
+    f.saved.set(
+      DECK_CELLS_PROPERTY,
+      JSON.stringify([{ x: 0, y: 64, z: 0, height: 8 }]),
+    );
+    expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: undefined });
+    f.saved.set(
+      DECK_CELLS_PROPERTY,
+      JSON.stringify(
+        roomCells.map((c) =>
+          c.block.type === "door" ? { ...c, block: { ...c.block, open } } : c,
         ),
-      );
-      read.mockClear();
-      expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: open });
-      expect(read).toHaveBeenCalledExactlyOnceWith(DECK_CELLS_PROPERTY);
-    }),
-  );
-});
+      ),
+    );
+    read.mockClear();
+    expect(savedDock(f.car)).toEqual({ laid: true, doorOpen: open });
+    expect(read).toHaveBeenCalledExactlyOnceWith(DECK_CELLS_PROPERTY);
+  },
+);
 
 describe("DockBlocks lost cells (ADR 0096)", () => {
   const id = asVehicleId("car");

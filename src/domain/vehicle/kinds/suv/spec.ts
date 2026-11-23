@@ -35,8 +35,6 @@ export const SUV_SPEC = Object.freeze({
   // ROOF_TOP scaled by SIZE_SCALE in tools/suv_dims.py, above the collision box.
   roofTentRoofHeight: (26.1 * 1.45) / 16,
   // Align the platform right edge with the hardtop; the left overhang clears the ladder.
-  roofTentShellHalfWidth: ROOF_TENT_SHELL_HALF_WIDTH,
-  roofTentHardtopHalfWidth: HARDTOP_HALF_WIDTH,
   roofTentAnchorX: ROOF_TENT_ANCHOR_X,
   roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Center the platform on the hardtop span.
   roofTentLadder: true,

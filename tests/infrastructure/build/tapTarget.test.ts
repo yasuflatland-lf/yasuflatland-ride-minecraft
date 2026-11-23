@@ -65,13 +65,11 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
   const session = repo.getOrCreate(playerId);
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const menus = {
-    showBuildMenu: vi.fn(),
     showContentsMenu: vi.fn(),
     showTerraceMenu: vi.fn(),
     showStairContentsMenu: vi.fn(),
     showUtilityMenu: vi.fn(),
     showPasteMenu: vi.fn(),
-    showHeightSlider: vi.fn(),
   };
   registerTapTarget({
     repo,

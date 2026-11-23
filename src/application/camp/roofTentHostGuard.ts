@@ -1,17 +1,12 @@
 import { hostVerdict } from "../../domain/camp/roofTent/hostRule";
 import type { VehicleHostLookup } from "../shared/ports/vehicleHost";
-import type {
-  OccupantEjector,
-  RoofTentRemoved,
-  RoofTentWorld,
-} from "./ports/roofTent";
+import type { OccupantEjector, RoofTentWorld } from "./ports/roofTent";
 
 export class RoofTentHostGuard {
   constructor(
     private readonly world: RoofTentWorld,
     private readonly vehicleHost: VehicleHostLookup,
     private readonly ejector: OccupantEjector,
-    private readonly removed: RoofTentRemoved,
   ) {}
 
   check(): void {
@@ -28,7 +23,7 @@ export class RoofTentHostGuard {
       this.ejector.eject(id);
       const owner = this.world.ownerOf(id);
       this.world.returnItem(id, owner);
-      if (!this.world.remove(id)) this.removed.removed(id, owner);
+      this.world.remove(id);
     }
   }
 }

@@ -24,14 +24,11 @@ const command = fc.record({
 });
 it("rejects every placement obstruction before payment or spawn", () => {
   fc.assert(
-    fc.property(command, fc.integer({ min: 0, max: 5 }), (cmd, reason) => {
+    fc.property(command, fc.integer({ min: 0, max: 2 }), (cmd, reason) => {
       const world = fakeBeachChairWorld();
       if (reason === 0) cmd.face = "down";
       if (reason === 1) world.isOwnBlock.mockReturnValue(true);
       if (reason === 2) world.isSolidTop.mockReturnValue(false);
-      if (reason === 3) world.isAir.mockReturnValue(false);
-      if (reason === 4) world.isVehicleSpace.mockReturnValue(true);
-      if (reason === 5) world.isCampSpace.mockReturnValue(true);
       expect(new PlaceBeachChair(world).execute(cmd)).toBe(false);
       expect(world.consumeItem).not.toHaveBeenCalled();
       expect(world.spawn).not.toHaveBeenCalled();

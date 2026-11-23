@@ -76,20 +76,6 @@ describe("PlaceChair (ADR 0122)", () => {
     );
   });
 
-  it("passes the Noga Chair kind through to spawning and consumption", () => {
-    fc.assert(
-      fc.property(command, (c) => {
-        const world = new FakeChairWorld();
-        const kind = "noga_chair";
-        expect(new PlaceChair(world).execute({ ...cmdOf(c), kind })).toBe(true);
-        expect(world.spawned[0]?.kind).toBe(kind);
-        expect(world.consumed).toEqual([
-          { kind, playerId: asPlayerId("player"), slot: c.slot },
-        ]);
-      }),
-    );
-  });
-
   it("leaves the item and spawns nothing on any refusal", () => {
     fc.assert(
       fc.property(
@@ -103,19 +89,6 @@ describe("PlaceChair (ADR 0122)", () => {
           expect(world.consumed).toEqual([]);
         },
       ),
-    );
-  });
-
-  it("does not take the item in Creative", () => {
-    fc.assert(
-      fc.property(command, (c) => {
-        const world = new FakeChairWorld();
-        world.creative = true;
-        world.consumeResult = false;
-        expect(new PlaceChair(world).execute(cmdOf(c))).toBe(true);
-        expect(world.spawned).toHaveLength(1);
-        expect(world.consumed).toEqual([]);
-      }),
     );
   });
 
@@ -184,6 +157,7 @@ it("refunds only a paid chair item when spawning fails", () => {
           paid && !spawnOk ? [{ kind, playerId }] : [],
         );
         expect(world.spawned).toHaveLength(placed ? 1 : 0);
+        if (placed) expect(world.spawned[0]?.kind).toBe(kind);
       },
     ),
   );

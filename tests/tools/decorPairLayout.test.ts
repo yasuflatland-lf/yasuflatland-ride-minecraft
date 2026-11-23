@@ -46,38 +46,41 @@ print('ok')
   ).toBe("ok\n");
 });
 
-// Each run takes about 40 s with the buried-face cull (27.64 s on main before it); 4 x 40 = 160 s, rounded up to 200 s.
-it("reports orphan pair geometries without rewriting in check mode and removes them on regeneration", {
-  timeout: 200_000,
-}, async () => {
-  expect(
-    await python.run(`
-import json, subprocess, sys, tempfile
+it("reports retired pair geometries in check mode and removes only those files on regeneration", async () => {
+  await python.run(`
+import json, sys, tempfile
 from pathlib import Path
+from unittest.mock import patch
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+g = load_tool('gen_camping_gear')
 with tempfile.TemporaryDirectory() as temporary:
-    root = Path(temporary)
-    rp, bp = root / 'rp', root / 'bp'
-    atlas = rp / 'textures/item_texture.json'
-    atlas.parent.mkdir(parents=True)
-    atlas.write_text(json.dumps({'resource_pack_name': 'yasu_ride', 'texture_name': 'atlas.items', 'texture_data': {}}))
-    command = [sys.executable, '-I', 'tools/gen_camping_gear.py', str(rp), str(bp)]
-    subprocess.run(command, check=True, capture_output=True)
-    subprocess.run(command + ['--check'], check=True, capture_output=True)
-    models = rp / 'models/blocks/yasu_ride'
-    orphans = [models / (name + '_decor_pair.geo.json') for name in ('shelf', 'cabinet', 'fridge', 'retired_layout')]
-    for path in orphans:
-        path.write_text('{}')
-    before = {path: path.read_bytes() for path in root.rglob('*') if path.is_file()}
-    result = subprocess.run(command + ['--check'], capture_output=True, text=True)
-    assert result.returncode == 1
-    for path in orphans:
-        assert f'{path} (orphan decor pair geometry)' in result.stderr
-    assert before == {path: path.read_bytes() for path in root.rglob('*') if path.is_file()}
-    subprocess.run(command, check=True, capture_output=True)
-    assert not any(path.exists() for path in orphans)
-    assert (models / 'drawers_decor_pair.geo.json').exists()
-    subprocess.run(command + ['--check'], check=True, capture_output=True)
-print('ok')
-`),
-  ).toBe("ok\n");
+    rp = Path(temporary) / 'rp'
+    models = rp / g.MODELS
+    models.mkdir(parents=True)
+    retired = [models / f'{name}_decor_pair.geo.json' for name in ('retired', 'shelf')]
+    retained = [models / name for name in (
+        'board_decor_pair.geo.json', 'table_decor_pair.geo.json', 'drawers_decor_pair.geo.json', 'other.geo.json')]
+    for path in retired + retained:
+        path.write_bytes(b'fixture')
+    args = ['gen_camping_gear', str(rp), str(Path(temporary) / 'bp')]
+    item = next(item for item in json.loads(g.SPEC.read_text()) if not item['hanging'])
+    spec = Path(temporary) / 'spec.json'
+    spec.write_text(json.dumps([item]))
+    with (patch.object(g, 'SPEC', spec), patch.object(g, 'SHAPES', {item['id']: g.SHAPES[item['id']]}),
+          patch.object(g, 'validate'), patch.object(g, 'write_geometries'), patch.object(g.texture_io.Outputs, 'json'),
+          patch.object(g.texture_io.Outputs, 'png')):
+        with patch.object(sys, 'argv', args + ['--check']):
+            try:
+                g.main()
+            except SystemExit as error:
+                assert set(str(error).splitlines()[1:]) == {f'{path} (orphan decor pair geometry)' for path in retired}
+            else:
+                raise AssertionError('orphan was not reported')
+        assert all(path.read_bytes() == b'fixture' for path in retired + retained)
+        with patch.object(sys, 'argv', args):
+            g.main()
+    assert not any(path.exists() for path in retired)
+    assert all(path.read_bytes() == b'fixture' for path in retained)
+`);
 });

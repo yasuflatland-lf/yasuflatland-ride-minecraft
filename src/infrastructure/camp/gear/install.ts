@@ -63,7 +63,7 @@ export function installCampGear(deps: {
     ]),
     deps.topHosts,
   );
-  registerFirePit(new FirePitActions(firePits), firePits);
+  registerFirePit(new FirePitActions(firePits));
   const gasLanterns = new GasLanternActions(gasLanternWorld);
   const placeLanternOnTop = registerGasLantern(
     gasLanterns,

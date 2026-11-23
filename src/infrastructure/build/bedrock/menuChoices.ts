@@ -1,4 +1,4 @@
-import type { CancelFlow } from "../../../application/build/cancelFlow";
+import type { BackToAiming } from "../../../application/build/backToAiming";
 import type { ChooseAdjustHeight } from "../../../application/build/chooseAdjustHeight";
 import type { ChooseBoxStep } from "../../../application/build/chooseBoxStep";
 import type { ChooseHeighted } from "../../../application/build/chooseHeighted";
@@ -61,7 +61,7 @@ export interface MenuCases {
   confirmStairs: Pick<ConfirmStairs, "execute">;
   chooseTerrain: Pick<ChooseTerrain, "execute">;
   confirmTerrain: Pick<ConfirmTerrain, "execute">;
-  cancel: Pick<CancelFlow, "backToAiming">;
+  cancel: Pick<BackToAiming, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
   endPasting: Pick<EndPasting, "execute">;
   newCopy: Pick<NewCopy, "execute">;

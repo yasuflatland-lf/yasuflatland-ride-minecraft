@@ -8,6 +8,7 @@ import {
   ROAD_PAVER_SWITCH_ITEM,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
 import { NAMESPACE } from "../../../../../src/infrastructure/shared/identifiers";
+import { BULLDOZER_PACK_CONTRACT } from "../../../../support/packContract";
 
 interface CatalogGroup {
   group_identifier?: { name: string };
@@ -37,7 +38,7 @@ function groupItems(qualifiedName: string): string[] {
 
 describe("bulldozer cab monitor rule (ADR 0139)", () => {
   it("shows only items of its creative group", () => {
-    const items = groupItems(BULLDOZER_MONITOR.group);
+    const items = groupItems(BULLDOZER_PACK_CONTRACT.monitorGroup);
     expect(BULLDOZER_MONITOR.tools).toContainEqual({
       item: ROAD_PAVER_SWITCH_ITEM,
       states: ["off", "on"],

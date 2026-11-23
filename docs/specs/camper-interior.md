@@ -300,7 +300,7 @@
 - Basis: [0107](../adr/0107-stand-stove-gear-on-a-burner.md) Decision retains height-15 grate compatibility and standing-item clearance.
 - Basis: [0112](../adr/0112-one-burner-on-the-camper-stove.md) Decision defines the single burner, aligned dial and vent, and preserved legacy spot indices.
 - Implementation: `tools/camper_kitchen.py`; `tools/camper_kit.py`; `tools/gen_camper.py`; `src/domain/vehicle/kinds/camper/furniture.ts`; `packs/yasu_ride_rp/models/entity/yasu_ride/camper.geo.json`
-- Verification: `tests/packs/camper/kitchen.test.ts` checks the centred dial/vent, twelve slots, flush notched cover, tap separation and 209-cube burner. `tests/tools/camperKitchen.test.ts` checks registered materials, frozen refs, atlas audits and burner transforms. `tests/packs/camper/room.test.ts` checks counter height 14, grate height 15 and standing-item clearance over stove, counter/sink and shared storage slots. Cube snapshots track the `counter`, `range`, `burner` and retained `room` areas. Device appearance and presses remain unverified.
+- Verification: `tests/packs/camper/kitchen.test.ts` checks the centred dial/vent, twelve slots, flush notched cover, tap separation and 209-cube burner. `tests/tools/camperKitchen.test.ts` audits the kitchen atlas and checks burner transforms. `tests/packs/camper/room.test.ts` checks counter height 14, grate height 15 and standing-item clearance over stove, counter/sink and shared storage slots. Cube snapshots track the `counter`, `range`, `burner` and retained `room` areas. Device appearance and presses remain unverified.
 
 ### Sliding kitchen drawers
 
