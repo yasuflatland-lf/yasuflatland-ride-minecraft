@@ -4,7 +4,7 @@ import type {
   HeightedPlacement,
   HeightedVolume,
   HeightStepSpec,
-} from "../volume/geometry";
+} from "../volume/types";
 import { type Curve, line, outlinePoints } from "../wireframe";
 import {
   isRoofKind,

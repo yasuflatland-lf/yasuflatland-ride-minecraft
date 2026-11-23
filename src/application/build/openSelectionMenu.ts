@@ -1,9 +1,9 @@
-import { withoutStepBack } from "../../domain/build/flow/flow";
 import {
   type MenuEntry,
   type RootEntryId,
   shapeMenu,
 } from "../../domain/build/flow/menu";
+import { withoutStepBack } from "../../domain/build/flow/stepBack";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 

@@ -1,6 +1,6 @@
 import { aimedEndPoint } from "../../domain/build/aim/endPoint";
 import type { AimSample } from "../../domain/build/aim/sample";
-import type { BuildFlow } from "../../domain/build/flow/flow";
+import type { BuildFlow } from "../../domain/build/flow/state";
 import { tapTargetCell } from "../../domain/build/tapTarget";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { BuildBlockWorld } from "./ports/blocks";

@@ -1,6 +1,6 @@
 import { cellsOf, sizeOf, volume } from "../../domain/build/box";
 import { completionMessage } from "../../domain/build/edit/completion";
-import { airPressOffersUndo } from "../../domain/build/flow/flow";
+import { airPressOffersUndo } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Logger } from "../shared/ports/logger";

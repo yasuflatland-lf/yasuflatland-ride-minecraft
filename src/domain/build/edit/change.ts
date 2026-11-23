@@ -3,7 +3,7 @@ import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import type { CellBox } from "../box";
-import type { Taps } from "../flow/flow";
+import type { Taps } from "../flow/taps";
 
 export type EditKind = "undoable" | "undo" | "irreversible";
 
