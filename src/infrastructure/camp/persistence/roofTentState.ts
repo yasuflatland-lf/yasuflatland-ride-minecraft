@@ -1,12 +1,10 @@
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, parseCell } from "../../../domain/shared/cells";
 import { asPlayerId, type PlayerId } from "../../../domain/shared/ids";
 
 export function decodeExit(raw: unknown): Cell | undefined {
   if (typeof raw !== "string") return undefined;
   try {
-    const value = JSON.parse(raw) as Cell | null;
-    if (value && [value.x, value.y, value.z].every(Number.isFinite))
-      return value;
+    return parseCell(JSON.parse(raw));
   } catch {
     return undefined;
   }

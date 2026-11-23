@@ -54,12 +54,21 @@ The five scooter README previews include a running-board close-up; its framing i
 - Implementation: `src/domain/vehicle/kinds/scooter/lean.ts` (`stepLean`, `bodyRoll`, `rollLevel`), `src/domain/vehicle/kinds/scooter/steer.ts` (`steerAngle`), `src/domain/vehicle/kinds/scooter/drive.ts`, `src/domain/vehicle/kinds/scooter/entity.ts` (`leanCommand`, `steerCommand`)
 - Verification: `tests/domain/vehicle/kinds/scooter/lean.test.ts` "bounds lean and each tick's change through arbitrary turns", "settles at the speed-scaled and clamped steering target", "has ascending roll level angles that cover the ground range and the total roll", "quantizes body roll into bounded monotone odd-symmetric levels", "takes body roll as lean minus bank, matching the model's lean animation"; `tests/domain/vehicle/kinds/scooter/steer.test.ts` "scales steering within the handlebar limits"; `tests/domain/vehicle/kinds/scooter/drive.test.ts` "leans into hover and landing turns with the ground sign", "bounds flight lean by maxLean and each tick's change by leanRate", "eases flight lean upright when steering is released or the driver leaves", "eases upright during take-off even while steering is held", "resends both inherited and scooter properties after resync". Automated checks cover the drive behavior. Pending: the rider and body lean and steering appearance on PC and mobile, including flight; the in-game test pack cannot seat a player.
 
+### Reverse lean
+
+- Applies to: Scooter steering while reversing.
+- Rule: **5.** Lean scales with absolute speed: when reversing while steering left, the scooter still leans left even as its nose turns right.
+- Agreement: Proposed
+- Basis: `src/domain/vehicle/kinds/scooter/lean.ts` (`stepLean`); `src/domain/vehicle/motion/motion.ts` (ground steering). [0251](../adr/0251-add-the-scooter-kind.md).
+- Implementation: `src/domain/vehicle/kinds/scooter/lean.ts`; `src/domain/vehicle/motion/motion.ts`
+- Verification: `tests/domain/vehicle/kinds/scooter/lean.test.ts` "leans with steering from upright in either travel direction".
+
 ### Centre stand
 
 - Applies to: Scooter in car form; the entity property `yasu_ride:stand`.
-- Rule: The stand is down when nobody is aboard and no driver is awaited, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A boarding rider folds it up. The folded stand lies horizontal under the floor, pointing at the front tyre: the legs rest about 28 degrees forward of straight down, and `stand_up` turns the stand 62 degrees further forward (`STAND_UP_DEGREES` -62).
+- Rule: **3.** The stand is down whenever the scooter receives no drive input and no driver is awaited, also with a rider on it, the speed is under `standSpeed` (0.01 blocks per tick) and the scooter is not on water; otherwise it is up. Outside car form it is up. The client lowers the stand on the property and raises it when the property is false, with short blends. A rider who sends drive input raises it. The folded stand lies horizontal under the floor, pointing at the front tyre: the legs rest about 28 degrees forward of straight down, and `stand_up` turns the stand 62 degrees further forward (`STAND_UP_DEGREES` -62).
 - Agreement: Proposed
-- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision, "`yasu_ride:stand` is true when nobody is aboard"
+- Basis: [0251](../adr/0251-add-the-scooter-kind.md) Decision; `src/domain/vehicle/kinds/scooter/drive.ts` (`step` passes the presence of raw input and the awaited-driver flag to `standDown`); `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`).
 - Implementation: `tools/scooter_stand.py` (stand model), `src/domain/vehicle/kinds/scooter/stand.ts` (`standDown`), `src/domain/vehicle/kinds/scooter/drive.ts`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/scooter.ac.json`
 - Verification: `tests/domain/vehicle/kinds/scooter/stand.test.ts` "lowers only when empty, stopped and dry", "stays up at the stopped threshold in either direction"; `tests/domain/vehicle/kinds/scooter/drive.test.ts` "lowers the stand once at rest and raises it when a driver appears"; `tests/packs/scooterClient.test.ts` "raises the stand when the stand property is false with short blends". Tests were read, not run for this spec.
 

@@ -1,7 +1,10 @@
-import { rotatedQuarter, type Size } from "../box";
+import type { Quarter } from "../../shared/facing";
+import type { Size } from "../box";
+
+export { quarterDegrees as degreesOf } from "../../shared/facing";
 
 /** Clockwise quarter turns seen from above. */
-export type QuarterTurn = 0 | 1 | 2 | 3;
+export type QuarterTurn = Quarter;
 
 export const NO_TURN: QuarterTurn = 0;
 
@@ -9,10 +12,8 @@ export function nextQuarterTurn(turn: QuarterTurn): QuarterTurn {
   return ((turn + 1) % 4) as QuarterTurn;
 }
 
-export function degreesOf(turn: QuarterTurn): 0 | 90 | 180 | 270 {
-  return (90 * turn) as 0 | 90 | 180 | 270;
-}
-
 export function rotatedSize(size: Size, turn: QuarterTurn): Size {
-  return Object.freeze(turn % 2 === 0 ? { ...size } : rotatedQuarter(size));
+  return Object.freeze(
+    turn % 2 === 0 ? { ...size } : { x: size.z, y: size.y, z: size.x },
+  );
 }

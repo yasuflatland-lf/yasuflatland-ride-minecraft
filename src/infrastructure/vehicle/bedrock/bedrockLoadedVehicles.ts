@@ -6,7 +6,6 @@ import {
   type Player,
 } from "@minecraft/server";
 import type { VehicleHostState } from "../../../application/shared/ports/vehicleHost";
-import { hostStateOf } from "../../../application/vehicle/hostStateOf";
 import type {
   LoadedVehicleWorld,
   VehicleSnapshot,
@@ -19,6 +18,7 @@ import {
 } from "../../../domain/shared/ids";
 import type { HoldPose } from "../../../domain/vehicle/dock/floor";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
+import { hostStateFrom } from "../../../domain/vehicle/hostState";
 import {
   entityContractOf,
   profileOf,
@@ -135,7 +135,7 @@ export class BedrockLoadedVehicles implements LoadedVehicleWorld {
     if (!vehicle) return { status: "unknown" };
     const kind = kindOfEntity(vehicle.typeId);
     if (kind === undefined) return { status: "unknown" };
-    return hostStateOf(
+    return hostStateFrom(
       {
         location: vehicle.location,
         yaw: vehicle.getRotation().y,
