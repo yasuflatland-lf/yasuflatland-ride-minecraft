@@ -15,15 +15,12 @@ it("lowers only when empty, stopped and dry", () => {
         );
       },
     ),
+    { examples: [[false, false, 0]] },
   );
 });
-it("stays up at the stopped threshold in either direction", () => {
-  fc.assert(
-    fc.property(fc.constantFrom(-1, 1), (sign) => {
-      expect(standDown(false, sign * SCOOTER_SPEC.standSpeed, false)).toBe(
-        false,
-      );
-      expect(standDown(false, 0, false)).toBe(true);
-    }),
-  );
-});
+it.each([-1, 1])(
+  "stays up at the stopped threshold in direction %i",
+  (sign) => {
+    expect(standDown(false, sign * SCOOTER_SPEC.standSpeed, false)).toBe(false);
+  },
+);

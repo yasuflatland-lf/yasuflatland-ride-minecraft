@@ -21,18 +21,13 @@ it("matches tools/camping_gear.json item for item and in which items hang (ADR 0
 });
 
 it("reads every current gear id unchanged", () => {
-  fc.assert(
-    fc.property(fc.constantFrom(...CAMPING_GEAR_IDS), (id) => {
-      expect(currentGearId(decorItemId(id))).toBe(id);
-    }),
-  );
+  for (const id of CAMPING_GEAR_IDS)
+    expect(currentGearId(decorItemId(id))).toBe(id);
 });
 
 it("drops lava_lamp, oil_lamp and lantern", () => {
   for (const id of ["lava_lamp", "oil_lamp", "lantern"])
     expect(currentGearId(decorItemId(id))).toBeUndefined();
-  for (const id of CAMPING_GEAR_IDS)
-    expect(currentGearId(decorItemId(id))).toBe(id);
 });
 
 it("drops unknown ids, including inherited object keys", () => {
