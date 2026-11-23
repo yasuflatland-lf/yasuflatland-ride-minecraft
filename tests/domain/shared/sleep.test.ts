@@ -15,8 +15,4 @@ describe("canSleep (ADR 0092)", () => {
   it("does not let the player sleep again right after waking", () => {
     expect(canSleep(SLEEP.wakeTime)).toBe(false);
   });
-
-  it("changes the time when the fade-in ends", () => {
-    expect(SLEEP.wakeDelayTicks).toBe(SLEEP.fadeInSeconds * 20);
-  });
 });

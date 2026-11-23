@@ -1,70 +1,54 @@
-import { world } from "@minecraft/server";
-import { expect, it, vi } from "vitest";
-import { PlaceDecor } from "../../../src/application/vehicle/room/placeDecor";
-import { RemoveDecor } from "../../../src/application/vehicle/room/removeDecor";
-import { SetDecor } from "../../../src/application/vehicle/room/setDecor";
-import { SwitchTool } from "../../../src/application/vehicle/switchTool";
-import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
-import { registerDockGuard } from "../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard";
-import { registerSubscriptions } from "../../../src/infrastructure/vehicle/bedrock/subscriptions";
+import {
+  type Dimension,
+  type ItemUseAfterEvent,
+  type Player,
+  type PlayerInteractWithBlockBeforeEvent,
+  system,
+  world,
+} from "@minecraft/server";
+import { beforeEach, expect, it, vi } from "vitest";
+import { asDimensionId } from "../../../src/domain/shared/ids";
+import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identifiers";
+import { ITEM_TYPE } from "../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { installVehicles } from "../../../src/infrastructure/vehicle/install";
-import { installCamper } from "../../../src/infrastructure/vehicle/kinds/camper/install";
-import { defined } from "../../support/defined";
 
-vi.mock("@minecraft/server", () => ({
-  world: {
-    getEntity: vi.fn(),
-    afterEvents: { entitySpawn: { subscribe: vi.fn() } },
-  },
-  EntityInitializationCause: { Loaded: "Loaded" },
-  BlockVolume: class {},
-  system: {},
-  InputMode: { Touch: "Touch", KeyboardAndMouse: "KeyboardAndMouse" },
-}));
-vi.mock("../../../src/infrastructure/vehicle/bedrock/subscriptions", () => ({
-  registerSubscriptions: vi.fn(),
-}));
-
-vi.mock("../../../src/infrastructure/vehicle/kinds/camper/install", () => ({
-  installCamper: vi.fn(),
-}));
-vi.mock(
-  "../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard",
-  () => ({ registerDockGuard: vi.fn() }),
-);
-
-it("wires the decor use cases and the dock owner lookups into the subscriptions (ADR 0093, 0096)", () => {
-  installVehicles({
-    isCampSpace: () => false,
-    laterSwitchTargets: () => [],
-  });
-  const [useCases, , , dockCellOwner, installKind] = defined(
-    vi.mocked(registerSubscriptions).mock.lastCall,
-    "vehicle subscriptions",
-  );
-  expect(useCases.decor).toBeInstanceOf(SetDecor);
-  installKind();
-  const [camper, dockDoorOwner, camperCellOwner, installGuard] = defined(
-    vi.mocked(installCamper).mock.lastCall,
-    "camper installation",
-  );
-  expect(camper.placeDecor).toBeInstanceOf(PlaceDecor);
-  expect(camper.removeDecor).toBeInstanceOf(RemoveDecor);
-  installGuard();
-  const [dockBlockOwner] = defined(
-    vi.mocked(registerDockGuard).mock.lastCall,
-    "dock guard",
-  );
-  const here = asDimensionId("overworld");
-  const cell = { x: 0, y: 64, z: 0 };
-  // Nothing is laid yet, so no lookup has an owner.
-  expect(dockDoorOwner?.(here, cell)).toBeUndefined();
-  expect(dockCellOwner?.(here, cell)).toBeUndefined();
-  expect(camperCellOwner(here, cell)).toBeUndefined();
-  expect(
-    dockBlockOwner?.(here, cell, "yasu_ride:camper_floor"),
-  ).toBeUndefined();
+vi.mock("@minecraft/server", () => {
+  const unusedEvent = { subscribe: vi.fn() };
+  return {
+    Direction: { Up: "Up" },
+    EntityInitializationCause: { Loaded: "Loaded" },
+    BlockVolume: class {},
+    GameMode: { Creative: "Creative" },
+    InputMode: { Touch: "Touch", KeyboardAndMouse: "KeyboardAndMouse" },
+    world: {
+      getEntity: vi.fn(),
+      getDimension: vi.fn(),
+      beforeEvents: {
+        playerInteractWithBlock: { subscribe: vi.fn() },
+        playerBreakBlock: unusedEvent,
+        playerInteractWithEntity: unusedEvent,
+        entityRemove: unusedEvent,
+      },
+      afterEvents: {
+        entitySpawn: unusedEvent,
+        entityLoad: unusedEvent,
+        entityDie: unusedEvent,
+        entityHitEntity: unusedEvent,
+        itemUse: { subscribe: vi.fn() },
+        playerSpawn: unusedEvent,
+      },
+    },
+    system: {
+      currentTick: 1,
+      run: vi.fn(),
+      runInterval: vi.fn(),
+      beforeEvents: { startup: unusedEvent },
+      afterEvents: { scriptEventReceive: unusedEvent },
+    },
+  };
 });
+
+beforeEach(() => vi.resetAllMocks());
 
 it("returns the vehicles' space check for other features (ADR 0122)", () => {
   const { isVehicleSpace, vehicleHost } = installVehicles({
@@ -78,48 +62,81 @@ it("returns the vehicles' space check for other features (ADR 0122)", () => {
   ).toBe(false);
 });
 
-it("hands the camp's space check to vehicle placement (ADR 0129)", () => {
-  const isCampSpace = vi.fn(() => true);
-  installVehicles({
-    isCampSpace,
-    laterSwitchTargets: () => [],
-  });
-  const useCases = vi.mocked(registerSubscriptions).mock.lastCall?.[0];
-  expect(
-    useCases?.place.execute({
-      kind: "suv",
-      playerId: asPlayerId("p"),
-      dimensionId: asDimensionId("overworld"),
-      blockLocation: { x: 0, y: 64, z: 0 },
-      yaw: 0,
-      slot: 0,
-    }),
-  ).toBe(false);
-  expect(isCampSpace).toHaveBeenCalledWith(
-    asDimensionId("overworld"),
-    expect.objectContaining({ y: 65 }),
-  );
-});
-
-it("passes the later targets and monitor tool to the subscriptions (ADR 0134, 0138)", () => {
-  const laterSwitchTargets = () => [];
+it("routes a switch press to the next feature when no vehicle owns the player's cell", () => {
+  const switchFor = vi.fn();
   installVehicles({
     isCampSpace: () => false,
-    laterSwitchTargets,
+    laterSwitchTargets: () => [
+      {
+        claimsItemUse: () => true,
+        claimsBlockPress: () => false,
+        claimsEntityPress: () => false,
+        switchFor,
+      },
+    ],
   });
-  expect(vi.mocked(registerSubscriptions).mock.lastCall?.[5]).toBe(
-    laterSwitchTargets,
-  );
-  expect(
-    vi.mocked(registerSubscriptions).mock.lastCall?.[0].tool,
-  ).toBeInstanceOf(SwitchTool);
+  const event = {
+    itemStack: { typeId: HEADLIGHT_SWITCH_TYPE },
+    source: {
+      id: "p",
+      isValid: true,
+      dimension: { id: "overworld" },
+      location: { x: 0, y: 64, z: 0 },
+      getComponent: () => undefined,
+    },
+  } as unknown as ItemUseAfterEvent;
+  for (const [use] of vi.mocked(world.afterEvents.itemUse.subscribe).mock.calls)
+    use(event);
+  expect(switchFor).toHaveBeenCalledExactlyOnceWith(event.source);
 });
 
-it("subscribes the blade-cut drop sweep once (ADR 0137)", () => {
-  vi.mocked(world.afterEvents.entitySpawn.subscribe).mockClear();
-  installVehicles({
-    isCampSpace: () => false,
-    laterSwitchTargets: () => [],
-  });
-  expect(world.afterEvents.entitySpawn.subscribe).toHaveBeenCalledTimes(1);
-});
+it.each([true, false])(
+  "places the SUV only outside camp space (camp occupied: %s, ADR 0129)",
+  (occupied) => {
+    const isCampSpace = vi.fn(() => occupied);
+    const spawnEntity = vi.fn(() => ({
+      id: "suv",
+      setRotation: vi.fn(),
+      setDynamicProperty: vi.fn(),
+    }));
+    const dimension = {
+      id: "overworld",
+      getBlock: () => ({ isAir: true }),
+      spawnEntity,
+    } as unknown as Dimension;
+    const player = {
+      id: "p",
+      typeId: "minecraft:player",
+      isValid: true,
+      getRotation: () => ({ y: 0 }),
+      selectedSlotIndex: 0,
+      getGameMode: () => "Creative",
+      getDynamicProperty: () => true,
+    } as unknown as Player;
+    vi.mocked(world.getDimension).mockReturnValue(dimension);
+    vi.mocked(world.getEntity).mockReturnValue(player);
+    installVehicles({ isCampSpace, laterSwitchTargets: () => [] });
+    vi.mocked(system.run).mockClear();
+    const event = {
+      player,
+      isFirstEvent: true,
+      itemStack: { typeId: ITEM_TYPE.suv },
+      blockFace: "Up",
+      block: {
+        typeId: "minecraft:stone",
+        dimension,
+        location: { x: 0, y: 64, z: 0 },
+      },
+    } as PlayerInteractWithBlockBeforeEvent;
+    for (const [onInteract] of vi.mocked(
+      world.beforeEvents.playerInteractWithBlock.subscribe,
+    ).mock.calls)
+      onInteract(event);
+    for (const [nextTick] of vi.mocked(system.run).mock.calls) nextTick();
+    expect(isCampSpace).toHaveBeenCalledWith(
+      asDimensionId("overworld"),
+      expect.objectContaining({ y: 65 }),
+    );
+    expect(spawnEntity).toHaveBeenCalledTimes(occupied ? 0 : 1);
+  },
+);

@@ -8,7 +8,7 @@ export const CAMPER_SAVED = Object.freeze({
   decor: "dockDecor",
 } as const);
 
-export type CamperSavedKey = (typeof CAMPER_SAVED)[keyof typeof CAMPER_SAVED];
+type CamperSavedKey = (typeof CAMPER_SAVED)[keyof typeof CAMPER_SAVED];
 
 export type CamperRestored = RestoredValues<
   (typeof CAMPER_ENTITY)["restored"][number] | CamperSavedKey

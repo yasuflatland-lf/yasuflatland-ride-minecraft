@@ -113,11 +113,11 @@ export const BULLDOZER_WIDE_BLADE: BladeRule = Object.freeze({
   ...BULLDOZER_SPEC.blade,
   halfWidth: 2 * BULLDOZER_SPEC.blade.halfWidth,
 });
-export const BULLDOZER_AIR: Medium = Object.freeze({
+const BULLDOZER_AIR: Medium = Object.freeze({
   drag: BULLDOZER_SPEC.flightDrag,
   maxSpeed: BULLDOZER_SPEC.maxSpeed,
 });
-export const BULLDOZER_WATER: Medium = Object.freeze({
+const BULLDOZER_WATER: Medium = Object.freeze({
   drag: BULLDOZER_SPEC.waterDrag,
   maxSpeed: BULLDOZER_SPEC.maxWaterSpeed,
 });

@@ -10,8 +10,14 @@ const game = vi.hoisted(() => ({
 }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
-const SAVED =
+const LEGACY_SAVE =
   '[{"id":"-4294967295","dimensionId":"minecraft:overworld","pose":{"x":110,"y":-60,"z":46,"yaw":180}}]';
+const legacyEntry = {
+  id: asTentId("-4294967295"),
+  dimensionId: asDimensionId("minecraft:overworld"),
+  pose: { x: 110, y: -60, z: 46, yaw: 180 },
+  layout: 1,
+};
 const entry = {
   layout: 1,
   id: asTentId("7"),
@@ -19,28 +25,28 @@ const entry = {
   pose: { x: 1, y: 2, z: 3, yaw: 90 as const },
 };
 
+function savedEntries(): unknown {
+  const [key, value] = game.setDynamicProperty.mock.lastCall ?? [];
+  expect(key).toBe(TENTS_PROPERTY);
+  return JSON.parse(value);
+}
+
 beforeEach(() => vi.resetAllMocks());
 
 it("reads the world property once, on first use, and writes it on add and remove (ADR 0131)", () => {
-  game.getDynamicProperty.mockReturnValue(SAVED);
+  game.getDynamicProperty.mockReturnValue(LEGACY_SAVE);
   const registry = new DynamicPropertyTentRegistry();
   expect(game.getDynamicProperty).not.toHaveBeenCalled();
-  expect(registry.all()).toHaveLength(1);
+  expect(registry.all()).toEqual([legacyEntry]);
   registry.all();
   expect(game.getDynamicProperty).toHaveBeenCalledExactlyOnceWith(
     TENTS_PROPERTY,
   );
   registry.add(entry);
   expect(registry.all()).toHaveLength(2);
-  expect(game.setDynamicProperty).toHaveBeenLastCalledWith(
-    TENTS_PROPERTY,
-    `${SAVED.slice(0, -2)},"layout":1},{"id":"7","dimensionId":"minecraft:nether","pose":{"x":1,"y":2,"z":3,"yaw":90},"layout":1}]`,
-  );
-  registry.remove(asTentId("-4294967295"));
-  expect(game.setDynamicProperty).toHaveBeenLastCalledWith(
-    TENTS_PROPERTY,
-    '[{"id":"7","dimensionId":"minecraft:nether","pose":{"x":1,"y":2,"z":3,"yaw":90},"layout":1}]',
-  );
+  expect(savedEntries()).toEqual([legacyEntry, entry]);
+  registry.remove(legacyEntry.id);
+  expect(savedEntries()).toEqual([entry]);
   registry.remove(asTentId("unknown"));
   expect(game.setDynamicProperty).toHaveBeenCalledTimes(2);
   expect(game.getDynamicProperty).toHaveBeenCalledTimes(1);

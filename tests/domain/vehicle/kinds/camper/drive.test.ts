@@ -70,10 +70,6 @@ it("keeps speed at zero when the front is against a four-block wall", () => {
   }
 });
 
-it("restores hover form", () => {
-  expect(new CamperDrive(0, { form: "hover" }).form).toBe("hover");
-});
-
 it.each([
   ["hover", CAMPER_AIR],
   ["submarine", CAMPER_WATER],

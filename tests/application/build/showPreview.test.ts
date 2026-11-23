@@ -23,20 +23,18 @@ import {
 } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { asPlayerId } from "../../../src/domain/shared/ids";
+import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
 import {
-  FakeAimReader,
   FakeBuildPlayers,
   FakeFeedback,
   FakeGroundProbe,
   FakeSessions,
   FakeTapTargets,
   FakeWorld,
-  fakeSyncTapTarget,
   nether,
   overworld,
 } from "./fakes";
@@ -280,10 +278,12 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
       pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
     }),
   });
+  const hintsBeforeAir = feedback.modes.length;
   for (const target of [{ input: "pointer" as const, ray }, undefined]) {
     aim.mockReturnValue(target);
     preview.execute(0);
   }
+  expect(feedback.modes).toHaveLength(hintsBeforeAir + 2);
   expect(feedback.previews).toHaveLength(6);
 });
 
@@ -322,45 +322,133 @@ it("keeps concurrent players and their aim targets separate", () => {
   ]);
 });
 
-it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
-  "reports %s size only when it changes and resets after leaving the height step",
-  (heightedKind) => {
-    const { session, preview, feedback, aim } = setup();
-    const flow = {
-      kind: "heightStep" as const,
-      heightLocked: false,
-      dimensionId: overworld,
+it("reports height-step sizes only on changes and resets each player's memo on exit", () => {
+  const layer = fc.integer({ min: 1, max: 6 });
+  const footprint = fc.integer({ min: 2, max: 9 });
+  const shape = fc.record({
+    heightedKind: fc.constantFrom(
+      "gable",
+      "hip",
+      "cylinder",
+      "sideCylinderX",
+      "sideCylinderZ",
+      "sphere",
+      "cube",
+    ),
+    width: footprint,
+    depth: footprint,
+    heightLocked: fc.boolean(),
+    previous: layer,
+  });
+  const players = [alex, asPlayerId("bob")] as const;
+  const otherFlow = fc.constantFrom(
+    { kind: "idle" } as const,
+    { kind: "point1", dimensionId: overworld, cell, material } as const,
+    {
+      kind: "selected",
+      menuLevel: "root",
+      selection: selectionOf(overworld, boxOf(cell, end), material),
       from: cell,
-      base: boxOf(cell, { x: 8, y: 64, z: 4 }),
-      heightedKind,
-      previous: 3,
-      material,
-    };
-    session.setFlow(flow);
-    aim.mockReturnValue({ input: "pointer", ray });
-    preview.execute(0);
-    preview.execute(interval);
-    expect(feedback.sizes).toEqual([
-      { playerId: alex, size: { x: 9, y: 3, z: 5 } },
-    ]);
-    aim.mockReturnValue({
-      input: "pointer",
-      ray: { ...ray, origin: { ...ray.origin, y: 69.5 } },
-    });
-    preview.execute(2 * interval);
-    preview.execute(3 * interval);
-    expect(feedback.sizes).toEqual([
-      { playerId: alex, size: { x: 9, y: 3, z: 5 } },
-      { playerId: alex, size: { x: 9, y: 6, z: 5 } },
-    ]);
-    session.setFlow({ kind: "idle" });
-    preview.execute(3 * interval + 1);
-    session.setFlow(flow);
-    preview.execute(4 * interval);
-    expect(feedback.sizes).toHaveLength(3);
-    expect(feedback.messages).toEqual([]);
-  },
-);
+      to: end,
+    } as const,
+    { kind: "pasteAim", manualTurn: 0 } as const,
+  );
+  const action = fc.oneof(
+    shape.map((shape) => ({ kind: "shape", shape }) as const),
+    fc
+      .option(layer, { nil: undefined })
+      .map((layer) => ({ kind: "aim", layer }) as const),
+    otherFlow.map((flow) => ({ kind: "leave", flow }) as const),
+    fc.constant({ kind: "remove" } as const),
+  );
+  const schedule = fc.array(
+    fc.tuple(fc.constantFrom(...players), action, fc.boolean()),
+    { minLength: 2, maxLength: 16 },
+  );
+  fc.assert(
+    fc.property(shape, schedule, (initial, steps) => {
+      const { repo, aim, preview, feedback } = setup();
+      const shapes = new Map<PlayerId, typeof initial>();
+      const layers = new Map<PlayerId, number | undefined>();
+      const previousSizes = new Map<
+        PlayerId,
+        { x: number; y: number; z: number }
+      >();
+      const expected: typeof feedback.sizes = [];
+      let tick = 0;
+      aim.mockImplementation((id) => {
+        const layer = layers.get(id);
+        if (layer === undefined) return undefined;
+        return {
+          input: "pointer",
+          ray: { ...ray, origin: { ...ray.origin, y: cell.y + layer - 0.5 } },
+        };
+      });
+      function enterHeightStep(id: PlayerId) {
+        const session = repo.getOrCreate(id);
+        for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
+          session.tickMode({ holding: true });
+        const { width, depth, heightedKind, previous, heightLocked } =
+          shapes.get(id) ?? initial;
+        session.setFlow({
+          kind: "heightStep",
+          heightedKind,
+          previous,
+          heightLocked,
+          material,
+          dimensionId: overworld,
+          from: cell,
+          base: boxOf(cell, {
+            ...cell,
+            x: cell.x + width - 1,
+            z: cell.z + depth - 1,
+          }),
+        });
+      }
+      function recordExpectedSize(id: PlayerId) {
+        const { width, depth, heightLocked, previous } =
+          shapes.get(id) ?? initial;
+        const size = {
+          x: width,
+          y: heightLocked ? previous : (layers.get(id) ?? previous),
+          z: depth,
+        };
+        const last = previousSizes.get(id);
+        if (last?.x !== size.x || last.y !== size.y || last.z !== size.z)
+          expected.push({ playerId: id, size });
+        previousSizes.set(id, size);
+      }
+      function redraw() {
+        for (let i = 0; i < 2; i++) {
+          preview.execute(tick);
+          tick += interval;
+          expect(feedback.sizes).toEqual(expected);
+        }
+      }
+      for (const id of players) {
+        enterHeightStep(id);
+        recordExpectedSize(id);
+      }
+      redraw();
+      for (const [id, action, betweenRedraws] of steps) {
+        if (action.kind === "shape") shapes.set(id, action.shape);
+        if (action.kind === "aim") layers.set(id, action.layer);
+        if (action.kind === "leave" || action.kind === "remove") {
+          if (action.kind === "leave")
+            repo.getOrCreate(id).setFlow(action.flow);
+          else repo.remove(id);
+          previousSizes.delete(id);
+          if (betweenRedraws) preview.execute(tick - 1);
+          else redraw();
+        }
+        if (action.kind !== "aim") enterHeightStep(id);
+        recordExpectedSize(id);
+        redraw();
+      }
+      expect(feedback.messages).toEqual([]);
+    }),
+  );
+});
 
 it("reports a locked cylinder once and ignores changes in aim", () => {
   const { session, preview, feedback, aim } = setup();
@@ -385,72 +473,6 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
   expect(feedback.sizes).toEqual([
     { playerId: alex, size: { x: 9, y: 12, z: 5 } },
   ]);
-});
-
-it("does not report sizes outside the height step", () => {
-  const { session, preview, feedback, aim } = setup();
-  aim.mockReturnValue({ input: "pointer", ray });
-  preview.execute(0);
-  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
-  preview.execute(interval);
-  session.setFlow({
-    kind: "selected",
-    menuLevel: "root",
-    selection: selectionOf(overworld, boxOf(cell, end), material),
-    from: cell,
-    to: end,
-  });
-  preview.execute(2 * interval);
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
-  preview.execute(3 * interval);
-  expect(feedback.sizes).toEqual([]);
-});
-
-it("memoizes sizes independently for each player and forgets removed sessions", () => {
-  const { session, repo, preview, feedback } = setup();
-  const bob = asPlayerId("bob");
-  const other = repo.getOrCreate(bob);
-  const modes = new UpdateBuildModes(
-    repo,
-    new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
-  );
-  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-    modes.execute([
-      { playerId: alex, held: "wand" },
-      { playerId: bob, held: "wand" },
-    ]);
-  const flow = {
-    kind: "heightStep" as const,
-    heightLocked: false,
-    dimensionId: overworld,
-    from: cell,
-    base: boxOf(cell, { x: 8, y: 64, z: 4 }),
-    heightedKind: "cube" as const,
-    previous: 3,
-    material,
-  };
-  session.setFlow(flow);
-  other.setFlow(flow);
-  preview.execute(0);
-  session.setFlow({ ...flow, base: boxOf(cell, { x: 5, y: 64, z: 7 }) });
-  preview.execute(interval);
-  expect(feedback.sizes).toEqual([
-    { playerId: alex, size: { x: 9, y: 3, z: 5 } },
-    { playerId: bob, size: { x: 9, y: 3, z: 5 } },
-    { playerId: alex, size: { x: 6, y: 3, z: 8 } },
-  ]);
-  repo.remove(bob);
-  preview.execute(2 * interval);
-  const returning = repo.getOrCreate(bob);
-  for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
-    modes.execute([
-      { playerId: alex, held: "wand" },
-      { playerId: bob, held: "wand" },
-    ]);
-  returning.setFlow(flow);
-  preview.execute(3 * interval);
-  expect(feedback.sizes).toHaveLength(4);
-  expect(feedback.sizes[3]?.playerId).toBe(bob);
 });
 
 it("refreshes the paste hint each interval without requiring an aimed block", () => {
@@ -516,29 +538,6 @@ it("never shows paste hints in other flows or outside build mode", () => {
   inactive.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   inactive.preview.execute(0);
   expect(inactive.feedback.modes).toEqual([]);
-});
-
-it("flow.kind === 'pasteAim' draws no paste layers with a clipboard but no aimed block", () => {
-  const { repo, session, feedback } = setup();
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
-  holdClipboard(
-    session,
-    structureClipboard(boxOf(cell, end), () => material),
-  );
-  const aim = new FakeAimReader();
-  const preview = new ShowPreview(
-    repo,
-    feedback,
-    aim,
-    new ResolvePasteTarget(repo, new FakeGroundProbe()),
-    fakeSyncTapTarget(),
-  );
-  for (const target of [{ input: "pointer" as const, ray }, undefined]) {
-    aim.target = target;
-    preview.execute(0);
-  }
-  expect(feedback.previews).toEqual([]);
-  expect(feedback.modes).toHaveLength(2);
 });
 
 it("idle after New copy draws no paste layers or hints with a held clipboard", () => {

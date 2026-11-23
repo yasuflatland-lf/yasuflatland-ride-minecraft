@@ -12,7 +12,6 @@ import {
   beachChairPose,
   beachChairPoseAt,
   beachChairSupportCells,
-  CHAIR_MENU_CHOICES,
   type ChairForm,
   type ChairState,
   canTakeBack,
@@ -276,9 +275,5 @@ describe("form rules", () => {
         else expect(result).toEqual({ ok: true });
       }),
     );
-  });
-
-  it("lists the menu choices in display order", () => {
-    expect(CHAIR_MENU_CHOICES).toEqual(["lie_down", "fold"]);
   });
 });

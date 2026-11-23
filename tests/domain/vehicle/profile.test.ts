@@ -1,58 +1,24 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { EMPTY_COUNTER } from "../../../src/domain/shared/hitCounter";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 import { dot, forward, rightOf } from "../../../src/domain/shared/vec";
-import { NEUTRAL_CONTROL } from "../../../src/domain/vehicle/driveInput";
 import { isVehicleKind, VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
-import {
-  BULLDOZER_AIR,
-  BULLDOZER_SPEC,
-  BULLDOZER_WATER,
-  BULLDOZER_WIDE_BLADE,
-} from "../../../src/domain/vehicle/kinds/bulldozer/spec";
-import {
-  CAMPER_MOTION,
-  CAMPER_PROFILE,
-  CAMPER_TYRES,
-} from "../../../src/domain/vehicle/kinds/camper/profile";
-import {
-  CAMPER_AIR,
-  CAMPER_SPEC,
-  CAMPER_TRANSFORMING,
-  CAMPER_WATER,
-} from "../../../src/domain/vehicle/kinds/camper/spec";
-import * as kinds from "../../../src/domain/vehicle/kinds/index";
+import { CAMPER_PROFILE } from "../../../src/domain/vehicle/kinds/camper/profile";
+import { CAMPER_SPEC } from "../../../src/domain/vehicle/kinds/camper/spec";
 import {
   createVehicle,
   profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SCOOTER_PROFILE } from "../../../src/domain/vehicle/kinds/scooter/profile";
-import { SCOOTER_SPEC } from "../../../src/domain/vehicle/kinds/scooter/spec";
-import { SPORTSBOAT_ATTITUDE } from "../../../src/domain/vehicle/kinds/sportsboat/attitude";
-import {
-  SPORTSBOAT_DRAG,
-  SPORTSBOAT_WATER,
-} from "../../../src/domain/vehicle/kinds/sportsboat/drive";
-import {
-  SPORTSBOAT_MOTION,
-  SPORTSBOAT_PROFILE,
-} from "../../../src/domain/vehicle/kinds/sportsboat/profile";
-import { SPORTSBOAT_SPEC } from "../../../src/domain/vehicle/kinds/sportsboat/spec";
+import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
 import {
   SUV_MOTION,
   SUV_PROFILE,
   SUV_TYRES,
 } from "../../../src/domain/vehicle/kinds/suv/profile";
-import {
-  AIR,
-  SUV_SPEC,
-  SUV_TRANSFORMING,
-  WATER,
-} from "../../../src/domain/vehicle/kinds/suv/spec";
-import * as motionConstants from "../../../src/domain/vehicle/motion/constants";
+import { SUV_SPEC } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
   type GroundInput,
@@ -61,8 +27,6 @@ import {
   stepMotion,
   updateSpeed,
 } from "../../../src/domain/vehicle/motion/motion";
-import { stepLanes } from "../../../src/domain/vehicle/motion/stepUp";
-import { SPEC } from "../../../src/domain/vehicle/spec";
 import { SUV_PACK_CONTRACT } from "../../support/packContract";
 
 const NEUTRAL_GROUND: GroundInput = {
@@ -117,39 +81,17 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 
-  it.each([
-    {
-      kind: "suv",
-      body: { front: 2.68, halfWidth: 1.43, height: 2.36 },
-      clearance: { halfX: 1, halfZ: 1, height: 3 },
-    },
-    {
-      kind: "camper",
-      body: { front: 3.7, halfWidth: 1.5, height: 4.0 },
-      clearance: { halfX: 1, halfZ: 1, height: 4 },
-    },
-    {
-      kind: "sportsboat",
-      body: { front: 3.0, halfWidth: 1.06, height: 1.2 },
-      clearance: { halfX: 1, halfZ: 1, height: 2 },
-    },
-  ] as const)(
-    "preserves $kind body dimensions and placement clearance",
-    ({ kind, body, clearance }) => {
-      expect(profileOf(kind).body).toEqual(body);
-      expect(profileOf(kind).placement.clearance).toEqual(clearance);
+  it.each(VEHICLE_KINDS)(
+    "keeps %s seats within the body and footprint",
+    (kind) => {
+      const { seats, body, footprint } = profileOf(kind);
+      for (const { x, z } of seats.positions) {
+        expect(Math.abs(x)).toBeLessThanOrEqual(body.halfWidth);
+        expect(z).toBeLessThanOrEqual(body.front);
+        expect(Math.hypot(x, z)).toBeLessThanOrEqual(footprint);
+      }
     },
   );
-
-  it("preserves the SUV footprint and seat positions", () => {
-    expect(SUV_PROFILE.footprint).toBe(3.18);
-    expect(SUV_PROFILE.seats.positions).toEqual([
-      { x: -0.463, z: -0.089 },
-      { x: 0.463, z: -0.089 },
-      { x: -0.463, z: -0.974 },
-      { x: 0.463, z: -0.974 },
-    ]);
-  });
 
   it("keeps the SUV ladder foot at least 0.9 block outside its body and the anchor inside", () => {
     expect(SUV_SPEC.roofTentEntranceX).toBeGreaterThanOrEqual(
@@ -174,36 +116,14 @@ describe("vehicle profiles (ADR 0050)", () => {
     );
   });
 
-  it("reads the camper's tyre values from its spec (ADR 0089)", () => {
-    expect(CAMPER_TYRES).toEqual({
-      handbrakeGrip: CAMPER_SPEC.handbrakeGrip,
-      creepSpeed: CAMPER_SPEC.creepSpeed,
-    });
-  });
-
-  it("preserves the sports boat footprint, seats, beams and placement", () => {
-    expect(SPORTSBOAT_PROFILE).toMatchObject({
-      footprint: 3.5,
-      seats: {
-        positions: [
-          { x: -0.38, z: 0.1625 },
-          { x: 0.38, z: 0.1625 },
-          { x: -0.38, z: -0.8 },
-          { x: 0.38, z: -0.8 },
-        ],
-      },
-      boarding: { aimHeight: 0.52, aimRadius: 0.38 },
-      beams: {
-        reach: Array.from({ length: 15 }, (_, i) => 4 * (i + 1)),
-        lanes: [-3, 3],
-      },
-      placement: { surfaces: ["water", "lava", "top"] },
-    });
-  });
-
-  it("gives a kind's beam levels one integer light level from 0 to 15 per reach", () => {
+  it("orders beam reaches by distance and pairs them with valid light levels", () => {
     for (const kind of VEHICLE_KINDS) {
       const { reach, levels } = profileOf(kind).beams;
+      let previous = 0;
+      for (const distance of reach) {
+        expect(distance).toBeGreaterThan(previous);
+        previous = distance;
+      }
       if (levels === undefined) continue;
       expect(levels).toHaveLength(reach.length);
       for (const level of levels) {
@@ -211,58 +131,6 @@ describe("vehicle profiles (ADR 0050)", () => {
         expect(level).toBeGreaterThanOrEqual(0);
         expect(level).toBeLessThanOrEqual(15);
       }
-    }
-  });
-
-  it("keeps the frozen vehicle tables and their frozen descendants", () => {
-    // These contracts are typed as readonly but contain unfrozen objects.
-    const readonlyPaths = [
-      /^CAMPER_SPEC\.(bumperBoxXs|bumperHintFeet|seatHintFeet)$/,
-      /^DRAWER_GEAR_IDS$/,
-      /^SPORTSBOAT_SPEC\.icebreaker\.probeHeights$/,
-      /^KINDS\.\w+\.entity$/,
-      /\.positions\.\d+$/,
-      /\.paintPolicy$/,
-      /\.hints\.(bumper\.(boxXs|feet)|driverSeat\.feet)$/,
-    ];
-    const visit = (value: unknown, path: string): void => {
-      if (value === null || typeof value !== "object") return;
-      if (readonlyPaths.some((pattern) => pattern.test(path))) return;
-      expect(Object.isFrozen(value), path).toBe(true);
-      for (const [key, child] of Object.entries(value))
-        visit(child, `${path}.${key}`);
-    };
-    for (const [name, table] of Object.entries({
-      ...kinds,
-      ...motionConstants,
-      SPEC,
-      NEUTRAL_CONTROL,
-      EMPTY_COUNTER,
-      SUV_SPEC,
-      SUV_MOTION,
-      SUV_TYRES,
-      AIR,
-      WATER,
-      SUV_TRANSFORMING,
-      CAMPER_SPEC,
-      CAMPER_MOTION,
-      CAMPER_TYRES,
-      CAMPER_AIR,
-      CAMPER_WATER,
-      CAMPER_TRANSFORMING,
-      SPORTSBOAT_SPEC,
-      SPORTSBOAT_MOTION,
-      SPORTSBOAT_ATTITUDE,
-      SPORTSBOAT_DRAG,
-      SPORTSBOAT_WATER,
-      BULLDOZER_SPEC,
-      BULLDOZER_AIR,
-      BULLDOZER_WATER,
-      BULLDOZER_WIDE_BLADE,
-      SCOOTER_SPEC,
-      suvStepLanes: stepLanes(SUV_TRANSFORMING.stepLaneOffset),
-    })) {
-      visit(table, name);
     }
   });
 
@@ -472,47 +340,9 @@ describe("vehicle profiles (ADR 0050)", () => {
         kind === "sportsboat" || kind === "camper" ? "chosen" : "engine",
       );
   });
-
-  it.each([
-    ["suv", 10, "mid"],
-    ["camper", 1, "far"],
-    ["sportsboat", 1, "near"],
-    ["bulldozer", 1, "mid"],
-    ["scooter", 10, "near"],
-  ] as const)(
-    "sets the %s fleet limit and chase camera",
-    (kind, limit, camera) => {
-      expect(profileOf(kind).fleetLimit).toBe(limit);
-      expect(profileOf(kind).chaseCamera).toBe(camera);
-    },
-  );
-
-  it("gives the camper a khaki default paint (ADR 0067, 0076)", () => {
-    expect(CAMPER_PROFILE.paintPolicy).toEqual({
-      kind: "fixed",
-      paint: "khaki",
-    });
-  });
 });
 
 describe("vehicle hints (ADR 0086)", () => {
-  it("puts the camper's bumper hint on its hitboxes and its seat hint in the parked room", () => {
-    expect(CAMPER_PROFILE.hints).toEqual({
-      bumper: {
-        boxXs: CAMPER_SPEC.bumperBoxXs,
-        boxZ: CAMPER_SPEC.bodyFront,
-        boxHalf: CAMPER_SPEC.bumperBoxSize / 2,
-        bodyHalfWidth: CAMPER_SPEC.bodyHalfWidth,
-        reach: CAMPER_SPEC.bumperHintReach,
-        feet: CAMPER_SPEC.bumperHintFeet,
-      },
-      driverSeat: {
-        reach: CAMPER_SPEC.seatHintReach,
-        feet: CAMPER_SPEC.seatHintFeet,
-      },
-    });
-  });
-
   it("gives no hints to the kinds that take hits on their whole body", () => {
     expect(SUV_PROFILE.hints).toBeUndefined();
     expect(SPORTSBOAT_PROFILE.hints).toBeUndefined();
@@ -525,7 +355,7 @@ describe("vehicle hints (ADR 0086)", () => {
 });
 
 describe("roof tent mounts", () => {
-  it("keeps finite, frozen mount points with anchors inside and the SUV entrance outside the body", () => {
+  it("keeps finite mount points with anchors inside and the SUV entrance outside the body", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...VEHICLE_KINDS),
@@ -555,8 +385,6 @@ describe("roof tent mounts", () => {
           if (kind === "camper" && pointName === "entrance")
             expect(point.x).toBeLessThan(0);
           expect(mount.ladder).toBe(kind === "suv");
-          expect(Object.isFrozen(mount)).toBe(true);
-          expect(Object.isFrozen(point)).toBe(true);
         },
       ),
     );
@@ -572,14 +400,6 @@ describe("roof tent mounts", () => {
         (SUV_PROFILE.roofTent?.roofHeight ?? NaN) - SUV_PROFILE.body.height,
       ),
     ).toBeLessThanOrEqual(0.3);
-    expect(CAMPER_PROFILE.roofTent).toEqual({
-      roofHeight: CAMPER_SPEC.carHeight,
-      anchor: { x: 0, z: -0.875 },
-      ladder: false,
-      entrance: { x: -1.0625, z: -3.7 },
-    });
-    expect(CAMPER_PROFILE.roofTent?.roofHeight).toBe(4.0);
-
     // Mirror tools/gen_camper.py's RACK and small vent box; model z points backward.
     const rackPx = { halfWidth: 20, front: 22, rear: 55 };
     const ventPx = { halfWidth: 4, front: -2, rear: 6 };

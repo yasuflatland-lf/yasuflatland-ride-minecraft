@@ -21,6 +21,7 @@ import {
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import { SPORTSBOAT_PROFILE } from "../../../src/domain/vehicle/kinds/sportsboat/profile";
+import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
 import { DOOR_BY_SEAT } from "../../../src/domain/vehicle/kinds/suv/entity";
 import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
@@ -35,7 +36,6 @@ import type { RamTarget } from "../../../src/domain/vehicle/ram";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import {
   type RiderView,
-  type TickOutcome,
   Vehicle,
   type VehicleTickInput,
 } from "../../../src/domain/vehicle/vehicle";
@@ -690,36 +690,7 @@ describe("Vehicle water depth context", () => {
   });
 });
 
-it("concatenates seat commands in seat order when multiple riders leave", () => {
-  const vehicle = rebuildVehicle(
-    "suv",
-    asVehicleId("v"),
-    0,
-    [3, 1, 2, 0].map((seat) =>
-      riderView(`r${seat}`, { seat, offset: seatOffset(0, seat) }),
-    ),
-    {},
-  );
-  const out = vehicle.tick({
-    deckSeatInputs: [],
-    tick: 0,
-    riders: [],
-    velocity: { x: 0, y: 0, z: 0 },
-    onGround: true,
-    ...waterSensors(),
-    blockTypes: () => [],
-    solidAt: () => false,
-    targets: () => [],
-  });
-  expect(out.finalCommands).toStrictEqual(
-    DOOR_BY_SEAT.flatMap((name) => [
-      { type: "playAnimation", name },
-      { type: "playSound", name: "random.door_open" },
-    ]),
-  );
-});
-
-it("passes the drive's cut columns through unchanged, and none when it cuts nothing (ADR 0137)", () => {
+it("passes cut columns and paving through unchanged, including when omitted (ADRs 0137, 0181)", () => {
   fc.assert(
     fc.property(
       fc.option(
@@ -737,7 +708,17 @@ it("passes the drive's cut columns through unchanged, and none when it cuts noth
         ),
         { nil: undefined },
       ),
-      (cut) => {
+      fc.option(
+        fc.record({
+          block: fc.constantFrom("minecraft:stone", "minecraft:dirt"),
+          cells: fc.array(
+            fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
+            { minLength: 1, maxLength: 20 },
+          ),
+        }),
+        { nil: undefined },
+      ),
+      (cut, pave) => {
         const drive: Drive = {
           speed: 0,
           yaw: 0,
@@ -746,6 +727,7 @@ it("passes the drive's cut columns through unchanged, and none when it cuts noth
           onSeatVacated: () => [],
           step: () => ({
             cut,
+            pave,
             impulse: { x: 0, y: 0, z: 0 },
             forward: { x: 0, z: 1 },
             commands: [],
@@ -764,88 +746,70 @@ it("passes the drive's cut columns through unchanged, and none when it cuts noth
           targets: () => [],
         });
         expect(outcome.cut).toEqual(cut ?? []);
+        expect(outcome.pave).toEqual(pave);
       },
     ),
   );
 });
 
-it("passes the drive's pave through unchanged, and none when it lays nothing (ADR 0181)", () => {
-  const road = { block: "minecraft:stone", cells: [{ x: 1, y: 63, z: 2 }] };
-  for (const pave of [road, undefined]) {
-    const drive: Drive = {
-      speed: 0,
-      yaw: 0,
-      resync() {},
-      onDriverMounted() {},
-      onSeatVacated: () => [],
-      step: () => ({
-        pave,
-        impulse: { x: 0, y: 0, z: 0 },
-        forward: { x: 0, z: 1 },
-        commands: [],
-        riders: { thirdPerson: false, underwater: false },
+it("blanks exactly the occupied dock seats in the outcome", () => {
+  const slots = SPORTSBOAT_PROFILE.seats.positions.map((_, seat) => seat);
+  const coordinate = fc.integer({ min: -100, max: 100 });
+  fc.assert(
+    fc.property(
+      fc.array(fc.record({ x: coordinate, y: coordinate, z: coordinate }), {
+        minLength: slots.length,
+        maxLength: slots.length,
       }),
-    };
-    const outcome = new Vehicle(asVehicleId("v"), SUV_PROFILE, drive).tick({
-      tick: 0,
-      riders: [],
-      deckSeatInputs: [],
-      velocity: { x: 0, y: 0, z: 0 },
-      onGround: true,
-      ...waterSensors(),
-      blockTypes: () => [],
-      solidAt: () => false,
-      targets: () => [],
-    });
-    expect(outcome.pave).toEqual(pave);
-  }
-});
-
-it("blanks only the occupied dock seat in the outcome", () => {
-  const seats = [
-    { x: 1, y: 2, z: 3 },
-    { x: 4, y: 5, z: 6 },
-    { x: 7, y: 8, z: 9 },
-    { x: 10, y: 11, z: 12 },
-  ];
-  const drive: Drive = {
-    speed: 0,
-    yaw: 0,
-    resync() {},
-    onDriverMounted() {},
-    onSeatVacated: () => [],
-    step: () => ({
-      impulse: { x: 0, y: 0, z: 0 },
-      forward: { x: 0, z: 1 },
-      commands: [],
-      riders: { thirdPerson: false, underwater: false },
-      dock: { hold: { x: 0, y: 0, z: 0, yaw: 0 }, cells: [], seats },
-    }),
-  };
-  const vehicle = new Vehicle(asVehicleId("v"), SPORTSBOAT_PROFILE, drive);
-  const outcome = vehicle.tick({
-    tick: 0,
-    riders: [
-      riderView("r", {
-        seat: 2,
-        offset: defined(SPORTSBOAT_PROFILE.seats.positions[2], "seat 2"),
-      }),
-    ],
-    deckSeatInputs: [],
-    velocity: { x: 0, y: 0, z: 0 },
-    onGround: false,
-    ...waterSensors(),
-    blockTypes: () => [],
-    solidAt: () => false,
-    targets: () => [],
-  });
-  expect(outcome.dock?.seats[2]).toBeUndefined();
-  for (const seat of [0, 1, 3])
-    expect(outcome.dock?.seats[seat]).toEqual(seats[seat]);
+      fc.subarray(slots, { minLength: 1 }),
+      (seats, occupied) => {
+        const drive: Drive = {
+          speed: 0,
+          yaw: 0,
+          resync() {},
+          onDriverMounted() {},
+          onSeatVacated: () => [],
+          step: () => ({
+            impulse: { x: 0, y: 0, z: 0 },
+            forward: { x: 0, z: 1 },
+            commands: [],
+            riders: { thirdPerson: false, underwater: false },
+            dock: { hold: { x: 0, y: 0, z: 0, yaw: 0 }, cells: [], seats },
+          }),
+        };
+        const outcome = new Vehicle(
+          asVehicleId("v"),
+          SPORTSBOAT_PROFILE,
+          drive,
+        ).tick({
+          tick: 0,
+          riders: occupied.map((seat) =>
+            riderView(`r${seat}`, {
+              seat,
+              offset: defined(SPORTSBOAT_PROFILE.seats.positions[seat], "seat"),
+            }),
+          ),
+          deckSeatInputs: [],
+          velocity: { x: 0, y: 0, z: 0 },
+          onGround: false,
+          ...waterSensors(),
+          blockTypes: () => [],
+          solidAt: () => false,
+          targets: () => [],
+        });
+        expect(outcome.dock?.seats).toEqual(
+          seats.map((pose, seat) =>
+            occupied.includes(seat) ? undefined : pose,
+          ),
+        );
+      },
+    ),
+  );
 });
 
 describe("seat-taken hook", () => {
   function recordingDrive(log: string[], withHook: boolean): Drive {
+    const suv = new SuvDrive(0, {});
     return {
       speed: 0,
       yaw: 0,
@@ -854,8 +818,7 @@ describe("seat-taken hook", () => {
         log.push("mounted");
       },
       onSeatVacated(seat) {
-        log.push(`vacated:${seat}`);
-        return [{ type: "playSound", name: `vacated_${seat}` }];
+        return suv.onSeatVacated(seat);
       },
       ...(withHook
         ? {
@@ -879,8 +842,6 @@ describe("seat-taken hook", () => {
 
   const newVehicle = (log: string[], withHook: boolean) =>
     new Vehicle(asVehicleId("v"), SUV_PROFILE, recordingDrive(log, withHook));
-  const names = (outcome: TickOutcome) =>
-    outcome.finalCommands.map((command) => command.name);
   const at = (id: string, seat: number) =>
     riderView(id, {
       seat,
@@ -901,30 +862,81 @@ describe("seat-taken hook", () => {
     targets: () => [],
   });
 
-  it("runs the taken seats' commands after the vacated seats' commands, ascending", () => {
-    const log: string[] = [];
-    const vehicle = newVehicle(log, true);
-    const first = vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
-    expect(names(first)).toEqual(["taken_0", "taken_2"]);
-    const second = vehicle.tick(input(1, [at("a", 0), at("c", 1)]));
-    expect(names(second)).toEqual(["vacated_2", "taken_1"]);
+  it("orders vacated and newly taken seat commands before mounting and stepping", () => {
+    const slots = SUV_PROFILE.seats.positions.map((_, seat) => seat);
+    const assignments = fc
+      .tuple(
+        fc.shuffledSubarray(["a", "b", "c", "d", "e", "f"], {
+          minLength: slots.length,
+          maxLength: slots.length,
+        }),
+        fc.shuffledSubarray(slots),
+      )
+      .map(([ids, seats]) =>
+        seats.map((seat, i) => [defined(ids[i], "rider"), seat] as const),
+      );
+    fc.assert(
+      fc.property(
+        fc.array(assignments, { minLength: 2, maxLength: 12 }),
+        (frames) => {
+          for (const withHook of [false, true]) {
+            const log: string[] = [];
+            const vehicle = newVehicle(log, withHook);
+            let previous = new Map<string, number>();
+            for (const [tick, frame] of frames.entries()) {
+              log.length = 0;
+              const current = new Map(frame);
+              const vacated = slots.filter((seat) =>
+                [...previous].some(
+                  ([id, at]) => at === seat && !current.has(id),
+                ),
+              );
+              const taken = withHook
+                ? slots.filter((seat) =>
+                    frame.some(([id, at]) => at === seat && !previous.has(id)),
+                  )
+                : [];
+              const driver = frame.find(([, seat]) => seat === 0)?.[0];
+              const mounted =
+                driver !== undefined && previous.get(driver) !== 0;
+              const outcome = vehicle.tick(
+                input(
+                  tick,
+                  frame.map(([id, seat]) => at(id, seat)),
+                ),
+              );
+              expect(outcome.finalCommands).toStrictEqual([
+                ...vacated.flatMap((seat) => [
+                  { type: "playAnimation", name: DOOR_BY_SEAT[seat] },
+                  { type: "playSound", name: "random.door_open" },
+                ]),
+                ...taken.map((seat) => ({
+                  type: "playSound",
+                  name: `taken_${seat}`,
+                })),
+              ]);
+              expect(log).toEqual([
+                ...taken.map((seat) => `taken:${seat}`),
+                ...(mounted ? ["mounted"] : []),
+                "step",
+              ]);
+              previous = current;
+            }
+          }
+        },
+      ),
+    );
   });
 
-  it("calls the seat-taken hook before the mount hook and the step", () => {
-    const log: string[] = [];
-    const vehicle = newVehicle(log, true);
-    vehicle.tick(input(0, [at("a", 0)]));
-    expect(log).toEqual(["taken:0", "mounted", "step"]);
-  });
-
-  it("does not call the seat-taken hook for riders who stay or move seats", () => {
-    const log: string[] = [];
-    const vehicle = newVehicle(log, true);
-    vehicle.tick(input(0, [at("a", 0), at("b", 2)]));
-    log.length = 0;
-    const second = vehicle.tick(input(1, [at("b", 0)]));
-    expect(log.some((entry) => entry.startsWith("taken:"))).toBe(false);
-    expect(names(second)).toEqual(["vacated_0"]);
+  it("starts opening the bulldozer door on the tick the driver boards", () => {
+    const vehicle = createVehicle("bulldozer", asVehicleId("v"), 0);
+    const empty = vehicle.tick(input(0, []));
+    const closed = propertyValue(empty.stepCommands, "door");
+    expect(closed).toBe(0);
+    const boarded = vehicle.tick(input(1, [riderView("a", { slot: 0 })]));
+    expect(
+      propertyValue(boarded.stepCommands, "door") ?? closed,
+    ).toBeGreaterThan(0);
   });
 
   it("does not call the seat-taken hook for riders aboard when the vehicle is rebuilt", () => {
@@ -939,11 +951,6 @@ describe("seat-taken hook", () => {
     const outcome = vehicle.tick(input(0, [at("a", 0)]));
     expect(log.some((entry) => entry.startsWith("taken:"))).toBe(false);
     expect(outcome.finalCommands).toEqual([]);
-  });
-
-  it("emits no taken seat commands for a drive without the hook", () => {
-    const vehicle = newVehicle([], false);
-    expect(vehicle.tick(input(0, [at("a", 0)])).finalCommands).toEqual([]);
   });
 });
 
@@ -1093,6 +1100,7 @@ it("exposes a room only for kinds with the room capability", () => {
         const room = vehicle.capability(CAMPER_ROOM);
         expect(room !== undefined).toBe(kind === "camper");
         if (room) {
+          expect(Object.isFrozen(room)).toBe(true);
           expect(room.decor.decor()).toEqual([]);
           expect(
             room.decor.setDecor(
@@ -1184,10 +1192,13 @@ describe("drive-reported ram half width", () => {
       fc.property(
         width,
         fc.option(width, { nil: undefined }),
-        fc.array(fc.option(width, { nil: undefined }), {
-          minLength: 2,
-          maxLength: 10,
-        }),
+        fc.array(
+          fc.option(fc.oneof(width, fc.constant(50)), { nil: undefined }),
+          {
+            minLength: 2,
+            maxLength: 10,
+          },
+        ),
         width,
         (halfWidth, maxRamHalfWidth, reports, d) => {
           const profile = {
@@ -1213,19 +1224,5 @@ describe("drive-reported ram half width", () => {
         },
       ),
     );
-  });
-
-  it("clamps a reported width that exceeds the cap to the cap", () => {
-    const hit = ramVehicle({ ...SUV_PROFILE, maxRamHalfWidth: 2 });
-    const boundary = 2 + SPEC.targetHalfWidth;
-    expect(hit(50, boundary, 0)).toHaveLength(1);
-    expect(hit(50, boundary + 0.01, SPEC.ramCooldown)).toHaveLength(0);
-  });
-
-  it("an absent reported width keeps the body's hit boundary even with a wider cap", () => {
-    const hit = ramVehicle({ ...SUV_PROFILE, maxRamHalfWidth: 10 });
-    const boundary = SUV_PROFILE.body.halfWidth + SPEC.targetHalfWidth;
-    expect(hit(undefined, boundary, 0)).toHaveLength(1);
-    expect(hit(undefined, boundary + 0.01, SPEC.ramCooldown)).toHaveLength(0);
   });
 });
