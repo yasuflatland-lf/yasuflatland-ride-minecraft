@@ -29,7 +29,7 @@
 - Agreement: Accepted
 - Basis: [0008](../adr/0008-vehicle-item-and-breaking.md) Decision, "The vehicle item is crafted. Using it on the ground consumes one item and places one vehicle"; [0023](../adr/0023-starter-vehicle-on-first-join.md) Decision, "Crafting (0008) stays, so more vehicles can still be crafted"
 - Implementation: `packs/yasu_ride_bp/recipes/yasu_ride/suv_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/suv_item.item.json`; `packs/yasu_ride_bp/recipes/yasu_ride/camper_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/sportsboat_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/bulldozer_item.recipe.json`; `packs/yasu_ride_bp/recipes/yasu_ride/scooter_item.recipe.json`; `packs/yasu_ride_bp/items/yasu_ride/scooter_item.item.json`; `src/infrastructure/vehicle/bedrock/identifiers.ts` (`ITEM_TYPE`).
-- Verification: `tests/packs/behaviorPack.test.ts` "has an SUV item (ADR 0008)" checks the SUV item. `tests/packs/recipes.test.ts` checks its recipe result and unlock. Not verified: the SUV recipe's shape and crafting-table tag by these assertions, or crafting on a device. Test references throughout this spec describe existing coverage; no tests were run for this document.
+- Verification: `tests/packs/references.test.ts` checks that vehicle item identifiers exist. `tests/packs/recipes.test.ts` checks its recipe result and unlock. Not verified: the SUV recipe's shape and crafting-table tag by these assertions, or crafting on a device. Test references throughout this spec describe existing coverage; no tests were run for this document.
 
 ### Placement from the before-event
 

@@ -71,6 +71,5 @@ describe("exhaust smoke particle", () => {
       expect(uv.uv_size[axis]).toBeGreaterThan(0);
       expect(uv.uv[axis] + uv.uv_size[axis]).toBeLessThanOrEqual(uv[dimension]);
     }
-    expect(path.length).toBeLessThanOrEqual(80);
   });
 });

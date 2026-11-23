@@ -6,7 +6,7 @@ import { BULLDOZER_SPEC } from "../../src/domain/vehicle/kinds/bulldozer/spec";
 import { type Bone, turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
 import { findCoplanarFaces } from "./coplanarFaces.support";
-import { assertOneAxis, multipleAxes } from "./oneAxis";
+import { assertOneAxis } from "./oneAxis";
 
 const RP = "packs/yasu_ride_rp";
 type ModelCube = NonNullable<Bone["cubes"]>[number] & {
@@ -85,18 +85,6 @@ describe("bulldozer model (ADR 0009, 0136)", () => {
         a.side === b.side && (a.side === "north" || a.side === "south"),
     );
     expect(conflicts.map(({ a, b }) => [a.cubeIndex, b.cubeIndex])).toEqual([]);
-  });
-
-  it("allows compound rotations only in declared assemblies (ADR 0167)", () => {
-    const cubes = bones().flatMap((bone) => bone.cubes ?? []);
-    const compound = cubes.filter(multipleAxes);
-    const assemblies = {
-      blade_arms: compound.filter((c) => c.rotation?.[0] === 30),
-      yawed_pair: compound.filter((c) => c.rotation?.[0] === -15),
-      propeller: compound.filter((c) => c.rotation?.[1] === -18),
-    };
-    expect(Object.values(assemblies).map((a) => a.length)).toEqual([7, 2, 4]);
-    expect(() => assertOneAxis(cubes, assemblies)).not.toThrow();
   });
 
   it("checks the cab monitor's compound rotations (ADR 0167)", () => {

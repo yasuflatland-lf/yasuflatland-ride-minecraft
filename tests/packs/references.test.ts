@@ -224,7 +224,7 @@ describe("Resource Pack and Behavior Pack references", () => {
       expect(
         entity?.components?.["minecraft:type_family"]?.family,
         kind,
-      ).toContain(VEHICLE_FAMILY);
+      ).toEqual([VEHICLE_FAMILY, "inanimate"]);
     }
   });
 });

@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, it } from "vitest";
 import { TAP_TARGET_TYPE } from "../../src/infrastructure/build/identifiers";
 import {
@@ -7,7 +9,7 @@ import {
 } from "../../src/infrastructure/camp/identifiers";
 import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
-import { type Json, jsonFileEntries } from "../support/packFiles";
+import { type Json, jsonFileEntries, packFiles } from "../support/packFiles";
 
 interface ServerEntity {
   description: { identifier: string; is_summonable: boolean };
@@ -139,4 +141,43 @@ it("gives the temporary wand target a one-block hit box and a touch interaction"
     },
   });
   expect(target?.components).not.toHaveProperty("minecraft:persistent");
+});
+
+// Bedrock drops all entity properties when a float uses an integer literal.
+it("writes float property defaults and ranges with decimal points in every entity", () => {
+  let count = 0;
+  for (const pack of readdirSync("packs")) {
+    const root = join("packs", pack);
+    for (const path of packFiles(root).filter(
+      (p) => p.startsWith("entities/") && p.endsWith(".json"),
+    )) {
+      const text = readFileSync(join(root, path), "utf8");
+      const entity = JSON.parse(text)["minecraft:entity"];
+      for (const [name, definition] of Object.entries<{
+        type: string;
+        range?: number[];
+        default?: number;
+      }>(entity?.description?.properties ?? {})) {
+        if (definition.type !== "float") continue;
+        count++;
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const block = text.match(
+          new RegExp(`"${escaped}"\\s*:\\s*\\{([^{}]*)\\}`),
+        )?.[1];
+        expect(block, `${path}: ${name}`).toBeDefined();
+        for (const field of ["default", "range"] as const) {
+          if (definition[field] === undefined) continue;
+          const literal = block?.match(
+            new RegExp(`"${field}"\\s*:\\s*(\\[[^\\]]*\\]|-?[0-9.eE+-]+)`),
+          )?.[1];
+          expect(literal, `${path}: ${name}.${field}`).toBeDefined();
+          for (const value of literal?.replace(/[[\]]/g, "").split(",") ?? [])
+            expect(value.trim(), `${path}: ${name}.${field}`).toMatch(
+              /^-?\d+\.\d+(?:[eE][+-]?\d+)?$/,
+            );
+        }
+      }
+    }
+  }
+  expect(count).toBeGreaterThan(0);
 });
