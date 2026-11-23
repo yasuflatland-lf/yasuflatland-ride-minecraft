@@ -1,5 +1,6 @@
 import { GEAR_RECOVERY } from "../shared/hitCounter";
 import type { Paint } from "../shared/paint";
+import { soundId } from "../shared/soundId";
 import type { TopRect, TopSurface } from "../shared/tableTop";
 import { ticks } from "../shared/ticks";
 
@@ -20,7 +21,7 @@ export const TABLE_SPEC = Object.freeze({
 
 export const DUTCH_OVEN_SPEC = Object.freeze({
   /** A vanilla sound played at the oven on each lid flip, so no sound file ships (ADR 0191). */
-  lidSound: "open.iron_trapdoor",
+  lidSound: soundId("open.iron_trapdoor"),
   /** The item's yaw snaps to this many degrees. */
   yawStep: 90,
   clearance: 2,

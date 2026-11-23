@@ -8,11 +8,7 @@ import type { Vec3 } from "../../../../domain/shared/vec";
 import { safeBlockAt } from "../../../shared/blocks";
 import { allDimensions } from "../../../shared/dimensions";
 import { registerLaidBlockGuard } from "../../../shared/laidBlockGuard";
-import {
-  DINING_TABLE_TOP,
-  FURNITURE_IDS,
-  furnitureKindOf,
-} from "../../identifiers";
+import { FURNITURE_IDS, furnitureKindOf } from "../../identifiers";
 import type { BedrockFurnitureWorld } from "../bedrockFurnitureWorld";
 
 export function registerFurnitureTopLifecycle(
@@ -60,6 +56,6 @@ export function registerFurnitureTopLifecycle(
     clearRemoved();
   }, FURNITURE_TOP_SYNC_TICKS);
   registerLaidBlockGuard((dimension, cell, typeId) =>
-    typeId === DINING_TABLE_TOP ? adapter.ownerAt(dimension, cell) : undefined,
+    adapter.ownerAt(dimension, cell, typeId),
   );
 }

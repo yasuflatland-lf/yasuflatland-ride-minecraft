@@ -15,7 +15,6 @@ import type { PaintWorld } from "../../../src/application/vehicle/ports/paint";
 import type {
   GiftBoxWorld,
   PlacementWorld,
-  StarterWorld,
   VehicleSpawnResult,
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
@@ -53,7 +52,6 @@ import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import type { LitCell } from "../../../src/domain/vehicle/lighting/headlights";
 import type { Pave } from "../../../src/domain/vehicle/pave";
 import type { PlacementGift } from "../../../src/domain/vehicle/placement/gift";
-import type { StarterKind } from "../../../src/domain/vehicle/placement/starter";
 import type { ChaseCamera } from "../../../src/domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../src/domain/vehicle/ram";
 import type { StandInPose } from "../../../src/domain/vehicle/standIn";
@@ -103,7 +101,6 @@ export class FakeWorld
   implements
     DriveWorld,
     PlacementWorld,
-    StarterWorld,
     BreakWorld,
     PaintWorld,
     HeadlightWorld,
@@ -122,8 +119,6 @@ export class FakeWorld
   readonly kinds = new Map<string, VehicleKind>();
   readonly owners = new Map<string, string>();
   readonly headlights = new Map<string, boolean>();
-  /** Players in the world, keyed `player:kind`, and whether each has received that kind's starter item. */
-  readonly starters = new Map<string, boolean>();
   /** The cells each vehicle was last told to light. */
   readonly shone = new Map<string, readonly LitCell[]>();
   readonly held = new Map<string, HoldPose | undefined>();
@@ -375,16 +370,6 @@ export class FakeWorld
     if (!this.itemInSlot) return false;
     this.calls.push(`consume:${playerId}:${slot}:${kind}`);
     return true;
-  }
-  receivedStarter(playerId: string, kind: StarterKind) {
-    return this.starters.get(`${playerId}:${kind}`);
-  }
-  giveVehicleItem(playerId: string, kind: VehicleKind) {
-    this.calls.push(`give:${playerId}:${kind}`);
-  }
-  markStarterReceived(playerId: string, kind: StarterKind) {
-    this.starters.set(`${playerId}:${kind}`, true);
-    this.calls.push(`mark:${playerId}:${kind}`);
   }
   receivedGift(playerId: string, gift: PlacementGift) {
     return this.absentPlayers.has(playerId)

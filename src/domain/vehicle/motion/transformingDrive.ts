@@ -1,6 +1,5 @@
 // Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and per-tick step-up hook (ADR 0050, 0089).
 
-import { SyncedValue } from "../../shared/syncedValue";
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
 import type {
   Drive,
@@ -10,6 +9,7 @@ import type {
   TickContext,
 } from "../drive";
 import { NEUTRAL_CONTROL, type RawInput, toDriveInput } from "../driveInput";
+import { SyncedCommands } from "../syncedCommands";
 import { bankSink, stepBank } from "./bank";
 import { MOTION } from "./constants";
 import {
@@ -195,11 +195,9 @@ export class TransformingDrive implements Drive {
   };
   private motion: MotionState;
   private formState: FormState;
-  private readonly formSync: SyncedValue<Form>;
+  private readonly synced: SyncedCommands<TransformingDrive>;
   private bank = 0;
-  private readonly bankSync = new SyncedValue<number>();
   private gearDown: boolean;
-  private readonly gearDownSync = new SyncedValue<boolean>();
   private readonly inputFor: InputMapping;
   private readonly horizontal: HorizontalStep;
   private readonly stepUp: boolean;
@@ -220,7 +218,10 @@ export class TransformingDrive implements Drive {
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
     this.formState = initialForm(form);
-    this.formSync = new SyncedValue<Form>({ value: form });
+    this.synced = new SyncedCommands<TransformingDrive>()
+      .add((drive) => drive.form, formCommands, { value: form })
+      .add((drive) => drive.bank, bankCommand)
+      .add((drive) => drive.gearDown, gearCommand);
     this.gearDown = form === "car";
   }
 
@@ -291,9 +292,7 @@ export class TransformingDrive implements Drive {
   }
 
   resync(): void {
-    this.formSync.resync();
-    this.bankSync.resync();
-    this.gearDownSync.resync();
+    this.synced.resync();
   }
 
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
@@ -333,18 +332,14 @@ export class TransformingDrive implements Drive {
       controlled,
       waterDepth,
     );
-    const sentForm = this.formSync.next(form);
-    const bank = this.bankSync.next(this.bank);
     this.gearDown = nextGearDown(this.gearDown, form, () =>
       groundNear(ctx, step.forward, this.spec),
     );
-    const gearDown = this.gearDownSync.next(this.gearDown);
-
     this.motion = step.state;
     return {
       impulse: { x: step.impulse.x, y: impulseY, z: step.impulse.z },
       forward: step.forward,
-      commands: this.engineCommands(sentForm, bank, gearDown),
+      commands: this.synced.next(this),
       riders: { thirdPerson: form !== "car", underwater: form === "submarine" },
     };
   }
@@ -482,17 +477,5 @@ export class TransformingDrive implements Drive {
       ctx.velocity.y,
       this.spec.flightVerticalDrag,
     );
-  }
-
-  private engineCommands(
-    sentForm: Form | undefined,
-    bank: number | undefined,
-    gearDown: boolean | undefined,
-  ): EngineCommand[] {
-    return [
-      ...(sentForm === undefined ? [] : formCommands(sentForm)),
-      ...(bank === undefined ? [] : [bankCommand(bank)]),
-      ...(gearDown === undefined ? [] : [gearCommand(gearDown)]),
-    ];
   }
 }

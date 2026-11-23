@@ -1,5 +1,5 @@
 import { fixed } from "../../../shared/paint";
-import type { MotionLimits, TyreLimits } from "../../motion/limits";
+import { motionLimitsOf, tyreLimitsOf } from "../../motion/limits";
 import {
   clearanceHeight,
   type PlacementLiquid,
@@ -109,20 +109,6 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   }),
 });
 
-export const CAMPER_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: CAMPER_SPEC.maxSpeed,
-  maxReverse: CAMPER_SPEC.maxReverse,
-  accel: CAMPER_SPEC.accel,
-  reverseAccel: CAMPER_SPEC.reverseAccel,
-  brake: CAMPER_SPEC.brake,
-  drag: CAMPER_SPEC.drag,
-  turnRate: CAMPER_SPEC.turnRate,
-  steerFullSpeed: CAMPER_SPEC.steerFullSpeed,
-  grip: CAMPER_SPEC.grip,
-});
+export const CAMPER_MOTION = motionLimitsOf(CAMPER_SPEC);
 
-// Frozen because every camper drive shares this one object.
-export const CAMPER_TYRES: TyreLimits = Object.freeze({
-  handbrakeGrip: CAMPER_SPEC.handbrakeGrip,
-  creepSpeed: CAMPER_SPEC.creepSpeed,
-});
+export const CAMPER_TYRES = tyreLimitsOf(CAMPER_SPEC);

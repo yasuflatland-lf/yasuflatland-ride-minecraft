@@ -5,7 +5,6 @@ import {
   world,
 } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import { isTentBlockTypeId } from "../../../domain/camp/legacyTent";
 import { TENT_LAYOUT_VERSION } from "../../../domain/camp/spec";
 import {
   asTentId,
@@ -39,7 +38,7 @@ import { AIR_BLOCK, isOwnTypeId, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
 import { giveOrDrop, playerById } from "../../shared/players";
-import { TENT_ITEM, TENT_TYPE } from "../identifiers";
+import { isTentBlockTypeId, TENT_ITEM, TENT_TYPE } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import { TENT_CELL_CODEC } from "./tentBlocks";
 import { tentEntityOf } from "./tentEntity";
