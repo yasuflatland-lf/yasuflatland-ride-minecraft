@@ -98,7 +98,7 @@ export function cornerTaps(box: CellBox): Taps {
   return { from: box.min, to: box.max };
 }
 
-export type Point1Flow = Extract<BuildFlow, { kind: "point1" }>;
+type Point1Flow = Extract<BuildFlow, { kind: "point1" }>;
 
 export type BaseHeightFlow = Extract<BuildFlow, { kind: "baseHeight" }>;
 export type HeightStepFlow = Extract<BuildFlow, { kind: "heightStep" }>;
@@ -206,7 +206,7 @@ export function liveHeightBox(flow: BaseHeightFlow): CellBox {
   return boxWithHeight(flow.baseBox, flow.previous);
 }
 
-export function tappedSpanBox(flow: BaseHeightFlow): CellBox {
+function tappedSpanBox(flow: BaseHeightFlow): CellBox {
   const span = boxOf(flow.from, flow.to);
   return boxWithHeight(span, tappedSpanHeight(span));
 }
@@ -400,8 +400,4 @@ export function setHeight(flow: BuildFlow, height: number): BuildFlow {
     (flow.kind === "heightStep" && !flow.heightLocked)
     ? Object.freeze({ ...flow, previous: height })
     : flow;
-}
-
-export function selectionBoxOf(flow: BuildFlow): CellBox | undefined {
-  return flow.kind === "selected" ? flow.selection.box : undefined;
 }

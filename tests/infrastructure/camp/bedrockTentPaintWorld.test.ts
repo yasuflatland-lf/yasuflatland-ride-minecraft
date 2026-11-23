@@ -5,11 +5,8 @@ import { asPlayerId } from "../../../src/domain/shared/ids";
 import { PAINTS } from "../../../src/domain/shared/paint";
 import { BedrockTentPaintWorld } from "../../../src/infrastructure/camp/bedrock/bedrockTentPaintWorld";
 import { TENT_TYPE } from "../../../src/infrastructure/camp/identifiers";
-import {
-  dyeOf,
-  PAINT_VARIANT,
-  paintEvent,
-} from "../../../src/infrastructure/shared/dyes";
+import { dyeOf, paintEvent } from "../../../src/infrastructure/shared/dyes";
+import { PAINT_VARIANT } from "../../../src/test-pack/scenarios/support/paintContract";
 
 const game = vi.hoisted(() => ({
   getEntity: vi.fn(),
@@ -18,7 +15,6 @@ const game = vi.hoisted(() => ({
 vi.mock("@minecraft/server", () => ({
   world: { getEntity: game.getEntity },
   Player: game.Player,
-  GameMode: { Creative: "Creative", Survival: "Survival" },
 }));
 
 const TENT = asTentId("tent");
@@ -47,7 +43,6 @@ function fakePlayer(items: ({ typeId: string; amount: number } | undefined)[]) {
     id: "player",
     isValid: true,
     selectedSlotIndex: 1,
-    getGameMode: vi.fn(() => "Survival"),
     getComponent: () => ({ container }),
   });
   return { player, container };
@@ -115,15 +110,6 @@ describe("BedrockTentPaintWorld (ADR 0031)", () => {
     warn.mockRestore();
   });
 
-  it("does nothing when painting a missing tent", () => {
-    game.getEntity.mockReturnValue(undefined);
-    expect(() => new BedrockTentPaintWorld().paint(TENT, "red")).not.toThrow();
-    const other = fakeTent({ typeId: "minecraft:cow" });
-    game.getEntity.mockReturnValue(other);
-    new BedrockTentPaintWorld().paint(TENT, "red");
-    expect(other.triggerEvent).not.toHaveBeenCalled();
-  });
-
   it("takes one dye of the paint from the selected slot only", () => {
     fc.assert(
       fc.property(fc.constantFrom(...PAINTS), (paint) => {
@@ -150,25 +136,18 @@ describe("BedrockTentPaintWorld (ADR 0031)", () => {
     expect(container.setItem).not.toHaveBeenCalled();
   });
 
-  it("takes no dye when the player is missing or not a player", () => {
-    fc.assert(
-      fc.property(fc.constantFrom(...PAINTS), (paint) => {
-        const world = new BedrockTentPaintWorld();
-        game.getEntity.mockReturnValue(undefined);
-        expect(() => world.consumeDye(PLAYER, paint)).not.toThrow();
-        const other = fakeTent();
-        game.getEntity.mockReturnValue(other);
-        world.consumeDye(PLAYER, paint);
-        expect(other.getComponent).not.toHaveBeenCalled();
-      }),
-    );
-  });
-
-  it("reports Creative for the requested player", () => {
+  it.each<[string, (world: BedrockTentPaintWorld) => void]>([
+    ["paint", (world) => world.paint(TENT, "red")],
+    ["consumeDye", (world) => world.consumeDye(PLAYER, "red")],
+  ])("%s skips missing and wrong-type entities", (_method, write) => {
     const world = new BedrockTentPaintWorld();
-    const { player } = fakePlayer([]);
-    (player as { getGameMode: () => string }).getGameMode = () => "Creative";
-    game.getEntity.mockReturnValue(player);
-    expect(world.isCreative(PLAYER)).toBe(true);
+    game.getEntity.mockReturnValue(undefined);
+    write(world);
+
+    const other = fakeTent({ typeId: "minecraft:cow" });
+    game.getEntity.mockReturnValue(other);
+    write(world);
+    expect(other.triggerEvent).not.toHaveBeenCalled();
+    expect(other.getComponent).not.toHaveBeenCalled();
   });
 });

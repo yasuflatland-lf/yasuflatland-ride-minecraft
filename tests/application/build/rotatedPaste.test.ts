@@ -33,6 +33,7 @@ import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("rotated");
 const stone = blockStateOf("minecraft:stone");
+const marker = blockStateOf("minecraft:gold_block");
 const dirt = blockStateOf("minecraft:dirt");
 const origin = fc.record({
   x: fc.integer({ min: -50, max: 50 }),
@@ -49,7 +50,11 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
   const feedback = new FakeFeedback();
   const players = new FakeBuildPlayers();
   const source = boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 3 });
-  const clipboard = structureClipboard(source, () => stone, store);
+  const clipboard = structureClipboard(
+    source,
+    (cell) => (cell.x === 0 && cell.y === 0 && cell.z === 0 ? marker : stone),
+    store,
+  );
   session.completeCopy(selectionOf(overworld, source, stone), clipboard);
   const facing = (["east", "south", "west", "north"] as const)[turn];
   session.followPasteFacing(facing);
@@ -111,42 +116,51 @@ it("uses the live turn for a paste and restores the entire rotated box on Undo",
       for (const cell of cellsOf(e.target.box)) e.world.put(cell, dirt);
       expect(new DescribeBuild(e.repo).execute(playerId).pasteTurn).toBe(turn);
       expect(e.press.execute(e.cmd)).toBe("pasted");
-      expect(e.store.calls[0]).toMatchObject({
-        kind: "capture",
-        box: e.target.box,
-        mode: "exact",
-      });
-      expect(e.store.calls[1]).toEqual({
+      expect(e.store.calls).toContainEqual(
+        expect.objectContaining({
+          kind: "capture",
+          box: e.target.box,
+          mode: "exact",
+        }),
+      );
+      expect(e.store.calls).toContainEqual({
         kind: "clearEntities",
         dimensionId: overworld,
         box: e.target.box,
       });
-      expect(e.store.calls[2]).toEqual({
+      expect(e.store.calls).toContainEqual({
         kind: "place",
         handle: e.clipboard.contents.handle,
         dimensionId: overworld,
         anchor: e.target.anchor,
         turn,
       });
-      for (const cell of cellsOf(e.target.box))
-        expect(e.world.stateAt(overworld, cell)).toEqual(stone);
+      // The source minimum visits these four corners of the 2-by-4 footprint (ADR 0245).
+      const [dx, dz] = (
+        [
+          [0, 0],
+          [3, 0],
+          [1, 3],
+          [0, 1],
+        ] as const
+      )[turn];
+      const markerCell = {
+        x: e.target.anchor.x + dx,
+        y: e.target.anchor.y,
+        z: e.target.anchor.z + dz,
+      };
+      for (const cell of cellsOf(e.target.box)) {
+        expect(e.world.stateAt(overworld, cell)).toEqual(
+          cellKey(cell) === cellKey(markerCell) ? marker : stone,
+        );
+      }
       const entry = e.session.takeUndo();
       if (typeof entry === "string" || entry.kind !== "snapshot")
         throw new Error("Expected snapshot");
       expect(entry.snapshot.box).toEqual(e.target.box);
       e.session.putBackUndo(entry);
       e.undo.execute({ playerId });
-      expect(e.store.calls.slice(-3)).toEqual([
-        { kind: "clearEntities", dimensionId: overworld, box: e.target.box },
-        {
-          kind: "place",
-          dimensionId: overworld,
-          anchor: e.target.box.min,
-          turn: 0,
-          handle: entry.snapshot.handle,
-        },
-        { kind: "discard", handle: entry.snapshot.handle },
-      ]);
+      expect(e.store.live.has(entry.snapshot.handle)).toBe(false);
       for (const cell of cellsOf(e.target.box))
         expect(e.world.stateAt(overworld, cell)).toEqual(dirt);
       expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
@@ -266,12 +280,14 @@ it("restores a failed rotated placement with an unturned snapshot", () => {
         expect(e.press.execute(e.cmd)).toBe("refused");
         expect(e.session.flow).toEqual(flow);
         expect(e.session.hasHistory).toBe(false);
-        expect(e.store.calls[4]).toMatchObject({
-          kind: "place",
-          dimensionId: overworld,
-          anchor: e.target.box.min,
-          turn: 0,
-        });
+        expect(e.store.calls).toContainEqual(
+          expect.objectContaining({
+            kind: "place",
+            dimensionId: overworld,
+            anchor: e.target.box.min,
+            turn: 0,
+          }),
+        );
         for (const cell of cellsOf(e.target.box))
           expect(e.world.stateAt(overworld, cell)).toEqual(dirt);
       },

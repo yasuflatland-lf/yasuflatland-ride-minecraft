@@ -64,10 +64,6 @@ it.each([item, "minecraft:stick"])(
   },
 );
 
-it("treats a missing player as non-creative", () => {
-  expect(adapter.isCreative(player)).toBe(false);
-});
-
 it("recognizes exactly the add-on namespace", () => {
   fc.assert(
     fc.property(

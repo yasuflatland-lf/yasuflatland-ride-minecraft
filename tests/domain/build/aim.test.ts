@@ -104,31 +104,15 @@ describe("virtualEndPoint", () => {
           expect(result[other]).toBe(
             Math.floor(ray.origin[other] + t * ray.direction[other]),
           );
-          if (y >= BUILD_SPEC.worldBottomY && y <= BUILD_SPEC.worldTopY) {
-            expect(result.y).toBe(y);
-          }
+          expect(result.y).toBe(
+            Math.max(
+              BUILD_SPEC.worldBottomY,
+              Math.min(BUILD_SPEC.worldTopY, y),
+            ),
+          );
         },
       ),
     );
-  });
-
-  it("clamps high and low intersections to the world bounds", () => {
-    const point = { x: 0, y: 300, z: 0 };
-    for (const [y, expected] of [
-      [330, BUILD_SPEC.worldTopY],
-      [BUILD_SPEC.worldBottomY - 10, BUILD_SPEC.worldBottomY],
-    ] as const) {
-      expect(
-        virtualEndPoint(
-          point,
-          {
-            origin: { x: -0.5, y: y - 1, z: 0 },
-            direction: { x: 1, y: 1, z: 0 },
-          },
-          BUILD_SPEC.reach,
-        )?.y,
-      ).toBe(expected);
-    }
   });
 
   it("rejects intersections behind the origin or beyond reach", () => {

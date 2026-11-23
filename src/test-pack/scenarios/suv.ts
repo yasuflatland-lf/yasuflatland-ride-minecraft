@@ -8,7 +8,7 @@ import { headlightCells } from "../../domain/vehicle/lighting/headlights";
 import type { Form } from "../../domain/vehicle/motion/forms";
 import { nearestSeat, toLocal } from "../../domain/vehicle/seats";
 import { SPEC } from "../../domain/vehicle/spec";
-import { PAINT_VARIANT, paintEvent } from "../../infrastructure/shared/dyes";
+import { paintEvent } from "../../infrastructure/shared/dyes";
 import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
 import { HEADLIGHTS_PROPERTY } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
@@ -36,6 +36,7 @@ import {
   ticksUntilForm,
   vehicleForm,
 } from "./shared";
+import { PAINT_VARIANT } from "./support/paintContract";
 
 function slipAngleDeg(v: Vec2, yaw: number): number {
   const cos = dot(v, forward(yaw)) / length(v);

@@ -99,7 +99,6 @@ const controlTable = {
   pastePlace: "pasteAim",
 } satisfies Record<Exclude<PressRole, "wand">, Kind>;
 const controlRoles = ["undo", "pasteRotate", "pastePlace"] as const;
-const roles: PressRole[] = ["wand", ...controlRoles];
 const sneakingValues = [false, true];
 
 it.each(Object.values(flows))("routes wand presses in $kind", (flow) => {
@@ -145,35 +144,6 @@ it.each(controlRoles)("routes %s on both input routes", (role) => {
   }
 });
 
-function oldRoutePress({
-  flow,
-  role,
-  route,
-  target,
-  sneaking,
-}: Parameters<typeof routePress>[0]): PressIntent {
-  if (role === "pasteRotate" && flow.kind === "selected")
-    return { kind: "rotateSelection" };
-  if (role !== "wand") return { kind: controlTable[role] };
-  if (flow.kind === "pasteAim")
-    return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
-  if (flow.kind === "stairContents") return { kind: "ignore" };
-  if (flow.kind === "stairAim") return { kind: "fixStairGoal" };
-  if (route === "itemUse" && target !== "air") return { kind: "ignore" };
-  if (flow.kind === "baseHeight") return { kind: "confirmLiveHeight" };
-  if (flow.kind === "heightStep") return { kind: "aimHeight" };
-  if (route === "blockInteract")
-    return {
-      kind: flow.kind === "selected" ? "openUtilityMenu" : "selectPoint",
-    };
-  return {
-    kind:
-      sneaking || flow.kind === "idle" || flow.kind === "selected"
-        ? "openUtilityMenu"
-        : "fixEndpoint",
-  };
-}
-
 it.each([
   { flow: baseHeight, kind: "confirmLiveHeight" },
   { flow: selected, kind: "openUtilityMenu" },
@@ -197,55 +167,24 @@ it.each([
   );
 });
 
-it("preserves the old press table in all other flows", () => {
-  const choices = Object.values(flows).filter(
-    (flow) => flow.kind !== "baseHeight" && flow.kind !== "selected",
-  );
-  const examples = choices.flatMap((flow) =>
-    roles.flatMap((role) =>
-      routes.flatMap((route) =>
-        targets.flatMap((target) =>
-          sneakingValues.map(
-            (sneaking) => [{ flow, role, route, target, sneaking }] as const,
-          ),
-        ),
-      ),
-    ),
-  );
-  fc.assert(
-    fc.property(
-      fc.record({
-        flow: fc.constantFrom(...choices),
-        role: fc.constantFrom(...roles),
-        route: fc.constantFrom(...routes),
-        target: fc.constantFrom(...targets),
-        sneaking: fc.boolean(),
-      }),
-      (input) => {
-        expect(routePress(input)).toEqual(oldRoutePress(input));
-      },
-    ),
-    { examples },
-  );
-});
-
 it("routes Paste Rotate to the selected box or tapped span and otherwise to the clipboard on either route", () => {
-  fc.assert(
-    fc.property(
-      fc.constantFrom(...Object.values(flows)),
-      fc.constantFrom(...routes),
-      fc.constantFrom(...targets),
-      fc.boolean(),
-      (flow, route, target, sneaking) => {
-        for (const role of controlRoles)
-          expect(routePress({ flow, role, route, target, sneaking })).toEqual({
-            kind:
-              role === "pasteRotate" &&
-              (flow.kind === "selected" || flow.kind === "baseHeight")
-                ? "rotateSelection"
-                : controlTable[role],
-          });
-      },
-    ),
-  );
+  for (const flow of Object.values(flows)) {
+    for (const route of routes) {
+      for (const target of targets) {
+        for (const sneaking of sneakingValues) {
+          for (const role of controlRoles) {
+            expect(routePress({ flow, role, route, target, sneaking })).toEqual(
+              {
+                kind:
+                  role === "pasteRotate" &&
+                  (flow.kind === "selected" || flow.kind === "baseHeight")
+                    ? "rotateSelection"
+                    : controlTable[role],
+              },
+            );
+          }
+        }
+      }
+    }
+  }
 });

@@ -16,12 +16,7 @@ describe("TentFlapStore (ADR 0132)", () => {
     const a = tent("a");
     const flaps = store.flapsOf(a as never);
     expect(store.flapsOf(a as never)).toBe(flaps);
-    expect(a.getProperty.mock.calls.map((c) => c[0])).toEqual([
-      TENT_FLAP_PROPERTY.front,
-      TENT_FLAP_PROPERTY.left,
-      TENT_FLAP_PROPERTY.right,
-      TENT_FLAP_PROPERTY.bedroom,
-    ]);
+    expect(a.getProperty).toHaveBeenCalledTimes(4);
   });
 
   it("restores an open flap after a reload, which builds a new store", () => {

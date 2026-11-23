@@ -27,7 +27,7 @@ The nearest-seat rule of 0007 and 0019 does not specify how to break equal-dista
 
 ## Consequences
 
-- A transient clear failure can recover automatically instead of leaving the rider in third person. The existing "retries giving the view back when it fails" test in `tests/application/vehicle/driveVehicles.test.ts` pins the retry; nearby tests pin log suppression and logging again after success
+- A transient clear failure can recover automatically instead of leaving the rider in third person. The property "reconciles each rider's camera with successful changes and warns once until success" in `tests/application/vehicle/riderEffects.test.ts` checks retries of failed sets and clears, warning suppression, and renewed warnings after a successful switch.
 - A present player whose camera can never be cleared incurs a small retry every tick, with only one failure log until a switch succeeds. Revisit this if persistent failures make that cost significant; missing players do not cause this retry loop
 - Log suppression can span flights. If a failed switch stops being needed before its retry, for example because the rider lands or gets off before the next tick, `syncCameras` never calls `switchCamera` for that player again, and the `cameraFailed` entry stays. A later flight whose switches keep failing for that player then logs nothing, because the only log came from the earlier flight. This gap is accepted; clear the entry when the pending switch is dropped if a missing log hinders diagnosis
 - Equal-distance seat assignments are deterministic and favor the driver's side on the center line. Revisit the tie-break if the seat layout or index order changes

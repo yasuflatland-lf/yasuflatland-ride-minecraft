@@ -10,7 +10,7 @@
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "lint:lang": "node scripts/check-language.mjs",
-    "lint:unused": "knip && knip --production --include files,exports,types",
+    "lint:unused": "knip && knip --config knip.production.mjs --production --include files,exports,types && knip --config knip.release.mjs --production --include files,exports,types,nsExports,nsTypes,enumMembers",
     "lint:deps": "depcruise src --config .dependency-cruiser.cjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage '--coverage.include=src/**' --coverage.reporter=text --coverage.reporter=lcov",
