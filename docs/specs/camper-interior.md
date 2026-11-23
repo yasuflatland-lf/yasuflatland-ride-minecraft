@@ -158,6 +158,15 @@
 - Implementation: `src/infrastructure/vehicle/kinds/camper/handlers/decor.ts`; `src/application/vehicle/room/removeDecor.ts`; `src/application/vehicle/hitVehicle.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/kinds/camper/roomDecor.ts`; `src/infrastructure/vehicle/bedrock/bedrockDecorWorld.ts`; `src/infrastructure/vehicle/bedrock/bedrockInventory.ts`; `src/infrastructure/shared/players.ts`
 - Verification: `tests/application/vehicle/room/removeDecor.test.ts` "takes back the end of the table nearest the pressed point" checks return; `tests/application/vehicle/hitVehicle.test.ts` "gives back stowed decor when the camper breaks" checks stowed items. `tests/infrastructure/vehicle/bedrock/bedrockDecorWorld.test.ts` "gives decor back as camping gear items" checks inventory delegation. Not verified: taking the visually intended table end on devices or overflow drops inside the camper.
 
+### Decor lost on fleet eviction
+
+- Applies to: Camper decor on fleet eviction.
+- Rule: **2.** When the fleet limit evicts a parked camper, its room decor is lost. Taking the camper back by hand returns its saved decor items to the hitter.
+- Agreement: Accepted
+- Basis: `src/application/vehicle/limitVehicles.ts` (`retireVehicle`); `src/application/vehicle/hitVehicle.ts` (`giveDecorItems`); `src/application/vehicle/retireVehicle.ts`. [0093](../adr/0093-decorate-the-parked-camper.md).
+- Implementation: `src/application/vehicle/limitVehicles.ts`; `src/application/vehicle/hitVehicle.ts`; `src/application/vehicle/retireVehicle.ts`
+- Verification: not covered for decor on eviction; `tests/application/vehicle/hitVehicle.test.ts` covers return of stowed decor on hand take-back.
+
 ### Saved decor on load
 
 - Applies to: An aggregate rebuilt from saved decor.

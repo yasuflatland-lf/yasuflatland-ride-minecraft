@@ -1,9 +1,12 @@
 import {
   FURNITURE_SPEC,
   type FurnitureKind,
+  furnitureCells,
   furnitureClearCells,
   furniturePose,
   furnitureSupportCells,
+  overlapsAny,
+  RESORT_GEAR_QUERY_RADIUS,
 } from "../../domain/resort/furniture";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -39,6 +42,12 @@ export class PlaceFurniture {
       )
         return blocked();
     }
+    const occupied = this.world.resortGearCells(
+      dimension,
+      pose.origin,
+      RESORT_GEAR_QUERY_RADIUS,
+    );
+    if (overlapsAny(furnitureCells(pose), occupied)) return blocked();
     const result = placePaid(
       {
         isCreative: (p) => this.world.isCreative(p),

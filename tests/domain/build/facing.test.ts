@@ -7,6 +7,7 @@ import {
   facingFromYaw,
   facingVector,
   parseFacing,
+  rightOf,
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
 import {
@@ -32,6 +33,17 @@ it("composes clockwise turns", () => {
         turnBetween(a, c),
       );
     }),
+  );
+});
+
+it("turns each facing vector toward the next clockwise facing", () => {
+  const clockwise = FACINGS.map(facingVector);
+  fc.assert(
+    fc.property(facing, (f) => {
+      const next = (FACINGS.indexOf(f) + 1) % FACINGS.length;
+      expect(rightOf(facingVector(f))).toEqual(clockwise[next]);
+    }),
+    { examples: FACINGS.map((f) => [f]) },
   );
 });
 

@@ -58,7 +58,9 @@ export class RotateBox {
       "exact",
     );
     if (snapshot === "tooLarge" || snapshot === "unreadable") {
-      this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      if (snapshot === "tooLarge")
+        this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      else this.feedback.showMessage(playerId, "copyUnreadable");
       return "refused";
     }
     const source = this.structures.capture(
@@ -69,7 +71,9 @@ export class RotateBox {
     );
     if (source === "tooLarge" || source === "unreadable") {
       this.structures.discard(snapshot);
-      this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      if (source === "tooLarge")
+        this.feedback.showMessage(playerId, "rotateTooLarge", count);
+      else this.feedback.showMessage(playerId, "copyUnreadable");
       return "refused";
     }
     this.structures.clearEntities(dimensionId, selectedBox);

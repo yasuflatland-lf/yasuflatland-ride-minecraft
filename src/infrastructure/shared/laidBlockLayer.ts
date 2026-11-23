@@ -1,6 +1,6 @@
 import { BlockPermutation, type Dimension } from "@minecraft/server";
 import type { SpaceCheck } from "../../application/shared/ports/space";
-import { type Cell, cellKey } from "../../domain/shared/cells";
+import { type Cell, cellKey, parseCell } from "../../domain/shared/cells";
 import { asDimensionId } from "../../domain/shared/ids";
 import { NAMESPACE } from "./identifiers";
 
@@ -46,20 +46,25 @@ export class LaidBlockLayer {
     return [...cells.values()];
   }
 
+  /** Returns cells that still need cleanup. */
   clear(
     dimension: Dimension,
     recorded: readonly Cell[],
     warn = this.warning("clear"),
-  ): void {
+  ): Cell[] {
+    const remaining: Cell[] = [];
     for (const cell of recorded) {
       try {
         const block = dimension.getBlock(cell);
-        if (block?.typeId === this.blockId)
+        if (!block) remaining.push(cell);
+        else if (block.typeId === this.blockId)
           block.setPermutation(BlockPermutation.resolve("minecraft:air"));
       } catch (error) {
+        remaining.push(cell);
         warn(error);
       }
     }
+    return remaining;
   }
 }
 
@@ -68,12 +73,7 @@ export function readSavedCells(saved: unknown): Cell[] {
   try {
     const value: unknown = JSON.parse(saved);
     if (!Array.isArray(value)) return [];
-    return value.filter(
-      (cell): cell is Cell =>
-        cell !== null &&
-        typeof cell === "object" &&
-        [cell.x, cell.y, cell.z].every(Number.isSafeInteger),
-    );
+    return value.map(parseCell).filter((cell) => cell !== undefined);
   } catch {
     return [];
   }
