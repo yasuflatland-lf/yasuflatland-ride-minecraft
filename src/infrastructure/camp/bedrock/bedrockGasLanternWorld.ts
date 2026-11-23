@@ -1,4 +1,4 @@
-import { ItemStack, world } from "@minecraft/server";
+import { world } from "@minecraft/server";
 import type { GasLanternWorld } from "../../../application/camp/ports/gasLantern";
 import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import {
@@ -21,6 +21,7 @@ import type {
 import type { Vec3 } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
 import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import type { CellLayer } from "../../shared/laidCells";
 import { showHitsLeftHint } from "../../shared/players";
@@ -163,12 +164,14 @@ export class BedrockGasLanternWorld
     this.light.clearGone(live);
   }
 
-  dropItem(id: GasLanternId): void {
+  dropItem(id: GasLanternId, hitter?: PlayerId): void {
     const entity = gasLantern(id);
-    entity?.dimension.spawnItem(
-      new ItemStack(GAS_LANTERN_ITEM, 1),
-      entity.location,
-    );
+    if (entity)
+      giveBack(
+        entity,
+        GAS_LANTERN_ITEM,
+        giveBackReceiver(GAS_LANTERN_SPEC.giveBack, hitter),
+      );
   }
 
   removeGasLantern(id: GasLanternId): void {

@@ -16,6 +16,8 @@
 
 ## Rules
 
+The Beach Parasol, Beach Chair, Dining Table, Dining Chair, Sofa (Single), Sofa (Double), Toilet, and Washstand all use the `hitter` give-back policy. Taking one back returns one matching item to the hitter's inventory. A full inventory drops the item at the hitter's feet. If the hitter is unavailable, the item drops at the gear.
+
 ### Furniture domain groundwork
 
 - Applies to: Domain geometry for Dining Table, Dining Chair, single sofa, double sofa, Toilet, and Washstand; placement and recovery are installed for the first four kinds, whose assets are implemented. Toilet and Washstand assets and engine wiring are implemented.

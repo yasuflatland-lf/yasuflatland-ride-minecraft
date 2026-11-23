@@ -183,7 +183,7 @@ it("switches on tool hits without hints or progress toward taking back a lantern
     ["player", 1],
   ]);
   strike();
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern");
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern", "player");
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith("lantern");
 });
 
@@ -204,7 +204,7 @@ it("accepts the take-back test hook only from the server for a Gas Lantern", () 
   expect(world.dropItem).not.toHaveBeenCalled();
   send("Server");
   expect(world.showHitsLeft).not.toHaveBeenCalled();
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern");
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern", undefined);
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith("lantern");
 });
 

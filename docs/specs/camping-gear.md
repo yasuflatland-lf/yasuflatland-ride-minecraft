@@ -35,6 +35,8 @@
 
 ## Rules
 
+The Low Chair, Noga Chair, Camp Table, Fire Pit, Gas Lantern, and Dutch Oven use the `atGear` give-back policy. Taking one back drops its item at the entity. The ground tent and roof tent use `hitter`: the item goes into the hitter's inventory, with overflow dropped at their feet. If the hitter is unavailable, the item drops at the tent. A ground tent whose entity is also missing uses its saved registry pose. When host removal folds a roof tent, its owner is the receiver.
+
 ### Feature boundary and installation
 
 - Applies to: All outdoor camping gear and its connection to vehicles.

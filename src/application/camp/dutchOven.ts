@@ -185,7 +185,7 @@ export class DutchOvenActions {
           this.world.hostExists(host.id)
         )
           this.world.setCovered(asFirePitId(host.id), false);
-        this.world.dropItem(id);
+        this.world.dropItem(id, player);
       },
       remove: () => {
         this.world.removeDutchOven(id);
