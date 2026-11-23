@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { OpenSelectionMenu } from "../../../src/application/build/openSelectionMenu";
 import { AIR } from "../../../src/domain/build/blockState";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { shapeMenu } from "../../../src/domain/build/flow/menu";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, overworld } from "./fakes";

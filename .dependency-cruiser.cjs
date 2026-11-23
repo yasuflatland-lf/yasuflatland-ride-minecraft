@@ -110,6 +110,12 @@ module.exports = {
       to: {},
     },
     {
+      name: "no-circular",
+      severity: "error",
+      from: { path: "^src/domain/build/" },
+      to: { path: "^src/domain/build/", circular: true },
+    },
+    {
       name: "not-resolvable",
       comment:
         "An import that does not resolve would slip past every rule above.",

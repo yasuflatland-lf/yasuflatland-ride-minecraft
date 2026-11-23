@@ -2,13 +2,13 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { sizeOf } from "../box";
 import { type Curve, ellipse, ellipseOn, outlinePoints } from "../wireframe";
+import type { FillStyle } from "./kind";
 import type {
   HeightedPlacement,
   HeightedSpec,
   HeightedVolume,
   HeightStepSpec,
-} from "./geometry";
-import type { FillStyle } from "./kind";
+} from "./types";
 
 interface YRange {
   readonly bottom: number;

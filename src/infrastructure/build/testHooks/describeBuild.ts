@@ -1,5 +1,5 @@
-import type { BuildFlow } from "../../../domain/build/flow/flow";
 import { pasteMenu } from "../../../domain/build/flow/menu";
+import type { BuildFlow } from "../../../domain/build/flow/state";
 import {
   NO_TURN,
   type QuarterTurn,

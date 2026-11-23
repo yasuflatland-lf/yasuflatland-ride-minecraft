@@ -8,6 +8,10 @@ import type { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/be
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import {
+  DUTCH_OVEN_ON_TOP,
+  GAS_LANTERN_ON_TOP,
+} from "../../../src/infrastructure/camp/bedrock/topHosts";
+import {
   DUTCH_OVEN_ITEM,
   GAS_LANTERN_ITEM,
 } from "../../../src/infrastructure/camp/identifiers";
@@ -80,6 +84,7 @@ it.each(["lantern", "oven"] as const)(
             world as unknown as ConstructorParameters<
               typeof GasLanternActions
             >[0],
+            GAS_LANTERN_ON_TOP,
           ),
           world as unknown as BedrockGasLanternWorld,
           registry,
@@ -89,6 +94,7 @@ it.each(["lantern", "oven"] as const)(
             world as unknown as ConstructorParameters<
               typeof DutchOvenActions
             >[0],
+            DUTCH_OVEN_ON_TOP,
           ),
           new HostedItemsGuard([]),
           registry,

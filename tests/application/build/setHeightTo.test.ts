@@ -4,10 +4,8 @@ import { AimHeight } from "../../../src/application/build/aimHeight";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  type BuildFlow,
-  chooseHeighted,
-} from "../../../src/domain/build/flow/flow";
+import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, overworld } from "./fakes";

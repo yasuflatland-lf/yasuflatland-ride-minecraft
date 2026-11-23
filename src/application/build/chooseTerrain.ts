@@ -1,6 +1,6 @@
 import { cellBox, volume } from "../../domain/build/box";
 import { isFillMaterial } from "../../domain/build/edit/guard";
-import { chooseTerrain } from "../../domain/build/flow/flow";
+import { chooseTerrain } from "../../domain/build/flow/terrainFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import {

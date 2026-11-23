@@ -9,7 +9,7 @@ import {
   setHeight,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { selectionHeightLimit } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { confirmEndpointHeight } from "../../support/buildSelection";

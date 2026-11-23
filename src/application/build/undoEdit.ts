@@ -1,8 +1,8 @@
 // Use case: undo the player's last edit (ADR 0178).
 import { cellsOf, sameBox, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
-import { cornerTaps } from "../../domain/build/flow/flow";
 import { beginPasteAim } from "../../domain/build/flow/paste";
+import { cornerTaps } from "../../domain/build/flow/taps";
 import { inDimension, withBox } from "../../domain/build/selection";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";

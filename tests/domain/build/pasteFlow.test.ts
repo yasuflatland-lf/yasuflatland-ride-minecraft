@@ -3,19 +3,22 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
-  type BuildFlow,
   chooseHeighted,
-  openBuildMenu,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
-import { pasteMenu, utilityMenu } from "../../../src/domain/build/flow/menu";
+} from "../../../src/domain/build/flow/heightFlow";
+import {
+  openBuildMenu,
+  pasteMenu,
+  utilityMenu,
+} from "../../../src/domain/build/flow/menu";
 import {
   beginPasteAim,
   followFacing,
   type PasteAim,
   rotatePasteAim,
 } from "../../../src/domain/build/flow/paste";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import {
   effectiveTurn,
   FACINGS,
