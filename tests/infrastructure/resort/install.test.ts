@@ -9,9 +9,6 @@ import { ROOF_TENT_STARTER_RECEIVED_PROPERTY } from "../../../src/infrastructure
 import { registerFurnitureHits } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits";
 import { registerFurnitureTopLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopLifecycle";
 import { registerShowLifecycle } from "../../../src/infrastructure/resort/bedrock/handlers/showLifecycle";
-import { registerTestFurniture } from "../../../src/infrastructure/resort/bedrock/handlers/testFurniture";
-import { registerTestToilet } from "../../../src/infrastructure/resort/bedrock/handlers/testToilet";
-import { registerTestWashstand } from "../../../src/infrastructure/resort/bedrock/handlers/testWashstand";
 import { registerToiletInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/toiletInteraction";
 import { registerWashstandInteraction } from "../../../src/infrastructure/resort/bedrock/handlers/washstandInteraction";
 import {
@@ -24,6 +21,10 @@ import {
   FURNITURE_IDS,
 } from "../../../src/infrastructure/resort/identifiers";
 import { installResort } from "../../../src/infrastructure/resort/install";
+import { installResortTestHooks } from "../../../src/infrastructure/resort/testHooks/install";
+import { registerTestFurniture } from "../../../src/infrastructure/resort/testHooks/testFurniture";
+import { registerTestToilet } from "../../../src/infrastructure/resort/testHooks/testToilet";
+import { registerTestWashstand } from "../../../src/infrastructure/resort/testHooks/testWashstand";
 import { registerStarterItem } from "../../../src/infrastructure/shared/starterItem";
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 import { defined } from "../../support/defined";
@@ -43,15 +44,13 @@ vi.mock(
   () => ({ registerWashstandInteraction: vi.fn() }),
 );
 
-vi.mock(
-  "../../../src/infrastructure/resort/bedrock/handlers/testToilet",
-  () => ({ registerTestToilet: vi.fn() }),
-);
+vi.mock("../../../src/infrastructure/resort/testHooks/testToilet", () => ({
+  registerTestToilet: vi.fn(),
+}));
 
-vi.mock(
-  "../../../src/infrastructure/resort/bedrock/handlers/testWashstand",
-  () => ({ registerTestWashstand: vi.fn() }),
-);
+vi.mock("../../../src/infrastructure/resort/testHooks/testWashstand", () => ({
+  registerTestWashstand: vi.fn(),
+}));
 
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furnitureTopInteraction",
@@ -70,10 +69,9 @@ vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/furnitureHits",
   () => ({ registerFurnitureHits: vi.fn() }),
 );
-vi.mock(
-  "../../../src/infrastructure/resort/bedrock/handlers/testFurniture",
-  () => ({ registerTestFurniture: vi.fn() }),
-);
+vi.mock("../../../src/infrastructure/resort/testHooks/testFurniture", () => ({
+  registerTestFurniture: vi.fn(),
+}));
 vi.mock("@minecraft/server", () => ({ world: {}, system: {} }));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/beachChairInteraction",
@@ -95,10 +93,9 @@ vi.mock(
   "../../../src/infrastructure/resort/bedrock/handlers/beachChairHits",
   () => ({ registerBeachChairHits: vi.fn() }),
 );
-vi.mock(
-  "../../../src/infrastructure/resort/bedrock/handlers/testBeachChair",
-  () => ({ registerTestBeachChair: vi.fn() }),
-);
+vi.mock("../../../src/infrastructure/resort/testHooks/testBeachChair", () => ({
+  registerTestBeachChair: vi.fn(),
+}));
 
 const starterWorld = vi.hoisted(() => vi.fn());
 vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
@@ -132,12 +129,9 @@ vi.mock(
     registerParasolPlacement: vi.fn(),
   }),
 );
-vi.mock(
-  "../../../src/infrastructure/resort/bedrock/handlers/testParasol",
-  () => ({
-    registerTestParasol: vi.fn(),
-  }),
-);
+vi.mock("../../../src/infrastructure/resort/testHooks/testParasol", () => ({
+  registerTestParasol: vi.fn(),
+}));
 
 vi.mock(import("../../../src/application/resort/watchToiletDismount"), {
   spy: true,
@@ -155,12 +149,13 @@ function onlyCall<T>(calls: T[]): T {
 
 function install() {
   const topHosts = new TopHostRegistry();
-  installResort({
+  const parts = installResort({
     topHosts,
     isVehicleSpace: () => true,
     isCampSpace: () => false,
     placeHostedOnTop: () => false,
   });
+  installResortTestHooks(parts);
   return topHosts;
 }
 

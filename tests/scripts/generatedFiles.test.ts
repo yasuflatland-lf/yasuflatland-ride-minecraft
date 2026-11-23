@@ -135,7 +135,12 @@ it("packages the driving-input receiver and keeps build hooks in the dev bundle 
       maxBuffer: 8 * 1024 * 1024,
     },
   );
-  for (const marker of ["replyWhenSettled", "registerTestEdit"]) {
+  for (const marker of [
+    "replyWhenSettled",
+    "registerTestEdit",
+    "registerTestToilet",
+    "registerTestFurniture",
+  ]) {
     expect(dev).toContain(marker);
     expect(release).not.toContain(marker);
   }

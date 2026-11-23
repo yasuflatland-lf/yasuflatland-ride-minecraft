@@ -5,6 +5,7 @@ import { installBuild } from "./build/install";
 import { installBuildTestHooks } from "./build/testHooks/install";
 import { installCamp } from "./camp/install";
 import { installResort } from "./resort/install";
+import { installResortTestHooks } from "./resort/testHooks/install";
 import { NAMESPACE } from "./shared/identifiers";
 import { TopHostRegistry } from "./shared/tableTop/registry";
 import { installVehicles } from "./vehicle/install";
@@ -27,7 +28,7 @@ export function bootstrap(): void {
     isVehicleSpace: vehicles.isVehicleSpace,
     vehicleHost: vehicles.vehicleHost,
   });
-  installResort({
+  const resort = installResort({
     topHosts,
     isVehicleSpace: vehicles.isVehicleSpace,
     isCampSpace: camp.isCampSpace,
@@ -43,6 +44,7 @@ export function bootstrap(): void {
   });
   if (__TEST_HOOKS__) {
     installBuildTestHooks(build);
+    installResortTestHooks(resort);
   }
   installWarp();
   console.warn(`[${NAMESPACE}] loaded`);

@@ -106,11 +106,11 @@ Requests of at most 256 regions use five sorted orders plus 40 seeded random ord
 ### Test hooks ship only in dev builds
 
 - Applies to: build-tool test scriptevents registered by `src/infrastructure/build/testHooks/install.ts`.
-- Rule: `pnpm build` defines `__TEST_HOOKS__` as true for both Behavior Pack bundles. Vitest and its Stryker runner use the same value. Bootstrap guards the call to `installBuildTestHooks` with this flag. Keep hook modules reachable only through that installer. After a dev build, `pnpm package` stages the packs under `dist/`, rebuilds the staged main script with the flag set to false, and archives both release packs. The driving-input receiver below remains available in the release.
+- Rule: `pnpm build` defines `__TEST_HOOKS__` as true for both Behavior Pack bundles. Vitest and its Stryker runner use the same value. Bootstrap guards the calls to `installBuildTestHooks` and `installResortTestHooks` with this flag. Keep hook modules reachable only through those installers. After a dev build, `pnpm package` stages the packs under `dist/`, rebuilds the staged main script with the flag set to false, and archives both release packs. The driving-input receiver below remains available in the release.
 - Agreement: Accepted
 - Basis: [0010](../adr/0010-testing-strategy.md) Decision and Consequences.
 - Implementation: `src/buildFlags.d.ts`, `src/infrastructure/bootstrap.ts`, `scripts/build.mjs`, `scripts/package.mjs`, `vitest.config.ts`.
-- Verification: `tests/scripts/generatedFiles.test.ts` checks the packaged script for the driving-input receiver, checks build-hook markers in dev and release bundles, and compares the dev bundle before and after packaging.
+- Verification: `tests/scripts/generatedFiles.test.ts` checks the packaged script for the driving-input receiver, checks build and resort hook markers in dev and release bundles, and compares the dev bundle before and after packaging.
 
 ### Production driving-input receiver
 
@@ -365,7 +365,7 @@ The main baseline is run 43765838821, commit `6b31f4d0`, before 3/6. The Series 
 
 ## Open issues
 
-- Camp, resort, and vehicle test hooks still ship in the release. ADR 0010 calls for gating these hooks too, with `yasu_ride:test_input` as the release exception.
+- Camp and vehicle test hooks still ship in the release. ADR 0010 calls for gating these hooks too, with `yasu_ride:test_input` as the release exception.
 - ADR 0013 says GitHub Actions are referenced by major tag in Context; the implementation also pins mise and Codecov actions to commit SHAs (`.github/workflows/unit-test.yml`, `.github/workflows/integration-test.yml`, `.github/workflows/release.yml`); the ADR needs an edit or a superseding ADR.
 - ADR 0048 says patch the Vitest runner under `patches/`, and its Consequences also describe patch-update installation failures; the implementation uses the released Stryker version in `package.json`, has no `patches/` directory or patchedDependencies, and retains only the compiler hook (`.pnpmfile.cjs`); the same ADR Consequences records that the patch was removed; the ADR needs an edit or a superseding ADR.
 - ADR 0048 says mutation excludes only main and the test runner; the implementation also excludes arena, catalog, and scenarios (`stryker.config.mjs`); ADR 0088 accounts for arena and scenarios but not catalog; the ADR needs an edit or a superseding ADR.
