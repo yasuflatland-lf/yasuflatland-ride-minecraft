@@ -10,6 +10,7 @@ import {
   parasolCeilingCells,
   parasolPoseAt,
 } from "../../../domain/resort/parasolPose";
+import { PARASOL_SPEC } from "../../../domain/resort/spec";
 import { type Cell, cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import {
@@ -17,11 +18,11 @@ import {
   gearFeedback,
   gearGroundChecks,
   giveBack,
+  giveBackReceiver,
   spawnIn,
 } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { SingleBlockLayer } from "../../shared/laidBlockLayer";
-import { playerById } from "../../shared/players";
 import {
   BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
@@ -116,7 +117,7 @@ export class BedrockParasolWorld
   dropItem(id: ParasolId, player: PlayerId | undefined): void {
     const entity = this.entity(id);
     if (!entity) return;
-    const receiver = player === undefined ? undefined : playerById(player);
+    const receiver = giveBackReceiver(PARASOL_SPEC.giveBack, player);
     giveBack(entity, BEACH_PARASOL_ITEM, receiver);
   }
 }

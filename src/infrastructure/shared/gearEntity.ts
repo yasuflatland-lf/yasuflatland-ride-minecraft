@@ -1,12 +1,18 @@
 import { type Entity, ItemStack, type Player, world } from "@minecraft/server";
 import type { HitsLeftFeedback } from "../../application/shared/ports/hitsLeft";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import type { GiveBackPolicy } from "../../domain/shared/giveBack";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { isSolidTop } from "./blocks";
 import { entityOfType, spawnWithRollback } from "./entities";
 import { NAMESPACE } from "./identifiers";
-import { giveOrDrop, showActionBar, showHitsLeftHint } from "./players";
+import {
+  giveOrDrop,
+  playerById,
+  showActionBar,
+  showHitsLeftHint,
+} from "./players";
 
 export function gearEntities<Id extends string>(
   typeIds: Parameters<typeof entityOfType>[2],
@@ -43,8 +49,17 @@ export function spawnIn(
   return spawnWithRollback(dimension, typeId, at, yaw, setup);
 }
 
+export function giveBackReceiver(
+  policy: GiveBackPolicy,
+  hitter: PlayerId | undefined,
+): Player | undefined {
+  return policy === "hitter" && hitter !== undefined
+    ? playerById(hitter)
+    : undefined;
+}
+
 export function giveBack(
-  entity: Entity,
+  entity: Pick<Entity, "dimension" | "location">,
   itemId: string,
   receiver?: Player,
 ): void {

@@ -1,3 +1,4 @@
+import type { ProtectedSpace } from "../../../domain/shared/cells";
 import type { TopRect } from "../../../domain/shared/tableTop";
 
 /** The kinds of item a table top can hold (ADR 0185). */
@@ -9,4 +10,5 @@ export interface HostedItemKind {
   readonly footprint: TopRect;
   /** Free air cells the item needs above the table's ground cell. */
   readonly clearance: number;
+  readonly refuses?: readonly ProtectedSpace[];
 }

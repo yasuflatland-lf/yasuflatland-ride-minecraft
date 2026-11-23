@@ -36,16 +36,13 @@ function fixture(failSpawn = false) {
 
 it("requires ordinary flint and steel to light an unlit pit, then extinguishes on any tap", () => {
   const { actions, world, wearFlintAndSteel } = fixture();
-  expect(actions.toggle(pit, player, undefined, 2)).toBe(false);
-  expect(actions.toggle(pit, player, "minecraft:fire_charge", 2)).toBe(false);
+  expect(actions.toggle(pit, player, false, 2)).toBe(false);
   expect(world.setLit).not.toHaveBeenCalled();
-  expect(actions.toggle(pit, player, "minecraft:flint_and_steel", 2)).toBe(
-    true,
-  );
+  expect(actions.toggle(pit, player, true, 2)).toBe(true);
   expect(world.setLit).toHaveBeenLastCalledWith(pit, true);
   expect(wearFlintAndSteel).toHaveBeenCalledWith(player, 2);
   expect(wearFlintAndSteel).toHaveBeenCalledTimes(1);
-  expect(actions.toggle(pit, player, undefined, 2)).toBe(true);
+  expect(actions.toggle(pit, player, false, 2)).toBe(true);
   expect(world.setLit).toHaveBeenLastCalledWith(pit, false);
   expect(wearFlintAndSteel).toHaveBeenCalledTimes(1);
 });
@@ -68,7 +65,7 @@ it("places on clear ground outside vehicle space and folds back after three hits
     [player, 2],
     [player, 1],
   ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit, player);
   expect(world.removeFirePit).toHaveBeenCalledOnce();
 });
 
@@ -89,7 +86,7 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     world.isCovered.mockReturnValue(false);
     for (let hit = 1; hit <= 3 - previousHits; hit++)
       expect(actions.hit(pit, player, 5 + hit)).toBe(hit === 3 - previousHits);
-    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
+    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit, player);
     expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
   }
 });

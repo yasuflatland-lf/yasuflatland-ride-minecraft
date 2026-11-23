@@ -1,11 +1,27 @@
 import type { Entity, Player } from "@minecraft/server";
+import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import {
+  CHAIR_SPEC,
+  DUTCH_OVEN_SPEC,
+  FIRE_PIT_SPEC,
+  GAS_LANTERN_SPEC,
+  ROOF_TENT_SPEC,
+  TABLE_SPEC,
+  TENT_SPEC,
+} from "../../../src/domain/camp/spec";
+import { FURNITURE_SPEC } from "../../../src/domain/resort/furniture";
+import {
+  BEACH_CHAIR_SPEC,
+  PARASOL_SPEC,
+} from "../../../src/domain/resort/spec";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   gearEntities,
   gearFeedback,
   gearGroundChecks,
   giveBack,
+  giveBackReceiver,
   spawnIn,
 } from "../../../src/infrastructure/shared/gearEntity";
 
@@ -100,6 +116,36 @@ it("returns one item to the receiver or drops it at the gear", () => {
   expect(spawnItem).toHaveBeenCalledExactlyOnceWith(
     { typeId: itemId, amount: 1 },
     at,
+  );
+});
+
+it("selects the hitter only for tents and resort gear", () => {
+  fc.assert(
+    fc.property(fc.string().map(asPlayerId), (id) => {
+      const player = { typeId: "minecraft:player" };
+      game.getEntity.mockImplementation((key) =>
+        key === id ? player : undefined,
+      );
+      for (const spec of [
+        CHAIR_SPEC,
+        TABLE_SPEC,
+        FIRE_PIT_SPEC,
+        GAS_LANTERN_SPEC,
+        DUTCH_OVEN_SPEC,
+      ]) {
+        expect(giveBackReceiver(spec.giveBack, id)).toBeUndefined();
+      }
+      for (const spec of [
+        TENT_SPEC,
+        ROOF_TENT_SPEC,
+        BEACH_CHAIR_SPEC,
+        PARASOL_SPEC,
+        ...Object.values(FURNITURE_SPEC),
+      ]) {
+        expect(giveBackReceiver(spec.giveBack, id)).toBe(player);
+        expect(giveBackReceiver(spec.giveBack, undefined)).toBeUndefined();
+      }
+    }),
   );
 });
 

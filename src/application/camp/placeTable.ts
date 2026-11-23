@@ -44,6 +44,7 @@ export class PlaceTable {
             (cell.y !== at.y ||
               !world.isOwnBlock(d, { ...cell, y: block.y })) &&
             world.isAir(d, cell),
+          isCampSpace: world.isCampSpace?.bind(world),
           isVehicleSpace: (d, cell) => world.isVehicleSpace(d, cell),
         },
       },
@@ -52,7 +53,7 @@ export class PlaceTable {
         clear: tableCells(block, yaw).flatMap((cell) =>
           clearanceCells({ ...cell, y: cell.y + 1 }, TABLE_SPEC.clearance),
         ),
-        protect: ["vehicle"],
+        refuses: TABLE_SPEC.refuses,
         extraCheck: () => !world.hasTableNear(dimension, at),
       },
       { player: cmd.playerId, slot: cmd.slot },

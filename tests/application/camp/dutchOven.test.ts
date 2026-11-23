@@ -135,7 +135,7 @@ it("returns one oven on the third hit and hints after earlier hits", () => {
     [player, 2],
     [player, 1],
   ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(oven);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(oven, player);
   expect(world.removeDutchOven).toHaveBeenCalledExactlyOnceWith(oven);
 });
 
@@ -330,7 +330,7 @@ it("taking back an oven frees its place for a replacement", () => {
   expect(actions.placeOnTable(left)).toBe("overlap");
   for (let tick = 0; tick < 3; tick++)
     actions.hit(asDutchOvenId("oven0"), player, tick);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("oven0");
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("oven0", player);
   expect(actions.placeOnTable(left)).toBe("placed");
   expect(hosts.get("oven2")).toBe("camp_table:table:@-7.5,0");
 });
