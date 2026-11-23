@@ -180,6 +180,7 @@ import {
   parasolPlaceTakeBack,
   parasolRainCeiling,
 } from "./parasol";
+import { resortGearOverlap } from "./resortGearOverlap";
 import {
   bulldozerPaveCourse,
   bulldozerPaveFlight,
@@ -379,6 +380,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   dining_table_block_on_top: diningTableBlockOnTop,
   dining_table_top_restore: diningTableTopRestore,
   dining_table_top_overlap: diningTableTopOverlap,
+  resort_gear_overlap: resortGearOverlap,
   dining_table_lantern: diningTableLantern,
   dining_table_oven: diningTableOven,
   sofa_single_place_take_back: sofaSinglePlaceTakeBack,

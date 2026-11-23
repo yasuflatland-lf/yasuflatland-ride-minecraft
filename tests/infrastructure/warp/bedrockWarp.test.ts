@@ -109,6 +109,9 @@ it("accepts air above a solid floor and probes the three cells", () => {
       includePassableBlocks: false,
     },
   );
+  expect(f.dimension.getBlockAbove.mock.calls.map(([cell]) => cell)).toEqual(
+    expect.arrayContaining([feet, { ...feet, y: 63 }, { ...feet, y: 65 }]),
+  );
 });
 
 it.each([64, 65])(
@@ -162,13 +165,19 @@ it.each([63, 64, 65])("rejects an unavailable cell at height %s", (y) => {
   expect(f.world.isStandable(dimensionId, feet)).toBe(false);
 });
 
-it("rejects a throwing solid-block query", () => {
-  const f = fixture();
-  f.dimension.getBlockAbove.mockImplementation(() => {
-    throw Error("unloaded");
-  });
-  expect(f.world.isStandable(dimensionId, feet)).toBe(false);
-});
+it.each([63, 64, 65])(
+  "rejects a throwing solid-block query at height %s",
+  (y) => {
+    const f = fixture();
+    f.dimension.getBlockAbove.mockImplementation((cell) => {
+      if (cell.y === y) throw Error("unloaded");
+      return f.solid.has(cell.y)
+        ? { ...f.blocks.get(cell.y), location: cell }
+        : undefined;
+    });
+    expect(f.world.isStandable(dimensionId, feet)).toBe(false);
+  },
+);
 
 it("does not use a solid block outside the floor cell as support", () => {
   const f = fixture();

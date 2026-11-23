@@ -62,12 +62,12 @@ export class RoofTentCeiling {
     const tent = this.occupants.peek(id);
     if (!tent || tent.ceiling.length === 0) return;
     const warn = this.layer.warning("clear");
-    this.layer.clear(tent.dimension, tent.ceiling, warn);
-    this.occupants.setCeiling(id, []);
+    const remaining = this.layer.clear(tent.dimension, tent.ceiling, warn);
+    this.occupants.setCeiling(id, remaining);
     try {
       roofTentEntity(id)?.setDynamicProperty(
         ROOF_TENT_CEILING_PROPERTY,
-        undefined,
+        writeSavedCells(remaining),
       );
     } catch (error) {
       warn(error);

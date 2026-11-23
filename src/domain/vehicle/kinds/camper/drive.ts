@@ -192,6 +192,12 @@ export class CamperDrive extends TransformingDrive {
     if (this.parking.recovering) {
       const pose = parkPose(ctx.location, this.yaw);
       const layNow = this.parking.recover(pose, ctx);
+      if (!this.parking.pose) {
+        this.fixtures.shutForDeparture();
+        this.storage.shutAll();
+        const step = this.withProperties(super.step(raw, ctx));
+        return { ...step, commands: [...undockCommands(), ...step.commands] };
+      }
       this.restartAt(pose.yaw);
       if (layNow) return this.parkedStep(pose, ctx);
     }
