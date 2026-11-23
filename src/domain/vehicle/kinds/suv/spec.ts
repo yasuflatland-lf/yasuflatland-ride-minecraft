@@ -2,6 +2,8 @@ import { ticks } from "../../../shared/ticks";
 import type { Medium } from "../../motion/motion";
 import type { TransformingSpec } from "../../motion/transforming";
 
+const HITBOX_FRONT = 1.34;
+
 // The tent owns its platform size; changing the vehicle must not resize it.
 const ROOF_TENT_SHELL_HALF_WIDTH = 1.968;
 // Conservative support inside the hardtop's CAB-based flat slab (ADR 0217).
@@ -26,7 +28,8 @@ export const SUV_SPEC = Object.freeze({
   handbrakeGrip: 0.04,
   creepSpeed: 0.12, // Below SPEC.ramMinSpeed, so creeping never rams (ADR 0006)
   // Steps (ADR 0004)
-  hitboxFront: 1.34,
+  hitboxFront: HITBOX_FRONT,
+  stepLaneOffset: 0.8,
   carHeight: 2.36,
   // Collisions (ADR 0006)
   bodyFront: 2.68, // encloses the shell and lamps (ADR 0217)
@@ -73,7 +76,7 @@ export const SUV_SPEC = Object.freeze({
   // Landing gear (ADR 0033). Unfolding takes 1 s (ADR 0022), 3 blocks of
   // landing at landingSink, so the wheels come down a block above that.
   gearDownHeight: 4, // blocks of air below the vehicle within which landing unfolds the wheels
-  gearProbeOffset: 1.34 * (1 - 0.1 / 0.9), // keeps the probes inside the collision box (ADR 0217)
+  gearProbeOffset: HITBOX_FRONT * (1 - 0.1 / 0.9), // keeps the probes inside the collision box (ADR 0217)
   bankSink: 0.03, // blocks/tick of altitude lost at full bank
 } as const);
 
@@ -107,7 +110,7 @@ export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
   gearDownHeight: SUV_SPEC.gearDownHeight,
   gearProbeOffset: SUV_SPEC.gearProbeOffset,
   hitboxFront: SUV_SPEC.hitboxFront,
-  stepLaneOffset: 0.8,
+  stepLaneOffset: SUV_SPEC.stepLaneOffset,
   air: AIR,
   water: WATER,
   waterPolicy: "submerge",

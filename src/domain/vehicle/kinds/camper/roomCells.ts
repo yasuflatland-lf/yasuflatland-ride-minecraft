@@ -34,28 +34,27 @@ import {
   faceToward,
   HALF_X,
   HALF_Z,
+  INSIDE_LAYERS,
   interior,
   localInterior,
   NO_DOORS,
   WALL_X,
   WALL_Z,
 } from "./roomGeometry";
+import { CAMPER_SPEC } from "./spec";
 import { plateFace } from "./storagePlates";
 
 // The open shower door stands in the aisle cell (0, -3) just in front of this rear wall
 // cell, whose plate then takes the taps that pass through the door's model (ADR 0118).
 const SHOWER_DOOR_WALL = { x: 0, z: -WALL_Z } as const;
 
-const WALL_LAYERS = [1, 2, 3] as const;
+const WALL_LAYERS = [...INSIDE_LAYERS, CEILING_LAYER] as const;
 
 export const EXIT_LAYERS = [0, 1] as const;
 
-// A half step under the door, in pixels.
-const DOOR_STEP_HEIGHT = 8;
+const DOOR_STEP_HEIGHT = CAMPER_SPEC.doorStepPx;
 
-// Feet heights above the pose of a player standing inside (the floor top is at 1)
-// and on the roof (its top is at 4).
-const INSIDE_FEET = [0.5, 3.5] as const;
+const INSIDE_FEET = CAMPER_SPEC.roomFeet;
 
 const ROOF_FEET = [3.5, 6] as const;
 
@@ -71,14 +70,28 @@ const ROOF_HALF_X = STAND_HALF_X + 0.125 + 0.3;
 
 const ROOF_HALF_Z = STAND_HALF_Z + 0.125 + 0.3;
 
-// Each deck seat's height above the pose: the camper's minecraft:rideable seat
-// height (1.5 in front, 1.2 at the dinette) minus the deck seat's own 0.52, so a
-// rider sits where the vehicle seat would put them.
-const DECK_SEAT_RISE = [0.98, 0.98, 0.68, 0.68] as const;
+// Subtract in hundredths of a block to preserve the exact decimal offsets used by parked seats.
+const HUNDREDTHS_PER_BLOCK = 100;
+function deckSeatRise(rideableHeight: number): number {
+  return (
+    (rideableHeight * HUNDREDTHS_PER_BLOCK -
+      CAMPER_SPEC.deckSeatHeight * HUNDREDTHS_PER_BLOCK) /
+    HUNDREDTHS_PER_BLOCK
+  );
+}
+
+const frontRise = deckSeatRise(CAMPER_SPEC.rideableSeatHeights.front);
+const dinetteRise = deckSeatRise(CAMPER_SPEC.rideableSeatHeights.dinette);
+const DECK_SEAT_RISE = [
+  frontRise,
+  frontRise,
+  dinetteRise,
+  dinetteRise,
+] as const;
 
 // The toilet seat is as high as the dinette seats, so the toilet's deck seat takes
 // the dinette's rise (ADR 0095).
-const TOILET_SEAT_RISE = 0.68;
+const TOILET_SEAT_RISE = dinetteRise;
 
 // Deck seat i's rider stands up into the aisle cell (local x 0) beside that seat,
 // on the floor: the front seats into the cell just behind them, each dinette seat

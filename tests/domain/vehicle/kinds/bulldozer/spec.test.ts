@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { BULLDOZER_TYRES } from "../../../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
   BULLDOZER_SPEC as S,
   BULLDOZER_TRANSFORMING as T,
@@ -8,6 +9,11 @@ import {
   SUV_TRANSFORMING,
 } from "../../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
+
+it("keeps the bulldozer's step probe spacing, full handbrake grip and zero creep", () => {
+  expect(T.stepLaneOffset).toBe(0.8);
+  expect(BULLDOZER_TYRES).toEqual({ handbrakeGrip: 1, creepSpeed: 0 });
+});
 
 it("halves the SUV's top speed and acceleration (ADR 0136)", () => {
   expect(S).toMatchObject({

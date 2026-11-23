@@ -17,7 +17,7 @@ import { CamperFixtures } from "./fixtures";
 import { PARK_MESSAGES } from "./groundCheck";
 import { CamperParking } from "./parking";
 import { parkPose } from "./parkPose";
-import { CAMPER_MOTION, CAMPER_TYRES } from "./profile";
+import { CAMPER_MOTION, CAMPER_PROFILE, CAMPER_TYRES } from "./profile";
 import { CAMPER_ROOM, type CamperRoom } from "./room";
 import {
   ceilingLightCells,
@@ -33,12 +33,10 @@ import { CAMPER_SPEC, CAMPER_TRANSFORMING } from "./spec";
 import { CamperStorage } from "./storage";
 import { compartmentCells, storagePlateCells } from "./storagePlates";
 
-const CAMPER_ENDS: BodyEnds = {
-  front: CAMPER_SPEC.bodyFront,
+const CAMPER_ENDS: BodyEnds = Object.freeze({
+  ...CAMPER_PROFILE.body,
   rear: CAMPER_SPEC.bodyRear,
-  halfWidth: CAMPER_SPEC.bodyHalfWidth,
-  height: CAMPER_SPEC.carHeight,
-};
+});
 
 export class CamperDrive extends TransformingDrive {
   private readonly parking: CamperParking;

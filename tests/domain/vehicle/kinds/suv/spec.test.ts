@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { SUV_SPEC } from "../../../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+} from "../../../../../src/domain/vehicle/kinds/suv/spec";
 import { SPEC } from "../../../../../src/domain/vehicle/spec";
 
 describe("SUV_SPEC", () => {
+  it("keeps the step lanes and landing gear probes inside the collision box", () => {
+    expect(SUV_TRANSFORMING).toMatchObject({
+      stepLaneOffset: 0.8,
+      hitboxFront: 1.34,
+      gearProbeOffset: 1.34 * (1 - 0.1 / 0.9),
+    });
+  });
+
   it("keeps submarine buoyancy and speed within vehicle limits", () => {
     expect(SUV_SPEC.floatDraft).toBeLessThan(SUV_SPEC.carHeight);
     expect(SUV_SPEC.surfaceRise).toBeGreaterThan(0);
