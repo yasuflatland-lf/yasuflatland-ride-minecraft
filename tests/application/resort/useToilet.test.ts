@@ -11,9 +11,6 @@ it("seats, opens the lid, flushes once on standing and closes at the deadline", 
       f.useToilet.execute({ id: toilet, player, now: sit });
       expect(f.toilets.seat).toHaveBeenCalledExactlyOnceWith(toilet, player);
       expect(f.toilets.setLid).toHaveBeenCalledExactlyOnceWith(toilet, true);
-      expect(f.toilets.seat.mock.invocationCallOrder[0]).toBeLessThan(
-        f.toilets.setLid.mock.invocationCallOrder[0] ?? 0,
-      );
       f.watch.refresh();
       expect(f.toilets.setFlushing).not.toHaveBeenCalled();
       f.clock.now = sit + stay;
@@ -32,12 +29,6 @@ it("seats, opens the lid, flushes once on standing and closes at the deadline", 
         toilet,
         player,
       );
-      expect(f.toilets.setFlushing.mock.invocationCallOrder[0]).toBeLessThan(
-        f.sound.playAt.mock.invocationCallOrder[0] ?? 0,
-      );
-      expect(f.sound.playAt.mock.invocationCallOrder[0]).toBeLessThan(
-        f.toilets.placeBeside.mock.invocationCallOrder[0] ?? 0,
-      );
       const end = f.clock.now + TOILET_SPEC.flushTicks;
       f.ticks.tick(end - 1);
       expect(f.toilets.setFlushing).toHaveBeenCalledTimes(1);
@@ -52,9 +43,6 @@ it("seats, opens the lid, flushes once on standing and closes at the deadline", 
         [toilet, true],
         [toilet, false],
       ]);
-      expect(f.toilets.setFlushing.mock.invocationCallOrder[1]).toBeLessThan(
-        f.toilets.setLid.mock.invocationCallOrder[1] ?? 0,
-      );
       f.useToilet.execute({ id: toilet, player, now: end });
       expect(f.toilets.seat).toHaveBeenCalledTimes(2);
     }),

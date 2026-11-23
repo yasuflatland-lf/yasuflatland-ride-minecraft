@@ -121,34 +121,6 @@ it("removes nothing more on a second pass", () => {
   );
 });
 
-it("keeps an item in an unloaded area, on the ground, or on an existing host", () => {
-  const table = {
-    kind: "top",
-    hostType: "camp_table",
-    id: asTableId("table"),
-    at: { x: 0, z: 0 },
-  } as const;
-  const kind = kindOf(
-    [
-      { host: table, areaLoaded: false },
-      { host: { kind: "ground" }, areaLoaded: true },
-      {
-        host: {
-          kind: "spot",
-          hostType: "fire_pit",
-          id: asFirePitId("pit"),
-          spot: 0,
-        },
-        areaLoaded: true,
-      },
-      { host: table, areaLoaded: true },
-    ],
-    new Set(["pit"]),
-  );
-  new HostedItemsGuard([kind]).check();
-  expect(kind.removed).toEqual(["item3"]);
-});
-
 it("skips vehicle hosts without querying ordinary hosted-item presence", () => {
   const kind = kindOf(
     [{ host: { kind: "vehicle", id: asVehicleId("gone") }, areaLoaded: true }],

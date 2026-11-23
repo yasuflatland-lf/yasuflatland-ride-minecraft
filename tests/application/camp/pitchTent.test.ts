@@ -66,6 +66,14 @@ describe("PitchTent (ADR 0131)", () => {
     ]);
   });
 
+  it("pitches in Creative without consuming the tent item", () => {
+    const world = new FakeTentWorld();
+    world.creative = true;
+    expect(new PitchTent(world).execute(cmd)).toBe(true);
+    expect(world.calls).toContainEqual(["pitch", POSE]);
+    expect(world.names()).not.toContain("consumeTentItem");
+  });
+
   it("rests the tent under a snow layer or a tuft of grass that took the click", () => {
     for (const decoration of [
       "minecraft:snow_layer",

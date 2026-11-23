@@ -201,7 +201,8 @@ it("breaks and removes the entry exactly once after three taps inside the window
       const f = fixture();
       await f.run(0);
       await f.run(first);
-      await f.run(first + second);
+      await f.run(first + second, { playerId: asPlayerId("other") });
+      expect(f.messages).toEqual([2, 1, "broken"]);
       for (let i = 1; i <= 5; i++) await f.run(first + second + i);
       await f.clock.advanceTo(1000);
       expect(f.counts()).toEqual({ drops: 1, removals: 1 });
@@ -244,19 +245,6 @@ it("starts the count again after a gap longer than the window", async () => {
       },
     ),
   );
-});
-
-it("counts taps from different players together", async () => {
-  const f = fixture();
-  for (let i = 0; i < 3; i++)
-    await f.run(i, { playerId: asPlayerId(`player-${i}`) });
-  expect(f.counts()).toEqual({ drops: 1, removals: 1 });
-});
-
-it("shows every remaining count, then the broken message", async () => {
-  const f = fixture();
-  for (let i = 0; i < 3; i++) await f.run(i);
-  expect(f.messages).toEqual([2, 1, "broken"]);
 });
 
 it.each(["dimension", "cell"])("isolates counters by %s", async (changed) => {
