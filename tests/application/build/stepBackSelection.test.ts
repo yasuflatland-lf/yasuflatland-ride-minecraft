@@ -2,8 +2,9 @@ import { expect, it } from "vitest";
 import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
@@ -14,6 +15,7 @@ const point = tapBlock(
   nether,
   start,
   blockStateOf("minecraft:stone"),
+  NETHER_RANGE,
 );
 
 function setup() {

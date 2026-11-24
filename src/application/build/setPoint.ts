@@ -40,7 +40,13 @@ export class SetPoint {
       return;
     }
     if (starting) session.clearSelection();
-    const next = tapBlock(flow, cmd.dimensionId, cmd.cell, material);
+    const next = tapBlock(
+      flow,
+      cmd.dimensionId,
+      cmd.cell,
+      material,
+      this.world.heightRange(cmd.dimensionId),
+    );
     session.setFlow(next);
     if (enteredBaseHeight(flow, next)) {
       this.feedback.showMessage(cmd.playerId, "heightAim");

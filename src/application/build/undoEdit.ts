@@ -1,9 +1,8 @@
 // Use case: undo the player's last edit (ADR 0178).
-import { sameBox, volume } from "../../domain/build/box";
+import { volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
 import { beginPasteAim } from "../../domain/build/flow/paste";
-import { cornerTaps } from "../../domain/build/flow/taps";
-import { inDimension, withBox } from "../../domain/build/selection";
+import { selectionAfterUndo } from "../../domain/build/flow/selectionAfterUndo";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -36,7 +35,6 @@ export class UndoEdit {
       this.feedback.showMessage(playerId, entry);
       return;
     }
-    const edit = entry.kind === "snapshot" ? entry.snapshot : entry.record;
     if (entry.kind === "snapshot") {
       const { dimensionId, box, handle } = entry.snapshot;
       const snapshotEdit = new SnapshotEdit(
@@ -76,29 +74,20 @@ export class UndoEdit {
       }
       this.jobs.start(playerId, record.dimensionId, undoPlan(record), "undo");
     }
-    const flow = session.flow;
-    if (entry.kind === "snapshot" && entry.snapshot.paste) {
-      if (
-        flow.kind === "selected" &&
-        inDimension(flow.selection, entry.snapshot.dimensionId) &&
-        sameBox(flow.selection.box, entry.snapshot.box) &&
-        session.clipboard
-      )
-        session.setFlow(beginPasteAim());
-    } else if (
-      edit.selectionBefore &&
-      (flow.kind === "selected" ||
-        (entry.kind === "snapshot" && flow.kind === "baseHeight")) &&
-      inDimension(flow.selection, edit.dimensionId) &&
-      (entry.kind === "snapshot" ||
-        (entry.record.selectionAfter &&
-          flow.selection === session.confirmedBox &&
-          sameBox(flow.selection.box, entry.record.selectionAfter)))
-    ) {
-      session.replaceSelection(
-        withBox(flow.selection, edit.selectionBefore),
-        edit.selectionBeforeTaps ?? cornerTaps(edit.selectionBefore),
-      );
+    const decision = selectionAfterUndo(
+      entry,
+      session.flow,
+      session.confirmedBox,
+      session.clipboard !== undefined,
+    );
+    if (decision) {
+      if ("aimPaste" in decision) session.setFlow(beginPasteAim());
+      else
+        session.replaceSelection(
+          decision.restore.selection,
+          decision.restore.taps,
+          this.world.heightRange(decision.restore.selection.dimensionId),
+        );
     }
     if (entry.kind === "snapshot")
       reportEditCompletion(

@@ -30,6 +30,7 @@ import {
   FakeGroundProbe,
   FakeSessions,
   FakeTapTargets,
+  FakeWorld,
   fakeSyncTapTarget,
 } from "../../application/build/fakes";
 import { menuCasesFor } from "../../application/build/fakes/menuChoices";
@@ -142,6 +143,7 @@ function snapshotHook() {
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
     fakeSyncTapTarget(),
+    new FakeWorld(),
   );
   const execute = vi.fn(() => "pasted" as const);
   const undo = vi.fn(() => ({}));

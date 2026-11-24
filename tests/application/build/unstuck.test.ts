@@ -8,6 +8,7 @@ import type {
 } from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -63,18 +64,18 @@ it("escapes above the dimension ceiling when no air pair exists below it", () =>
   const e = setup();
   const netherFeet = { ...feet, y: 100 };
   e.players.occupants.set(owner, { dimensionId: nether, feet: netherFeet });
-  e.world.topYs.set(nether, 127);
-  for (let y = netherFeet.y + 1; y <= 127; y++) {
+  e.world.heightRanges.set(nether, NETHER_RANGE);
+  for (let y = netherFeet.y + 1; y <= NETHER_RANGE.maxY; y++) {
     e.world.put({ ...netherFeet, y }, blockStateOf("minecraft:netherrack"));
   }
-  for (let y = 128; y <= BUILD_SPEC.worldTopY; y++) {
+  for (let y = NETHER_RANGE.maxY + 1; y <= OVERWORLD_RANGE.maxY; y++) {
     e.world.unreadableCells.add(cellKey({ ...netherFeet, y }));
   }
   e.repo.getOrCreate(owner).beginEdit();
   e.jobs.start(owner, nether, [{ cell: netherFeet, after: stone }], "undoable");
   e.jobs.step();
   expect(e.players.moves).toEqual([
-    { playerId: owner, cell: { ...netherFeet, y: 128 } },
+    { playerId: owner, cell: { ...netherFeet, y: NETHER_RANGE.maxY + 1 } },
   ]);
 });
 

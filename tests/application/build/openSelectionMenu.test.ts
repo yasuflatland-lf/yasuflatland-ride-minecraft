@@ -1,9 +1,9 @@
 import { expect, it } from "vitest";
 import { OpenSelectionMenu } from "../../../src/application/build/openSelectionMenu";
 import { AIR } from "../../../src/domain/build/blockState";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { shapeMenu } from "../../../src/domain/build/flow/menu";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 import { FakeSessions, overworld } from "./fakes";
 
 it("clears a line's undo target when its root menu first opens", () => {
