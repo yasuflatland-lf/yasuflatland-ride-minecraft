@@ -13,6 +13,8 @@ export interface CellCodec<B> {
   /** Rewrites one saved entry from an older build's shape; returns anything else unchanged. */
   upgrade(saved: unknown): unknown;
   isCell(value: unknown): value is LaidCell<B>;
+  /** Converts a domain cell to its saved representation when it differs. */
+  encode?(cell: LaidCell<B>): unknown;
   same(a: B, b: B): boolean;
   /** The exact block id laid for `block`, light level included (ADR 0115). */
   blockIdOf(block: B): string;
@@ -136,7 +138,11 @@ export class CellLayer<Owner extends string, B> {
     if (holder?.isValid && JSON.stringify(entry.cells) !== before) {
       holder.setDynamicProperty(
         this.codec.property,
-        entry.cells.length > 0 ? JSON.stringify(entry.cells) : undefined,
+        entry.cells.length > 0
+          ? JSON.stringify(
+              entry.cells.map((cell) => this.codec.encode?.(cell) ?? cell),
+            )
+          : undefined,
       );
     }
   }

@@ -1,6 +1,13 @@
+import type { ProtectedSpace } from "../shared/cells";
+import type { GiveBackPolicy } from "../shared/giveBack";
 import { GEAR_RECOVERY } from "../shared/hitCounter";
 import type { Paint } from "../shared/paint";
 import { ticks } from "../shared/ticks";
+
+export const RESORT_REFUSES: readonly ProtectedSpace[] = Object.freeze([
+  "vehicle",
+  "camp",
+]);
 
 // Every tuning value of the beach parasol. The dimensions come from the model in
 // tools/gen_beach_parasol.py: BASE_OFFSET, CANOPY_TOP, BASE_CELLS and POLE_FOOT_CELLS.
@@ -36,6 +43,8 @@ export const PARASOL_SPEC = Object.freeze({
   minBaseDistance: 2,
   /** Hits in a row that fold the parasol back into its item, as for camp gear (ADR 0008). */
   recovery: GEAR_RECOVERY,
+  giveBack: "hitter" satisfies GiveBackPolicy,
+  refuses: RESORT_REFUSES,
   /** How often, in ticks, loaded parasols lay their rain ceiling again. */
   ceilingSyncTicks: ticks(20),
   defaultPaint: "white" satisfies Paint,
@@ -70,6 +79,8 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   headroom: 2,
   /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
   recovery: GEAR_RECOVERY,
+  giveBack: "hitter" satisfies GiveBackPolicy,
+  refuses: RESORT_REFUSES,
   /** How often, in ticks, the leaning pose is sent again for late viewers. */
   poseRefreshTicks: ticks(20),
   /** Cells to the right of the middle cell; one clears the one-cell-wide bed. */

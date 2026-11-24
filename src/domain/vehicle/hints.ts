@@ -80,7 +80,7 @@ export interface HintView {
   readonly offset: Vec3;
   /** The vehicle's yaw. */
   readonly yaw: number;
-  readonly docked: boolean;
+  readonly isHeld: boolean;
   readonly driverSeatFree: boolean;
   /** Someone sits in a seat of the vehicle itself, so hits do not break it (ADR 0008). */
   readonly hasRiders: boolean;
@@ -112,7 +112,7 @@ export function hintAt(
   if (
     seat &&
     toDriverSeat !== undefined &&
-    view.docked &&
+    view.isHeld &&
     view.driverSeatFree &&
     within(view.offset.y, seat.feet) &&
     toDriverSeat <= seat.reach + margin &&

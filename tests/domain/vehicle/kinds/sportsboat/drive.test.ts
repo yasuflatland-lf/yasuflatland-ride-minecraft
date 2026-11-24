@@ -230,7 +230,7 @@ describe("sports boat docking (ADR 0063)", () => {
           ctx.location = { ...ctx.location, x, z };
           for (let tick = 1; tick < DOCK.ticks; tick++) {
             const out = drive.step(undefined, ctx);
-            expect(drive.inspect().docked).toBe(false);
+            expect(drive.inspect().held).toBe(false);
             expect(out.dock?.hold).toBeUndefined();
             expect(out.dock?.cells).toBeUndefined();
             expect(out.commands).toStrictEqual(tick === 1 ? LEVEL : []);
@@ -244,7 +244,7 @@ describe("sports boat docking (ADR 0063)", () => {
             z,
             yaw: drive.yaw,
           };
-          expect(drive.inspect().docked).toBe(true);
+          expect(drive.inspect().held).toBe(true);
           expect(drive.speed).toBe(0);
           expect(out.commands).toStrictEqual(dockCommands());
           expect(out.dock?.hold).toStrictEqual(hold);
@@ -281,7 +281,7 @@ describe("sports boat docking (ADR 0063)", () => {
         const occupied = new SportsboatDrive(heading, {});
         for (let tick = 0; tick < DOCK.ticks * 3; tick++) {
           expect(occupied.step(raw, ctx).dock?.hold).toBeUndefined();
-          expect(occupied.inspect().docked).toBe(false);
+          expect(occupied.inspect().held).toBe(false);
         }
         const idle = new SportsboatDrive(heading, {});
         for (let tick = 0; tick < DOCK.ticks * 3; tick++) {
@@ -367,7 +367,7 @@ describe("sports boat docking (ADR 0063)", () => {
             commands: [...undockCommands(), ...expected.commands],
             boardDeckRiders: true,
           });
-          expect(drive.inspect().docked).toBe(false);
+          expect(drive.inspect().held).toBe(false);
           expect(out.dock?.hold).toBeUndefined();
           expect(out.dock?.cells).toBeUndefined();
           expect(out.dock?.seats ?? []).toStrictEqual([]);
@@ -396,7 +396,7 @@ describe("sports boat docking (ADR 0063)", () => {
             location: { x, y, z },
           };
           const out = drive.step(undefined, ctx);
-          expect(drive.inspect().docked).toBe(true);
+          expect(drive.inspect().held).toBe(true);
           expect(out.dock?.hold).toStrictEqual({
             x,
             y,
@@ -470,7 +470,7 @@ describe("sports boat docking (ADR 0063)", () => {
         };
         for (let tick = 0; tick < DOCK.ticks * 2; tick++) {
           expect(drive.step(undefined, ctx).dock?.hold).toBeUndefined();
-          expect(drive.inspect().docked).toBe(false);
+          expect(drive.inspect().held).toBe(false);
         }
         expect(
           drive.step(undefined, context(0, undefined, { x: 0, z: 0 }, AFLOAT))
@@ -520,7 +520,7 @@ describe("sports boat docking (ADR 0063)", () => {
             context(tick, undefined, { x: 0, z: 0 }, BEACHED),
           );
           expect(out.dock?.hold).toBeUndefined();
-          expect(drive.inspect().docked).toBe(false);
+          expect(drive.inspect().held).toBe(false);
         }
         for (let tick = 1; tick < DOCK.ticks; tick++)
           expect(drive.step(undefined, ctx).dock?.hold).toBeUndefined();
@@ -1530,7 +1530,7 @@ it("only the deck driver above the stick threshold requests boarding and keeps t
             Math.max(Math.abs(driver.moveX), Math.abs(driver.moveY)) >
               DOCK.stick,
         );
-        expect(drive.inspect().docked).toBe(true);
+        expect(drive.inspect().held).toBe(true);
         expect(out.dock?.hold).toBeDefined();
         expect(out.dock?.seats).toHaveLength(4);
         expect(out.commands).toEqual([]);
@@ -1641,11 +1641,11 @@ it("resync resends unchanged trim and roll after any input sequence", () => {
         // A held hull skips the attitude latches, so resync must reach them there too (ADR 0156).
         for (
           let i = 0;
-          i < maxSettleTicks && hold && !drive.inspect().docked;
+          i < maxSettleTicks && hold && !drive.inspect().held;
           i++
         )
           idleStep();
-        if (hold) expect(drive.inspect().docked).toBe(true);
+        if (hold) expect(drive.inspect().held).toBe(true);
         // Without resync an unchanged attitude sends nothing, so the commands
         // after resync can only come from the reset latches.
         expect(attitudeCommands(idleStep().commands)).toEqual([]);
@@ -1698,7 +1698,7 @@ it("resends level trim and roll once after a failed send while a boat that had t
   for (let i = 0; i < 10; i++) tickWith(FULL_THROTTLE);
   expect(drive.inspect().trim).not.toBe(0);
   let docking: readonly EngineCommand[] = [];
-  for (let i = 0; i < 1000 && !drive.inspect().docked; i++)
+  for (let i = 0; i < 1000 && !drive.inspect().held; i++)
     docking = tickWith(undefined).commands;
   expect(docking).toContainEqual(dockedCommand(true));
   // The application calls resync when a run fails (ADR 0127).

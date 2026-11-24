@@ -1,4 +1,5 @@
 import {
+  type Entity,
   type ScriptEventCommandMessageAfterEvent,
   ScriptEventSource,
   system,
@@ -6,6 +7,9 @@ import {
 import { expect, it, vi } from "vitest";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { createVehicle } from "../../../../src/domain/vehicle/kinds/index";
+import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
+import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import { installCamper } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
 import { InMemoryVehicleRepository } from "../../../../src/infrastructure/vehicle/persistence/inMemoryVehicleRepository";
 import { installVehicleTestHooks } from "../../../../src/infrastructure/vehicle/testHooks/install";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
@@ -22,10 +26,31 @@ function fixture() {
   repo.save(dozer);
   repo.save(camper);
   const testHeldItems = new VehicleTestStore<string>();
-  const decorWorld = { saveDecor: vi.fn() };
+  const index = new EntityIndex();
+  const setDynamicProperty = vi.fn();
+  index.track({
+    id: camper.id,
+    isValid: true,
+    setDynamicProperty,
+  } as unknown as Entity);
+  const camperParts = installCamper(
+    {
+      repo,
+      index,
+      inventory: new BedrockInventory(index),
+      clock: { now: () => 0 },
+    },
+    () => undefined,
+    () => undefined,
+    () => {},
+  );
   const subscribe = vi.mocked(system.afterEvents.scriptEventReceive.subscribe);
   subscribe.mockClear();
-  installVehicleTestHooks({ repo, decorWorld, testHeldItems });
+  installVehicleTestHooks({
+    repo,
+    registerKindTestHooks: camperParts.registerTestHooks,
+    testHeldItems,
+  });
 
   function send(
     id: string,
@@ -41,7 +66,7 @@ function fixture() {
       } as ScriptEventCommandMessageAfterEvent);
     }
   }
-  return { dozer, camper, testHeldItems, decorWorld, send };
+  return { dozer, camper, testHeldItems, setDynamicProperty, send };
 }
 
 it.each([
@@ -59,11 +84,14 @@ it.each([
     id: "yasu_ride:test_decor",
     set: "camper,table,potted_plant",
     reset: "camper,table,clear",
-    read: ({ decorWorld }: ReturnType<typeof fixture>) =>
-      decorWorld.saveDecor.mock.lastCall,
+    read: ({ setDynamicProperty }: ReturnType<typeof fixture>) =>
+      setDynamicProperty.mock.lastCall,
     initial: undefined,
-    expected: ["camper", [{ slot: "table", item: "potted_plant" }]],
-    final: ["camper", []],
+    expected: [
+      "yasu_ride:decor",
+      JSON.stringify([{ slot: "table", item: "potted_plant" }]),
+    ],
+    final: ["yasu_ride:decor", undefined],
   },
   {
     id: "yasu_ride:test_held_item",

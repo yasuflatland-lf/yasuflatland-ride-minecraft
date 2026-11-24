@@ -74,8 +74,7 @@ export function tickSamples(
   const profile = profileOf(kind);
   const seats = [...profile.seats.positions.keys()];
   const deckSeatCount =
-    profile.seats.positions.length +
-    (profile.parkedSeats?.positions.length ?? 0);
+    profile.seats.positions.length + (profile.heldSeats?.positions.length ?? 0);
   const perSeat = <T>(arbitrary: fc.Arbitrary<T>) =>
     fc.array(arbitrary, { minLength: seats.length, maxLength: seats.length });
   const draw = fc.record({

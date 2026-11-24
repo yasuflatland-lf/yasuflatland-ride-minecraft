@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { asTentId } from "../../../src/domain/camp/tent";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { TENTS_PROPERTY } from "../../../src/infrastructure/camp/identifiers";
 import { DynamicPropertyTentRegistry } from "../../../src/infrastructure/camp/persistence/tentRegistry";
@@ -15,14 +16,14 @@ const LEGACY_SAVE =
 const legacyEntry = {
   id: asTentId("-4294967295"),
   dimensionId: asDimensionId("minecraft:overworld"),
-  pose: { x: 110, y: -60, z: 46, yaw: 180 },
+  pose: { x: 110, y: -60, z: 46, yaw: snapYaw(180) },
   layout: 1,
 };
 const entry = {
   layout: 1,
   id: asTentId("7"),
   dimensionId: asDimensionId("minecraft:nether"),
-  pose: { x: 1, y: 2, z: 3, yaw: 90 as const },
+  pose: { x: 1, y: 2, z: 3, yaw: snapYaw(90) },
 };
 
 function savedEntries(): unknown {

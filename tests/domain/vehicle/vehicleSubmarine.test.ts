@@ -19,9 +19,8 @@ import {
   SUV_TYRES,
 } from "../../../src/domain/vehicle/kinds/suv/profile";
 import {
-  AIR,
   SUV_SPEC,
-  WATER,
+  SUV_TRANSFORMING,
 } from "../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import {
@@ -45,6 +44,8 @@ import {
   WATER_VERTICAL_DRAG,
 } from "../../support/engineModel";
 import { waterSensors } from "../../support/waterDepth";
+
+const { air: AIR, water: WATER } = SUV_TRANSFORMING;
 
 const IDLE: RawInput = { moveX: 0, moveY: 0, jump: false };
 const FORWARD: RawInput = { ...IDLE, moveY: 1 };

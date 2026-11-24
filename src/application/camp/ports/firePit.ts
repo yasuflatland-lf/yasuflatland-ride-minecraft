@@ -21,6 +21,6 @@ export interface FirePitWorld
   isLit(id: FirePitId): boolean;
   setLit(id: FirePitId, lit: boolean): void;
   wearFlintAndSteel(player: PlayerId, slot: number): void;
-  dropItem(id: FirePitId): void;
+  dropItem(id: FirePitId, hitter?: PlayerId): void;
   removeFirePit(id: FirePitId): void;
 }

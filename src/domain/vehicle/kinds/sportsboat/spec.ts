@@ -46,19 +46,21 @@ export const SPORTSBOAT_SPEC = Object.freeze({
   waterDragSmoothing: 0.1,
   waterDragMinGiven: 0.05,
   // Attitude (ADR 0059, ADR 0061, ADR 0085)
-  /**
-   * Degrees of bow rise while the forward speed grows by a full `accel` per
-   * tick (the drive's limits). The owner found 7 too high (ADR 0085).
-   */
-  maxTrim: 3.5,
-  /** Degrees per tick toward a higher trim, so the bow lifts in about 0.7 s. */
-  trimRiseRate: 0.25,
-  /** Degrees per tick toward a lower trim, so the bow settles in about 1.4 s. */
-  trimSettleRate: 0.125,
-  /** Degrees of roll in a turn at the full turn rate and top speed (ADR 0061). */
-  maxRoll: 20,
-  /** Degrees per tick, so a full roll builds up in half a second (ADR 0061). */
-  rollRate: 2,
+  attitude: Object.freeze({
+    /**
+     * Degrees of bow rise while the forward speed grows by a full `accel` per
+     * tick (the drive's limits). The owner found 7 too high (ADR 0085).
+     */
+    maxTrim: 3.5,
+    /** Degrees per tick toward a higher trim, so the bow lifts in about 0.7 s. */
+    trimRiseRate: 0.25,
+    /** Degrees per tick toward a lower trim, so the bow settles in about 1.4 s. */
+    trimSettleRate: 0.125,
+    /** Degrees of roll in a turn at the full turn rate and top speed (ADR 0061). */
+    maxRoll: 20,
+    /** Degrees per tick, so a full roll builds up in half a second (ADR 0061). */
+    rollRate: 2,
+  }),
   // Boarding (ADR 0120)
   /** Height of the seats above the feet, as minecraft:rideable seats the riders. */
   seatAimHeight: 0.52,

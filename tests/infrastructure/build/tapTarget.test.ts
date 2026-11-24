@@ -1,8 +1,4 @@
 import { expect, it, vi } from "vitest";
-import { AimHeight } from "../../../src/application/build/aimHeight";
-import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
-import { FixStairGoal } from "../../../src/application/build/fixStairGoal";
-import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";
@@ -12,13 +8,8 @@ import {
   SELECTION_WAND_TYPE,
   TAP_TARGET_TYPE,
 } from "../../../src/infrastructure/build/identifiers";
-import {
-  FakeAimReader,
-  FakeFeedback,
-  FakeSessions,
-  FakeWorld,
-  nether,
-} from "../../application/build/fakes";
+import { nether } from "../../application/build/fakes";
+import { wandFixture } from "../../application/build/fakes/pressWand";
 
 const engine = vi.hoisted(() => ({
   hit: vi.fn(),
@@ -47,11 +38,8 @@ const target = { id: "target", typeId: TAP_TARGET_TYPE };
 function setup({ ownsTarget = true, holdsWand = true } = {}) {
   vi.clearAllMocks();
   engine.tick = 0;
-  const repo = new FakeSessions();
-  const blocks = new FakeWorld();
+  const { repo, aim, world: blocks, feedback, press } = wandFixture();
   blocks.put(start, blockStateOf("minecraft:stone"));
-  const feedback = new FakeFeedback();
-  const aim = new FakeAimReader();
   aim.target = {
     input: "touch",
     ray: {
@@ -59,9 +47,14 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
       direction: { x: 0, y: 1, z: 1 },
     },
   };
-  const setPoint = new SetPoint(repo, blocks, feedback);
-  const confirmLiveHeight = new ConfirmLiveHeight(repo);
-  setPoint.execute({ playerId, dimensionId: nether, cell: start });
+  const point = (cell: typeof start) =>
+    press.execute({
+      playerId,
+      intent: "selectPoint",
+      dimensionId: nether,
+      cell,
+    });
+  point(start);
   const session = repo.getOrCreate(playerId);
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
   const menus = {
@@ -74,10 +67,7 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
   registerTapTarget({
     repo,
     aim,
-    setPoint,
-    aimHeight: new AimHeight(repo),
-    confirmLiveHeight,
-    fixStairGoal: new FixStairGoal(repo, feedback, aim),
+    pressWand: press,
     debounce,
     menus,
     targets: {
@@ -109,8 +99,14 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
     feedback,
     menus,
     debounce,
-    fixEnd: () => setPoint.execute({ playerId, dimensionId: nether, cell }),
-    confirmHeight: () => confirmLiveHeight.execute({ playerId }),
+    fixEnd: () => point(cell),
+    confirmHeight: () =>
+      press.execute({
+        playerId,
+        intent: "confirmLiveHeight",
+        dimensionId: nether,
+        ray: aim.target?.ray,
+      }),
     hit: () =>
       engine.hit.mock.lastCall?.[0]({
         damagingEntity: player,

@@ -86,11 +86,14 @@ describe("placing a camp table", () => {
           z: fc.integer({ min: -100, max: 100 }),
         }),
         fc.integer({ min: -360, max: 360 }),
-        fc.constantFrom("none", "own", "air", "vehicle", "near"),
+        fc.constantFrom("none", "own", "air", "vehicle", "camp", "near"),
         fc.integer({ min: 0, max: 1 }),
         fc.integer({ min: 1, max: TABLE_SPEC.clearance }),
-        (blockLocation, yaw, refusal, index, dy) => {
-          const world = fakeWorld();
+        (blockLocation, yaw, obstacle, index, dy) => {
+          const world = {
+            ...fakeWorld(),
+            isCampSpace: () => obstacle === "camp",
+          };
           const facing = facePlayer(yaw);
           const alongX = Math.abs(facing) % 180 === 0;
           const cell = {
@@ -101,22 +104,23 @@ describe("placing a camp table", () => {
           const matches = (at: typeof cell, height: number) =>
             at.x === cell.x && at.y === cell.y + height && at.z === cell.z;
           world.isOwnBlock.mockImplementation(
-            (_d, at) => refusal === "own" && matches(at, 0),
+            (_d, at) => obstacle === "own" && matches(at, 0),
           );
           world.isAir.mockImplementation(
-            (_d, at) => refusal !== "air" || !matches(at, dy),
+            (_d, at) => obstacle !== "air" || !matches(at, dy),
           );
           world.isVehicleSpace.mockImplementation(
-            (_d, at) => refusal === "vehicle" && matches(at, dy),
+            (_d, at) => obstacle === "vehicle" && matches(at, dy),
           );
-          world.hasTableNear.mockReturnValue(refusal === "near");
+          world.hasTableNear.mockReturnValue(obstacle === "near");
           const placed = new PlaceTable(world).execute({
             ...cmd,
             blockLocation,
             yaw,
           });
-          expect(placed).toBe(refusal === "none");
-          if (refusal !== "none") {
+          const allowed = obstacle === "none" || obstacle === "camp";
+          expect(placed).toBe(allowed);
+          if (!allowed) {
             expect(world.consumeItem).not.toHaveBeenCalled();
             expect(world.spawnTable).not.toHaveBeenCalled();
           } else {
