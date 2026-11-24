@@ -1,15 +1,18 @@
-import {
-  type Cell,
-  cellKey,
-  cellOf,
-  type ProtectedSpace,
-} from "../shared/cells";
+import { type Cell, cellKey, type ProtectedSpace } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
+import {
+  type CellOffset,
+  footprintCellsAt,
+  footprintClearCells,
+  footprintOffsets,
+  footprintOrigin,
+  footprintSupportCells,
+} from "../shared/gearFootprint";
 import type { GiveBackPolicy } from "../shared/giveBack";
 import { GEAR_RECOVERY, type HitRule } from "../shared/hitCounter";
 import type { TopSurface } from "../shared/tableTop";
 import { ticks } from "../shared/ticks";
-import { forward, localOffset, type Vec2, type Vec3 } from "../shared/vec";
+import { forward, type Vec3 } from "../shared/vec";
 import { RESORT_REFUSES } from "./spec";
 
 export type FurnitureKind =
@@ -19,12 +22,6 @@ export type FurnitureKind =
   | "sofa_double"
   | "toilet"
   | "washstand";
-
-/** A cell relative to the pressed column, seen by the placing player: `ahead` is away from them, `left` to their left. */
-interface CellOffset {
-  readonly ahead: number;
-  readonly left: number;
-}
 
 /** A seat relative to the entity origin, in blocks; must match the pack's `minecraft:rideable` seats. */
 interface SeatOffset {
@@ -129,22 +126,6 @@ export function overlapsAny(
   return cells.some((cell) => keys.has(cellKey(cell)));
 }
 
-function footprintOffsets(kind: FurnitureKind, yaw: Facing4): Vec2[] {
-  // The furniture faces the player, so the player looks along the opposite quarter turn.
-  const playerFacing = forward(yaw + 180);
-  return FURNITURE_SPEC[kind].cells.map(({ ahead, left }) => {
-    const offset = localOffset(playerFacing, ahead, -left);
-    return { x: Math.round(offset.x), z: Math.round(offset.z) };
-  });
-}
-
-function offsetCentre(offsets: readonly Vec2[]): Vec2 {
-  return {
-    x: offsets.reduce((sum, offset) => sum + offset.x, 0) / offsets.length,
-    z: offsets.reduce((sum, offset) => sum + offset.z, 0) / offsets.length,
-  };
-}
-
 /** `block` is the block whose top face was used; the pressed column's floor cell is one above it. */
 export function furniturePose(
   block: Cell,
@@ -152,16 +133,11 @@ export function furniturePose(
   kind: FurnitureKind,
 ): FurniturePose {
   const yaw = snapYaw4(playerYaw + 180);
-  const centre = offsetCentre(footprintOffsets(kind, yaw));
-  return furniturePoseAt(
-    kind,
-    {
-      x: block.x + 0.5 + centre.x,
-      y: block.y + 1,
-      z: block.z + 0.5 + centre.z,
-    },
-    yaw,
+  const offsets = footprintOffsets(
+    FURNITURE_SPEC[kind].cells,
+    forward(yaw + 180),
   );
+  return furniturePoseAt(kind, footprintOrigin(block, offsets), yaw);
 }
 
 export function furniturePoseAt(
@@ -174,29 +150,23 @@ export function furniturePoseAt(
 
 /** The occupied floor cells, in `spec.cells` order. */
 export function furnitureCells(pose: FurniturePose): Cell[] {
-  const offsets = footprintOffsets(pose.kind, pose.yaw);
-  const centre = offsetCentre(offsets);
-  return offsets.map((offset) =>
-    cellOf({
-      x: pose.origin.x + offset.x - centre.x,
-      y: pose.origin.y,
-      z: pose.origin.z + offset.z - centre.z,
-    }),
+  return footprintCellsAt(
+    pose.origin,
+    footprintOffsets(FURNITURE_SPEC[pose.kind].cells, forward(pose.yaw + 180)),
   );
 }
 
 /** The cells directly below the floor cells, whose top faces must be solid. */
 export function furnitureSupportCells(pose: FurniturePose): Cell[] {
-  return furnitureCells(pose).map((cell) => ({ ...cell, y: cell.y - 1 }));
+  return footprintSupportCells(furnitureCells(pose));
 }
 
 /** The floor cells and `clearance - 1` layers above them, which must all be air. */
 export function furnitureClearCells(pose: FurniturePose): Cell[] {
-  const floor = furnitureCells(pose);
-  const cells: Cell[] = [];
-  for (let up = 0; up < FURNITURE_SPEC[pose.kind].clearance; up++)
-    for (const cell of floor) cells.push({ ...cell, y: cell.y + up });
-  return cells;
+  return footprintClearCells(
+    furnitureCells(pose),
+    FURNITURE_SPEC[pose.kind].clearance,
+  );
 }
 
 export const FURNITURE_TOP_SYNC_TICKS = ticks(20);
