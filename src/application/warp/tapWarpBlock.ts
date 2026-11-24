@@ -1,10 +1,9 @@
 import { type Cell, cellKey } from "../../domain/shared/cells";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { ticks } from "../../domain/shared/ticks";
 import { WARP_SPEC } from "../../domain/warp/spec";
-import { handleHit } from "../shared/takeBackByHits";
-import type { WarpBlockTaps } from "./ports/blockTaps";
+import { TakeBackByHits } from "../shared/takeBackByHits";
+import type { WarpBlockTapEffects, WarpBlockTaps } from "./ports/blockTaps";
 import type { WarpTicks } from "./ports/ticks";
 import type { RemoveWarpPoint } from "./removeWarpPoint";
 
@@ -14,9 +13,23 @@ import type { RemoveWarpPoint } from "./removeWarpPoint";
  * (ADR 0249).
  */
 export class TapWarpBlock {
-  private readonly counters = new HitCounters<string>(WARP_SPEC.breakRule);
   /** Per block key, each player's latest unsettled tap tick. */
   private readonly lastTaps = new Map<string, Map<PlayerId, number>>();
+
+  private readonly takeBack = new TakeBackByHits<
+    { key: string; effects: WarpBlockTapEffects },
+    PlayerId
+  >({
+    rule: WARP_SPEC.breakRule,
+    key: ({ key }) => key,
+    release: ({ key }) => this.lastTaps.delete(key),
+    remove: ({ effects }) => effects.remove(),
+    giveBack: ({ effects }) => effects.drop(),
+    feedback: {
+      remaining: ({ effects }, _player, left) => effects.showRemaining(left),
+    },
+    order: ["release", "remove", "giveBack"],
+  });
 
   constructor(
     private readonly blocks: WarpBlockTaps,
@@ -35,21 +48,8 @@ export class TapWarpBlock {
     const effects = this.blocks.at(playerId, dimension, cell);
     if (!effects) return false;
     const key = `${dimension}:${cellKey(cell)}`;
-    const { broken } = handleHit(
-      this.counters,
-      key,
-      now,
-      {
-        remove: () => {
-          this.lastTaps.delete(key);
-          effects.remove();
-        },
-        drop: () => effects.drop(),
-        showRemaining: (left) => effects.showRemaining(left),
-      },
-      "removeThenDrop",
-    );
-    if (broken) {
+    const result = this.takeBack.hit({ key, effects }, now, playerId);
+    if (result === "taken") {
       this.remove.run({ dimension, cell });
       return false;
     }

@@ -3,38 +3,46 @@ import {
   type FurnitureKind,
 } from "../../domain/resort/furniture";
 import type { FurnitureId } from "../../domain/resort/ids";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { PlayerId } from "../../domain/shared/ids";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import type { FurnitureTakeBackWorld } from "./ports/furnitureWorld";
 
+type FurnitureRefusal = "occupied" | "somethingOnTop";
+
 export class TakeBackFurniture {
-  private readonly hits = new Map<FurnitureKind, HitCounters<FurnitureId>>();
+  private readonly takeBackByKind = new Map<
+    FurnitureKind,
+    TakeBackByHits<FurnitureId, PlayerId, FurnitureRefusal>
+  >();
+
   constructor(private readonly world: FurnitureTakeBackWorld) {}
+
   hit(cmd: { player: PlayerId; id: FurnitureId; now: number }): void {
     const kind = this.world.kindOf(cmd.id);
     if (kind === undefined) return;
-    if (this.world.isOccupied(cmd.id)) {
-      this.world.showRefused(cmd.player, "occupied");
-      return;
+    let takeBack = this.takeBackByKind.get(kind);
+    if (!takeBack) {
+      takeBack = new TakeBackByHits({
+        rule: FURNITURE_SPEC[kind].recovery,
+        refusal: (id) => {
+          if (this.world.isOccupied(id)) return "occupied";
+          if (this.world.somethingOnTop(id) || this.world.blockAboveTop(id))
+            return "somethingOnTop";
+          return undefined;
+        },
+        showRefusal: (player, reason) => this.world.showRefused(player, reason),
+        release: (id) => this.world.clearTop(id),
+        giveBack: (id, player) => this.world.dropItem(id, player),
+        remove: (id) => this.world.remove(id),
+        feedback: {
+          remaining: (_id, player, left) =>
+            this.world.showHitsLeft(player, left),
+          taken: (_id, player) => this.world.showTaken(player),
+        },
+        order: ["giveBack", "release", "remove"],
+      });
+      this.takeBackByKind.set(kind, takeBack);
     }
-    if (this.world.somethingOnTop(cmd.id) || this.world.blockAboveTop(cmd.id)) {
-      this.world.showRefused(cmd.player, "somethingOnTop");
-      return;
-    }
-    let counters = this.hits.get(kind);
-    if (!counters) {
-      counters = new HitCounters<FurnitureId>(FURNITURE_SPEC[kind].recovery);
-      this.hits.set(kind, counters);
-    }
-    handleHit(counters, cmd.id, cmd.now, {
-      drop: () => this.world.dropItem(cmd.id, cmd.player),
-      remove: () => {
-        this.world.clearTop(cmd.id);
-        this.world.remove(cmd.id);
-        this.world.showTaken(cmd.player);
-      },
-      showRemaining: (left) => this.world.showHitsLeft(cmd.player, left),
-    });
+    takeBack.hit(cmd.id, cmd.now, cmd.player);
   }
 }

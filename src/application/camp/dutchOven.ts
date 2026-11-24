@@ -14,7 +14,6 @@ import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
 } from "../../domain/shared/debounce";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import { encodeHost, type Host } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { hostSpotPoint } from "../../domain/shared/tableTop";
@@ -27,7 +26,7 @@ import {
 import { placePaid } from "../shared/paidPlacement";
 import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import {
   campHostedKind,
   decodeCampHost,
@@ -47,9 +46,24 @@ export function dutchOvenHostedKind(world: DutchOvenWorld): HostedKindPort {
 }
 
 export class DutchOvenActions extends HostedOnTopActions {
-  private readonly hits = new HitCounters<DutchOvenId>(
-    DUTCH_OVEN_SPEC.recovery,
-  );
+  private readonly takeBack = new TakeBackByHits<DutchOvenId>({
+    rule: DUTCH_OVEN_SPEC.recovery,
+    release: (id) => {
+      const host = decodeCampHost(this.world.host(id));
+      if (
+        host.kind === "spot" &&
+        host.hostType === "fire_pit" &&
+        this.world.hostExists(host.id)
+      )
+        this.world.setCovered(asFirePitId(host.id), false);
+    },
+    giveBack: (id, player) => this.world.dropItem(id, player),
+    remove: (id) => this.world.removeDutchOven(id),
+    feedback: {
+      remaining: (_id, player, left) => this.world.showHitsLeft(player, left),
+    },
+    order: ["release", "giveBack", "remove"],
+  });
 
   private readonly switches = new Debounces<DutchOvenId>(
     LIGHT_SWITCH_COOLDOWN_TICKS,
@@ -146,26 +160,6 @@ export class DutchOvenActions extends HostedOnTopActions {
   }
 
   hit(id: DutchOvenId, player: PlayerId | undefined, tick: number): boolean {
-    let taken = false;
-    handleHit(this.hits, id, tick, {
-      drop: () => {
-        const host = decodeCampHost(this.world.host(id));
-        if (
-          host.kind === "spot" &&
-          host.hostType === "fire_pit" &&
-          this.world.hostExists(host.id)
-        )
-          this.world.setCovered(asFirePitId(host.id), false);
-        this.world.dropItem(id, player);
-      },
-      remove: () => {
-        this.world.removeDutchOven(id);
-        taken = true;
-      },
-      showRemaining: (left) => {
-        if (player !== undefined) this.world.showHitsLeft(player, left);
-      },
-    });
-    return taken;
+    return this.takeBack.hit(id, tick, player) === "taken";
   }
 }

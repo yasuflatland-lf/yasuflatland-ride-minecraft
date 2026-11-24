@@ -7,13 +7,12 @@ import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
 } from "../../domain/shared/debounce";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
 import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import { campHostedKind, HostedOnTopActions } from "./hostedKind";
 import type { GasLanternWorld } from "./ports/gasLantern";
 
@@ -32,9 +31,16 @@ export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
 }
 
 export class GasLanternActions extends HostedOnTopActions {
-  private readonly hits = new HitCounters<GasLanternId>(
-    GAS_LANTERN_SPEC.recovery,
-  );
+  private readonly takeBack = new TakeBackByHits<GasLanternId>({
+    rule: GAS_LANTERN_SPEC.recovery,
+    release: (id) => this.world.clearLight(id),
+    giveBack: (id, player) => this.world.dropItem(id, player),
+    remove: (id) => this.world.removeGasLantern(id),
+    feedback: {
+      remaining: (_id, player, left) => this.world.showHitsLeft(player, left),
+    },
+    order: ["release", "giveBack", "remove"],
+  });
 
   private readonly switches = new Debounces<GasLanternId>(
     LIGHT_SWITCH_COOLDOWN_TICKS,
@@ -74,20 +80,6 @@ export class GasLanternActions extends HostedOnTopActions {
   }
 
   hit(id: GasLanternId, player: PlayerId | undefined, tick: number): boolean {
-    let taken = false;
-    handleHit(this.hits, id, tick, {
-      drop: () => {
-        this.world.clearLight(id);
-        this.world.dropItem(id, player);
-      },
-      remove: () => {
-        this.world.removeGasLantern(id);
-        taken = true;
-      },
-      showRemaining: (left) => {
-        if (player !== undefined) this.world.showHitsLeft(player, left);
-      },
-    });
-    return taken;
+    return this.takeBack.hit(id, tick, player) === "taken";
   }
 }

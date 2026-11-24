@@ -8,6 +8,15 @@ export function removeTent(
   tentId: TentId,
   legacy?: TentEntry,
 ): void {
+  releaseTentBlocks(world, tentId, legacy);
+  world.removeTent(tentId);
+}
+
+export function releaseTentBlocks(
+  world: TentRemovalWorld,
+  tentId: TentId,
+  legacy?: TentEntry,
+): void {
   const loaded = world.entityLoaded(tentId);
   world.unlayBlocks(tentId);
   if (legacy) {
@@ -20,5 +29,4 @@ export function removeTent(
     // entity loads and the cell layer has any saved cells to clear.
     world.clearBlocksByPose(tentId);
   }
-  world.removeTent(tentId);
 }
