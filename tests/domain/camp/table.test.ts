@@ -9,20 +9,22 @@ import {
 describe("camp table footprint", () => {
   it("keeps two adjacent ground cells on its long axis for any player turn", () => {
     fc.assert(
-      fc.property(fc.integer({ min: -1080, max: 1080 }), (turn) => {
-        const yaw = tableYaw(turn);
-        const cells = tableCells({ x: 4, y: 7, z: -2 }, yaw);
-        expect(cells).toHaveLength(2);
-        expect(cells[0]).toEqual({ x: 4, y: 7, z: -2 });
-        expect(cells.every((cell) => cell.y === 7)).toBe(true);
-        expect(cells[0]?.x === cells[1]?.x || cells[0]?.z === cells[1]?.z).toBe(
-          true,
-        );
-        expect(
-          Math.abs((cells[0]?.x ?? 0) - (cells[1]?.x ?? 0)) +
-            Math.abs((cells[0]?.z ?? 0) - (cells[1]?.z ?? 0)),
-        ).toBe(1);
-      }),
+      fc.property(
+        fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
+        fc.integer({ min: -1080, max: 1080 }),
+        (clicked, turn) => {
+          const yaw = tableYaw(turn);
+          const alongX = Math.abs(yaw) % 180 === 0;
+          expect(tableCells(clicked, yaw)).toEqual([
+            clicked,
+            {
+              x: clicked.x + (alongX ? 1 : 0),
+              y: clicked.y,
+              z: clicked.z + (alongX ? 0 : 1),
+            },
+          ]);
+        },
+      ),
     );
   });
 });
@@ -35,6 +37,7 @@ it("places the origin midway between the two top-face centers", () => {
       (clicked, turn) => {
         const yaw = tableYaw(turn);
         const [first, second] = tableCells(clicked, yaw);
+        if (!first || !second) throw new Error("Expected two table cells");
         const origin = tableOrigin(clicked, yaw);
         expect(origin.y).toBe(clicked.y + 1);
         for (const axis of ["x", "z"] as const)
