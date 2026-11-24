@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
 import { PAINTS, type Paint } from "../../src/domain/shared/paint";
 import { VEHICLE_KINDS } from "../../src/domain/vehicle/kind";
@@ -13,6 +13,8 @@ import { ENTITY_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifier
 import { PAINT_VARIANT } from "../../src/test-pack/scenarios/support/paintContract";
 import { type Json, jsonFileEntries } from "../support/packFiles";
 import { readTextureMer } from "../support/textureBindings";
+
+vi.mock("@minecraft/server", () => ({}));
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const entity = read("packs/yasu_ride_bp/entities/yasu_ride/suv.se.json")[
