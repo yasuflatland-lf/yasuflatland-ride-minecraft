@@ -25,7 +25,8 @@
           "v.is_blinking = 0.0;",
           "v.last_blink_time = 0.0;",
           "v.hand_bob = 0.0;",
-          "v.melee_spear_java_to_bedrock_scale = 40.0;"
+          "v.melee_spear_java_to_bedrock_scale = 40.0;",
+          "v.melee_spear_equipped = 0.0;"
         ],
         "pre_animation": [
           "v.helmet_layer_visible = !query.has_head_gear;",

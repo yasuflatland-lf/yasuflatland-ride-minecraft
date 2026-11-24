@@ -6,6 +6,7 @@ const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 const vanilla = read("tests/packs/fixtures/vanilla-player.ce.json");
 const override = read("packs/yasu_ride_rp/entity/yasu_ride/player.ce.json");
 const vanillaDescription = vanilla["minecraft:client_entity"].description;
+const vanillaScripts = vanillaDescription.scripts;
 const animationId = "animation.yasu_ride.player.lounge";
 const firstPersonId = "controller.render.player.first_person";
 const scooterControllerId =
@@ -33,7 +34,7 @@ const addedAnimations: Record<string, string> = {
 };
 
 describe("vanilla player override (ADR 0238)", () => {
-  it("preserves vanilla except for the persona engine version, the added rider animations, and the first-person scooter controller switch", () => {
+  it("preserves vanilla except for the persona engine version, the spear variable initialization, the added rider animations, and the first-person scooter controller switch", () => {
     const renderControllers = vanillaDescription.render_controllers.flatMap(
       (entry: Record<string, string>) => {
         const condition = entry[firstPersonId];
@@ -52,6 +53,15 @@ describe("vanilla player override (ADR 0238)", () => {
           ...vanillaDescription,
           // An override without it shows every persona as Steve (MCPE-74493).
           min_engine_version: "1.8.0",
+          scripts: {
+            ...vanillaScripts,
+            // Persona and inventory preview rendering read it before
+            // pre_animation sets it, which logs a Molang error.
+            initialize: [
+              ...vanillaScripts.initialize,
+              "v.melee_spear_equipped = 0.0;",
+            ],
+          },
           render_controllers: renderControllers,
           animations: { ...vanillaDescription.animations, ...addedAnimations },
         },
