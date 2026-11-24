@@ -2,6 +2,7 @@ import { type Entity, system } from "@minecraft/server";
 import { SUV_PACK_CONTRACT } from "../../../tests/support/packContract";
 import { entranceWorld } from "../../domain/camp/roofTent/access";
 import { PAINTS } from "../../domain/shared/paint";
+import type { RoofTentMount } from "../../domain/shared/roofTent";
 import { CAMPER_PROFILE } from "../../domain/vehicle/kinds/camper/profile";
 import { SUV_PROFILE } from "../../domain/vehicle/kinds/suv/profile";
 import { SUV_SPEC } from "../../domain/vehicle/kinds/suv/spec";
@@ -24,7 +25,7 @@ import { summonCow } from "./shared";
 import { PAINT_VARIANT } from "./support/paintContract";
 import { ROOF_TENT_FAMILY } from "./support/tentContract";
 
-// Mirror roof_tent.se.json suv_bounds for the ladder variant.
+// Mirror roof_tent.se.json suv_bounds for the raised shell.
 const SUV_BOUNDS_HALF_WIDTH = 2.6;
 const SUV_BOUNDS_HALF_HEIGHT = 0.85;
 
@@ -53,7 +54,10 @@ async function send(event: string, message: string, ticks = 5): Promise<void> {
   system.sendScriptEvent(event, message);
   await wait(ticks);
 }
-function contract(tent: Entity, ladder: boolean): boolean {
+function contract(
+  tent: Entity,
+  { shell, ladder }: Pick<RoofTentMount, "shell" | "ladder">,
+): boolean {
   const { extent } = tent.getAABB();
   return (
     tent.matches({ families: [ROOF_TENT_FAMILY, "inanimate"] }) &&
@@ -61,9 +65,12 @@ function contract(tent: Entity, ladder: boolean): boolean {
     tent.getComponent("minecraft:variant") !== undefined &&
     tent.getComponent("minecraft:rideable")?.seatCount === 1 &&
     tent.getProperty(ROOF_TENT_LADDER_PROPERTY) === ladder &&
-    Math.abs(extent.x - (ladder ? SUV_BOUNDS_HALF_WIDTH : 1)) < 0.01 &&
-    Math.abs(extent.z - (ladder ? SUV_BOUNDS_HALF_WIDTH : 1)) < 0.01 &&
-    Math.abs(extent.y - (ladder ? SUV_BOUNDS_HALF_HEIGHT : 0.6)) < 0.01
+    Math.abs(extent.x - (shell === "raised" ? SUV_BOUNDS_HALF_WIDTH : 1)) <
+      0.01 &&
+    Math.abs(extent.z - (shell === "raised" ? SUV_BOUNDS_HALF_WIDTH : 1)) <
+      0.01 &&
+    Math.abs(extent.y - (shell === "raised" ? SUV_BOUNDS_HALF_HEIGHT : 0.6)) <
+      0.01
   );
 }
 function clean(a: Arena): void {
@@ -117,7 +124,7 @@ async function hosted(a: Arena, camper: boolean): Promise<Outcome> {
         footOutside = Math.hypot(dx, dz) >= 0.9;
       }
     }
-    const valid = contract(tent, !camper);
+    const valid = mount !== undefined && contract(tent, mount);
     await send(TEST_ROOF_TENT_PLACE_EVENT, host.id);
     const refused = tents(a).length === 1 && tents(a)[0]?.id === tent.id;
     cow = summonCow(a, SPOT.x + 6, SPOT.z);
@@ -182,7 +189,8 @@ async function ground(a: Arena): Promise<Outcome> {
     const tent = tents(a)[0];
     if (!tent) return { pass: false, detail: "ground tent not placed" };
     const valid =
-      contract(tent, false) && Math.abs(tent.location.y - a.gy) < 0.01;
+      contract(tent, { shell: "flat", ladder: false }) &&
+      Math.abs(tent.location.y - a.gy) < 0.01;
     const wrong: string[] = [];
     for (const paint of [...PAINTS.slice(1), PAINTS[0]]) {
       tent.triggerEvent(paintEvent(paint));
@@ -192,7 +200,7 @@ async function ground(a: Arena): Promise<Outcome> {
       )
         wrong.push(paint);
     }
-    const fixed = contract(tent, false);
+    const fixed = contract(tent, { shell: "flat", ladder: false });
     await send(TEST_ROOF_TENT_HIT_EVENT, tent.id, 2);
     const afterOne = tent.isValid && returned(a) === 0;
     await send(TEST_ROOF_TENT_HIT_EVENT, tent.id, 2);

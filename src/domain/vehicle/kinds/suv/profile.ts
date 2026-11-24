@@ -27,6 +27,7 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
       x: SUV_SPEC.roofTentAnchorX,
       z: SUV_SPEC.roofTentAnchorZ,
     }),
+    shell: SUV_SPEC.roofTentShell,
     ladder: SUV_SPEC.roofTentLadder,
     entrance: Object.freeze({
       x: SUV_SPEC.roofTentEntranceX,
