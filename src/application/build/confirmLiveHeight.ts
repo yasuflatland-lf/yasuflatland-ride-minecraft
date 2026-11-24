@@ -1,4 +1,4 @@
-import { confirmLiveHeight } from "../../domain/build/flow/flow";
+import { confirmLiveHeight } from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 

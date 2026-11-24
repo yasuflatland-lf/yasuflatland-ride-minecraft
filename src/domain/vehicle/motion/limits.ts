@@ -20,3 +20,30 @@ export interface TyreLimits {
   readonly handbrakeGrip: number;
   readonly creepSpeed: number;
 }
+
+type GroundSpec = MotionLimits & TyreLimits;
+
+export function motionLimitsOf(
+  spec: Pick<GroundSpec, keyof MotionLimits>,
+): MotionLimits {
+  return Object.freeze({
+    maxSpeed: spec.maxSpeed,
+    maxReverse: spec.maxReverse,
+    accel: spec.accel,
+    reverseAccel: spec.reverseAccel,
+    brake: spec.brake,
+    drag: spec.drag,
+    turnRate: spec.turnRate,
+    steerFullSpeed: spec.steerFullSpeed,
+    grip: spec.grip,
+  });
+}
+
+export function tyreLimitsOf(
+  spec: Pick<GroundSpec, keyof TyreLimits>,
+): TyreLimits {
+  return Object.freeze({
+    handbrakeGrip: spec.handbrakeGrip,
+    creepSpeed: spec.creepSpeed,
+  });
+}

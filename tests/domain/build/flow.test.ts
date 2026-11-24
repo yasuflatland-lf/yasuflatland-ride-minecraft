@@ -5,34 +5,22 @@ import { boxOf, boxWithHeight, cellBox } from "../../../src/domain/build/box";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import {
   adjustHeight,
-  airPressOffersUndo,
-  type BuildFlow,
-  backToAiming,
-  cancel,
   chooseHeighted,
-  chooseStairs,
-  chooseTerrain,
-  closeBuildMenu,
   confirmLiveHeight,
   confirmTappedSpan,
-  cornerTaps,
   enteredBaseHeight,
-  fixStairGoal,
-  openBuildMenu,
-  opensUtilityMenu,
   setHeight,
   tapAir,
   tapBlock,
   tappedSpanHeight,
-  tapsForBox,
-  tapsOf,
-  withoutStepBack,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import {
   buildEntries,
   buildMenu,
+  closeBuildMenu,
   contentsMenu,
   isShapeEntryOffered,
+  openBuildMenu,
   shapeMenu,
   stairContentsMenu,
   terraceMenu,
@@ -40,6 +28,26 @@ import {
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import {
+  airPressOffersUndo,
+  opensUtilityMenu,
+} from "../../../src/domain/build/flow/press";
+import {
+  chooseStairs,
+  fixStairGoal,
+} from "../../../src/domain/build/flow/stairFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import {
+  backToAiming,
+  cancel,
+  withoutStepBack,
+} from "../../../src/domain/build/flow/stepBack";
+import {
+  cornerTaps,
+  tapsForBox,
+  tapsOf,
+} from "../../../src/domain/build/flow/taps";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import {
   selectionHeightLimit,
   selectionOf,

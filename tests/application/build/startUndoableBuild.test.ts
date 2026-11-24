@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest";
 import { startUndoableBuild } from "../../../src/application/build/startUndoableBuild";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { cornerTaps } from "../../../src/domain/build/flow/flow";
+import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";

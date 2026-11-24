@@ -1,6 +1,5 @@
 // The sports boat's drive: the engine floats the hull and the script drives only x and z (ADR 0051).
 
-import { SyncedValue } from "../../../shared/syncedValue";
 import { clamp, dot, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
@@ -35,6 +34,7 @@ import {
 import { waterBelowAt, waterDepthAt } from "../../motion/water";
 import { DRIVER_SEAT, seatWorldPositions } from "../../seats";
 import { SPEC } from "../../spec";
+import { SyncedCommands } from "../../syncedCommands";
 import { stepRoll, stepTrim } from "./attitude";
 import { floorCells, holdHeight } from "./deck";
 import {
@@ -135,21 +135,24 @@ export function isAfloat(depth: number, below: () => boolean): boolean {
   return depth > 0 || below();
 }
 
+interface SyncedValues {
+  attitude?: { trim: number; roll: number };
+  icebreaker?: boolean;
+  docked?: [wasHeld: boolean, held: boolean];
+}
+
 export class SportsboatDrive implements Drive {
   private icebreakerOn: boolean;
-  private readonly icebreakerSync: SyncedValue<boolean>;
+  private readonly synced: SyncedCommands<SyncedValues>;
   private motion: MotionState;
   private readonly beachedTyres: TyreLimits;
   private dragEstimate: number | undefined;
   private trim = 0;
   private roll = 0;
-  private docked: HoldPose | undefined;
+  private held: HoldPose | undefined;
   private readonly still = new StillTimer();
   private lastCut: LastCut | undefined;
-  private readonly dockedResend = new DockedResend();
-  private restoredDocked: boolean;
-  private readonly trimSync = new SyncedValue<number>();
-  private readonly rollSync = new SyncedValue<number>();
+  private restoredHeld: boolean;
   private readonly tools = toolBindings(SPORTSBOAT_MONITOR, {
     [ICEBREAKER_SWITCH_ITEM]: {
       get: () => (this.icebreakerOn ? ICEBREAKER_ON : ICEBREAKER_OFF),
@@ -166,8 +169,14 @@ export class SportsboatDrive implements Drive {
   ) {
     this.motion = initialMotion(yaw);
     this.icebreakerOn = restored.icebreaker === true;
-    this.icebreakerSync = new SyncedValue({ value: this.icebreakerOn });
-    this.restoredDocked = restored.docked === true;
+    this.synced = new SyncedCommands<SyncedValues>()
+      .add((values) => values.attitude?.trim, trimCommand)
+      .add((values) => values.attitude?.roll, rollCommand)
+      .add((values) => values.icebreaker, icebreakerCommand, {
+        value: this.icebreakerOn,
+      })
+      .include(new DockedResend(), (values) => values.docked);
+    this.restoredHeld = restored.docked === true;
     // A beached hull has no handbrake and does not creep (beachedInput), so
     // stepMotion never reads these; the grip stands in for the handbrake grip.
     this.beachedTyres = Object.freeze({
@@ -189,13 +198,13 @@ export class SportsboatDrive implements Drive {
    * and in-game test scenarios only. Production code must not call it.
    */
   inspect(): Readonly<{
-    docked: boolean;
+    held: boolean;
     waterDrag: number | undefined;
     trim: number;
     roll: number;
   }> {
     return {
-      docked: this.docked !== undefined,
+      held: this.held !== undefined,
       waterDrag: this.dragEstimate,
       trim: this.trim,
       roll: this.roll,
@@ -205,7 +214,7 @@ export class SportsboatDrive implements Drive {
   onDriverMounted(driverYaw: number): void {
     // A held hull keeps its hold yaw, so turning the drive to the driver here
     // would point the seats and headlights away from the bow until undocking.
-    if (this.docked || this.restoredDocked) return;
+    if (this.held || this.restoredHeld) return;
     this.motion = alignOnMount(this.motion, driverYaw);
   }
 
@@ -222,64 +231,46 @@ export class SportsboatDrive implements Drive {
   }
 
   resync(): void {
-    this.icebreakerSync.resync();
-    this.dockedResend.resync();
-    this.trimSync.resync();
-    this.rollSync.resync();
+    this.synced.resync();
   }
 
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    const wasDocked = this.docked !== undefined || this.restoredDocked;
+    const wasHeld = this.held !== undefined || this.restoredHeld;
     const hull = this.stepHull(raw, ctx);
-    const icebreaker = this.icebreakerSync.next(this.icebreakerOn);
-    const step =
-      icebreaker === undefined
-        ? hull
-        : {
-            ...hull,
-            commands: [...hull.commands, icebreakerCommand(icebreaker)],
-          };
-    const held = this.docked !== undefined;
-    const resend = this.dockedResend.next(wasDocked, held);
-    if (resend === undefined) return step;
+    const icebreaker = this.synced.next({ icebreaker: this.icebreakerOn });
+    const held = this.held !== undefined;
+    const resend = this.synced.next({ docked: [wasHeld, held] });
+    if (icebreaker.length === 0 && resend.length === 0) return hull;
     // A held step skips the attitude latches, so it resends trim and roll here too.
     return {
-      ...step,
+      ...hull,
       commands: [
-        ...step.commands,
-        resend,
-        ...(held ? this.attitudeCommands() : []),
+        ...hull.commands,
+        ...icebreaker,
+        ...resend,
+        ...(held && resend.length > 0 ? this.attitudeCommands() : []),
       ],
     };
   }
 
   private attitudeCommands(): EngineCommand[] {
-    const commands: EngineCommand[] = [];
-    const trim = this.trimSync.next(this.trim);
-    if (trim !== undefined) commands.push(trimCommand(trim));
-    const roll = this.rollSync.next(this.roll);
-    if (roll !== undefined) commands.push(rollCommand(roll));
-    return commands;
+    return this.synced.next({ attitude: { trim: this.trim, roll: this.roll } });
   }
 
   private stepHull(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    if (this.restoredDocked && !this.docked) {
-      this.docked = { ...ctx.location, yaw: this.motion.yaw };
-      this.restoredDocked = false;
+    if (this.restoredHeld && !this.held) {
+      this.held = { ...ctx.location, yaw: this.motion.yaw };
+      this.restoredHeld = false;
     }
     const commands: EngineCommand[] = [];
     let boardDeckRiders = false;
-    if (this.docked) {
+    if (this.held) {
       if (!pushesStick(raw)) {
-        return heldStep(
-          dockAt(this.docked),
-          this.docked.yaw,
-          ctx.deckSeatInputs,
-        );
+        return heldStep(dockAt(this.held), this.held.yaw, ctx.deckSeatInputs);
       }
       boardDeckRiders = true;
       commands.push(...undockCommands());
-      this.docked = undefined;
+      this.held = undefined;
       this.still.reset();
     }
     // The boat maps the controls itself: no handbrake, creep only afloat (ADR 0089).
@@ -341,12 +332,12 @@ export class SportsboatDrive implements Drive {
         liquidAt({ x: 0, y: dy, z: 0 }),
       );
       if (holdY !== undefined) {
-        this.docked = { ...ctx.location, y: holdY, yaw: step.state.yaw };
+        this.held = { ...ctx.location, y: holdY, yaw: step.state.yaw };
         this.motion = { ...step.state, speed: 0 };
         commands.push(...dockCommands());
       }
     }
-    if (this.docked) {
+    if (this.held) {
       // A docked boat sits level, so docking clears any residual trim or roll.
       this.trim = 0;
       this.roll = 0;
@@ -389,7 +380,7 @@ export class SportsboatDrive implements Drive {
       ) && {
         cut: icebreakerColumns(ctx.location, step.state.yaw),
       }),
-      ...(this.docked && { dock: dockAt(this.docked) }),
+      ...(this.held && { dock: dockAt(this.held) }),
     };
   }
 

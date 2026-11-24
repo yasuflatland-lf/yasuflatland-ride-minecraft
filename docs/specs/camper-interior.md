@@ -241,7 +241,7 @@
 - Applies to: The camper while parked.
 - Rule: `CAMPER_PARKED_SEATS` adds the toilet as a compact deck seat after the vehicle seats. It is never a vehicle seat and its stick does not drive. `DeckSeats.keep` triggers `yasu_ride:compact` when spawning it, which gives the deck-seat entity the compact collision box set in the deck-seat asset. `DECK_SEAT_REACH` includes parked-seat positions. Departure rider handling is in [Seats and driver selection](seats-and-driver.md).
 - Agreement: Accepted
-- Basis: [0095](../adr/0095-sit-on-the-camper-toilet-while-parked.md) Decision, "A profile may list `parkedSeats`: seats that exist only as deck seats while the vehicle is parked"
+- Basis: [0095](../adr/0095-sit-on-the-camper-toilet-while-parked.md) Decision, "A profile may list `heldSeats`: seats that exist only as deck seats while the vehicle is parked"
 - Basis: [0095](../adr/0095-sit-on-the-camper-toilet-while-parked.md) Decision, "`DECK_SEAT_REACH` covers every kind's seats and parked seats"
 - Implementation: `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/roomCells.ts`; `src/infrastructure/vehicle/bedrock/deckSeats.ts`; `src/domain/vehicle/kinds/index.ts`; `packs/yasu_ride_bp/entities/yasu_ride/deck_seat.se.json`
 - Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "keeps the compact toilet seat while parked and ignores its stick" checks parked behavior. `tests/packs/deckSeat.test.ts` "shrinks only a compact seat's box to the toilet" and `tests/infrastructure/vehicle/bedrock/deckSeats.test.ts` "triggers the compact event once on each newly spawned compact seat only" check asset and spawn event. Not verified: phone/PC seating presses beside the shower doorway.

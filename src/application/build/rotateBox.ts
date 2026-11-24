@@ -1,16 +1,17 @@
-import { cellsOf, volume } from "../../domain/build/box";
-import { tapsForBox, withoutStepBack } from "../../domain/build/flow/flow";
+import { volume } from "../../domain/build/box";
+import { withoutStepBack } from "../../domain/build/flow/stepBack";
+import { tapsForBox } from "../../domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { inDimension, withBox } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Logger } from "../shared/ports/logger";
-import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
-import type { BuildStructureStore } from "./ports/structures";
+import type { BuildStructureStore, CaptureRefusal } from "./ports/structures";
+import { SnapshotEdit } from "./snapshotEdit";
 import { unstuck } from "./unstuck";
 
 export class RotateBox {
@@ -41,67 +42,45 @@ export class RotateBox {
       this.feedback.showMessage(playerId, "rotateTooLarge", count);
       return "refused";
     }
-    if (session.isEditing) {
-      this.feedback.showMessage(playerId, "busy");
-      return "busy";
-    }
-    for (const cell of cellsOf(plan.union)) {
-      if (!this.world.mayEdit(dimensionId, cell)) {
-        this.feedback.showMessage(playerId, "rotateBlocked");
-        return "refused";
-      }
-    }
-    const snapshot = this.structures.capture(
-      dimensionId,
+    const edit = new SnapshotEdit(session, this.structures, this.feedback, cmd);
+    const refusal = edit.preflight(
       plan.union,
-      playerId,
-      "exact",
+      {
+        allows: (cell) => this.world.mayEdit(dimensionId, cell),
+        busy: "beforeProtection",
+      },
+      () => this.feedback.showMessage(playerId, "rotateBlocked"),
     );
-    if (snapshot === "tooLarge" || snapshot === "unreadable") {
-      if (snapshot === "tooLarge")
+    if (refusal) return refusal === "busy" ? "busy" : "refused";
+    const reportCaptureRefusal = (reason: CaptureRefusal) => {
+      if (reason === "tooLarge")
         this.feedback.showMessage(playerId, "rotateTooLarge", count);
       else this.feedback.showMessage(playerId, "copyUnreadable");
-      return "refused";
-    }
-    const source = this.structures.capture(
-      dimensionId,
-      selectedBox,
-      playerId,
-      "exact",
-    );
-    if (source === "tooLarge" || source === "unreadable") {
+    };
+    const snapshot = edit.captureExact(plan.union, reportCaptureRefusal);
+    if (snapshot === undefined) return "refused";
+    const source = edit.captureExact(selectedBox, (reason) => {
       this.structures.discard(snapshot);
-      if (source === "tooLarge")
-        this.feedback.showMessage(playerId, "rotateTooLarge", count);
-      else this.feedback.showMessage(playerId, "copyUnreadable");
-      return "refused";
-    }
-    this.structures.clearEntities(dimensionId, selectedBox);
-    const cleared = this.structures.clearBlocks(dimensionId, selectedBox);
+      reportCaptureRefusal(reason);
+    });
+    if (source === undefined) return "refused";
     if (
-      !cleared ||
+      !edit.clear(selectedBox) ||
       !this.structures.place(source, dimensionId, plan.target.min, 1)
     ) {
-      this.structures.clearEntities(dimensionId, plan.union);
-      this.structures.place(snapshot, dimensionId, plan.union.min);
-      this.structures.discard(source);
-      this.structures.discard(snapshot);
+      edit.rollback(plan.union, snapshot, { discardWithSnapshot: source });
       this.log.warn(
         `build rotation for ${playerId} failed; restoration attempted`,
       );
       this.feedback.showMessage(playerId, "rotateFailed");
       return "refused";
     }
-    discardAll(
-      this.structures,
-      session.recordSnapshot({
-        dimensionId,
-        box: plan.union,
-        selectionBefore: selectedBox,
-        selectionBeforeTaps: { from: flow.from, to: flow.to },
-        handle: snapshot,
-      }),
-    );
+    edit.commit({
+      box: plan.union,
+      selectionBefore: selectedBox,
+      selectionBeforeTaps: { from: flow.from, to: flow.to },
+      handle: snapshot,
+    });
     this.structures.discard(source);
     session.setFlow(withoutStepBack(flow));
     session.replaceSelection(

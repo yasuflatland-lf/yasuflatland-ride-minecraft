@@ -51,7 +51,9 @@ cannot assume either vehicle's dimensions.
   spawn points and preserve any later spawn set elsewhere.
 - An immutable `RoofTentState` holds one occupant, the exit cell, and the spawn
   setters. Entry fails while occupied, and leaving by another player has no
-  effect. Three hits within 100 ticks fold the tent. Host checks run every 4
+  effect. The entity hit handler routes dye to paint first, accepts one paint and
+  one fold request per player per tick, then defers each with `system.run`.
+  Three hits within 100 ticks fold the tent. Host checks run every 4
   ticks, faster than ordinary hosted gear checks.
 - Roof tents lay no room blocks and claim no camp-space cells. A hosted tent
   therefore overlaps its host without the ground tent's vehicle-space refusal;

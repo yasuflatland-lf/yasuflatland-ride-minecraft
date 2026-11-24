@@ -1,5 +1,5 @@
 import { fixed } from "../../../shared/paint";
-import type { MotionLimits, TyreLimits } from "../../motion/limits";
+import { motionLimitsOf, tyreLimitsOf } from "../../motion/limits";
 import {
   clearanceHeight,
   type PlacementLiquid,
@@ -54,7 +54,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
       { x: 1.0, z: -1.0 },
     ]),
   }),
-  parkedSeats: CAMPER_PARKED_SEATS,
+  heldSeats: CAMPER_PARKED_SEATS,
   deckSeatDriverHeadlights: true,
   boarding: Object.freeze({
     order: "chosen",
@@ -89,7 +89,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     ahead: CAMPER_SPEC.bodyFront,
     turnMargin: CAMPER_SPEC.bumperTurnMargin,
     maxLift: CAMPER_SPEC.bumperMaxLift,
-    parkedMaxLift: CAMPER_SPEC.bumperParkedMaxLift,
+    heldMaxLift: CAMPER_SPEC.bumperParkedMaxLift,
   }),
   // The camper takes hits only on its bumper boxes, so players need to be told where
   // to hit it and, once it is parked, how to take the wheel (ADR 0086).
@@ -109,20 +109,6 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
   }),
 });
 
-export const CAMPER_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: CAMPER_SPEC.maxSpeed,
-  maxReverse: CAMPER_SPEC.maxReverse,
-  accel: CAMPER_SPEC.accel,
-  reverseAccel: CAMPER_SPEC.reverseAccel,
-  brake: CAMPER_SPEC.brake,
-  drag: CAMPER_SPEC.drag,
-  turnRate: CAMPER_SPEC.turnRate,
-  steerFullSpeed: CAMPER_SPEC.steerFullSpeed,
-  grip: CAMPER_SPEC.grip,
-});
+export const CAMPER_MOTION = motionLimitsOf(CAMPER_SPEC);
 
-// Frozen because every camper drive shares this one object.
-export const CAMPER_TYRES: TyreLimits = Object.freeze({
-  handbrakeGrip: CAMPER_SPEC.handbrakeGrip,
-  creepSpeed: CAMPER_SPEC.creepSpeed,
-});
+export const CAMPER_TYRES = tyreLimitsOf(CAMPER_SPEC);

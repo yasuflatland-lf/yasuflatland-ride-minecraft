@@ -15,7 +15,7 @@ The author could not watch weather in the game when this block was written. Whet
 ## Decision
 
 - Add a Resort Gear group of items for resort-style camp gear, implemented in a new `resort` feature, with the parasol as its first member.
-- Build the parasol as a cantilever: one pole beside the seat, with the canopy reaching over it. Its size, the placement rule (the canopy's center goes on the tapped position, and the base about three blocks behind it), painting, pick-up, the first hand-out, and the recipe follow the design document.
+- Build the parasol as a cantilever: one pole beside the seat, with the canopy reaching over it. Its size, the placement rule (the canopy's center goes on the tapped position, and the base about three blocks behind it), painting, pick-up, the first hand-out, and the recipe follow the design document. The hit handler routes dye to canopy paint first, accepts one paint and one pick-up hit per player per tick, and defers each through `system.run` with the original tick.
 - Keep the rain off with a new invisible block, `yasu_ride:parasol_ceiling`, laid under the canopy. Take option A: `minecraft:collision_box` is `false`. The block draws nothing (`bone_visibility` hides the cube, as for `tent_ceiling`), has no selection box, does not dampen light, emits none, cannot be mined or blown up, and carries the `yasu_ride:laid` tag.
 - Rain behaviour is to be confirmed in game by the owner. If rain still falls under the block, fall back to option B: the same block with a collision box at origin `[-8, 0, -8]`, size `[16, 3, 16]`, as `tent_ceiling` has. A new ADR records that change.
 

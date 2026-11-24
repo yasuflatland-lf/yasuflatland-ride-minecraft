@@ -13,7 +13,7 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {

@@ -196,16 +196,21 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     expect(chairs.isOccupied(asChairId("chair"))).toBe(true);
   });
 
-  it("drops one chair item where the chair stands and removes it", () => {
-    const { dimension, chair, chairs } = fixture();
-    chairs.dropChairItem(asChairId("chair"));
-    chairs.removeChair(asChairId("chair"));
-    expect(dimension.spawnItem).toHaveBeenCalledWith(
-      { typeId: CHAIR_KINDS.low_chair.itemId, amount: 1 },
-      chair.location,
-    );
-    expect(chair.remove).toHaveBeenCalled();
-  });
+  it.each(["low_chair", "noga_chair"] as const)(
+    "drops one %s item at the chair even when a player hits it",
+    (kind) => {
+      const { dimension, chair, chairs, container } = fixture();
+      chair.typeId = CHAIR_KINDS[kind].typeId;
+      chairs.dropChairItem(asChairId("chair"), asPlayerId("player"));
+      chairs.removeChair(asChairId("chair"));
+      expect(dimension.spawnItem).toHaveBeenCalledExactlyOnceWith(
+        { typeId: CHAIR_KINDS[kind].itemId, amount: 1 },
+        chair.location,
+      );
+      expect(container.addItem).not.toHaveBeenCalled();
+      expect(chair.remove).toHaveBeenCalled();
+    },
+  );
 
   it("ignores ids that are not chairs", () => {
     const { dimension, chairs } = fixture();

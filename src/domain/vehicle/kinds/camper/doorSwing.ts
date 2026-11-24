@@ -5,9 +5,9 @@ import { CAMPER_SPEC } from "./spec";
 // Opening progress advances one step per tick (ADR 0068, 0121).
 export const DOOR_STEPS = CAMPER_SPEC.doorSwingTicks;
 
-/** Opening progress restored in DOOR_STEPS; a camper that was not docked starts with it shut. */
-export function restoredDoorStep(open: unknown, docked: boolean): number {
-  if (!docked || typeof open !== "number") return 0;
+/** Opening progress restored in DOOR_STEPS; a camper that was not parked starts with it shut. */
+export function restoredDoorStep(open: unknown, parked: boolean): number {
+  if (!parked || typeof open !== "number") return 0;
   return clamp(Math.round(open * DOOR_STEPS), 0, DOOR_STEPS);
 }
 

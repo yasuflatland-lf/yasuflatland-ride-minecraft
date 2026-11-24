@@ -26,6 +26,10 @@
 
 ## Rules
 
+**Glossary**
+
+A camper is **parked** when held by the dock; its room is **laid** when its room blocks have been placed.
+
 ### Interior surface materials
 
 - Applies to: The centre floor, inner side lining, backsplash and dinette table.
@@ -47,7 +51,7 @@
 ### Camper tuning
 
 - Applies to: Camper ground, air, water, bank, and landing-gear motion.
-- Rule: Camper tuning comes from `CAMPER_SPEC`, never `SUV_SPEC`. Ground limits are assembled as `CAMPER_MOTION` and `CAMPER_TYRES` in `profile.ts`; flight and submarine media are `CAMPER_AIR` and `CAMPER_WATER`, and transformation, bank, and gear parameters are assembled as `CAMPER_TRANSFORMING` in `spec.ts`. Ground speed uses `CAMPER_SPEC.maxSpeed`, acceleration uses `CAMPER_SPEC.accel`, water speed uses `CAMPER_SPEC.maxWaterSpeed`, draft uses `CAMPER_SPEC.floatDraft`, bank uses `CAMPER_SPEC.maxBank`, `bankRate`, and `bankSink`, and gear uses `CAMPER_SPEC.gearDownHeight` and `gearProbeOffset`.
+- Rule: Camper tuning comes from `CAMPER_SPEC`, never `SUV_SPEC`. The shared pickers build `CAMPER_MOTION` and `CAMPER_TYRES` in `profile.ts` and build `CAMPER_TRANSFORMING` with its flight and submarine media in `spec.ts`. Ground speed uses `CAMPER_SPEC.maxSpeed`, acceleration uses `CAMPER_SPEC.accel`, water speed uses `CAMPER_SPEC.maxWaterSpeed`, draft uses `CAMPER_SPEC.floatDraft`, bank uses `CAMPER_SPEC.maxBank`, `bankRate`, and `bankSink`, and gear uses `CAMPER_SPEC.gearDownHeight` and `gearProbeOffset`.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with its own `CAMPER_SPEC` (never `SUV_SPEC`)"
 - Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/drive.ts`

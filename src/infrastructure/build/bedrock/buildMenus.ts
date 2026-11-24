@@ -1,5 +1,6 @@
 import type { Player } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
+import type { MenuChoices } from "../../../application/build/menuChoices";
 import {
   type BuildMenuEntryId,
   buildMenu,
@@ -36,8 +37,6 @@ import { chooseFromForm, chooseFromFormResult } from "../../shared/choiceForm";
 import { createExclusiveGuard } from "../../shared/exclusiveForm";
 import { BUILD_FORM } from "../identifiers";
 
-import { type MenuCases, MenuChoices } from "./menuChoices";
-
 function menuLabel(
   entry: MenuEntry<
     | RootEntryId
@@ -69,24 +68,14 @@ export interface BuildMenus {
 export class BedrockBuildMenus implements BuildMenus {
   private readonly exclusive = createExclusiveGuard("Build menu");
 
-  private readonly choices: MenuChoices;
-
   constructor(
     private readonly repo: BuildSessionRepository,
-    private readonly cases: MenuCases,
+    private readonly choices: MenuChoices,
     private readonly heightSliderFallback: boolean = BUILD_SPEC.heightSliderFallback,
-  ) {
-    this.choices = new MenuChoices(repo, cases);
-  }
+  ) {}
 
   showShapeMenu(player: Player): Promise<void> {
-    return this.exclusive(player, () => {
-      const playerId = asPlayerId(player.id);
-      const flow = this.repo.get(playerId)?.flow;
-      if (flow?.kind === "selected" && flow.menuLevel === "build")
-        this.cases.closeBuildMenu.execute({ playerId });
-      return this.shapeMenus(player, "root");
-    });
+    return this.exclusive(player, () => this.shapeMenus(player, "root"));
   }
 
   private async shapeMenus(
@@ -96,10 +85,14 @@ export class BedrockBuildMenus implements BuildMenus {
     const playerId = asPlayerId(player.id);
     while (true) {
       const flow = this.repo.get(playerId)?.flow;
-      if (flow?.kind !== "selected" || flow.menuLevel !== level) return;
+      if (
+        flow?.kind !== "selected" ||
+        (level === "build" && flow.menuLevel !== level)
+      )
+        return;
       const entries =
         level === "root"
-          ? this.cases.openSelectionMenu.execute({ playerId })
+          ? this.choices.openShapeMenu(playerId)
           : buildMenu(flow);
       const opened = this.repo.get(playerId)?.flow;
       const answer = await chooseFromFormResult(
@@ -119,7 +112,7 @@ export class BedrockBuildMenus implements BuildMenus {
           : level === "build"
             ? "back"
             : undefined;
-      if (!this.choices.choose(playerId, "shape", choice)) return;
+      if (!this.choices.chooseShape(playerId, choice)) return;
       if (choice === "buildShape" || choice === "back") {
         level = choice === "buildShape" ? "build" : "root";
         continue;
@@ -175,14 +168,11 @@ export class BedrockBuildMenus implements BuildMenus {
         );
       } finally {
         if (player.isValid && this.repo.get(playerId)?.flow === flow) {
-          this.choices.choose(
-            playerId,
-            terrace ? "terrace" : "stairContents",
-            id ?? "cancel",
-          );
+          const choose = terrace ? "chooseTerrace" : "chooseStairContents";
+          this.choices[choose](playerId, id ?? "cancel");
           // A refused edit leaves the fixed goal in place, but the form has closed.
           if (this.repo.get(playerId)?.flow === flow)
-            this.cases.cancel.backToAiming({ playerId });
+            this.choices[choose](playerId, "cancel");
         }
       }
     });
@@ -204,7 +194,7 @@ export class BedrockBuildMenus implements BuildMenus {
         })),
       );
       if (!player.isValid) return;
-      this.choices.choose(playerId, "utility", id);
+      this.choices.chooseUtility(playerId, id);
     });
   }
 
@@ -221,7 +211,7 @@ export class BedrockBuildMenus implements BuildMenus {
           textKey: menuLabel(entry),
         })),
       );
-      if (player.isValid) this.choices.choose(playerId, "paste", id);
+      if (player.isValid) this.choices.choosePaste(playerId, id);
     });
   }
 
@@ -240,7 +230,7 @@ export class BedrockBuildMenus implements BuildMenus {
       })),
     );
     if (!player.isValid) return;
-    this.choices.choose(playerId, "contents", id);
+    this.choices.chooseContents(playerId, id);
   }
 
   private async terrainConfirm(player: Player): Promise<void> {
@@ -254,7 +244,7 @@ export class BedrockBuildMenus implements BuildMenus {
       flow.op === "removeAbove" &&
       (!removeAboveBox(area) || area.lowerY >= topY)
     ) {
-      this.choices.choose(playerId, "terrain", "confirm");
+      this.choices.chooseTerrain(playerId, "confirm");
       return;
     }
     const sides = terrainSides(area);
@@ -282,7 +272,7 @@ export class BedrockBuildMenus implements BuildMenus {
     );
     if (!player.isValid) return;
     // An unanswered form must not leave the flow here, since taps do nothing in this state.
-    this.choices.choose(playerId, "terrain", id ?? "cancel");
+    this.choices.chooseTerrain(playerId, id ?? "cancel");
   }
 
   private async heightSlider(player: Player): Promise<void> {
@@ -316,7 +306,7 @@ export class BedrockBuildMenus implements BuildMenus {
       return;
     const height = answer.formValues?.[0];
     if (typeof height !== "number") return;
-    this.cases.setHeight.execute({ playerId, height });
+    this.choices.submitHeight(playerId, height);
     await this.contents(player);
   }
 }

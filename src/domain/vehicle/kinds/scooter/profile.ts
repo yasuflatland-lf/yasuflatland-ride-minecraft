@@ -1,5 +1,5 @@
 import { dyeable } from "../../../shared/paint";
-import type { MotionLimits, TyreLimits } from "../../motion/limits";
+import { motionLimitsOf, tyreLimitsOf } from "../../motion/limits";
 import {
   clearanceHeight,
   type PlacementLiquid,
@@ -81,18 +81,5 @@ export const SCOOTER_PROFILE: VehicleProfile = Object.freeze({
   paintPolicy: Object.freeze(dyeable("white")),
 });
 
-export const SCOOTER_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: SCOOTER_SPEC.maxSpeed,
-  maxReverse: SCOOTER_SPEC.maxReverse,
-  accel: SCOOTER_SPEC.accel,
-  reverseAccel: SCOOTER_SPEC.reverseAccel,
-  brake: SCOOTER_SPEC.brake,
-  drag: SCOOTER_SPEC.drag,
-  turnRate: SCOOTER_SPEC.turnRate,
-  steerFullSpeed: SCOOTER_SPEC.steerFullSpeed,
-  grip: SCOOTER_SPEC.grip,
-});
-export const SCOOTER_TYRES: TyreLimits = Object.freeze({
-  handbrakeGrip: SCOOTER_SPEC.handbrakeGrip,
-  creepSpeed: SCOOTER_SPEC.creepSpeed,
-});
+export const SCOOTER_MOTION = motionLimitsOf(SCOOTER_SPEC);
+export const SCOOTER_TYRES = tyreLimitsOf(SCOOTER_SPEC);
