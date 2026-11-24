@@ -27,6 +27,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -112,11 +113,14 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
       fc.integer({ min: -1000, max: 1000 }),
       (min, sx, sz, kind, aimY) => {
         const e = setup();
-        const base = boxOf(min, {
-          x: min.x + sx - 1,
-          y: min.y,
-          z: min.z + sz - 1,
-        });
+        const base = boxOf(
+          cellOf(min),
+          cellOf({
+            x: min.x + sx - 1,
+            y: min.y,
+            z: min.z + sz - 1,
+          }),
+        );
         roof(e, base, kind);
         // The rise to the center line is a multiple of 0.375, so a 0.2 offset
         // keeps the aimed point at least 0.075 off a layer boundary, where
@@ -151,15 +155,22 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
         new SetPoint(e.repo, e.world, e.feedback).execute({
           playerId,
           dimensionId: nether,
-          cell: min,
+          cell: cellOf(min),
         });
-        new TapAir(e.repo, e.feedback, e.world).execute({ playerId, end: min });
+        new TapAir(e.repo, e.feedback, e.world).execute({
+          playerId,
+          end: cellOf(min),
+        });
         expect(e.session.flow).toBe(before);
       },
     ),
   );
   const e = setup();
-  roof(e, boxOf({ x: 0, y: 318, z: 0 }, { x: 3, y: 318, z: 3 }), "hip");
+  roof(
+    e,
+    boxOf(cellOf({ x: 0, y: 318, z: 0 }), cellOf({ x: 3, y: 318, z: 3 })),
+    "hip",
+  );
   e.session.aimHeight(
     { origin: { x: 0, y: 999, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
     OVERWORLD_RANGE,
@@ -175,7 +186,10 @@ it("confirms roof cells and retains their bounding box for copying", () => {
       fc.integer({ min: 1, max: 8 }),
       (kind, hollow, height) => {
         const e = setup();
-        const base = boxOf({ x: 2, y: 64, z: 3 }, { x: 8, y: 64, z: 9 });
+        const base = boxOf(
+          cellOf({ x: 2, y: 64, z: 3 }),
+          cellOf({ x: 8, y: 64, z: 9 }),
+        );
         roof(e, base, kind);
         e.session.setFlowForTest(setHeight(e.session.flow, height));
         const spec = { base, kind, height, style: "stepped" as const };
@@ -209,7 +223,10 @@ it.each([1, 5])(
   "builds an outward stair gable with an open bottom and restores the original %s-layer selection",
   (selectedHeight) => {
     const e = setup();
-    const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 4, y: 64, z: 6 });
+    const base = boxOf(
+      cellOf({ x: 0, y: 64, z: 0 }),
+      cellOf({ x: 4, y: 64, z: 6 }),
+    );
     const original = boxWithHeight(base, selectedHeight);
     roof(e, original, "gable", stairs);
     expect(e.feedback.messages.at(-1)).toMatchObject({
@@ -224,7 +241,7 @@ it.each([1, 5])(
     expect(e.world.writes).toBe(43);
     expect(e.session.confirmedBox?.box).toEqual(boxWithHeight(base, 3));
     const stateAt = (x: number, y: number, z: number) =>
-      e.world.stateAt(overworld, { x, y, z });
+      e.world.stateAt(overworld, cellOf({ x, y, z }));
     expect(stateAt(0, 64, 3)).toEqual(
       blockStateOf(stairs.typeId, {
         weirdo_direction: 0,
@@ -259,7 +276,10 @@ it.each([1, 5])(
 
 it("counts only the open-bottom shell when refusing an oversized stair roof", () => {
   const e = setup();
-  const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 319, y: 64, z: 319 });
+  const base = boxOf(
+    cellOf({ x: 0, y: 64, z: 0 }),
+    cellOf({ x: 319, y: 64, z: 319 }),
+  );
   roof(e, base, "hip", stairs);
   const flow = e.session.flow;
   new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
@@ -282,7 +302,8 @@ it.each([
   (dimensionId, range) => {
     const e = setup();
     e.world.heightRanges.set(dimensionId, range);
-    const baseAt = (y: number) => boxOf({ x: 0, y, z: 0 }, { x: 4, y, z: 6 });
+    const baseAt = (y: number) =>
+      boxOf(cellOf({ x: 0, y, z: 0 }), cellOf({ x: 4, y, z: 6 }));
     roof(e, baseAt(range.maxY - 2), "gable", stairs, dimensionId);
     expect(e.session.flow).toMatchObject({ kind: "heightStep", liveHeight: 3 });
     const selected = roof(
@@ -299,7 +320,10 @@ it.each([
 
 it("refuses oversized and busy roofs without consuming the height stage", () => {
   const e = setup();
-  const base = boxOf({ x: 0, y: 0, z: 0 }, { x: 1000, y: 0, z: 1000 });
+  const base = boxOf(
+    cellOf({ x: 0, y: 0, z: 0 }),
+    cellOf({ x: 1000, y: 0, z: 1000 }),
+  );
   roof(e, base, "gable");
   const flow = e.session.flow;
   const confirm = new ConfirmHeighted(e.repo, e.feedback, e.jobs);
@@ -310,7 +334,11 @@ it("refuses oversized and busy roofs without consuming the height stage", () => 
   });
   expect(e.session.flow).toBe(flow);
   expect(e.session.isEditing).toBe(false);
-  roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), "hip");
+  roof(
+    e,
+    boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 4 })),
+    "hip",
+  );
   const small = e.session.flow;
   e.session.beginEdit();
   confirm.execute({ playerId, fill: "hollow" });
@@ -321,7 +349,11 @@ it("refuses oversized and busy roofs without consuming the height stage", () => 
 
 it("refuses an invalid roof height without starting an edit", () => {
   const e = setup();
-  roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), "hip");
+  roof(
+    e,
+    boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 4 })),
+    "hip",
+  );
   const flow = setHeight(e.session.flow, 0);
   e.session.setFlowForTest(flow);
   new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
@@ -342,11 +374,14 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
       fc.array(fc.boolean(), { minLength: 64, maxLength: 64 }),
       (source, block, face, size, solids) => {
         const e = setup();
-        const sourceBox = boxOf(source, {
-          x: source.x + size - 1,
-          y: source.y + size - 1,
-          z: source.z + size - 1,
-        });
+        const sourceBox = boxOf(
+          cellOf(source),
+          cellOf({
+            x: source.x + size - 1,
+            y: source.y + size - 1,
+            z: source.z + size - 1,
+          }),
+        );
         let i = 0;
         const expected = [...cellsOf(sourceBox)].map(() =>
           solids[i++] ? stone : AIR,
@@ -361,7 +396,7 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         e.session.setFlowForTest(beginPasteAim());
         const { anchor, box } = pasteTarget(
           clip,
-          block,
+          cellOf(block),
           face,
           turnBetween(clip.facing, "east"),
           "east",
@@ -393,7 +428,7 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           dimensionId: nether,
           target: pasteTarget(
             clip,
-            block,
+            cellOf(block),
             face,
             turnBetween(clip.facing, "east"),
             "east",
@@ -429,14 +464,14 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
     dimensionId: overworld,
     target: pasteTarget(
       structureClipboard(
-        boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+        boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 0, z: 0 })),
         () => undefined,
       ),
-      { x: 0, y: 0, z: 0 },
+      cellOf({ x: 0, y: 0, z: 0 }),
       "up",
       turnBetween(
         structureClipboard(
-          boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+          boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 0, z: 0 })),
           () => undefined,
         ).facing,
         "east",
@@ -454,11 +489,11 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   holdClipboard(
     e.session,
     structureClipboard(
-      boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+      boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 0, z: 0 })),
       () => undefined,
     ),
   );
-  e.world.protectedCells.add(cellKey({ x: 1, y: 1, z: 0 }));
+  e.world.protectedCells.add(cellKey(cellOf({ x: 1, y: 1, z: 0 })));
   paste.execute(cmd);
   expect(e.feedback.messages.at(-1)?.message).toBe("pasteBlocked");
   expect(e.session.flow).toBe(flow);
@@ -476,7 +511,11 @@ it.each(["gable", "hip"] as const)(
   "rejects tube contents on a %s roof without changing the flow",
   (kind) => {
     const e = setup();
-    roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), kind);
+    roof(
+      e,
+      boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 4 })),
+      kind,
+    );
     const flow = e.session.flow;
     e.feedback.messages = [];
     new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
@@ -499,7 +538,10 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
       fc.integer({ min: 1, max: 8 }),
       (kind, height) => {
         const e = setup();
-        const base = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 5 });
+        const base = boxOf(
+          cellOf({ x: 0, y: 60, z: 0 }),
+          cellOf({ x: 4, y: 60, z: 5 }),
+        );
         const choose = (box: ReturnType<typeof boxOf>) =>
           chooseHeightedFlow(
             {
@@ -540,7 +582,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
         for (const at of placementOf(kind).cells(spec, "tube"))
           expect(e.world.stateAt(overworld, at)).toEqual(stone);
         for (const fill of ["fill", "hollow", "tube"] as const) {
-          const large = { ...base, max: { x: 100, y: 60, z: 100 } };
+          const large = { ...base, max: cellOf({ x: 100, y: 60, z: 100 }) };
           const flow = choose(boxWithHeight(large, 1000));
           e.session.setFlowForTest(flow);
           const count = placementOf(kind).count(

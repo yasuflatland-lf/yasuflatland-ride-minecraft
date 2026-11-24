@@ -7,7 +7,7 @@ import {
   supportsGroundRoofTent,
 } from "../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
-import { cellCenter } from "../../domain/shared/cells";
+import { type Cell, cellCenter } from "../../domain/shared/cells";
 import { LocalFrame } from "../../domain/shared/frame";
 import type { DimensionId, PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { RoofTentMount } from "../../domain/shared/roofTent";
@@ -19,7 +19,7 @@ import type { RoofTentWorld } from "./ports/roofTent";
 interface PlaceRoofTentCommand {
   playerId?: PlayerId;
   dimensionId: DimensionId;
-  target: { entityId: VehicleId } | { clicked: Vec3 };
+  target: { entityId: VehicleId } | { clicked: Cell };
   yaw: number;
   slot: number;
 }
@@ -67,7 +67,7 @@ export class PlaceRoofTent {
 
   private groundFree(
     dimension: DimensionId,
-    clicked: Vec3,
+    clicked: Cell,
     origin: Vec3,
   ): boolean {
     const { support, clear } = groundRoofTentCells(clicked);

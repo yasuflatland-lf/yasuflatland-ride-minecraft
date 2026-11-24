@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import {
   footprintColumns,
   rectFootprint,
@@ -11,7 +11,9 @@ import { forward, localOffset } from "../../../src/domain/shared/vec";
 import { roofTentCeilingCells as legacyCells } from "./fixtures/legacyRoofTentCeiling";
 
 const coordinate = fc.double({ min: -200, max: 200, noNaN: true });
-const origin = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const origin = fc
+  .record({ x: coordinate, y: coordinate, z: coordinate })
+  .map(cellOf);
 const yaw = fc.double({ min: -360, max: 360, noNaN: true });
 const extent = fc.double({ min: 0.1, max: 5, noNaN: true });
 const shapes = fc.oneof(
@@ -24,15 +26,22 @@ it("preserves the original roof tent columns for both variants", () => {
     fc.property(origin, yaw, (at, angle) => {
       for (const variant of ["flat", "raised"] as const) {
         const actual = new Set(
-          roofTentCeilingCells(at, angle, variant).map(cellKey),
+          roofTentCeilingCells(at, angle, variant).map((cell) => cellKey(cell)),
         );
-        const expected = new Set(legacyCells(at, angle, variant).map(cellKey));
+        const expected = new Set(
+          legacyCells(at, angle, variant).map((cell) => cellKey(cellOf(cell))),
+        );
         // Equivalent SAT calculations can round differently at a touching boundary.
         const nearby = [-1e-9, 1e-9].flatMap((dx) =>
           [-1e-9, 1e-9].map((dz) => ({ ...at, x: at.x + dx, z: at.z + dz })),
         );
         const legacyNearby = nearby.map(
-          (point) => new Set(legacyCells(point, angle, variant).map(cellKey)),
+          (point) =>
+            new Set(
+              legacyCells(point, angle, variant).map((cell) =>
+                cellKey(cellOf(cell)),
+              ),
+            ),
         );
         for (const key of new Set([...actual, ...expected])) {
           if (actual.has(key) !== expected.has(key)) {
@@ -55,7 +64,7 @@ it("includes interior column centres and stays within the circumradius plus the 
       fc.integer({ min: -64, max: 320 }),
       (at, angle, shape, y) => {
         const columns = footprintColumns(at, angle, shape, y);
-        const keys = new Set(columns.map(cellKey));
+        const keys = new Set(columns.map((cell) => cellKey(cell)));
         const radius = Math.max(
           ...shape.corners.map((c) => Math.hypot(c.x, c.z)),
         );
@@ -78,7 +87,8 @@ it("includes interior column centres and stays within the circumradius plus the 
               if (!b) throw new Error("Missing corner");
               return (b.x - a.x) * (pz - a.z) - (b.z - a.z) * (px - a.x) >= 0;
             });
-            if (inside) expect(keys.has(cellKey({ x, y, z }))).toBe(true);
+            if (inside)
+              expect(keys.has(cellKey(cellOf({ x, y, z })))).toBe(true);
           }
         }
         expect(keys.size).toBe(columns.length);

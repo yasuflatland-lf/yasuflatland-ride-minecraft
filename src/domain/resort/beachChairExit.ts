@@ -1,4 +1,4 @@
-import { type Cell, cellKey } from "../shared/cells";
+import { type Cell, cellKey, cellOf } from "../shared/cells";
 import { searchExitCell } from "../shared/exitSearch";
 import { forward, rightOf } from "../shared/vec";
 import { type BeachChairPose, beachChairCells } from "./beachChair";
@@ -16,8 +16,8 @@ export function beachChairExit(
   };
   const occupied = new Set(beachChairCells(pose).map(cellKey));
   return searchExitCell(
-    start,
-    (feet) => occupied.has(cellKey({ ...feet, y: pose.foot.y })),
+    cellOf(start),
+    (feet) => occupied.has(cellKey(cellOf({ ...feet, y: pose.foot.y }))),
     {
       radius: BEACH_CHAIR_SPEC.exitSearchRadius,
       up: BEACH_CHAIR_SPEC.exitSearchUp,

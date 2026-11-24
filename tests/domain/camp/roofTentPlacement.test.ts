@@ -5,7 +5,7 @@ import {
   planRoofTent,
   supportsGroundRoofTent,
 } from "../../../src/domain/camp/roofTent/placement";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 import type { RoofTentMount } from "../../../src/domain/shared/roofTent";
@@ -121,7 +121,7 @@ it("uses the clicked support cell and two clear layers across the 3 by 3 footpri
     fc.property(
       fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
       (clicked) => {
-        const { support, clear } = groundRoofTentCells(clicked);
+        const { support, clear } = groundRoofTentCells(cellOf(clicked));
         expect(support).toEqual([clicked]);
         expect(clear).toHaveLength(18);
         expect(new Set(clear.map(cellKey)).size).toBe(18);

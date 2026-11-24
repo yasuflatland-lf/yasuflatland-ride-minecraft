@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import { tapAir, tapBlock } from "../../support/buildSelection";
@@ -9,7 +10,7 @@ import { FakeFeedback, FakeSessions, nether } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
-const start = { x: 2, y: 60, z: 3 };
+const start = cellOf({ x: 2, y: 60, z: 3 });
 const point = tapBlock(
   { kind: "idle" },
   nether,

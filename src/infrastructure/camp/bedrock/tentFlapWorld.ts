@@ -7,7 +7,7 @@ import {
   type TentId,
 } from "../../../domain/camp/tent";
 import { tentFlapExitCells } from "../../../domain/camp/tentFlapExit";
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, cellOf } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { safeBlockAt } from "../../shared/blocks";
@@ -43,7 +43,7 @@ export class BedrockTentFlapWorld {
   /** The tent and flap whose tent_flap block is at `cell`; before the first lay after /reload, from the registry. */
   flapAt(
     dimensionId: DimensionId,
-    cell: Vec3,
+    cell: Cell,
   ): { tentId: TentId; flap: FlapId } | undefined {
     const tentId = this.layout.tentBlockOwner(
       dimensionId,
@@ -96,7 +96,7 @@ export class BedrockTentFlapWorld {
   }
 
   private isFlapExitFree(dimension: Dimension, cell: Cell): boolean {
-    return [cell, { ...cell, y: cell.y + 1 }].every((at) => {
+    return [cell, cellOf({ ...cell, y: cell.y + 1 })].every((at) => {
       const block = safeBlockAt(dimension, at);
       return (
         block?.typeId === AIR_BLOCK ||

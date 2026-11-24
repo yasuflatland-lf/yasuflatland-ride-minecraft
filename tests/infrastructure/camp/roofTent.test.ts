@@ -15,7 +15,7 @@ import { asRoofTentId, type RoofTentId } from "../../../src/domain/camp/ids";
 import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling";
 import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -329,7 +329,7 @@ it("returns an item to an online owner and drops it at the tent when offline", (
 function placeOnGround() {
   return new PlaceRoofTent(tents, host).execute({
     dimensionId: DIM,
-    target: { clicked: { x: 0, y: 0, z: 0 } },
+    target: { clicked: cellOf({ x: 0, y: 0, z: 0 }) },
     yaw: 0,
     slot: 0,
   });

@@ -28,8 +28,10 @@ import {
   type Cell,
   cellCenter,
   cellKey,
+  cellOf,
   sameCell,
 } from "../../domain/shared/cells";
+import { distanceSq, type Vec3 } from "../../domain/shared/vec";
 import { blockHeightRange } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import {
   BUILD_UNDO_TYPE,
@@ -147,11 +149,12 @@ async function withBuilder(
     return b;
   };
   const origin = a.at(50, a.gy + 8, 50);
-  const cell = (x = 0, y = 0, z = 0): Cell => ({
+  const at = (x: number, y: number, z: number): Vec3 => ({
     x: origin.x + x,
     y: origin.y + y,
     z: origin.z + z,
   });
+  const cell = (x = 0, y = 0, z = 0): Cell => cellOf(at(x, y, z));
   const tap = (tap: "block" | "air" | "clear" | "fixHeight", at = cell()) =>
     query(TEST_TAP_EVENT, JSON.stringify({ player: player.name, tap, ...at }));
   const edit = (command: string) =>
@@ -161,12 +164,15 @@ async function withBuilder(
     for (let x = 0; x < sx; x++)
       for (let y = 0; y < sy; y++)
         for (let z = 0; z < sz; z++)
-          cells.push({ x: offset.x + x, y: offset.y + y, z: offset.z + z });
+          cells.push(
+            cellOf({ x: offset.x + x, y: offset.y + y, z: offset.z + z }),
+          );
     for (const c of cells) block(c);
     return cells;
   };
   const f = {
     player,
+    at,
     cell,
     lookSettled: async (yaw: number, pitch = 25): Promise<void> => {
       // A connected client sends its own rotation, so a teleport may be
@@ -267,6 +273,7 @@ async function withBuilder(
   }
 }
 type Fixture = {
+  at(x: number, y: number, z: number): Vec3;
   player: Player;
   lookSettled(yaw: number, pitch?: number): Promise<void>;
   cell(x?: number, y?: number, z?: number): Cell;
@@ -923,7 +930,7 @@ export function buildTapTargetFollows(a: Arena): Promise<Outcome> {
     check(
       target !== undefined &&
         extra === undefined &&
-        sameCell(target.location, cellCenter(first)),
+        distanceSq(target.location, cellCenter(first)) === 0,
       "expected one target at the first end marker",
     );
     const targetId = target.id;
@@ -939,7 +946,7 @@ export function buildTapTargetFollows(a: Arena): Promise<Outcome> {
     check(
       moved?.id === targetId &&
         duplicate === undefined &&
-        sameCell(moved.location, cellCenter(next)),
+        distanceSq(moved.location, cellCenter(next)) === 0,
       "expected the same single target at the moved end marker",
     );
   });
@@ -1004,7 +1011,7 @@ export function buildTapTargetPress(a: Arena): Promise<Outcome> {
     check(
       target !== undefined &&
         extra === undefined &&
-        sameCell(target.location, cellCenter(cell)),
+        distanceSq(target.location, cellCenter(cell)) === 0,
       "expected one target at the aimed endpoint",
     );
     press();
@@ -1044,7 +1051,7 @@ export function buildLiveHeight(a: Arena): Promise<Outcome> {
     f.block(f.cell()).setType("minecraft:stone");
     const end = f.cell(4, 0, 4);
     f.block(end).setType("minecraft:stone");
-    f.player.teleport(f.cell(-6, 0, 2.5), { dimension: a.dim });
+    f.player.teleport(f.at(-6, 0, 2.5), { dimension: a.dim });
     await f.lookSettled(-90, 0);
     check((await f.tap("block")).flow.kind === "point1", "first tap missing");
     const base = await f.tap("block", end);
@@ -1585,15 +1592,20 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       await startPasteStep(f);
       const anchor = f.cell(10, 2, 10);
       f.block(anchor).setType("minecraft:gold_block");
-      const target = f.region(3, 1, 1, {
-        x: anchor.x + dx,
-        y: anchor.y + dy,
-        z: anchor.z + dz,
-      });
+      const target = f.region(
+        3,
+        1,
+        1,
+        cellOf({
+          x: anchor.x + dx,
+          y: anchor.y + dy,
+          z: anchor.z + dz,
+        }),
+      );
       // Air above solid ground keeps the snapped box at the aimed box (ADR 0203).
       for (const c of target) f.block(c).setType("minecraft:air");
       for (const c of target) {
-        const ground = { ...c, y: c.y - 1 };
+        const ground = cellOf({ ...c, y: c.y - 1 });
         if (
           ground.x !== anchor.x ||
           ground.y !== anchor.y ||
@@ -1616,8 +1628,12 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       checkSelection(
         pasted,
         {
-          min: { x: anchor.x + dx, y: anchor.y + dy, z: anchor.z + dz },
-          max: { x: anchor.x + dx + 2, y: anchor.y + dy, z: anchor.z + dz },
+          min: cellOf({ x: anchor.x + dx, y: anchor.y + dy, z: anchor.z + dz }),
+          max: cellOf({
+            x: anchor.x + dx + 2,
+            y: anchor.y + dy,
+            z: anchor.z + dz,
+          }),
         },
         `Paste on ${face}`,
       );
@@ -1668,7 +1684,7 @@ function pasteTarget(
   // layer over a solid footprint keeps the snapped box equal to the aimed box.
   for (const cell of f.region(sx, 1, sz, anchor))
     f.block(cell).setType("minecraft:gold_block");
-  const cells = f.region(sx, sy, sz, { ...anchor, y: anchor.y + 1 });
+  const cells = f.region(sx, sy, sz, cellOf({ ...anchor, y: anchor.y + 1 }));
   for (const cell of cells)
     f.block(cell).setType(
       cell.y === anchor.y + 1 ? "minecraft:air" : "minecraft:gold_block",
@@ -1761,7 +1777,7 @@ export function buildCopyStructure(a: Arena): Promise<Outcome> {
 // A frame with no supporting block pops off on the next neighbor update, which
 // a structure place triggers, so fixtures put one stone behind it.
 function placeSupportedFrame(f: Fixture, c: Cell): void {
-  f.block({ ...c, x: c.x - 1 }).setType("minecraft:stone");
+  f.block(cellOf({ ...c, x: c.x - 1 })).setType("minecraft:stone");
   const frame = f.block(c);
   frame.setType("minecraft:frame");
   frame.setPermutation(frame.permutation.withState("facing_direction", 5));
@@ -2283,7 +2299,12 @@ async function pasteCutClipboard(
 ): Promise<void> {
   for (const cell of f.region(sx, sy, sz, anchor))
     f.block(cell).setType("minecraft:air");
-  for (const cell of f.region(sx, 1, sz, { ...anchor, y: anchor.y - 1 }))
+  for (const cell of f.region(
+    sx,
+    1,
+    sz,
+    cellOf({ ...anchor, y: anchor.y - 1 }),
+  ))
     f.block(cell).setType("minecraft:stone");
   const pasted = await pasteStep(f, anchor.x, anchor.y - 1, anchor.z, "up");
   check(
@@ -2404,10 +2425,12 @@ export function buildRemoveAbove(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = columnRegion(f, 3, 3, -3);
     for (const cell of cells) f.block(cell).setType("minecraft:air");
-    const ceiling = f.block({
-      ...f.cell(1, 0, 1),
-      y: blockHeightRange(a.dim).maxY,
-    });
+    const ceiling = f.block(
+      cellOf({
+        ...f.cell(1, 0, 1),
+        y: blockHeightRange(a.dim).maxY,
+      }),
+    );
     const floor = f.region(3, 1, 3, f.cell(0, -3, 0));
     for (const cell of floor) f.block(cell).setType("minecraft:stone");
     const below = f.block(f.cell(1, -4, 1));
@@ -2658,7 +2681,7 @@ export function buildUnstuckNotTouched(a: Arena): Promise<Outcome> {
       f.block(cell).setType("minecraft:air");
     f.block(f.cell(5, 0, 1)).setType("minecraft:grass_block");
     f.block(feet).setType("minecraft:tall_grass");
-    f.block({ ...feet, y: feet.y + 1 }).setPermutation(
+    f.block(cellOf({ ...feet, y: feet.y + 1 })).setPermutation(
       f.block(feet).permutation.withState("upper_block_bit", true),
     );
     await f.select(f.cell(2, 3, 2));
@@ -3197,7 +3220,9 @@ async function aimControlTarget(
     maxDistance: BUILD_SPEC.reach,
   });
   check(
-    !!hit && sameCell(hit.block, anchor) && hit.face === Direction.Up,
+    !!hit &&
+      sameCell(cellOf(hit.block.location), anchor) &&
+      hit.face === Direction.Up,
     `Expected anchor ${JSON.stringify(anchor)} Up; hit ${hit ? `${JSON.stringify(hit.block.location)} ${hit.face} ${hit.block.typeId}` : "nothing"}`,
   );
 }
@@ -3222,8 +3247,8 @@ function checkRotatedFurniture(f: Fixture, target: Cell[], min: Cell): void {
   }
   checkFurniturePayload(
     f,
-    { x: min.x + 1, y: min.y + 1, z: min.z + 1 },
-    { x: min.x + 1, y: min.y + 1, z: min.z + 3 },
+    cellOf({ x: min.x + 1, y: min.y + 1, z: min.z + 1 }),
+    cellOf({ x: min.x + 1, y: min.y + 1, z: min.z + 3 }),
   );
 }
 
@@ -3295,7 +3320,7 @@ export function buildRotateTappedSpan(a: Arena): Promise<Outcome> {
         (await f.tap("block", max)).flow.kind === "baseHeight",
         "Expected live height after the second tap",
       );
-      f.player.teleport(f.cell(-6, 0, 1.5), { dimension: a.dim });
+      f.player.teleport(f.at(-6, 0, 1.5), { dimension: a.dim });
       await f.lookSettled(-90, -30);
       await holdPasteControl(f, PASTE_ROTATE_TYPE);
       const live = (await f.mode()).flow;
@@ -3537,7 +3562,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       for (const offset of [0, 12]) {
         const c = f.cell(offset + 5, 1, 1);
         placeSupportedFrame(f, c);
-        const cow = f.cell(offset + 6.5, 1, 2.5);
+        const cow = f.at(offset + 6.5, 1, 2.5);
         a.dim.runCommand(`summon minecraft:cow ${cow.x} ${cow.y} ${cow.z}`);
       }
       const oldCow = inside(12).find((e) => e.typeId === "minecraft:cow");
@@ -3636,7 +3661,7 @@ export async function buildPasteStructureDecor(
         });
         f.player.selectedSlotIndex = wandSlot;
       };
-      const inside = (p: Cell, offset: number, margin = 0) => {
+      const inside = (p: Vec3, offset: number, margin = 0) => {
         const min = f.cell(offset);
         return (
           p.x >= min.x - margin &&
@@ -3678,7 +3703,7 @@ export async function buildPasteStructureDecor(
           inside(event.block.location, 0) &&
           event.beforeItemStack?.typeId === "minecraft:diamond"
         )
-          interacted.add(cellKey(event.block.location));
+          interacted.add(cellKey(cellOf(event.block.location)));
       };
       const setupState = () => {
         const allFrames = frames(source);
@@ -3717,9 +3742,9 @@ export async function buildPasteStructureDecor(
         ])
           inventory.addItem(new ItemStack(type, 1));
         f.player.selectedSlotIndex = 0;
-        f.player.teleport(f.cell(4.5, 1, 3.5), {
+        f.player.teleport(f.at(4.5, 1, 3.5), {
           dimension: a.dim,
-          facingLocation: f.cell(1, 2, 3.5),
+          facingLocation: f.at(1, 2, 3.5),
         });
         const prompt =
           "Structure paste decor check: within 60 seconds, place the item frame on the stone wall, put the diamond into it, and hang the painting on the wall.";
@@ -3776,7 +3801,7 @@ export async function buildPasteStructureDecor(
         removeItems();
         if (!observed || originalPaintings !== 1) return;
         phase = "paste";
-        const mirrored = { ...cell, x: cell.x + 12 };
+        const mirrored = cellOf({ ...cell, x: cell.x + 12 });
         f.block(mirrored).setPermutation(permutation);
         const anchor = f.cell(12, -1);
         const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
@@ -3887,12 +3912,12 @@ export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
     const [first, ...remaining] = targets;
     if (!first) throw new Error("Expected paste targets");
     const sourceBox = {
-      min: { ...first.anchor, y: first.anchor.y + 1 },
-      max: {
+      min: cellOf({ ...first.anchor, y: first.anchor.y + 1 }),
+      max: cellOf({
         x: first.anchor.x + 1,
         y: first.anchor.y + 2,
         z: first.anchor.z + 1,
-      },
+      }),
     };
     for (const target of [first, ...remaining]) {
       if (target !== first) await capturePasteSource(f, sourceBox);

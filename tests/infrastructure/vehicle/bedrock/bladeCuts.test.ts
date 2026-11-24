@@ -1,7 +1,7 @@
 import type { Dimension, Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, expectTypeOf, it, vi } from "vitest";
-import type { Cell } from "../../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../../src/domain/shared/cells";
 import { KEPT_BLOCKS } from "../../../../src/domain/shared/keptBlocks";
 import type { CutColumn } from "../../../../src/domain/vehicle/cut";
 import { BladeCuts } from "../../../../src/infrastructure/vehicle/bedrock/bladeCuts";
@@ -43,8 +43,8 @@ function fixture() {
   const cut = (columns: readonly CutColumn[] = [column]) =>
     cuts.cut(dimension as unknown as Dimension, columns);
   const set = (y: number, type: string, x = 0) =>
-    grid.getBlock({ x, y, z: 0 }).setType(type);
-  const at = (y: number, x = 0) => grid.typeAt({ x, y, z: 0 });
+    grid.getBlock(cellOf({ x, y, z: 0 })).setType(type);
+  const at = (y: number, x = 0) => grid.typeAt(cellOf({ x, y, z: 0 }));
   return {
     grid,
     dimension,
@@ -204,7 +204,7 @@ it.each([undefined, 3])(
   (minHeight) => {
     let unloaded = false;
     const grid = blockGrid({ unloaded: () => unloaded });
-    grid.getBlock({ x: 0, y: 64, z: 0 })?.setType("minecraft:stone");
+    grid.getBlock(cellOf({ x: 0, y: 64, z: 0 }))?.setType("minecraft:stone");
     const dimension = { id: "overworld", ...grid };
     const cuts = new BladeCuts({ now: () => 100 });
     unloaded = true;
@@ -212,7 +212,7 @@ it.each([undefined, 3])(
     expect(grid.fills).toHaveLength(0);
     unloaded = false;
     cuts.cut(dimension as unknown as Dimension, [{ ...column, minHeight }]);
-    expect(grid.typeAt({ x: 0, y: 64, z: 0 })).toBe("minecraft:air");
+    expect(grid.typeAt(cellOf({ x: 0, y: 64, z: 0 }))).toBe("minecraft:air");
   },
 );
 it("skips a column when the chunk check throws", () => {

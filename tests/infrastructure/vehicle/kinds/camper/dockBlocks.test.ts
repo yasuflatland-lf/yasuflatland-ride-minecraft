@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import {
   asDimensionId,
   asVehicleId,
@@ -62,11 +62,9 @@ it("restores and rewrites the exact saved deck_cells of a build before the share
     '[{"x":0,"y":64,"z":0,"height":5},{"x":1,"y":64,"z":0,"block":{"type":"decor","item":"potted_plant","face":2,"height":3}},{"x":2,"y":64,"z":0,"block":{"type":"door","face":1,"open":true}},{"x":3,"y":65,"z":0,"block":{"type":"light"}},{"x":4,"y":64,"z":0,"block":{"type":"wall","face":7}},"junk"]';
   f.saved.set(DECK_CELLS_PROPERTY, raw);
   const wanted: DockCell[] = [
-    { x: 0, y: 64, z: 0, block: { type: "deck", height: 5 } },
+    { ...cellOf({ x: 0, y: 64, z: 0 }), block: { type: "deck", height: 5 } },
     {
-      x: 1,
-      y: 64,
-      z: 0,
+      ...cellOf({ x: 1, y: 64, z: 0 }),
       block: {
         type: "decor",
         item: decorItemId("potted_plant"),
@@ -75,8 +73,11 @@ it("restores and rewrites the exact saved deck_cells of a build before the share
         spot: 0,
       },
     },
-    { x: 2, y: 64, z: 0, block: { type: "door", face: 1, open: true } },
-    { x: 3, y: 65, z: 0, block: { type: "light" } },
+    {
+      ...cellOf({ x: 2, y: 64, z: 0 }),
+      block: { type: "door", face: 1, open: true },
+    },
+    { ...cellOf({ x: 3, y: 65, z: 0 }), block: { type: "light" } },
   ];
   const ids = [
     DECK_FLOOR_BLOCK,
@@ -112,24 +113,25 @@ it("restores and clears saved dashboard decor spots", () => {
   }));
   f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify(saved));
   for (const c of saved)
-    f.blocks.set(cellKey(c), { typeId: decorBlockId("potted_plant") });
+    f.blocks.set(cellKey(cellOf(c)), { typeId: decorBlockId("potted_plant") });
   expect(savedDock(f.car, dockCodec).laid).toBe(true);
   createDockBlocks().lay(asVehicleId(f.car.id), f.car, []);
-  for (const c of saved) expect(f.at(c).typeId).toBe("minecraft:air");
+  for (const c of saved) expect(f.at(cellOf(c)).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
 });
 
 const roomCells: DockCell[] = [
-  { x: 0, y: 64, z: 0, block: { type: "deck", height: 9 } },
-  { x: 1, y: 64, z: 0, block: { type: "floor" } },
-  { x: 2, y: 64, z: 0, block: { type: "ceiling" } },
-  { x: 3, y: 64, z: 0, block: { type: "wall", face: 2 } },
-  { x: 4, y: 64, z: 0, block: { type: "door", face: 3, open: false } },
-  { x: 5, y: 64, z: 0, block: { type: "bed" } },
+  { ...cellOf({ x: 0, y: 64, z: 0 }), block: { type: "deck", height: 9 } },
+  { ...cellOf({ x: 1, y: 64, z: 0 }), block: { type: "floor" } },
+  { ...cellOf({ x: 2, y: 64, z: 0 }), block: { type: "ceiling" } },
+  { ...cellOf({ x: 3, y: 64, z: 0 }), block: { type: "wall", face: 2 } },
   {
-    x: 6,
-    y: 64,
-    z: 0,
+    ...cellOf({ x: 4, y: 64, z: 0 }),
+    block: { type: "door", face: 3, open: false },
+  },
+  { ...cellOf({ x: 5, y: 64, z: 0 }), block: { type: "bed" } },
+  {
+    ...cellOf({ x: 6, y: 64, z: 0 }),
     block: {
       type: "decor",
       item: decorItemId("potted_plant"),
@@ -138,13 +140,14 @@ const roomCells: DockCell[] = [
       spot: 3,
     },
   },
-  { x: 7, y: 64, z: 0, block: { type: "furniture", height: 0 } },
-  { x: 8, y: 64, z: 0, block: { type: "showerToilet", face: 0 } },
-  { x: 9, y: 64, z: 0, block: { type: "cabinetDoor", face: 1 } },
+  { ...cellOf({ x: 7, y: 64, z: 0 }), block: { type: "furniture", height: 0 } },
   {
-    x: 10,
-    y: 64,
-    z: 0,
+    ...cellOf({ x: 8, y: 64, z: 0 }),
+    block: { type: "showerToilet", face: 0 },
+  },
+  { ...cellOf({ x: 9, y: 64, z: 0 }), block: { type: "cabinetDoor", face: 1 } },
+  {
+    ...cellOf({ x: 10, y: 64, z: 0 }),
     block: {
       type: "cabinet",
       face: 2,
@@ -152,11 +155,12 @@ const roomCells: DockCell[] = [
       end1: decorItemId("toaster"),
     },
   },
-  { x: 11, y: 64, z: 0, block: { type: "fridgeDoor", face: 0, lit: true } },
   {
-    x: 12,
-    y: 64,
-    z: 0,
+    ...cellOf({ x: 11, y: 64, z: 0 }),
+    block: { type: "fridgeDoor", face: 0, lit: true },
+  },
+  {
+    ...cellOf({ x: 12, y: 64, z: 0 }),
     block: {
       type: "fridge",
       face: 1,
@@ -165,7 +169,7 @@ const roomCells: DockCell[] = [
       end0: decorItemId("mug_pair"),
     },
   },
-  { x: 13, y: 64, z: 0, block: { type: "bunk" } },
+  { ...cellOf({ x: 13, y: 64, z: 0 }), block: { type: "bunk" } },
 ];
 
 it("lays every block type with its states and changes only an opened door", () => {
@@ -251,7 +255,7 @@ it.each([
   ({ before, after, expected }) => {
     const f = fixture();
     const docks = createDockBlocks();
-    const position = { x: 0, y: 64, z: 0 };
+    const position = cellOf({ x: 0, y: 64, z: 0 });
     docks.lay(asVehicleId(f.car.id), f.car, [{ ...position, block: before }]);
     const wanted = { ...position, block: after };
     docks.lay(asVehicleId(f.car.id), f.car, [wanted]);
@@ -274,7 +278,7 @@ it("preserves replacements of wall, door, bed, decor, furniture, and shower-toil
 it("replaces a decor item in place and clears it", () => {
   const f = fixture();
   const docks = createDockBlocks();
-  const position = { x: 0, y: 64, z: 0 };
+  const position = cellOf({ x: 0, y: 64, z: 0 });
   const states = {
     [DECOR_FACE_STATE]: 2,
     [DECOR_HEIGHT_STATE]: 7,
@@ -306,7 +310,7 @@ it("replaces a decor item in place and clears it", () => {
 it("lays both items of a fridge compartment in its one block, each end's code split into page and item states, switches an end in place, and clears it (ADR 0108, 0123)", () => {
   const f = fixture();
   const docks = createDockBlocks();
-  const position = { x: 0, y: 64, z: 0 };
+  const position = cellOf({ x: 0, y: 64, z: 0 });
   const pairAt = (end0?: string, end1?: string): DockCell => ({
     ...position,
     block: {
@@ -351,7 +355,7 @@ it("lays both items of a fridge compartment in its one block, each end's code sp
 
 it("lays the table's pair block without a height state, since its one height cannot be a state (ADR 0108)", () => {
   const f = fixture();
-  const position = { x: 0, y: 64, z: 0 };
+  const position = cellOf({ x: 0, y: 64, z: 0 });
   const [end0, end1] = PAIR_END_STATES;
   createDockBlocks().lay(asVehicleId(f.car.id), f.car, [
     {
@@ -379,7 +383,7 @@ it("lays the table's pair block without a height state, since its one height can
 
 it("clears a decor block that an early ADR 0108 build laid at spot 6 (ADR 0108)", () => {
   const f = fixture();
-  const position = { x: 0, y: 64, z: 0 };
+  const position = cellOf({ x: 0, y: 64, z: 0 });
   f.blocks.set(cellKey(position), { typeId: decorBlockId("toaster") });
   f.saved.set(
     DECK_CELLS_PROPERTY,
@@ -403,7 +407,7 @@ it("clears a decor block that an early ADR 0108 build laid at spot 6 (ADR 0108)"
 it("switches a slot between furniture and decor in place and clears it (ADR 0097)", () => {
   const f = fixture();
   const docks = createDockBlocks();
-  const position = { x: 0, y: 64, z: 0 };
+  const position = cellOf({ x: 0, y: 64, z: 0 });
   const furniture: DockCell = {
     ...position,
     block: { type: "furniture", height: 12 },
@@ -445,7 +449,7 @@ it("switches a slot between furniture and decor in place and clears it (ADR 0097
 
 it("restores a saved bed cell and clears it", () => {
   const f = fixture();
-  const cell = { x: 0, y: 64, z: 0 };
+  const cell = cellOf({ x: 0, y: 64, z: 0 });
   f.saved.set(
     DECK_CELLS_PROPERTY,
     JSON.stringify([{ ...cell, block: { type: "bed" } }]),
@@ -457,7 +461,7 @@ it("restores a saved bed cell and clears it", () => {
 });
 
 it("restores a saved shower-toilet cell with its face and drops one without a valid face (ADR 0098)", () => {
-  const cell = { x: 0, y: 64, z: 0 };
+  const cell = cellOf({ x: 0, y: 64, z: 0 });
   const f = fixture();
   f.saved.set(
     DECK_CELLS_PROPERTY,
@@ -482,7 +486,7 @@ it("restores a saved shower-toilet cell with its face and drops one without a va
 });
 
 it("lays the wall behind the open shower door with its face, swaps it back to the wall, and restores a saved one (ADR 0118)", () => {
-  const cell = { x: 0, y: 64, z: 0 };
+  const cell = cellOf({ x: 0, y: 64, z: 0 });
   const f = fixture();
   const docks = createDockBlocks();
   docks.lay(asVehicleId(f.car.id), f.car, [
@@ -520,7 +524,7 @@ it("lays the wall behind the open shower door with its face, swaps it back to th
 
 it("reads a saved decor cell from before the spot state as standing in the cell middle (ADR 0107)", () => {
   const f = fixture();
-  const position = { x: 0, y: 64, z: 0 };
+  const position = cellOf({ x: 0, y: 64, z: 0 });
   const block = {
     type: "decor",
     item: decorItemId("percolator"),
@@ -647,10 +651,10 @@ it("ignores saved cells with a generated invalid field", () => {
     fc.property(invalid, ({ cell, seed }) => {
       const f = fixture();
       const raw = JSON.stringify([cell]);
-      f.blocks.set(cellKey(cell), { typeId: seed });
+      f.blocks.set(cellKey(cellOf(cell)), { typeId: seed });
       f.saved.set(DECK_CELLS_PROPERTY, raw);
       createDockBlocks().lay(asVehicleId(f.car.id), f.car, []);
-      expect(f.at(cell).typeId).toBe(seed);
+      expect(f.at(cellOf(cell)).typeId).toBe(seed);
       expect(f.saved.get(DECK_CELLS_PROPERTY)).toBe(raw);
     }),
     { numRuns: 1000 },
@@ -749,7 +753,7 @@ it.each([true, false])(
 );
 
 it("restores saved storage cells, empty ones too, and a shelf pair block an older build laid, and drops malformed ones (ADR 0108, 0114, 0123)", () => {
-  const cell = { x: 0, y: 64, z: 0 };
+  const cell = cellOf({ x: 0, y: 64, z: 0 });
   for (const [block, typeId] of [
     [
       { type: "fridge", face: 1, height: 3, open: false },
@@ -849,7 +853,7 @@ it("maps and restores a shared drawer/counter cell with counter-only block state
         };
         expect(drawerBlockStates(block)).toEqual(expected);
         const f = fixture();
-        const wanted = [{ x: 1, y: 65, z: 2, block }];
+        const wanted = [{ ...cellOf({ x: 1, y: 65, z: 2 }), block }];
         const layer = createDockBlocks();
         layer.lay(asVehicleId("car"), f.car, wanted);
         expect(f.at(defined(wanted[0], "drawer cell"))).toEqual({

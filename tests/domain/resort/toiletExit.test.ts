@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { TOILET_SPEC } from "../../../src/domain/resort/shows";
 import { toiletExit } from "../../../src/domain/resort/toiletExit";
-import { sameCell } from "../../../src/domain/shared/cells";
+import { cellOf, sameCell } from "../../../src/domain/shared/cells";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
@@ -24,7 +24,7 @@ it.each([
     fc.assert(
       fc.property(origins, (origin) => {
         expect(
-          toiletExit(origin, facing, (feet) => feet.y === origin.y),
+          toiletExit(cellOf(origin), facing, (feet) => feet.y === origin.y),
         ).toEqual({
           x: origin.x + dx * TOILET_SPEC.exitFrontOffset,
           y: origin.y,
@@ -38,9 +38,9 @@ it.each([
 it("skips the toilet column even when it contains the only safe cell", () => {
   fc.assert(
     fc.property(origins, facings, heights, (origin, facing, dy) => {
-      const safe = { ...origin, y: origin.y + dy };
+      const safe = cellOf({ ...origin, y: origin.y + dy });
       expect(
-        toiletExit(origin, facing, (feet) => sameCell(feet, safe)),
+        toiletExit(cellOf(origin), facing, (feet) => sameCell(feet, safe)),
       ).toBeUndefined();
     }),
   );
@@ -49,9 +49,9 @@ it("skips the toilet column even when it contains the only safe cell", () => {
 it("finds the only safe cell beside the toilet at any searchable height", () => {
   fc.assert(
     fc.property(origins, facings, heights, (origin, facing, dy) => {
-      const safe = { x: origin.x + 1, y: origin.y + dy, z: origin.z };
+      const safe = cellOf({ x: origin.x + 1, y: origin.y + dy, z: origin.z });
       expect(
-        toiletExit(origin, facing, (feet) => sameCell(feet, safe)),
+        toiletExit(cellOf(origin), facing, (feet) => sameCell(feet, safe)),
       ).toEqual(safe);
     }),
   );
@@ -60,7 +60,7 @@ it("finds the only safe cell beside the toilet at any searchable height", () => 
 it("returns undefined when there is no safe cell", () => {
   fc.assert(
     fc.property(origins, facings, (origin, facing) => {
-      expect(toiletExit(origin, facing, () => false)).toBeUndefined();
+      expect(toiletExit(cellOf(origin), facing, () => false)).toBeUndefined();
     }),
   );
 });
@@ -72,8 +72,8 @@ it.each([
 ])(
   "checks the search bounds around the front cell for %o",
   (safe, reachable) => {
-    const exit = toiletExit({ x: 10, y: 64, z: 20 }, 0, (feet) =>
-      sameCell(feet, safe),
+    const exit = toiletExit(cellOf({ x: 10, y: 64, z: 20 }), 0, (feet) =>
+      sameCell(feet, cellOf(safe)),
     );
     expect(exit).toEqual(reachable ? safe : undefined);
   },

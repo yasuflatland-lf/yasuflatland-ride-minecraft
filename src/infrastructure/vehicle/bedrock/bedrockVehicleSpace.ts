@@ -1,6 +1,6 @@
 // Queries dock ownership and vehicle placement space (ADR 0012).
 import { type Entity, world } from "@minecraft/server";
-import { cellCenter } from "../../../domain/shared/cells";
+import { cellCenter, cellOf } from "../../../domain/shared/cells";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import { distanceToRectXZ, type Vec3 } from "../../../domain/shared/vec";
 import { VEHICLE_KINDS } from "../../../domain/vehicle/kind";
@@ -57,7 +57,7 @@ export class BedrockVehicleSpace {
       this.cellOwner(dimensionId, below) !== undefined
     )
       return true;
-    const middle = cellCenter(cell);
+    const middle = cellCenter(cellOf(cell));
     let near: Entity[];
     try {
       near = world.getDimension(dimensionId).getEntities({

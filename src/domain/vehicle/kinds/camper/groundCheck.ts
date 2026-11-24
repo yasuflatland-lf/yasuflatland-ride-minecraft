@@ -1,6 +1,5 @@
-import { cellKey } from "../../../shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../shared/decorations";
-import type { Vec3 } from "../../../shared/vec";
 import type { ClearCell } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import { slotCells } from "./decorCells";
@@ -40,9 +39,9 @@ export const PARK_MESSAGES = Object.freeze({
 export function parkCheckCells(
   pose: HoldPose,
   doors: readonly StorageDoor[] = STORAGE_DOORS,
-): Vec3[] {
+): Cell[] {
   return [
-    ...roomCells(pose, false).map(({ x, y, z }) => ({ x, y, z })),
+    ...roomCells(pose, false).map(cellOf),
     ...cargoCells(pose, doors),
     ...slotCells(pose),
     ...storagePlateChecks(pose, doors).map(({ cell }) => cell),
@@ -58,8 +57,8 @@ export function isPassable(typeId: string | undefined): boolean {
 }
 
 /** The ground-layer cells under the front end wall: the bumper's row (ADR 0116, 0119). */
-function bumperCells(pose: HoldPose): Vec3[] {
-  const cells: Vec3[] = [];
+function bumperCells(pose: HoldPose): Cell[] {
+  const cells: Cell[] = [];
   for (let lx = -HALF_X; lx <= HALF_X; lx++)
     cells.push(cellAt(pose, lx, WALL_Z, 0));
   return cells;
@@ -93,10 +92,10 @@ function isNaturalGround(typeId: string | undefined): boolean {
 }
 
 /** Layer-zero wall roots are read for matching plants, never to refuse parking. */
-export function wallFootCells(pose: HoldPose): Vec3[] {
+export function wallFootCells(pose: HoldPose): Cell[] {
   return roomCells(pose, false)
     .filter((c) => c.block.type === "wall" && c.y === pose.y + 1)
-    .map(({ x, y, z }) => ({ x, y: y - 1, z }));
+    .map(({ x, y, z }) => cellOf({ x, y: y - 1, z }));
 }
 
 /**
@@ -105,13 +104,13 @@ export function wallFootCells(pose: HoldPose): Vec3[] {
  * (ADR 0119).
  */
 export function planPark(
-  cells: readonly Vec3[],
+  cells: readonly Cell[],
   types: readonly (string | undefined)[],
-  feet: readonly Vec3[] = [],
+  feet: readonly Cell[] = [],
   footTypes: readonly (string | undefined)[] = [],
   spots: ParkGround = NO_PARK_GROUND,
 ): ClearCell[] | undefined {
-  const refuses = (cell: Vec3, typeId: string | undefined) =>
+  const refuses = (cell: Cell, typeId: string | undefined) =>
     !isPassable(typeId) &&
     !(isNaturalGround(typeId) && spots.ground.has(cellKey(cell)));
   if (cells.some((cell, i) => refuses(cell, types[i]))) return undefined;
@@ -119,9 +118,9 @@ export function planPark(
 }
 
 function parkDecorations(
-  cells: readonly Vec3[],
+  cells: readonly Cell[],
   types: readonly (string | undefined)[],
-  feet: readonly Vec3[],
+  feet: readonly Cell[],
   footTypes: readonly (string | undefined)[],
   spots: ParkGround,
 ): ClearCell[] {
@@ -140,7 +139,7 @@ function parkDecorations(
       CLEARABLE_DECORATIONS.has(typeId) && spots.bumper.has(cellKey(cell));
     if (
       bumperPlant ||
-      upperTypes.get(cellKey({ ...cell, y: cell.y + 1 })) === typeId
+      upperTypes.get(cellKey(cellOf({ ...cell, y: cell.y + 1 }))) === typeId
     )
       clear.push({ ...cell, typeId });
   }

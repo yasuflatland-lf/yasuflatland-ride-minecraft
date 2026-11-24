@@ -12,17 +12,19 @@ import {
   shapeOf,
   stylesFor,
 } from "../../../src/domain/build/shape/shape";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 
 const axes = ["x", "y", "z"] as const;
 const axisArb = fc.constantFrom(...axes);
 const coord = fc.integer({ min: -4, max: 4 });
-const cell = fc.record({ x: coord, y: coord, z: coord });
-const anyCell = fc.record({
-  x: fc.integer(),
-  y: fc.integer(),
-  z: fc.integer(),
-});
+const cell = fc.record({ x: coord, y: coord, z: coord }).map(cellOf);
+const anyCell = fc
+  .record({
+    x: fc.integer(),
+    y: fc.integer(),
+    z: fc.integer(),
+  })
+  .map(cellOf);
 const styles: ShapeStyle[] = ["fill", "frame", "faces", "walls"];
 const keys = (cells: Iterable<Cell>) => [...cells].map(cellKey).sort();
 const smallShape = fc.tuple(cell, cell).map(([a, b]) => shapeOf(a, b));
@@ -92,7 +94,7 @@ describe("Shape", () => {
     fc.assert(
       fc.property(cell, cell, axisArb, (a, b, flat) => {
         const box = boxOf(a, b);
-        const plate = boxOf(a, { ...b, [flat]: a[flat] });
+        const plate = boxOf(a, cellOf({ ...b, [flat]: a[flat] }));
         const shapes: Exclude<Shape, { kind: "line" }>[] = [
           { kind: "box", box },
           { kind: "rect", box: plate, flat },
@@ -142,7 +144,10 @@ describe("Shape", () => {
         fc.integer({ min: 1, max: 8 }),
         fc.boolean(),
         (a, axis, length, reverse) => {
-          const b = { ...a, [axis]: a[axis] + (reverse ? -length : length) };
+          const b = cellOf({
+            ...a,
+            [axis]: a[axis] + (reverse ? -length : length),
+          });
           const shape = shapeOf(a, b);
           expect(shape.kind).toBe("line");
           const cells = [...cellsOfShape(shape, "fill")];
@@ -165,12 +170,12 @@ describe("Shape", () => {
         fc.integer({ min: 1, max: 2 }),
         fc.integer({ min: 3, max: 7 }),
         (a, thin, width, size) => {
-          const b = {
+          const b = cellOf({
             x: a.x + size - 1,
             y: a.y + size - 1,
             z: a.z + size - 1,
             [thin]: a[thin] + width - 1,
-          };
+          });
           const box: Shape = { kind: "box", box: boxOf(a, b) };
           expect(keys(cellsOfShape(box, "faces"))).toEqual(
             keys(cellsOfShape(box, "fill")),
@@ -183,7 +188,7 @@ describe("Shape", () => {
             const rect: Shape = {
               kind: "rect",
               flat,
-              box: boxOf(a, { ...b, [flat]: a[flat] }),
+              box: boxOf(a, cellOf({ ...b, [flat]: a[flat] })),
             };
             expect(keys(cellsOfShape(rect, "frame"))).toEqual(
               keys(cellsOfShape(rect, "fill")),
@@ -195,7 +200,10 @@ describe("Shape", () => {
   });
 
   it("counts a 3x3x3 box and excludes floor and ceiling interiors from walls", () => {
-    const shape = shapeOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 });
+    const shape = shapeOf(
+      cellOf({ x: 0, y: 0, z: 0 }),
+      cellOf({ x: 2, y: 2, z: 2 }),
+    );
     expect(shapeCount(shape, "fill")).toBe(27);
     expect(shapeCount(shape, "faces")).toBe(26);
     expect(shapeCount(shape, "walls")).toBe(24);
@@ -212,7 +220,10 @@ describe("Shape", () => {
   });
 
   it("frames a 4x1x5 horizontal plate with 14 cells", () => {
-    const shape = shapeOf({ x: 0, y: 7, z: 0 }, { x: 3, y: 7, z: 4 });
+    const shape = shapeOf(
+      cellOf({ x: 0, y: 7, z: 0 }),
+      cellOf({ x: 3, y: 7, z: 4 }),
+    );
     expect(shape.kind === "rect" && shape.flat).toBe("y");
     expect(shapeCount(shape, "fill")).toBe(20);
     expect(shapeCount(shape, "frame")).toBe(14);
@@ -236,7 +247,10 @@ describe("shape planning", () => {
   });
 
   it("counts a huge shape and consumes only the requested prefix of its cells and plan", () => {
-    const shape = shapeOf({ x: 0, y: 0, z: 0 }, { x: 999_999_999, y: 9, z: 9 });
+    const shape = shapeOf(
+      cellOf({ x: 0, y: 0, z: 0 }),
+      cellOf({ x: 999_999_999, y: 9, z: 9 }),
+    );
     expect(shapeCount(shape, "fill")).toBe(100_000_000_000);
     expect(shapeCount(shape, "faces")).toBe(36_000_000_128);
     const cells = cellsOfShape(shape, "fill")[Symbol.iterator]();

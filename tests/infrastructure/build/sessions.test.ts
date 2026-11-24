@@ -5,8 +5,8 @@ import { EndBuildSession } from "../../../src/application/build/endBuildSession"
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { ticks } from "../../../src/domain/shared/ticks";
@@ -48,11 +48,11 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
   fc.assert(
     fc.property(fc.string(), fc.integer({ min: -100, max: 100 }), (name, x) => {
       const id = asPlayerId(name);
-      const at = { x, y: 10, z: 0 };
+      const at = cellOf({ x, y: 10, z: 0 });
       const stone = blockStateOf("minecraft:stone");
       const first = tapBlock({ kind: "idle" }, overworld, at, stone);
       const endpoint = confirmEndpointHeight(
-        tapAir(first, { ...at, x: x + 2, z: 2 }),
+        tapAir(first, cellOf({ ...at, x: x + 2, z: 2 })),
       );
       for (const flow of [
         { kind: "idle" } as const,
@@ -130,7 +130,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const pasteDebounce = new Debounces<PlayerId>(ticks(10));
   const rotateDebounce = new Debounces<PlayerId>(ticks(7));
   const undoDebounce = new Debounces<PlayerId>(ticks(10));
-  const at = { x: 0, y: 0, z: 0 };
+  const at = cellOf({ x: 0, y: 0, z: 0 });
   new CopyBox(repo, structures, new FakeFeedback()).execute({
     playerId: id,
     selection: selectionOf(overworld, boxOf(at, at), AIR),

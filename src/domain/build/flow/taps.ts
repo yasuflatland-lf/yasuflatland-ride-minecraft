@@ -1,3 +1,4 @@
+import { cellOf } from "../../shared/cells";
 import type { CellBox } from "../box";
 import type { Taps } from "./tapCells";
 
@@ -12,7 +13,7 @@ export function cornerTaps(box: CellBox): Taps {
 export function tapsForBox(box: CellBox, previousTaps: Taps): Taps {
   const { from, to } = previousTaps;
   return {
-    from: { ...box.min, y: Math.min(from.y, to.y) },
-    to: { ...box.max, y: Math.max(from.y, to.y) },
+    from: cellOf({ ...box.min, y: Math.min(from.y, to.y) }),
+    to: cellOf({ ...box.max, y: Math.max(from.y, to.y) }),
   };
 }

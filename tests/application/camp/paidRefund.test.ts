@@ -11,6 +11,7 @@ import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { asTableId } from "../../../src/domain/camp/table";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   DUTCH_OVEN_ON_TOP,
@@ -81,7 +82,7 @@ it("charges and refunds each camp placement only when payment is owed and spawn 
           const ground = {
             player: payer,
             dimension,
-            block: { x: 4, y: 60, z: 5 },
+            block: cellOf({ x: 4, y: 60, z: 5 }),
             yaw: 0,
             slot,
           };

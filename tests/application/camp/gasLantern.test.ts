@@ -16,6 +16,7 @@ import {
   TABLE_TOP_LIMIT,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { encodeHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -27,7 +28,7 @@ const dimension = asDimensionId("overworld");
 const cmd = {
   player,
   dimension,
-  block: { x: 4, y: 60, z: 5 },
+  block: cellOf({ x: 4, y: 60, z: 5 }),
   yaw: 0,
   slot: 1,
 };

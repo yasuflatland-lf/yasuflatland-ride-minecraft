@@ -7,6 +7,7 @@ import {
   PITCHED_STATE,
   tentCells,
 } from "../../../src/domain/camp/tent";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
@@ -282,7 +283,7 @@ it("claims no camp space for any dimension and integer cell without a tent (ADR 
       fc.string(),
       fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
       (dim, at) => {
-        expect(isCampSpace(asDimensionId(dim), at)).toBe(false);
+        expect(isCampSpace(asDimensionId(dim), cellOf(at))).toBe(false);
       },
     ),
   );
@@ -292,10 +293,13 @@ it("claims each registered tent's footprint as camp space (ADR 0131)", () => {
   game.getDynamicProperty.mockReturnValue(SAVED);
   const { isCampSpace } = install();
   const here = asDimensionId("minecraft:overworld");
-  expect(isCampSpace(here, { x: 110, y: -60, z: 50 })).toBe(true);
-  expect(isCampSpace(here, { x: 110, y: -60, z: 58 })).toBe(false);
+  expect(isCampSpace(here, cellOf({ x: 110, y: -60, z: 50 }))).toBe(true);
+  expect(isCampSpace(here, cellOf({ x: 110, y: -60, z: 58 }))).toBe(false);
   expect(
-    isCampSpace(asDimensionId("minecraft:nether"), { x: 110, y: -60, z: 50 }),
+    isCampSpace(
+      asDimensionId("minecraft:nether"),
+      cellOf({ x: 110, y: -60, z: 50 }),
+    ),
   ).toBe(false);
   expect(game.getDynamicProperty).toHaveBeenCalledWith(TENTS_PROPERTY);
 });

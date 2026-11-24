@@ -5,7 +5,7 @@ import { camperRoom } from "../../../../support/camperRoom";
 
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import type {
@@ -54,7 +54,7 @@ const action = fc.oneof(
 );
 
 const blockAt = (cells: readonly DockCell[] | undefined, at: Vec3) =>
-  cells?.find((c) => cellKey(c) === cellKey(at))?.block;
+  cells?.find((c) => cellKey(c) === cellKey(cellOf(at)))?.block;
 const propertyValues = (out: DriveStep, name: string) =>
   out.commands
     .filter((c) => c.type === "setProperty" && c.name === name)

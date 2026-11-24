@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import {
   SeatPresses,
   seatSlotCell,
@@ -24,14 +24,14 @@ it("finds the lowest slot cell in the seat's column, from the seat's cell up to 
         const z = Math.floor(at.z);
         const bottom = Math.floor(at.y);
         const slots = new Set(
-          layers.map((dy) => cellKey({ x, y: bottom + dy, z })),
+          layers.map((dy) => cellKey(cellOf({ x, y: bottom + dy, z }))),
         );
         const asked: number[] = [];
         const found = seatSlotCell(at, (c) => {
           expect(c.x).toBe(x);
           expect(c.z).toBe(z);
           asked.push(c.y - bottom);
-          return slots.has(cellKey(c));
+          return slots.has(cellKey(cellOf(c)));
         });
         const lowest = [0, 1, 2].find((dy) => layers.includes(dy));
         expect(found).toEqual(

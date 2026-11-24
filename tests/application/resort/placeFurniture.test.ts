@@ -16,7 +16,12 @@ import {
   furnitureSupportCells,
 } from "../../../src/domain/resort/furniture";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
-import { type Cell, cellKey, sameCell } from "../../../src/domain/shared/cells";
+import {
+  type Cell,
+  cellKey,
+  cellOf,
+  sameCell,
+} from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { distance3, type Vec3 } from "../../../src/domain/shared/vec";
 import { fakeBeachChairWorld } from "./fakeBeachChairWorld";
@@ -29,11 +34,13 @@ describe.each(furnitureKinds)("%s", (kind) => {
     kind: fc.constant(kind),
     player: fc.constant(asPlayerId("p")),
     dimension: fc.constant(asDimensionId("overworld")),
-    block: fc.record({
-      x: fc.integer({ min: -1000, max: 1000 }),
-      y: fc.integer({ min: 0, max: 200 }),
-      z: fc.integer({ min: -1000, max: 1000 }),
-    }),
+    block: fc
+      .record({
+        x: fc.integer({ min: -1000, max: 1000 }),
+        y: fc.integer({ min: 0, max: 200 }),
+        z: fc.integer({ min: -1000, max: 1000 }),
+      })
+      .map(cellOf),
     face: fc.constant<BlockFace>("up"),
     yaw: fc.integer({ min: -360, max: 360 }),
     slot: fc.integer({ min: 0, max: 8 }),
@@ -57,7 +64,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
       kind,
       player: asPlayerId("p"),
       dimension: asDimensionId("overworld"),
-      block: { x: 10, y: 20, z: 30 },
+      block: cellOf({ x: 10, y: 20, z: 30 }),
       face: "up" as const,
       yaw: 0,
       slot: 2,
@@ -150,11 +157,13 @@ describe.each(furnitureKinds)("%s", (kind) => {
 it("accepts a second resort placement only when its footprint is disjoint", () => {
   const kind = fc.constantFrom(...furnitureKinds, "beach_chair" as const);
   const heading = fc.constantFrom(0, 90, 180, 270);
-  const offset = fc.record({
-    x: fc.integer({ min: -2, max: 2 }),
-    y: fc.constantFrom(0, 0, 0, -1, 1),
-    z: fc.integer({ min: -2, max: 2 }),
-  });
+  const offset = fc
+    .record({
+      x: fc.integer({ min: -2, max: 2 }),
+      y: fc.constantFrom(0, 0, 0, -1, 1),
+      z: fc.integer({ min: -2, max: 2 }),
+    })
+    .map(cellOf);
   fc.assert(
     fc.property(
       kind,
@@ -212,7 +221,7 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
             }),
           };
         }
-        const initial = attempt(first, { x: 0, y: 0, z: 0 }, a);
+        const initial = attempt(first, cellOf({ x: 0, y: 0, z: 0 }), a);
         expect(initial.accepted).toBe(true);
         placed.push(initial.footprint);
         const next = attempt(second, offset, b);
@@ -231,7 +240,9 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
     ),
     {
       numRuns: 500,
-      examples: [["beach_chair", "beach_chair", 0, 0, { x: 0, y: 0, z: 2 }]],
+      examples: [
+        ["beach_chair", "beach_chair", 0, 0, cellOf({ x: 0, y: 0, z: 2 })],
+      ],
     },
   );
 });

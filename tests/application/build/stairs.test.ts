@@ -13,6 +13,7 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { tapAir, tapBlock } from "../../support/buildSelection";
 import {
@@ -30,9 +31,9 @@ import { FakeStructureStore } from "./fakes/structureStore";
 const playerId = asPlayerId("builder");
 const command = { playerId };
 const stone = blockStateOf("minecraft:stone");
-const from = { x: 2, y: 10, z: 0 };
+const from = cellOf({ x: 2, y: 10, z: 0 });
 const to = { ...from, x: 0 };
-const hit = { x: 5, y: 12, z: 4 };
+const hit = cellOf({ x: 5, y: 12, z: 4 });
 
 function fixture() {
   const world = new FakeWorld();
@@ -166,7 +167,7 @@ it("builds the step cells, selects the goal row, and restores the original row a
     material: stone,
   });
   f.jobs.step();
-  const goalFrom = { x: 0, y: 12, z: 4 };
+  const goalFrom = cellOf({ x: 0, y: 12, z: 4 });
   const goalTo = { ...goalFrom, x: 2 };
   expect(f.session.confirmedBox?.box).toEqual(boxOf(goalFrom, goalTo));
   expect(f.session.flow).toMatchObject({
@@ -223,7 +224,7 @@ it("can Undo a goal-row advance when the steps already match", () => {
       [3, 12],
       [4, 12],
     ] as const)
-      f.world.put({ x, y, z }, stone);
+      f.world.put(cellOf({ x, y, z }), stone);
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
   f.aimAt();
@@ -248,7 +249,7 @@ it("terraces with sand selected and restores the stone and original taps on Undo
   for (const [z, surface] of [10, 11, 11, 12, 12].entries()) {
     for (let x = 0; x < 3; x++)
       for (let y = surface + 1; y <= 15; y++) {
-        const cell = { x, y, z };
+        const cell = cellOf({ x, y, z });
         cells.push(cell);
         f.world.put(cell, stone);
       }
@@ -283,7 +284,7 @@ it("counts Passage steps, fill and cleared headroom in the completed edit", () =
   const dirt = blockStateOf("minecraft:dirt");
   for (let x = 0; x <= 2; x++)
     for (let z = 0; z <= 4; z++)
-      for (let y = 10; y <= 15; y++) f.world.put({ x, y, z }, dirt);
+      for (let y = 10; y <= 15; y++) f.world.put(cellOf({ x, y, z }), dirt);
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
   f.aimAt();

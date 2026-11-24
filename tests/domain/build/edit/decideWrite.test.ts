@@ -5,6 +5,7 @@ import {
   decideWrite,
   tallyWrite,
 } from "../../../../src/domain/build/edit/decideWrite";
+import { cellOf } from "../../../../src/domain/shared/cells";
 
 describe.each([
   { kind: "undoable", skippedOnFailure: 0, recordsWrite: true },
@@ -14,7 +15,7 @@ describe.each([
   it("decides writes before querying world protection", () => {
     fc.assert(
       fc.property(fc.integer(), fc.boolean(), (direction, allowed) => {
-        const cell = { x: direction, y: 64, z: 0 };
+        const cell = cellOf({ x: direction, y: 64, z: 0 });
         const before = blockStateOf("minecraft:oak_stairs", {
           direction,
           "minecraft:corner": "straight",
@@ -144,7 +145,7 @@ describe.each([
       fc.property(fc.integer(), fc.integer(), (x, z) => {
         const before = blockStateOf("minecraft:stone");
         const after = blockStateOf("minecraft:dirt");
-        const change = { cell: { x, y: 64, z }, after };
+        const change = { cell: cellOf({ x, y: 64, z }), after };
         expect(tallyWrite(kind, "skip", change, undefined)).toEqual({
           changed: 0,
           skipped: skippedOnFailure,

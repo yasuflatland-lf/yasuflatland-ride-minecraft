@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf, snapYaw } from "../../../../../src/domain/shared/facing";
 import {
@@ -181,11 +181,13 @@ it("makes the rear wall cells behind the aisle beside the shower-toilet selectab
       const behind = new Set(
         [1, 2, 3].map((layer) => {
           const st = defined(showerToilet[0], "shower-toilet cell");
-          return cellKey({
-            x: st.x + left.x - step.x,
-            y: p.y + layer,
-            z: st.z + left.z - step.z,
-          });
+          return cellKey(
+            cellOf({
+              x: st.x + left.x - step.x,
+              y: p.y + layer,
+              z: st.z + left.z - step.z,
+            }),
+          );
         }),
       );
       shut.forEach((before, i) => {
@@ -852,8 +854,10 @@ it("puts each dinette deck seat under its dinette slot, the first slot cell from
         DECOR_SLOTS.map((s) => [cellKey(decorSlotCell(p, s)), s.id]),
       );
       const firstSlotAbove = (seat: { x: number; y: number; z: number }) => {
-        const cell = seatSlotCell(seat, (c) => slots.has(cellKey(c)));
-        return cell === undefined ? undefined : slots.get(cellKey(cell));
+        const cell = seatSlotCell(seat, (c) => slots.has(cellKey(cellOf(c))));
+        return cell === undefined
+          ? undefined
+          : slots.get(cellKey(cellOf(cell)));
       };
       expect(deckSeats(p).map(firstSlotAbove)).toEqual([
         undefined,
@@ -904,11 +908,13 @@ it("makes the wall cabinet cells cargo cells (ADR 0103)", () => {
       const cargo = new Set(cargoCells(p).map(cellKey));
       const slots = new Set(slotCells(p).map(cellKey));
       for (const z of [-1, -2]) {
-        const key = cellKey({
-          x: Math.floor(p.x) - l.x + z * f.x,
-          y: p.y + 2,
-          z: Math.floor(p.z) - l.z + z * f.z,
-        });
+        const key = cellKey(
+          cellOf({
+            x: Math.floor(p.x) - l.x + z * f.x,
+            y: p.y + 2,
+            z: Math.floor(p.z) - l.z + z * f.z,
+          }),
+        );
         expect(cargo.has(key)).toBe(true);
         expect(slots.has(key)).toBe(false);
       }
@@ -956,18 +962,22 @@ it("stands each deck seat's rider up on the floor of an open aisle cell beside t
       const left = leftOf(facing);
       const aisleZ = deckSeats(p).map((seat) => {
         const stand = defined(seat.stand, "stand spot");
-        const feet = {
+        const feet = cellOf({
           x: Math.floor(stand.x),
           y: stand.y,
           z: Math.floor(stand.z),
-        };
+        });
         // Feet at the floor top, in the middle of the cell.
         expect(stand.y).toBe(p.y + 1);
         expect(stand.x - feet.x).toBe(0.5);
         expect(stand.z - feet.z).toBe(0.5);
-        expect(floor.has(cellKey({ ...feet, y: feet.y - 1 }))).toBe(true);
+        expect(floor.has(cellKey(cellOf({ ...feet, y: feet.y - 1 })))).toBe(
+          true,
+        );
         expect(open.has(cellKey(feet))).toBe(true);
-        expect(open.has(cellKey({ ...feet, y: feet.y + 1 }))).toBe(true);
+        expect(open.has(cellKey(cellOf({ ...feet, y: feet.y + 1 })))).toBe(
+          true,
+        );
         const offset = { x: stand.x - p.x, z: stand.z - p.z };
         expect(dot(offset, left)).toBeCloseTo(0);
         // A step from the seat, not across the room.
@@ -1011,19 +1021,23 @@ it("lays the cabinet blocks over the sink and the stove in the ceiling layer, in
       const byKey = new Map(room.map((c) => [cellKey(c), c.block]));
       const compartments = compartmentCells(p, [], open).map(cellKey);
       const cabinets = compartments.slice(0, 2);
-      expect(cabinets).toEqual([-1, -2].map((z) => cellKey(at(-1, z, 3))));
+      expect(cabinets).toEqual(
+        [-1, -2].map((z) => cellKey(cellOf(at(-1, z, 3)))),
+      );
       expect(compartments.slice(2, 4)).toEqual(
-        [1, 2].map((layer) => cellKey(at(-1, 1, layer))),
+        [1, 2].map((layer) => cellKey(cellOf(at(-1, 1, layer)))),
       );
       for (const key of compartments) expect(byKey.has(key)).toBe(false);
-      expect(compartments.slice(4)).toEqual([cellKey(at(-1, -1, 1))]);
+      expect(compartments.slice(4)).toEqual([cellKey(cellOf(at(-1, -1, 1)))]);
       for (const storageDoor of STORAGE_DOORS.filter(
         (d) => d.opening.kind === "hinged",
       )) {
         const { id: door } = storageDoor;
         const { plate: aisle, hinge } = hingedOpening(storageDoor);
         if (aisle.layer !== 3) continue;
-        const block = byKey.get(cellKey(at(aisle.x, aisle.z, aisle.layer)));
+        const block = byKey.get(
+          cellKey(cellOf(at(aisle.x, aisle.z, aisle.layer))),
+        );
         expect(block).toEqual(
           open.has(door)
             ? {
@@ -1036,7 +1050,7 @@ it("lays the cabinet blocks over the sink and the stove in the ceiling layer, in
       expect(new Set(slotCells(p).map(cellKey))).toEqual(
         new Set([
           ...DECOR_CELLS.filter(({ cell }) => !isCabinetCell(cell)).map(
-            ({ cell }) => cellKey(at(cell.x, cell.z, cell.layer)),
+            ({ cell }) => cellKey(cellOf(at(cell.x, cell.z, cell.layer))),
           ),
           ...compartments,
         ]),
@@ -1076,7 +1090,9 @@ it("maps each level's cells to its own aisle cell on the floor, and rejects ever
         for (const { x, y, z: cz } of levels) {
           const spawn = bedSpawnCell(p, { x, y, z: cz });
           expect(spawn).toEqual(aisle(z));
-          expect(roomKeys.has(cellKey(defined(spawn, "spawn")))).toBe(false);
+          expect(roomKeys.has(cellKey(cellOf(defined(spawn, "spawn"))))).toBe(
+            false,
+          );
         }
       }
       for (const cell of [

@@ -29,6 +29,7 @@ import {
   spherePlacement,
   sphereVolume,
 } from "../../../src/domain/build/volume/sphere";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const base = fc
@@ -38,11 +39,14 @@ const base = fc
     fc.integer({ min: 1, max: 12 }),
   )
   .map(([min, width, depth]) =>
-    boxOf(min, {
-      x: min.x + width - 1,
-      y: min.y,
-      z: min.z + depth - 1,
-    }),
+    boxOf(
+      cellOf(min),
+      cellOf({
+        x: min.x + width - 1,
+        y: min.y,
+        z: min.z + depth - 1,
+      }),
+    ),
   );
 const height = fc.integer({ min: 1, max: 36 });
 const registeredKinds = ["gable", "hip"] as const satisfies readonly RoofKind[];
@@ -138,7 +142,7 @@ describe("heighted geometry", () => {
     "rejects non-roof %s specs in roof geometry",
     (kind) => {
       const spec = {
-        base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }),
+        base: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 4 })),
         kind,
         height: 3,
       };
@@ -150,7 +154,7 @@ describe("heighted geometry", () => {
 
   it.each(registeredKinds)("rejects tube fill for %s", (kind) => {
     const spec = {
-      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }),
+      base: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 4 })),
       kind,
       height: 3,
     };

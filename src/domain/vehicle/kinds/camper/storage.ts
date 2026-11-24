@@ -1,4 +1,4 @@
-import { sameCell } from "../../../shared/cells";
+import { parseCell, sameCell } from "../../../shared/cells";
 import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorItemId,
@@ -80,11 +80,13 @@ export class CamperStorage {
     request: StoragePressRequest,
   ): StoragePress | undefined {
     let { cell, point } = request;
+    const pressed = parseCell(cell);
     const { tick, takeContents, eye, openOnly, drawersSideFace } = request;
     const byHeight =
       drawersSideFace &&
       point !== undefined &&
-      sameCell(cell, localCellAt(pose, DRAWER_COMPARTMENT));
+      pressed !== undefined &&
+      sameCell(pressed, localCellAt(pose, DRAWER_COMPARTMENT));
     const hit =
       !byHeight && point && eye
         ? drawerBlockHit(
@@ -98,7 +100,8 @@ export class CamperStorage {
         : undefined;
     const counter = drawerPressCell(pose, cell);
     if (counter && !byHeight) {
-      if (!hit?.door && !sameCell(cell, counter)) return undefined;
+      if (!hit?.door && (!pressed || !sameCell(pressed, counter)))
+        return undefined;
       if (eye && point && !hit?.door) return undefined;
       cell = counter;
     }

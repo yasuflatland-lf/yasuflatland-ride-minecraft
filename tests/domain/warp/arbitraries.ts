@@ -1,15 +1,18 @@
 import fc from "fast-check";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
 import { parseWarpName } from "../../../src/domain/warp/warpName";
 import type { WarpPoint } from "../../../src/domain/warp/warpPoint";
 import { addPoint, emptyRegistry } from "../../../src/domain/warp/warpRegistry";
 
-export const cell = fc.record({
-  x: fc.integer({ min: -1000, max: 1000 }),
-  y: fc.integer({ min: -64, max: 320 }),
-  z: fc.integer({ min: -1000, max: 1000 }),
-});
+export const cell = fc
+  .record({
+    x: fc.integer({ min: -1000, max: 1000 }),
+    y: fc.integer({ min: -64, max: 320 }),
+    z: fc.integer({ min: -1000, max: 1000 }),
+  })
+  .map(cellOf);
 export const point: fc.Arbitrary<WarpPoint> = fc.record({
   id: fc.uuid().map(asWarpPointId),
   name: fc

@@ -1,5 +1,6 @@
 import { type CellBox, contains } from "../../domain/build/box";
 import { freeCellAbove } from "../../domain/build/freeCell";
+import { cellOf } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { isOpenBlock } from "../../domain/shared/keptBlocks";
 import type { BuildBlockWorld } from "./ports/blocks";
@@ -15,7 +16,7 @@ export function unstuck(
   const occupant = players.occupantOf(playerId);
   if (!occupant || occupant.dimensionId !== dimensionId) return;
   const { feet } = occupant;
-  const head = { ...feet, y: feet.y + 1 };
+  const head = cellOf({ ...feet, y: feet.y + 1 });
   const buried = [feet, head].some((cell) => {
     const state = world.stateAt(dimensionId, cell);
     return (

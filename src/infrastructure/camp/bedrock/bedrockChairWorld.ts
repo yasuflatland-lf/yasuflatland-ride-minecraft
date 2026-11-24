@@ -8,7 +8,7 @@ import {
   type ChairKindId,
 } from "../../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../../domain/camp/spec";
-import { cellCenter } from "../../../domain/shared/cells";
+import { type Cell, cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
@@ -31,7 +31,7 @@ export class BedrockChairWorld
   implements ChairWorld
 {
   constructor(vehicles: {
-    isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+    isVehicleSpace(dimensionId: DimensionId, cell: Cell): boolean;
   }) {
     super((dimension, cell) => vehicles.isVehicleSpace(dimension, cell));
   }
@@ -43,7 +43,7 @@ export class BedrockChairWorld
       : CHAIR_KIND_BY_TYPE.get(chair.typeId);
   }
 
-  hasChairAt(kind: ChairKindId, dimensionId: DimensionId, cell: Vec3): boolean {
+  hasChairAt(kind: ChairKindId, dimensionId: DimensionId, cell: Cell): boolean {
     return (
       hasEntityNear(
         dimensionId,

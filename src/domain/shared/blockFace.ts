@@ -1,4 +1,4 @@
-import type { Cell } from "./cells";
+import { type Cell, cellOf } from "./cells";
 import { add3, type Vec3 } from "./vec";
 
 export type BlockFace = "up" | "down" | "north" | "south" | "east" | "west";
@@ -32,5 +32,5 @@ export function isTopFace(face: BlockFace): boolean {
 }
 
 export function anchorCell(block: Cell, face: BlockFace): Cell {
-  return add3(block, FACE_OFFSET[face]);
+  return cellOf(add3(block, FACE_OFFSET[face]));
 }

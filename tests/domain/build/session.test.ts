@@ -24,6 +24,7 @@ import {
   type StructureHandle,
   structureHandle,
 } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -42,7 +43,7 @@ const stone = blockStateOf("minecraft:stone", {});
 
 const recordAt = (x: number): EditRecord => ({
   dimensionId: dim,
-  changes: [{ cell: { x, y: 0, z: 0 }, before: AIR, after: stone }],
+  changes: [{ cell: cellOf({ x, y: 0, z: 0 }), before: AIR, after: stone }],
 });
 const recordArb = fc.integer({ min: 1, max: 50 }).map(recordAt);
 const cells = (record: EditRecord): UndoEntry => ({ kind: "cells", record });
@@ -51,7 +52,7 @@ const snapshotAt = (n: number): UndoEntry => ({
   kind: "snapshot",
   snapshot: {
     dimensionId: dim,
-    box: boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 }),
+    box: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 1, z: 1 })),
     handle: handleOf(n),
   },
 });
@@ -93,7 +94,7 @@ describe("undo history", () => {
       dimensionId: dim,
       changes: [],
       selectionBeforeTaps: cornerTaps(
-        boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 1 }),
+        boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 0, z: 1 })),
       ),
     };
     expect(withEntry(EMPTY_HISTORY, cells(empty), 10).history).toBe(
@@ -241,8 +242,8 @@ it("activates build mode when a wand tap fixes an endpoint", () => {
       fc.boolean(),
       (length, line) => {
         const session = new BuildSession(asPlayerId("builder"));
-        const from = { x: 0, y: 60, z: 0 };
-        const to = { ...from, x: length, z: line ? 0 : length };
+        const from = cellOf({ x: 0, y: 60, z: 0 });
+        const to = cellOf({ ...from, x: length, z: line ? 0 : length });
         session.tapBlock(dim, from, stone, OVERWORLD_RANGE);
         expect(session.isInBuildMode).toBe(false);
         session.tapAir(to, OVERWORLD_RANGE);
@@ -294,7 +295,9 @@ describe("BuildSession", () => {
 });
 
 const coordinate = fc.integer({ min: -10, max: 10 });
-const cellArb = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const cellArb = fc
+  .record({ x: coordinate, y: coordinate, z: coordinate })
+  .map(cellOf);
 const boxArb = fc.tuple(cellArb, cellArb).map(([a, b]) => boxOf(a, b));
 const dimensionArb = fc.string().map(asDimensionId);
 const clipboardArb = boxArb.map((box) => structureClipboard(box, () => stone));
@@ -406,7 +409,7 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
         session.confirmBox(
           selectionOf(
             dim,
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 0, y: 0, z: 0 })),
             stone,
           ),
         );
@@ -514,7 +517,10 @@ it("releases only replaced or cleared structure handles and retains identical ha
       fc.constantFrom("clearClipboard", "endPasting", "leaveBuildMode"),
       (first, second, exit) => {
         const session = new BuildSession(asPlayerId("builder"));
-        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+        const box = boxOf(
+          cellOf({ x: 0, y: 0, z: 0 }),
+          cellOf({ x: 0, y: 0, z: 0 }),
+        );
         const clipboard = (raw: string) => ({
           material: stone,
           facing: "east" as const,
@@ -657,7 +663,10 @@ it("advances rotation selections and only updates confirmed boxes in the same di
       fc.boolean(),
       (x, sameDimension) => {
         const session = new BuildSession(asPlayerId("alex"));
-        const box = boxOf({ x, y: 0, z: 0 }, { x: x + 4, y: 2, z: 1 });
+        const box = boxOf(
+          cellOf({ x, y: 0, z: 0 }),
+          cellOf({ x: x + 4, y: 2, z: 1 }),
+        );
         const confirmedDimension = sameDimension
           ? dim
           : asDimensionId("nether");
@@ -698,7 +707,10 @@ it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
     fc.assert(
       fc.property(recordArb, (record) => {
         const session = new BuildSession(asPlayerId("alex"));
-        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 2, z: 1 });
+        const box = boxOf(
+          cellOf({ x: 0, y: 0, z: 0 }),
+          cellOf({ x: 4, y: 2, z: 1 }),
+        );
         session.confirmBox(selectionOf(dim, box, stone));
         session.setFlowForTest({
           kind: "selected",
@@ -728,11 +740,14 @@ it("sets the form height only in an unlocked height step", () => {
           ...tappedSelection(
             selectionOf(
               dim,
-              boxOf({ x: 0, y: 60, z: 0 }, { x: 3, y: 60, z: 4 }),
+              boxOf(
+                cellOf({ x: 0, y: 60, z: 0 }),
+                cellOf({ x: 3, y: 60, z: 4 }),
+              ),
               blockStateOf("minecraft:stone"),
             ),
-            { x: 0, y: 60, z: 0 },
-            { x: 3, y: 60, z: 4 },
+            cellOf({ x: 0, y: 60, z: 0 }),
+            cellOf({ x: 3, y: 60, z: 4 }),
           ),
         };
         for (const flow of [
@@ -767,13 +782,13 @@ it("keeps locked box heights unchanged for aiming and explicit heights", () => {
               selectionOf(
                 dim,
                 boxOf(
-                  { x: 0, y: 60, z: 0 },
-                  { x: 4, y: 60 + height - 1, z: 5 },
+                  cellOf({ x: 0, y: 60, z: 0 }),
+                  cellOf({ x: 4, y: 60 + height - 1, z: 5 }),
                 ),
                 blockStateOf("minecraft:stone"),
               ),
-              { x: 0, y: 60, z: 0 },
-              { x: 4, y: 60 + height - 1, z: 5 },
+              cellOf({ x: 0, y: 60, z: 0 }),
+              cellOf({ x: 4, y: 60 + height - 1, z: 5 }),
             ),
           },
           "cylinder",

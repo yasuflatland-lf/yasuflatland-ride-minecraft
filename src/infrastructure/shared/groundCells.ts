@@ -2,8 +2,8 @@ import { ItemStack } from "@minecraft/server";
 import type { GroundCellsWorld } from "../../application/shared/ports/groundCells";
 import type { ItemPayment } from "../../application/shared/ports/itemPayment";
 import type { SpaceCheck } from "../../application/shared/ports/space";
+import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
 import { blockIn } from "./blocks";
 import { isOwnTypeId } from "./identifiers";
 import { consumeHeld, giveOrDrop, isCreative, playerById } from "./players";
@@ -16,15 +16,15 @@ function creativePlayer(player: PlayerId): boolean {
 export class BedrockGroundCells implements GroundCellsWorld {
   constructor(private readonly vehicleSpace: SpaceCheck) {}
 
-  isAir(dimension: DimensionId, at: Vec3): boolean {
+  isAir(dimension: DimensionId, at: Cell): boolean {
     return blockIn(dimension, at)?.isAir === true;
   }
 
-  isOwnBlock(dimension: DimensionId, at: Vec3): boolean {
+  isOwnBlock(dimension: DimensionId, at: Cell): boolean {
     return isOwnTypeId(blockIn(dimension, at)?.typeId);
   }
 
-  isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
+  isVehicleSpace(dimension: DimensionId, at: Cell): boolean {
     return this.vehicleSpace(dimension, at);
   }
 }

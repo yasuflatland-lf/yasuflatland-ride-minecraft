@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import type { HeightRange } from "../heightRange";
 import { facingVector } from "../rotation/facing";
 import { BUILD_SPEC } from "../spec";
@@ -57,7 +57,7 @@ export function* stairCells(
         const x = rowCell.x + direction.x * k;
         const z = rowCell.z + direction.z * k;
         for (let y = min; y <= max; y++)
-          yield { cell: { x, y, z }, role, nose };
+          yield { cell: cellOf({ x, y, z }), role, nose };
       }
     }
   }

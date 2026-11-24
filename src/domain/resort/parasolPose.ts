@@ -66,15 +66,20 @@ export function parasolFootCells(pose: ParasolPose): Cell[] {
     for (let ix = Math.floor(x); ix < Math.ceil(x + 1); ix++)
       for (let iz = Math.floor(z); iz < Math.ceil(z + 1); iz++) {
         const cell = { x: ix, y, z: iz };
-        cells.set(cellKey(cell), cell);
+        cells.set(cellKey(cellOf(cell)), cellOf(cell));
       }
   }
   return [...cells.values()];
 }
 
+export function parasolBaseCenter({ base }: ParasolPose): Vec3 {
+  return { x: base.x + 0.5, y: base.y, z: base.z + 0.5 };
+}
+
 /** The cell below the base, whose top face must be solid. */
 export function parasolSupportCell(pose: ParasolPose): Cell {
-  return cellOf(cellCenter(pose.base, -1));
+  const base = parasolBaseCenter(pose);
+  return cellOf({ ...base, y: base.y - 1 });
 }
 
 /** The columns that get a rain ceiling, in the first cell above the canopy's top (ADR 0207). */
@@ -89,8 +94,8 @@ export function parasolCeilingCells(pose: ParasolPose): Cell[] {
 
 /** True when `base` is closer than `minBaseDistance` (Chebyshev) to any of `others`. */
 export function tooCloseToOtherBase(
-  base: Cell,
-  others: readonly Cell[],
+  base: Vec3,
+  others: readonly Vec3[],
 ): boolean {
   return others.some(
     (other) =>

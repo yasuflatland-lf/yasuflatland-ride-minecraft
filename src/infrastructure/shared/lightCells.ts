@@ -1,4 +1,5 @@
 import { BlockPermutation } from "@minecraft/server";
+import { parseCell } from "../../domain/shared/cells";
 import type { LaidCell, LightLevel } from "../../domain/shared/laidCells";
 import type { CellCodec } from "./laidCells";
 import { lightBlockId } from "./lightBlocks";
@@ -16,9 +17,7 @@ export function lightCellCodec(
     upgrade,
     isCell: (v): v is LaidCell<LightLevel> =>
       isRecord(v) &&
-      Number.isInteger(v.x) &&
-      Number.isInteger(v.y) &&
-      Number.isInteger(v.z) &&
+      parseCell(v) !== undefined &&
       isRecord(v.block) &&
       typeof v.block.level === "number" &&
       Number.isInteger(v.block.level) &&

@@ -1,6 +1,7 @@
 import type { RawMessage } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
 import { parseWarpName } from "../../../src/domain/warp/warpName";
@@ -56,7 +57,7 @@ const point = {
   name: homeName,
   owner: "Alex",
   dimension: asDimensionId("minecraft:overworld"),
-  cell: { x: 1, y: 64, z: -2 },
+  cell: cellOf({ x: 1, y: 64, z: -2 }),
 };
 const menus = new BedrockWarpMenus();
 const page = {
@@ -202,7 +203,7 @@ it.each([
           name: parseWarpName(name) ?? point.name,
           owner,
           dimension: asDimensionId(dimension),
-          cell: { x, y, z },
+          cell: cellOf({ x, y, z }),
         };
         expect(warpLabel(p, unverified)).toEqual({
           rawtext: [

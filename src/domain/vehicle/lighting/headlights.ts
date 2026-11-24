@@ -1,5 +1,5 @@
 // Where a vehicle with its headlights on puts light blocks (ADR 0020).
-import { type Cell, cellKey } from "../../shared/cells";
+import { type Cell, cellKey, cellOf } from "../../shared/cells";
 import { forward, localPoint, type Vec3 } from "../../shared/vec";
 import type { BeamPattern } from "../profile";
 
@@ -25,10 +25,10 @@ export function headlightCells(
     for (const lane of beams.lanes) {
       const p = localPoint(location, f, reach, lane);
       const c = { x: Math.floor(p.x), y, z: Math.floor(p.z) };
-      const key = cellKey(c);
+      const key = cellKey(cellOf(c));
       const previous = cells.get(key);
       const brightest = previous ? Math.max(previous.level, level) : level;
-      cells.set(key, { ...c, level: brightest });
+      cells.set(key, { ...cellOf(c), level: brightest });
     }
   }
   return [...cells.values()];

@@ -7,12 +7,14 @@ import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { asParasolId, type ParasolId } from "../../../domain/resort/ids";
 import {
   type ParasolPose,
+  parasolBaseCenter,
   parasolCeilingCells,
   parasolPoseAt,
 } from "../../../domain/resort/parasolPose";
 import { PARASOL_SPEC } from "../../../domain/resort/spec";
-import { type Cell, cellCenter } from "../../../domain/shared/cells";
+import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import type { Vec3 } from "../../../domain/shared/vec";
 import {
   gearEntities,
   gearFeedback,
@@ -64,7 +66,7 @@ export class BedrockParasolWorld
       "parasol ceiling",
     );
   }
-  baseCellsNear(dimension: DimensionId, at: Cell, radius: number): Cell[] {
+  baseCellsNear(dimension: DimensionId, at: Vec3, radius: number): Vec3[] {
     // An axis-aligned query includes every base in the Chebyshev spacing cube.
     return world
       .getDimension(dimension)
@@ -83,7 +85,7 @@ export class BedrockParasolWorld
     const entity = spawnIn(
       dimension,
       BEACH_PARASOL,
-      cellCenter(pose.base),
+      parasolBaseCenter(pose),
       pose.yaw,
     );
     return entity && asParasolId(entity.id);

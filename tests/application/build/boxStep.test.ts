@@ -6,10 +6,10 @@ import { CopySelection } from "../../../src/application/build/copySelection";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
-
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -66,7 +66,10 @@ function endpoint(
   dimensionId = overworld,
 ) {
   return confirmEndpointHeight(
-    tapAir(tapBlock({ kind: "idle" }, dimensionId, from, stone), to),
+    tapAir(
+      tapBlock({ kind: "idle" }, dimensionId, cellOf(from), stone),
+      cellOf(to),
+    ),
   );
 }
 
@@ -74,17 +77,17 @@ it("copies every selected shape directly and confirms their bounding box", () =>
   fc.assert(
     fc.property(cell, offset, fc.boolean(), (from, delta, reverse) => {
       const e = setup();
-      const to = {
+      const to = cellOf({
         x: from.x + delta.x,
         y: from.y + delta.y,
         z: from.z + delta.z,
-      };
+      });
       e.session.setFlowForTest(
         endpoint(reverse ? to : from, reverse ? from : to),
       );
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId, kind: "copy" });
-      const box = boxOf(from, to);
+      const box = boxOf(cellOf(from), to);
       expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
       expect(e.session.confirmedBox).toEqual({
         material: stone,
@@ -110,12 +113,15 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
       fc.constantFrom("direct", "selection"),
       (from, extra, path) => {
         const e = setup();
-        const previous = boxOf(from, from);
+        const previous = boxOf(cellOf(from), cellOf(from));
         const clip = structureClipboard(previous, () => stone);
         holdClipboard(e.session, clip);
         e.session.confirmBox(selectionOf(nether, previous, stone));
         const size = BUILD_SPEC.maxCopyVolume + extra;
-        const box = boxOf(from, { ...from, x: from.x + size - 1 });
+        const box = boxOf(
+          cellOf(from),
+          cellOf({ ...from, x: from.x + size - 1 }),
+        );
         if (path === "selection")
           e.session.confirmBox(selectionOf(overworld, box, stone));
         else e.session.setFlowForTest(endpoint(box.min, box.max));
@@ -147,8 +153,8 @@ it("refuses Copy when the selection is not confirmed", () => {
   fc.assert(
     fc.property(cell, (from) => {
       const e = setup();
-      const to = { x: from.x + 1, y: from.y, z: from.z + 1 };
-      const point = tapBlock({ kind: "idle" }, overworld, from, stone);
+      const to = cellOf({ x: from.x + 1, y: from.y, z: from.z + 1 });
+      const point = tapBlock({ kind: "idle" }, overworld, cellOf(from), stone);
       const baseHeight = tapAir(point, to);
       const roof = chooseHeightedFlow(endpoint(from, to), "gable");
       for (const flow of [
@@ -172,11 +178,14 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
   fc.assert(
     fc.property(cell, (from) => {
       const e = setup();
-      const box = boxOf(from, { ...from, x: from.x + 1, z: from.z + 1 });
+      const box = boxOf(
+        cellOf(from),
+        cellOf({ ...from, x: from.x + 1, z: from.z + 1 }),
+      );
       const selected = endpoint(box.min, box.max);
       const flows: BuildFlow[] = [
         { kind: "idle" },
-        tapBlock({ kind: "idle" }, overworld, from, stone),
+        tapBlock({ kind: "idle" }, overworld, cellOf(from), stone),
         selected,
         chooseHeightedFlow(selected, "hip"),
         {
@@ -191,7 +200,10 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         e.feedback,
         { facingOf: () => "east" },
       );
-      const old = structureClipboard(boxOf(from, from), () => stone);
+      const old = structureClipboard(
+        boxOf(cellOf(from), cellOf(from)),
+        () => stone,
+      );
       for (const flow of flows) {
         e.session.confirmBox(selectionOf(overworld, box, stone));
         holdClipboard(e.session, old);
@@ -205,10 +217,13 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
           facing: "east",
           contents: { kind: "structure" },
         });
-        const oversized = boxOf(from, {
-          ...from,
-          x: from.x + BUILD_SPEC.maxCopyVolume,
-        });
+        const oversized = boxOf(
+          cellOf(from),
+          cellOf({
+            ...from,
+            x: from.x + BUILD_SPEC.maxCopyVolume,
+          }),
+        );
         e.session.confirmBox(selectionOf(overworld, oversized, stone));
         e.session.setFlowForTest(flow);
         const clipboard = e.session.clipboard;

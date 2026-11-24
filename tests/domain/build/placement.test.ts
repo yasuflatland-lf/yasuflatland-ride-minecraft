@@ -10,6 +10,7 @@ import {
   anchorCell,
   type BlockFace,
 } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const anchor = fc.record({
   x: fc.integer({ min: -100000, max: 100000 }),
@@ -24,8 +25,8 @@ const face = fc.constantFrom<BlockFace>("up", "down", ...FACINGS);
 it("contains the anchor and preserves the already-rotated dimensions", () => {
   fc.assert(
     fc.property(anchor, size, facing, face, (a, s, f, hit) => {
-      const box = placedPasteBox(a, s, f, hit);
-      expect(contains(box, a)).toBe(true);
+      const box = placedPasteBox(cellOf(a), s, f, hit);
+      expect(contains(box, cellOf(a))).toBe(true);
       expect(sizeOf(box)).toEqual(s);
       expect(box.min.y).toBe(a.y);
       expect(box.max.y).toBe(a.y + s.y - 1);
@@ -41,11 +42,14 @@ it("grows forward and right from the near-left anchor on vertical faces", () => 
       facing,
       fc.constantFrom<BlockFace>("up", "down"),
       (a, s, f, hit) => {
-        const box = placedPasteBox(a, s, f, hit);
+        const box = placedPasteBox(cellOf(a), s, f, hit);
         const forward = facingVector(f);
         const right = { x: -forward.z, z: forward.x };
         expect(
-          contains(box, { x: a.x - forward.x, y: a.y, z: a.z - forward.z }),
+          contains(
+            box,
+            cellOf({ x: a.x - forward.x, y: a.y, z: a.z - forward.z }),
+          ),
         ).toBe(false);
         for (const x of [box.min.x, box.max.x]) {
           for (const z of [box.min.z, box.max.z]) {
@@ -65,13 +69,13 @@ it("grows forward and right from the near-left anchor on vertical faces", () => 
 it("grows away from walls and right when looking into them regardless of facing", () => {
   fc.assert(
     fc.property(anchor, size, facing, facing, facing, (a, s, hit, f, other) => {
-      const box = placedPasteBox(a, s, f, hit);
+      const box = placedPasteBox(cellOf(a), s, f, hit);
       const normal = facingVector(hit);
       const right = { x: normal.z, z: -normal.x };
       expect(
-        contains(box, { x: a.x - normal.x, y: a.y, z: a.z - normal.z }),
+        contains(box, cellOf({ x: a.x - normal.x, y: a.y, z: a.z - normal.z })),
       ).toBe(false);
-      expect(box).toEqual(placedPasteBox(a, s, other, hit));
+      expect(box).toEqual(placedPasteBox(cellOf(a), s, other, hit));
       for (const x of [box.min.x, box.max.x]) {
         for (const z of [box.min.z, box.max.z]) {
           expect(
@@ -82,7 +86,11 @@ it("grows away from walls and right when looking into them regardless of facing"
           ).toBeGreaterThanOrEqual(0);
         }
       }
-      const aimedBlock = { x: a.x - normal.x, y: a.y, z: a.z - normal.z };
+      const aimedBlock = cellOf({
+        x: a.x - normal.x,
+        y: a.y,
+        z: a.z - normal.z,
+      });
       expect(anchorCell(aimedBlock, hit)).toEqual(a);
     }),
   );
@@ -91,7 +99,9 @@ it("grows away from walls and right when looking into them regardless of facing"
 it("matches the existing positive-axis box when facing east on top", () => {
   fc.assert(
     fc.property(anchor, size, (a, s) => {
-      expect(placedPasteBox(a, s, "east", "up")).toEqual(boxFromSize(a, s));
+      expect(placedPasteBox(cellOf(a), s, "east", "up")).toEqual(
+        boxFromSize(cellOf(a), s),
+      );
     }),
   );
 });

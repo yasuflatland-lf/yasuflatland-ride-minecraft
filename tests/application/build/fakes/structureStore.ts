@@ -23,7 +23,7 @@ import {
   type StructureHandle,
   structureHandle,
 } from "../../../../src/domain/build/structure/handle";
-import type { Cell } from "../../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../../src/domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../../src/domain/shared/ids";
 import { localOffset } from "../../../../src/domain/shared/vec";
 import type { FakeWorld } from "../fakes";
@@ -86,11 +86,11 @@ export class FakeStructureStore implements BuildStructureStore {
     this.blocks.set(handle, {
       size: sizeOf(box),
       cells: [...cellsOf(box)].map((cell) => ({
-        at: {
+        at: cellOf({
           x: cell.x - box.min.x,
           y: cell.y - box.min.y,
           z: cell.z - box.min.z,
-        },
+        }),
         state: source.stateAt(dimensionId, cell) ?? AIR,
       })),
     });
@@ -136,11 +136,11 @@ export class FakeStructureStore implements BuildStructureStore {
         const offset = localOffset(facing, -at.z, at.x);
         this.world.setState(
           dimensionId,
-          {
+          cellOf({
             x: origin.x + offset.x,
             y: anchor.y + at.y,
             z: origin.z + offset.z,
-          },
+          }),
           state,
         );
       }

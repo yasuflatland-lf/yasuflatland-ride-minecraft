@@ -1,6 +1,7 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import {
+  type Cell,
   cellCenter,
   cellKey,
   cellOf,
@@ -8,10 +9,17 @@ import {
   parseCell,
   sameCell,
 } from "../../../src/domain/shared/cells";
+import type { Vec3 } from "../../../src/domain/shared/vec";
 
 import { sameLocalCell } from "../../../src/domain/vehicle/kinds/camper/furniture";
 
-const cell = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
+const cell = fc
+  .record({ x: fc.integer(), y: fc.integer(), z: fc.integer() })
+  .map(cellOf);
+
+it("requires explicit conversion from a world position to a cell", () => {
+  expectTypeOf<Vec3>().not.toExtend<Cell>();
+});
 
 describe("parseCell", () => {
   it("preserves safe integer coordinates", () => {
@@ -86,15 +94,19 @@ it("offsets a position to the cell midpoint on all three axes", () => {
   const from = fc.record({ x: coordinate, y: coordinate, z: coordinate });
   const index = fc.integer({ min: -1e6, max: 1e6 });
   fc.assert(
-    fc.property(from, fc.record({ x: index, y: index, z: index }), (p, c) => {
-      const offset = offsetToCellCenter(p, c);
-      const target = cellCenter(c, 0.5);
-      for (const axis of ["x", "y", "z"] as const) {
-        expect(
-          Math.abs(p[axis] + offset[axis] - target[axis]),
-        ).toBeLessThanOrEqual(1e-9);
-      }
-    }),
+    fc.property(
+      from,
+      fc.record({ x: index, y: index, z: index }).map(cellOf),
+      (p, c) => {
+        const offset = offsetToCellCenter(p, c);
+        const target = cellCenter(c, 0.5);
+        for (const axis of ["x", "y", "z"] as const) {
+          expect(
+            Math.abs(p[axis] + offset[axis] - target[axis]),
+          ).toBeLessThanOrEqual(1e-9);
+        }
+      },
+    ),
   );
 });
 
@@ -119,7 +131,7 @@ describe("cellKey", () => {
   });
 
   it("preserves the saved comma-separated format", () => {
-    expect(cellKey({ x: -3, y: 64, z: 0 })).toBe("-3,64,0");
+    expect(cellKey(cellOf({ x: -3, y: 64, z: 0 }))).toBe("-3,64,0");
   });
 });
 

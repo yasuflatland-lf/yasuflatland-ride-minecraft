@@ -21,6 +21,7 @@ import {
 import { selectionOf } from "../../../domain/build/selection";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { parseBlockFace } from "../../../domain/shared/blockFace";
+import { cellOf } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -100,11 +101,14 @@ export function registerTestEdit(
           previewAim
         ) {
           previewAim.aim.setFacing(playerId, undefined);
-          previewAim.aim.setHit(playerId, {
-            x: Number(args[0]),
-            y: Number(args[1]),
-            z: Number(args[2]),
-          });
+          previewAim.aim.setHit(
+            playerId,
+            cellOf({
+              x: Number(args[0]),
+              y: Number(args[1]),
+              z: Number(args[2]),
+            }),
+          );
           previewAim.preview.refresh(playerId, system.currentTick);
         } else if (
           command === "snapshot" &&
@@ -112,8 +116,16 @@ export function registerTestEdit(
           args.every((value) => Number.isInteger(Number(value)))
         ) {
           const box = boxOf(
-            { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
-            { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
+            cellOf({
+              x: Number(args[0]),
+              y: Number(args[1]),
+              z: Number(args[2]),
+            }),
+            cellOf({
+              x: Number(args[3]),
+              y: Number(args[4]),
+              z: Number(args[5]),
+            }),
           );
           const dimensionId = asDimensionId(player.dimension.id);
           const handle = structures.capture(
@@ -152,8 +164,16 @@ export function registerTestEdit(
             return;
           }
           const box = boxOf(
-            { x: Number(args[0]), y: Number(args[1]), z: Number(args[2]) },
-            { x: Number(args[3]), y: Number(args[4]), z: Number(args[5]) },
+            cellOf({
+              x: Number(args[0]),
+              y: Number(args[1]),
+              z: Number(args[2]),
+            }),
+            cellOf({
+              x: Number(args[3]),
+              y: Number(args[4]),
+              z: Number(args[5]),
+            }),
           );
           const dimensionId = asDimensionId(player.dimension.id);
           const handle = structures.capture(dimensionId, box, playerId, "copy");
@@ -252,11 +272,11 @@ export function registerTestEdit(
                 direction: facingVector(facing),
               },
               block: {
-                cell: {
+                cell: cellOf({
                   x: Number(args[0]),
                   y: Number(args[1]),
                   z: Number(args[2]),
-                },
+                }),
                 face,
               },
             },

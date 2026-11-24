@@ -15,6 +15,7 @@ import {
   anchorCell,
   type BlockFace,
 } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { structureClipboard } from "../../support/buildClipboard";
 
 const faces: readonly BlockFace[] = [
@@ -27,15 +28,17 @@ const faces: readonly BlockFace[] = [
 ];
 const face = fc.constantFrom(...faces);
 const coordinate = fc.integer();
-const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const cell = fc
+  .record({ x: coordinate, y: coordinate, z: coordinate })
+  .map(cellOf);
 const dimension = fc.integer({ min: 1, max: 32 });
 const clipboard: fc.Arbitrary<Clipboard> = fc
   .record({ x: dimension, y: dimension, z: dimension })
   .map((size) =>
     structureClipboard(
       boxOf(
-        { x: 0, y: 0, z: 0 },
-        { x: size.x - 1, y: size.y - 1, z: size.z - 1 },
+        cellOf({ x: 0, y: 0, z: 0 }),
+        cellOf({ x: size.x - 1, y: size.y - 1, z: size.z - 1 }),
       ),
     ),
   );
@@ -121,11 +124,14 @@ it("east-facing vertical-face targets reproduce the original positive-axis box",
           z: block.z + offset.z,
         });
         expect(box).toEqual(
-          boxOf(anchor, {
-            x: anchor.x + clip.size.x - 1,
-            y: anchor.y + clip.size.y - 1,
-            z: anchor.z + clip.size.z - 1,
-          }),
+          boxOf(
+            anchor,
+            cellOf({
+              x: anchor.x + clip.size.x - 1,
+              y: anchor.y + clip.size.y - 1,
+              z: anchor.z + clip.size.z - 1,
+            }),
+          ),
         );
         expect({
           x: box.max.x - box.min.x + 1,

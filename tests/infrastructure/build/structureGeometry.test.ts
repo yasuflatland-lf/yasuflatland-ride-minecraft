@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { cellBox, contains, volume } from "../../../src/domain/build/box";
+import { cellOf } from "../../../src/domain/shared/cells";
 import {
   fillChunks,
   isStructureTooLarge,
@@ -18,7 +19,10 @@ const boxArb = fc
     dz: fc.integer({ min: 1, max: 130 }),
   })
   .map(({ x, y, z, dx, dy, dz }) =>
-    cellBox({ x, y, z }, { x: x + dx - 1, y: y + dy - 1, z: z + dz - 1 }),
+    cellBox(
+      cellOf({ x, y, z }),
+      cellOf({ x: x + dx - 1, y: y + dy - 1, z: z + dz - 1 }),
+    ),
   );
 
 it("partitions every box exactly into disjoint fill-sized chunks", () => {
@@ -60,13 +64,25 @@ it("classifies inclusive axis lengths independently of location and volume", () 
 });
 
 it("accepts axis limits and refuses lengths beyond them", () => {
-  const min = { x: 0, y: 0, z: 0 };
-  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 383, z: 0 }))).toBe(false);
-  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 384, z: 0 }))).toBe(true);
-  expect(isStructureTooLarge(cellBox(min, { x: 63, y: 0, z: 0 }))).toBe(false);
-  expect(isStructureTooLarge(cellBox(min, { x: 64, y: 0, z: 0 }))).toBe(true);
-  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 0, z: 63 }))).toBe(false);
-  expect(isStructureTooLarge(cellBox(min, { x: 0, y: 0, z: 64 }))).toBe(true);
+  const min = cellOf({ x: 0, y: 0, z: 0 });
+  expect(
+    isStructureTooLarge(cellBox(min, cellOf({ x: 0, y: 383, z: 0 }))),
+  ).toBe(false);
+  expect(
+    isStructureTooLarge(cellBox(min, cellOf({ x: 0, y: 384, z: 0 }))),
+  ).toBe(true);
+  expect(isStructureTooLarge(cellBox(min, cellOf({ x: 63, y: 0, z: 0 })))).toBe(
+    false,
+  );
+  expect(isStructureTooLarge(cellBox(min, cellOf({ x: 64, y: 0, z: 0 })))).toBe(
+    true,
+  );
+  expect(isStructureTooLarge(cellBox(min, cellOf({ x: 0, y: 0, z: 63 })))).toBe(
+    false,
+  );
+  expect(isStructureTooLarge(cellBox(min, cellOf({ x: 0, y: 0, z: 64 })))).toBe(
+    true,
+  );
 });
 
 const ownerArb = fc
@@ -104,11 +120,11 @@ it("maps every cell of a box to a distinct structure offset inside its size", ()
           y: box.max.y - box.min.y + 1,
           z: box.max.z - box.min.z + 1,
         };
-        const cell = {
+        const cell = cellOf({
           x: box.min.x + (pick % size.x),
           y: box.min.y + (Math.floor(pick / size.x) % size.y),
           z: box.min.z + (Math.floor(pick / (size.x * size.y)) % size.z),
-        };
+        });
         expect(contains(box, cell)).toBe(true);
         const offset = structureOffset(box, cell);
         for (const axis of ["x", "y", "z"] as const) {

@@ -5,6 +5,7 @@ import {
   furniturePose,
   furnitureSupportCells,
 } from "../../domain/resort/furniture";
+import { cellOf } from "../../domain/shared/cells";
 import { snapYaw4 } from "../../domain/shared/facing";
 import {
   FURNITURE_IDS,
@@ -20,7 +21,7 @@ export async function sofaDoublePlaceTakeBack(a: Arena): Promise<Outcome> {
   const block = a.at(110, a.gy - 1, 15);
   const failures: string[] = [];
   for (const yaw of [0, 90, 180, 270]) {
-    const pose = furniturePose(block, yaw, kind);
+    const pose = furniturePose(cellOf(block), yaw, kind);
     const near = (type: string) =>
       a.dim.getEntities({ type, location: pose.origin, maxDistance: 2 });
     const drops = () =>

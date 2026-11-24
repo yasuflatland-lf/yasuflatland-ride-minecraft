@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import { forward } from "../../../../src/domain/shared/vec";
 import type { Dock } from "../../../../src/domain/vehicle/dock/dock";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
@@ -35,12 +36,14 @@ const dock: Dock = {
   seats: [],
 };
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
-const pose = fc.record({
-  x: fc.integer(),
-  y: fc.integer(),
-  z: fc.integer(),
-  yaw,
-});
+const pose = fc
+  .record({
+    x: fc.integer(),
+    y: fc.integer(),
+    z: fc.integer(),
+    yaw,
+  })
+  .map((c) => ({ ...c, ...cellOf(c) }));
 
 describe("Hold", () => {
   it("keeps a restored hold in the step history even if it leaves immediately", () => {
@@ -166,12 +169,14 @@ const commands = fc.array(
   fc.record({ type: fc.constant("triggerEvent" as const), name: fc.string() }),
 ) as fc.Arbitrary<EngineCommand[]>;
 const clearCells = fc.array(
-  fc.record({
-    x: fc.integer(),
-    y: fc.integer(),
-    z: fc.integer(),
-    typeId: fc.string(),
-  }),
+  fc
+    .record({
+      x: fc.integer(),
+      y: fc.integer(),
+      z: fc.integer(),
+      typeId: fc.string(),
+    })
+    .map((c) => ({ ...c, ...cellOf(c) })),
 );
 
 describe("heldStep (ADR 0063, 0068)", () => {

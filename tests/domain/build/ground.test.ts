@@ -10,6 +10,7 @@ import {
   snapToGround,
 } from "../../../src/domain/build/clipboard/ground";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const side = fc.integer({ min: 1, max: 8 });
@@ -18,7 +19,7 @@ const box = fc
     fc.record({ x: coordinate, y: coordinate, z: coordinate }),
     fc.record({ x: side, y: side, z: side }),
   )
-  .map(([min, size]) => boxFromSize(min, size));
+  .map(([min, size]) => boxFromSize(cellOf(min), size));
 
 // A world column: its top ground cell, read only within [lowestY, fromY].
 function probeOf(
@@ -115,7 +116,7 @@ it("keeps every snap within the probe budget, however wide the footprint", () =>
       fc.integer({ min: 1, max: 256 }),
       fc.integer({ min: 1, max: 256 }),
       (x, z) => {
-        const box = boxFromSize({ x: 0, y: 0, z: 0 }, { x, y: 1, z });
+        const box = boxFromSize(cellOf({ x: 0, y: 0, z: 0 }), { x, y: 1, z });
         const depth = groundScanDepth(box);
         expect(depth).toBeGreaterThanOrEqual(1);
         expect(depth).toBeLessThanOrEqual(BUILD_SPEC.groundSearchDepth);
@@ -133,7 +134,11 @@ it("keeps every snap within the probe budget, however wide the footprint", () =>
 });
 
 it("reads no more than the budget for a 64 by 64 clipboard over a void", () => {
-  const box = boxFromSize({ x: 0, y: 70, z: 0 }, { x: 64, y: 8, z: 64 });
+  const box = boxFromSize(cellOf({ x: 0, y: 70, z: 0 }), {
+    x: 64,
+    y: 8,
+    z: 64,
+  });
   let cells = 0;
   const result = snapToGround(box, (_x, _z, lowestY) => {
     cells += box.min.y - lowestY + 1;

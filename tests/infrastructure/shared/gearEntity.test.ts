@@ -15,6 +15,7 @@ import {
   BEACH_CHAIR_SPEC,
   PARASOL_SPEC,
 } from "../../../src/domain/resort/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   gearEntities,
@@ -38,7 +39,7 @@ vi.mock("@minecraft/server", () => ({
 }));
 
 const dimension = asDimensionId("overworld");
-const at = { x: 1, y: 64, z: -2 };
+const at = cellOf({ x: 1, y: 64, z: -2 });
 const id = "gear-id";
 const typeId = "test:gear";
 const itemId = "test:gear_item";

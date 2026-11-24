@@ -16,6 +16,7 @@ import { backToAiming } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -125,8 +126,8 @@ it("dispatches only entries offered by the current flow, including stale choices
       fc.constantFrom("root", "build"),
       (start, dx, dy, dz, level) => {
         const flow = selected(
-          start,
-          { x: start.x + dx, y: start.y + dy, z: start.z + dz },
+          cellOf(start),
+          cellOf({ x: start.x + dx, y: start.y + dy, z: start.z + dz }),
           level,
         );
         expectDispatch(
@@ -163,7 +164,7 @@ it("dispatches stair and terrace choices only for the matching fixed goal", () =
       (width, op, fixed) => {
         const aim = chooseStairs(selected(from, { ...from, x: width - 1 }), op);
         if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
-        const goal = staircaseToward(aim.row, { x: 0, y: 62, z: 4 });
+        const goal = staircaseToward(aim.row, cellOf({ x: 0, y: 62, z: 4 }));
         if (!goal) throw new Error("Expected staircase");
         const flow = fixed ? fixStairGoal(aim, goal) : aim;
         expectDispatch(
@@ -339,7 +340,10 @@ it("refreshes the preview at the current tick after changing menu levels", () =>
   fc.assert(
     fc.property(fc.integer({ min: -100, max: 100 }), (x) => {
       const { session, choices, refresh } = setupMenuChoices();
-      const initial = selected({ ...from, x }, { ...to, x: x + 3 });
+      const initial = selected(
+        cellOf({ ...from, x }),
+        cellOf({ ...to, x: x + 3 }),
+      );
       session.setFlowForTest(initial);
       const levels: unknown[] = [];
       refresh.mockImplementation(() => {
@@ -364,7 +368,7 @@ it("reopens height aiming from the selected height and reports the change once",
   fc.assert(
     fc.property(fc.integer({ min: 1, max: 40 }), (height) => {
       const { session, choices, feedback } = setupMenuChoices();
-      const initial = selected(from, { ...to, y: from.y + height - 1 });
+      const initial = selected(from, cellOf({ ...to, y: from.y + height - 1 }));
       session.setFlowForTest(initial);
       expect(choices.chooseShape(playerId, "adjustHeight", tick)).toBe(true);
       expect(choices.chooseShape(playerId, "adjustHeight", tick)).toBe(false);

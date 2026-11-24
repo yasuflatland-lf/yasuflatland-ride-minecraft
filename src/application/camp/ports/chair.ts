@@ -1,5 +1,6 @@
 // Port for placing, sitting on, and taking back chairs; implemented in the infrastructure layer (ADR 0012, 0122).
 import type { ChairId, ChairKindId } from "../../../domain/camp/chair";
+import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 
@@ -7,13 +8,13 @@ import type { ItemPayment } from "../../shared/ports/itemPayment";
 
 export interface ChairWorld {
   kindOf(chairId: ChairId): ChairKindId | undefined;
-  isAir(dimensionId: DimensionId, at: Vec3): boolean;
+  isAir(dimensionId: DimensionId, at: Cell): boolean;
   /** Whether a vehicle stands on `cell` or laid its room blocks there or in the block under it. */
-  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+  isVehicleSpace(dimensionId: DimensionId, cell: Cell): boolean;
   /** Whether the block at `at` is one of this add-on's blocks, such as a camper's room block. */
-  isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean;
+  isOwnBlock(dimensionId: DimensionId, at: Cell): boolean;
   /** Whether a chair already stands in `cell`. */
-  hasChairAt(kind: ChairKindId, dimensionId: DimensionId, cell: Vec3): boolean;
+  hasChairAt(kind: ChairKindId, dimensionId: DimensionId, cell: Cell): boolean;
   paymentFor(kind: ChairKindId): ItemPayment;
   spawnChair(
     kind: ChairKindId,

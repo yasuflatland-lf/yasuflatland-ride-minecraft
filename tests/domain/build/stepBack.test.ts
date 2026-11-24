@@ -20,6 +20,7 @@ import {
 } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -36,8 +37,13 @@ const dimension = asDimensionId("minecraft:nether");
 it("reverses every fresh end tap to the exact original first point", () => {
   fc.assert(
     fc.property(cell, cell, (start, end) => {
-      const point = tapBlock({ kind: "idle" }, dimension, start, material);
-      const flow = tapAir(point, end);
+      const point = tapBlock(
+        { kind: "idle" },
+        dimension,
+        cellOf(start),
+        material,
+      );
+      const flow = tapAir(point, cellOf(end));
       const result = stepBackSelection(flow);
       expect(result).toEqual({ flow: point, cleared: "end" });
       expect(result && startOf(result.flow)).toBe(startOf(point));
@@ -59,23 +65,34 @@ it("reverses every fresh end tap to the exact original first point", () => {
 it("does not step back confirmed heights, adjusted heights or operation flows", () => {
   fc.assert(
     fc.property(cell, fc.integer({ min: 1, max: 20 }), (start, size) => {
-      const point = tapBlock({ kind: "idle" }, dimension, start, material);
-      const base = tapAir(point, {
-        ...start,
-        x: start.x + size,
-        z: start.z + size,
-      });
+      const point = tapBlock(
+        { kind: "idle" },
+        dimension,
+        cellOf(start),
+        material,
+      );
+      const base = tapAir(
+        point,
+        cellOf({
+          ...start,
+          x: start.x + size,
+          z: start.z + size,
+        }),
+      );
       expect(base.kind).toBe("baseHeight");
       if (base.kind !== "baseHeight") throw new Error("Expected base height");
       const selected = confirmLiveHeight(base);
-      const line = tapAir(point, { ...start, x: start.x + size });
+      const line = tapAir(point, cellOf({ ...start, x: start.x + size }));
       const stairAim = chooseStairs(line, "stairs");
       if (stairAim.kind !== "stairAim") throw new Error("Expected stair aim");
-      const stairs = staircaseToward(stairAim.row, {
-        ...start,
-        y: start.y + 2,
-        z: start.z + 3,
-      });
+      const stairs = staircaseToward(
+        stairAim.row,
+        cellOf({
+          ...start,
+          y: start.y + 2,
+          z: start.z + 3,
+        }),
+      );
       if (!stairs) throw new Error("Expected staircase");
       const operations = [
         chooseHeightedFlow(selected, "gable"),

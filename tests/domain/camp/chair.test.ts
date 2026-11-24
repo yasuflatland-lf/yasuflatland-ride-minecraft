@@ -7,6 +7,7 @@ import {
 } from "../../../src/domain/camp/chair";
 import { CHAIR_SPEC } from "../../../src/domain/camp/spec";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const FACES: BlockFace[] = ["up", "down", "north", "south", "east", "west"];
 const cell = fc.record({
@@ -25,7 +26,9 @@ describe("chairCell (ADR 0122)", () => {
   it("places on the clicked block only from its top face", () => {
     fc.assert(
       fc.property(cell, fc.constantFrom(...FACES), (at, face) => {
-        expect(chairCell(at, face)).toEqual(face === "up" ? at : undefined);
+        expect(chairCell(cellOf(at), face)).toEqual(
+          face === "up" ? at : undefined,
+        );
       }),
     );
   });

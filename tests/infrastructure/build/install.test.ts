@@ -7,6 +7,7 @@ import {
 } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   BUILD_UNDO_TYPE,
@@ -218,7 +219,7 @@ it("uses the supplied test corner and reports the selection menu only on a later
   vi.resetAllMocks();
   const playerId = asPlayerId("builder");
   const dimensionId = asDimensionId("minecraft:overworld");
-  const start = { x: 0, y: 70, z: 0 };
+  const start = cellOf({ x: 0, y: 70, z: 0 });
   const end = { x: 4, y: 70, z: 4 };
   const player = {
     id: playerId,

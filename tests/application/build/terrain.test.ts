@@ -12,7 +12,7 @@ import { SCAN_STEP } from "../../../src/domain/build/edit/change";
 import { setHeight } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import type { Cell } from "../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -91,13 +91,13 @@ it("keeps the floor and clears everything above it to the world top, whichever p
       fc.boolean(),
       (sx, sz, rise, reversed) => {
         const e = setup();
-        const low = { x: 0, y: 60, z: 0 };
-        const high = { x: sx - 1, y: 60 + rise, z: sz - 1 };
-        const floor = { x: 0, y: 60, z: 0 };
-        const above = { x: sx - 1, y: 61, z: sz - 1 };
-        const ceiling = { x: 0, y: top, z: 0 };
-        const outside = { x: sx, y: 61, z: 0 };
-        const below = { x: 0, y: 59, z: 0 };
+        const low = cellOf({ x: 0, y: 60, z: 0 });
+        const high = cellOf({ x: sx - 1, y: 60 + rise, z: sz - 1 });
+        const floor = cellOf({ x: 0, y: 60, z: 0 });
+        const above = cellOf({ x: sx - 1, y: 61, z: sz - 1 });
+        const ceiling = cellOf({ x: 0, y: top, z: 0 });
+        const outside = cellOf({ x: sx, y: 61, z: 0 });
+        const below = cellOf({ x: 0, y: 59, z: 0 });
         for (const cell of [floor, above, ceiling, outside, below])
           e.world.put(cell, stone);
         e.select(reversed ? high : low, reversed ? low : high);
@@ -116,8 +116,8 @@ it("keeps the floor and clears everything above it to the world top, whichever p
 
 it("keeps the original box selected after Remove above", () => {
   const e = setup();
-  const from = { x: 0, y: 60, z: 0 };
-  const to = { x: 2, y: 64, z: 2 };
+  const from = cellOf({ x: 0, y: 60, z: 0 });
+  const to = cellOf({ x: 2, y: 64, z: 2 });
   e.select(from, to);
   removeAbove(e);
   expect(e.session.isEditing).toBe(true);
@@ -135,9 +135,9 @@ it("keeps the original box selected after Remove above", () => {
 
 it("finishes with the count message, adds no history, and takes no Undo hint", () => {
   const e = setup();
-  e.world.put({ x: 0, y: 61, z: 0 }, stone);
-  e.world.put({ x: 0, y: 62, z: 0 }, stone);
-  e.select({ x: 0, y: 60, z: 0 }, { x: 0, y: 60, z: 0 });
+  e.world.put(cellOf({ x: 0, y: 61, z: 0 }), stone);
+  e.world.put(cellOf({ x: 0, y: 62, z: 0 }), stone);
+  e.select(cellOf({ x: 0, y: 60, z: 0 }), cellOf({ x: 0, y: 60, z: 0 }));
   removeAbove(e);
   e.drain();
   expect(e.feedback.messages.at(-1)).toMatchObject({
@@ -151,14 +151,16 @@ it("finishes with the count message, adds no history, and takes no Undo hint", (
 it("leaves an earlier edit undoable and skips the cells Remove above changed", () => {
   const e = setup();
   const line = [
-    ...cellsOf(boxOf({ x: 0, y: 61, z: 0 }, { x: 5, y: 61, z: 0 })),
+    ...cellsOf(
+      boxOf(cellOf({ x: 0, y: 61, z: 0 }), cellOf({ x: 5, y: 61, z: 0 })),
+    ),
   ];
   for (const cell of line) e.world.put(cell, dirt);
   e.select(line[0] as Cell, line[5] as Cell);
   e.fill.execute({ playerId, style: "fill" });
   e.drain();
   expect(e.session.hasHistory).toBe(true);
-  e.select({ x: 0, y: 60, z: 0 }, { x: 2, y: 60, z: 0 });
+  e.select(cellOf({ x: 0, y: 60, z: 0 }), cellOf({ x: 2, y: 60, z: 0 }));
   removeAbove(e);
   e.drain();
   expect(e.session.hasHistory).toBe(true);
@@ -182,15 +184,15 @@ it("leaves an earlier edit undoable and skips the cells Remove above changed", (
 
 it("keeps protected and kept cells and clears the rest", () => {
   const e = setup();
-  const chest = { x: 0, y: 61, z: 0 };
-  const laid = { x: 1, y: 61, z: 0 };
-  const open = { x: 2, y: 61, z: 0 };
+  const chest = cellOf({ x: 0, y: 61, z: 0 });
+  const laid = cellOf({ x: 1, y: 61, z: 0 });
+  const open = cellOf({ x: 2, y: 61, z: 0 });
   const chestState = blockStateOf("minecraft:chest");
   e.world.put(chest, chestState);
   e.world.put(laid, stone);
   e.world.put(open, stone);
   e.world.protectedCells.add(cellKey(laid));
-  e.select({ x: 0, y: 60, z: 0 }, { x: 2, y: 60, z: 0 });
+  e.select(cellOf({ x: 0, y: 60, z: 0 }), cellOf({ x: 2, y: 60, z: 0 }));
   removeAbove(e);
   e.drain();
   expect(e.world.stateAt(overworld, chest)).toEqual(chestState);
@@ -209,13 +211,13 @@ it("refuses a terrain operation exactly when either footprint side exceeds the l
       fc.integer({ min: 1, max: limit }),
       (op, axis, length, width) => {
         const e = setup();
-        const from = { x: 0, y: bottom, z: 0 };
-        const to = {
+        const from = cellOf({ x: 0, y: bottom, z: 0 });
+        const to = cellOf({
           x: width - 1,
           y: bottom,
           z: width - 1,
           [axis]: length - 1,
-        };
+        });
         e.select(from, to);
         const flow = e.session.flow;
         e.choose.execute({ playerId, op });
@@ -252,8 +254,8 @@ it.each([60, top])(
   "refuses while another edit runs with a floor at y=%s and returns to aiming",
   (y) => {
     const e = setup();
-    const from = { x: 0, y, z: 0 };
-    e.select(from, { x: 1, y, z: 1 });
+    const from = cellOf({ x: 0, y, z: 0 });
+    e.select(from, cellOf({ x: 1, y, z: 1 }));
     e.choose.execute({ playerId, op: "removeAbove" });
     expect(e.session.beginEdit()).toBeUndefined();
     e.confirm.execute({ playerId });
@@ -269,8 +271,8 @@ it.each([60, top])(
 
 it("starts no edit when the floor is the world top", () => {
   const e = setup();
-  const from = { x: 0, y: top, z: 0 };
-  const to = { x: 2, y: top, z: 2 };
+  const from = cellOf({ x: 0, y: top, z: 0 });
+  const to = cellOf({ x: 2, y: top, z: 2 });
   e.select(from, to);
   removeAbove(e);
   expect(e.session.isEditing).toBe(false);
@@ -288,7 +290,7 @@ it("starts no edit when the floor is the world top", () => {
 it("reports no selection and changes nothing outside its own flow state", () => {
   const flows: BuildFlow[] = [
     { kind: "idle" },
-    tapBlock({ kind: "idle" }, overworld, { x: 0, y: 0, z: 0 }, stone),
+    tapBlock({ kind: "idle" }, overworld, cellOf({ x: 0, y: 0, z: 0 }), stone),
   ];
   for (const flow of flows) {
     const e = setup();
@@ -306,14 +308,14 @@ it("reports no selection and changes nothing outside its own flow state", () => 
 
 it("ignores a block tap during the confirmation", () => {
   const e = setup();
-  e.select({ x: 0, y: 60, z: 0 }, { x: 1, y: 60, z: 1 });
+  e.select(cellOf({ x: 0, y: 60, z: 0 }), cellOf({ x: 1, y: 60, z: 1 }));
   e.choose.execute({ playerId, op: "removeAbove" });
   const flow = e.session.flow;
-  e.world.put({ x: 5, y: 60, z: 5 }, stone);
+  e.world.put(cellOf({ x: 5, y: 60, z: 5 }), stone);
   e.setPoint.execute({
     playerId,
     dimensionId: overworld,
-    cell: { x: 5, y: 60, z: 5 },
+    cell: cellOf({ x: 5, y: 60, z: 5 }),
   });
   expect(e.session.flow).toBe(flow);
   expect(e.feedback.messages).toEqual([]);
@@ -332,8 +334,8 @@ it.each([
   "fills $material.typeId up to a $barrier barrier",
   ({ material, barrier }) => {
     const e = setup();
-    const start = { x: 0, y: -61, z: 0 };
-    const wall = { x: 0, y: -62, z: 0 };
+    const start = cellOf({ x: 0, y: -61, z: 0 });
+    const wall = cellOf({ x: 0, y: -62, z: 0 });
     e.select(start, start);
     e.world.put(start, material);
     if (barrier === "protected") e.world.protectedCells.add(cellKey(wall));
@@ -342,7 +344,9 @@ it.each([
     fillBelow(e);
     e.drain();
     expect(e.world.stateAt(overworld, start)).toEqual(stone);
-    expect(e.world.stateAt(overworld, { ...wall, y: wall.y - 1 })).toEqual(AIR);
+    expect(
+      e.world.stateAt(overworld, cellOf({ ...wall, y: wall.y - 1 })),
+    ).toEqual(AIR);
     expect(e.world.writes).toBe(1);
     expect(e.feedback.messages.at(-1)).toMatchObject({
       message: "editDoneCount",
@@ -356,9 +360,9 @@ it.each([
 
 it("stops terrain edits at both Nether height limits", () => {
   const e = setup(nether);
-  const floor = { x: 0, y: NETHER_RANGE.minY, z: 0 };
-  const ceiling = { ...floor, y: NETHER_RANGE.maxY };
-  const above = { ...ceiling, y: ceiling.y + 1 };
+  const floor = cellOf({ x: 0, y: NETHER_RANGE.minY, z: 0 });
+  const ceiling = cellOf({ ...floor, y: NETHER_RANGE.maxY });
+  const above = cellOf({ ...ceiling, y: ceiling.y + 1 });
   e.world.put(ceiling, stone);
   e.world.put(above, stone);
   e.select(floor, floor);
@@ -369,7 +373,9 @@ it("stops terrain edits at both Nether height limits", () => {
   fillBelow(e);
   e.drain();
   expect(e.world.stateAt(nether, floor)).toEqual(stone);
-  expect(e.world.stateAt(nether, { ...floor, y: floor.y - 1 })).toEqual(AIR);
+  expect(e.world.stateAt(nether, cellOf({ ...floor, y: floor.y - 1 }))).toEqual(
+    AIR,
+  );
 });
 
 it("refuses an unstable material at menu choice without changing flow", () => {
@@ -380,10 +386,10 @@ it("refuses an unstable material at menu choice without changing flow", () => {
         tapBlock(
           { kind: "idle" },
           overworld,
-          { x: 0, y: 0, z: 0 },
+          cellOf({ x: 0, y: 0, z: 0 }),
           blockStateOf("minecraft:sand"),
         ),
-        { x: 1, y: 0, z: 1 },
+        cellOf({ x: 1, y: 0, z: 1 }),
       ),
     ),
   );
@@ -396,13 +402,16 @@ it("refuses an unstable material at menu choice without changing flow", () => {
 
 it("keeps earlier history and moves its buried owner above the inclusive top layer", () => {
   const e = setup();
-  const old = { x: 10, y: 0, z: 10 };
+  const old = cellOf({ x: 10, y: 0, z: 10 });
   e.select(old, old);
   e.fill.execute({ playerId, style: "fill" });
   e.drain();
-  const feet = { x: 0, y: -63, z: 0 };
+  const feet = cellOf({ x: 0, y: -63, z: 0 });
   e.players.occupants.set(playerId, { dimensionId: overworld, feet });
-  const box = boxOf({ x: 0, y: -64, z: 0 }, { x: 0, y: -61, z: 0 });
+  const box = boxOf(
+    cellOf({ x: 0, y: -64, z: 0 }),
+    cellOf({ x: 0, y: -61, z: 0 }),
+  );
   e.select(box.min, box.max);
   fillBelow(e);
   e.drain();
@@ -446,7 +455,7 @@ it("charges scan steps even when no writes are planned", () => {
 
 it("budgets scans and writes together on a maximum-size fill", () => {
   const e = setup();
-  e.select({ x: 0, y: top, z: 0 }, { x: 31, y: top, z: 31 });
+  e.select(cellOf({ x: 0, y: top, z: 0 }), cellOf({ x: 31, y: top, z: 31 }));
   fillBelow(e);
   e.jobs.step();
   expect(e.world.writes).toBe(BUILD_SPEC.blocksPerTick / 2);
@@ -464,8 +473,8 @@ it.each([
     for (const lowerY of [minY, Math.floor((minY + maxY) / 2), maxY]) {
       for (const reversed of [false, true]) {
         const e = setup(dimensionId);
-        const low = { x: 0, y: lowerY, z: 0 };
-        const high = { x: 32, y: maxY, z: 0 };
+        const low = cellOf({ x: 0, y: lowerY, z: 0 });
+        const high = cellOf({ x: 32, y: maxY, z: 0 });
         e.select(reversed ? high : low, reversed ? low : high);
         e.choose.execute({ playerId, op: "fillBelow" });
         expect(e.feedback.messages.at(-1)).toMatchObject({
@@ -481,9 +490,9 @@ it("keeps the confirmed box for Copy while Fill below uses the original corners"
   fc.assert(
     fc.property(fc.integer({ min: 2, max: 8 }), (height) => {
       const e = setup();
-      const from = { x: 0, y: 60, z: 0 };
-      const to = { x: 2, y: 60, z: 2 };
-      const above = { ...from, y: from.y + 1 };
+      const from = cellOf({ x: 0, y: 60, z: 0 });
+      const to = cellOf({ x: 2, y: 60, z: 2 });
+      const above = cellOf({ ...from, y: from.y + 1 });
       const point = tapBlock({ kind: "idle" }, overworld, from, stone);
       e.session.setFlowForTest(setHeight(tapAir(point, to), height));
       e.session.confirmLiveHeight();

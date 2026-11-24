@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { distanceSq } from "../../../src/domain/shared/vec";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
@@ -175,7 +175,7 @@ it("falls back above the block after exhausting the candidates", () => {
 });
 
 it("lands on top when every candidate is standable", () => {
-  expect(chooseLanding({ x: 3, y: 64, z: -7 }, () => true)).toEqual({
+  expect(chooseLanding(cellOf({ x: 3, y: 64, z: -7 }), () => true)).toEqual({
     x: 3,
     y: 65,
     z: -7,

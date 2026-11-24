@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import type { HorizontalAxis } from "../axis";
 import { ellipseOn, line, outlinePoints } from "../wireframe";
 import { ellipseCells } from "./ellipse";
@@ -31,8 +31,8 @@ export function sideCylinderPlacement(axis: HorizontalAxis): HeightedPlacement {
           )
             continue;
           yield axis === "x"
-            ? { x: along, y: v, z: u }
-            : { x: u, y: v, z: along };
+            ? cellOf({ x: along, y: v, z: u })
+            : cellOf({ x: u, y: v, z: along });
         }
       }
     },

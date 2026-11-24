@@ -5,22 +5,25 @@ import {
   type PlaceChairCommand,
 } from "../../../src/application/camp/placeChair";
 import { chairYaw } from "../../../src/domain/camp/chair";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { cellKey, FakeChairWorld } from "./fakeChairWorld";
 
 const DIM = asDimensionId("minecraft:overworld");
-const block = fc.record({
-  x: fc.integer({ min: -100, max: 100 }),
-  y: fc.integer({ min: -60, max: 300 }),
-  z: fc.integer({ min: -100, max: 100 }),
-});
+const block = fc
+  .record({
+    x: fc.integer({ min: -100, max: 100 }),
+    y: fc.integer({ min: -60, max: 300 }),
+    z: fc.integer({ min: -100, max: 100 }),
+  })
+  .map(cellOf);
 const command = fc.record({
   blockLocation: block,
   yaw: fc.double({ min: -180, max: 180, noNaN: true }),
   slot: fc.integer({ min: 0, max: 8 }),
 });
 const cmdOf = (c: {
-  blockLocation: { x: number; y: number; z: number };
+  blockLocation: Cell;
   yaw: number;
   slot: number;
 }): PlaceChairCommand => ({
@@ -93,7 +96,7 @@ describe("PlaceChair (ADR 0122)", () => {
   });
 
   it("checks vehicle space only at the seat, before checking the two air cells", () => {
-    const blockLocation = { x: 0, y: 64, z: 0 };
+    const blockLocation = cellOf({ x: 0, y: 64, z: 0 });
     const world = new FakeChairWorld();
     world.vehicleSpace.add(up(blockLocation, 2));
     const ownBlock = vi.spyOn(world, "isOwnBlock");
@@ -120,7 +123,7 @@ describe("PlaceChair (ADR 0122)", () => {
     it("gives the clicked block from its top face only", () => {
       const world = new FakeChairWorld();
       const place = new PlaceChair(world);
-      const at = { x: 3, y: 64, z: -2 };
+      const at = cellOf({ x: 3, y: 64, z: -2 });
       expect(place.cellFor(DIM, at, "up")).toEqual(at);
       for (const face of ["down", "north", "south", "east", "west"] as const)
         expect(place.cellFor(DIM, at, face)).toBeUndefined();
@@ -142,7 +145,7 @@ describe("PlaceChair (ADR 0122)", () => {
 
     it("still claims the click where only the room above is missing, so execute can refuse it", () => {
       const world = new FakeChairWorld();
-      const b = { x: 0, y: 64, z: 0 };
+      const b = cellOf({ x: 0, y: 64, z: 0 });
       refuse(world, b, "room1");
       expect(new PlaceChair(world).cellFor(DIM, b, "up")).toEqual(b);
     });

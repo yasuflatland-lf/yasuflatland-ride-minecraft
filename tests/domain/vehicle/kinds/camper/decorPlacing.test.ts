@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
 import {
   forward,
@@ -126,7 +126,7 @@ const inDrawerBand = (
   cell: Vec3,
   point: Vec3,
 ) =>
-  cellKey(cell) === cellKey(decorSlotCell(p, slotNamed("counter"))) &&
+  cellKey(cellOf(cell)) === cellKey(decorSlotCell(p, slotNamed("counter"))) &&
   point.y - cell.y >= 0 &&
   point.y - cell.y < slotNamed("counter").height / 16;
 

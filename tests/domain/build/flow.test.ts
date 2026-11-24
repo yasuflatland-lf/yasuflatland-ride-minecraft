@@ -60,6 +60,7 @@ import {
   fillStylesFor,
   type HeightedKind,
 } from "../../../src/domain/build/volume/kind";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
@@ -75,7 +76,7 @@ import {
 } from "../../support/buildSelection";
 
 const coord = fc.integer({ min: -100, max: 100 });
-const cell = fc.record({ x: coord, y: coord, z: coord });
+const cell = fc.record({ x: coord, y: coord, z: coord }).map(cellOf);
 const dim = asDimensionId("minecraft:overworld");
 const other = asDimensionId("minecraft:nether");
 const stone = blockStateOf("minecraft:stone");
@@ -133,7 +134,7 @@ it("shares the start across selection flows and keeps both taps", () => {
       fc.integer({ min: 1, max: 20 }),
       fc.integer({ min: 1, max: 20 }),
       (from, dx, dz) => {
-        const to = { x: from.x - dx, y: from.y, z: from.z + dz };
+        const to = cellOf({ x: from.x - dx, y: from.y, z: from.z + dz });
         const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
         const base = tapAir(point, to, OVERWORLD_RANGE);
         const selected = confirmEndpointHeight(base);
@@ -235,11 +236,11 @@ it("offers the ordered root and build menus for every shape and returns unchange
         { x: size, y: size, z: 0 },
         { x: size, y: size, z: size },
       ]) {
-        const to = {
+        const to = cellOf({
           x: from.x + delta.x,
           y: from.y + delta.y,
           z: from.z + delta.z,
-        };
+        });
         const flow = confirmEndpointHeight(
           tapAir(
             tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
@@ -297,11 +298,11 @@ it("offers the ordered root and build menus for every shape and returns unchange
           confirmEndpointHeight(
             tapAir(
               tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
-              {
+              cellOf({
                 ...from,
                 x: from.x + 2,
                 z: from.z + 2,
-              },
+              }),
               OVERWORLD_RANGE,
             ),
           ),
@@ -438,11 +439,11 @@ it("accepts every heighted kind only on its supported shapes", () => {
           [{ x: 0, y: dy, z: 0 }, ["place"]],
           [{ x: 0, y: 0, z: dz }, ["place"]],
         ] as const) {
-          const end = {
+          const end = cellOf({
             x: origin.x + offset.x,
             y: origin.y + offset.y,
             z: origin.z + offset.z,
-          };
+          });
           const from = reverse ? end : origin;
           const to = reverse ? origin : end;
           const flow = confirmEndpointHeight(
@@ -500,8 +501,8 @@ it("accepts every heighted kind only on its supported shapes", () => {
 it.each(["gable", "hip"] as const)(
   "locks a stair %s to its pitch and keeps the original box for Undo",
   (kind) => {
-    const min = { x: 0, y: OVERWORLD_RANGE.maxY - 2, z: 0 };
-    const box = boxOf(min, { x: 4, y: min.y + 1, z: 6 });
+    const min = cellOf({ x: 0, y: OVERWORLD_RANGE.maxY - 2, z: 0 });
+    const box = boxOf(min, cellOf({ x: 4, y: min.y + 1, z: 6 }));
     const stair = blockStateOf("minecraft:oak_stairs", {
       weirdo_direction: 3,
       upside_down_bit: true,
@@ -579,11 +580,11 @@ it("roof and paste stages accept only their own transitions and ignore selection
           confirmEndpointHeight(
             tapAir(
               tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
-              {
+              cellOf({
                 x: a.x + 2,
                 y: a.y,
                 z: a.z + 3,
-              },
+              }),
               OVERWORLD_RANGE,
             ),
           ),
@@ -645,8 +646,8 @@ it("roof Cancel preserves the original first point for either selection directio
         const to = reverse ? a : b;
         const endpoint = confirmEndpointHeight(
           tapAir(
-            tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
-            to,
+            tapBlock(idle, dim, cellOf(from), stone, OVERWORLD_RANGE),
+            cellOf(to),
             OVERWORLD_RANGE,
           ),
         );
@@ -697,7 +698,11 @@ it("opens the utility menu when sneaking or idle, never otherwise", () => {
     { kind: "idle" },
     {
       kind: "point1",
-      start: { dimensionId: dim, cell: { x: 0, y: 0, z: 0 }, material: stone },
+      start: {
+        dimensionId: dim,
+        cell: cellOf({ x: 0, y: 0, z: 0 }),
+        material: stone,
+      },
     },
   ];
   fc.assert(
@@ -710,7 +715,7 @@ it("opens the utility menu when sneaking or idle, never otherwise", () => {
 });
 
 it("offers Undo on a plain air press only when idle", () => {
-  const cell = { x: 0, y: 0, z: 0 };
+  const cell = cellOf({ x: 0, y: 0, z: 0 });
   const flows: BuildFlow[] = [
     { kind: "idle" },
     { kind: "point1", start: { dimensionId: dim, cell, material: stone } },
@@ -798,14 +803,14 @@ it("offers Cut then Remove above first for every shape and the confirmation only
 });
 
 it("offers Stairs only for a horizontal row and returns from either stair flow to point 1", () => {
-  const from = { x: 2, y: 5, z: 0 };
+  const from = cellOf({ x: 2, y: 5, z: 0 });
   const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
-  const chosen = tapAir(point, { ...from, x: 0 }, OVERWORLD_RANGE);
+  const chosen = tapAir(point, cellOf({ ...from, x: 0 }), OVERWORLD_RANGE);
   const aim = chooseStairs(chosen, "stairs");
   if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
   expect(aim.taps.from).toEqual(from);
   expect(aim.selectionBefore).toEqual(selectionBoxOf(chosen));
-  const staircase = staircaseToward(aim.row, { x: 50, y: 7, z: -4 });
+  const staircase = staircaseToward(aim.row, cellOf({ x: 50, y: 7, z: -4 }));
   if (!staircase) throw new Error("Expected staircase");
   const contents = fixStairGoal(aim, staircase);
   const session = new BuildSession(asPlayerId("p"));
@@ -885,7 +890,7 @@ it("offers Stairs and Terrace after Build shape for a single-cell box only when 
 });
 
 it("opens Terrace confirmation from a single-cell foot", () => {
-  const foot = { x: 2, y: 5, z: 1 };
+  const foot = cellOf({ x: 2, y: 5, z: 1 });
   const point = tapBlock(idle, dim, foot, stone, OVERWORLD_RANGE);
   const selected = confirmEndpointHeight(
     tapBlock(point, dim, foot, stone, OVERWORLD_RANGE),
@@ -894,7 +899,7 @@ it("opens Terrace confirmation from a single-cell foot", () => {
   if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
   expect(aim.op).toBe("terrace");
   expect(aim.row).toEqual({ min: foot, max: foot, y: 5, along: undefined });
-  const staircase = staircaseToward(aim.row, { x: 6, y: 7, z: 2 });
+  const staircase = staircaseToward(aim.row, cellOf({ x: 6, y: 7, z: 2 }));
   if (!staircase) throw new Error("Expected staircase");
   const contents = fixStairGoal(aim, staircase);
   expect(terraceMenu(contents)).toEqual([{ id: "confirm" }, { id: "cancel" }]);
@@ -902,12 +907,15 @@ it("opens Terrace confirmation from a single-cell foot", () => {
 });
 
 it("uses the rotated row for stairs and resumes aiming from its minimum corner", () => {
-  const from = { x: 3, y: 5, z: 0 };
-  const to = { ...from, x: 1 };
+  const from = cellOf({ x: 3, y: 5, z: 0 });
+  const to = cellOf({ ...from, x: 1 });
   const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
   const session = new BuildSession(asPlayerId("p"));
   session.setFlowForTest(tapAir(point, to, OVERWORLD_RANGE));
-  const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
+  const rotated = boxOf(
+    cellOf({ x: 2, y: 5, z: -1 }),
+    cellOf({ x: 2, y: 5, z: 1 }),
+  );
   session.replaceSelection(
     selectionOf(dim, rotated, stone),
     tapsForBox(rotated, { from, to }),
@@ -1019,7 +1027,7 @@ it("keeps the fresh endpoint through live height updates but ends it on confirma
       const point = tapBlock(idle, dim, start, stone, OVERWORLD_RANGE);
       const base = tapAir(
         point,
-        { ...start, x: start.x + 3, z: start.z + 2 },
+        cellOf({ ...start, x: start.x + 3, z: start.z + 2 }),
         OVERWORLD_RANGE,
       );
       if (base.kind !== "baseHeight") throw new Error("Expected base height");

@@ -95,7 +95,7 @@ function cellInFrame(frame: LocalFrame, local: TentLocalCell): Cell {
     { left: local.x, ahead: -local.depth, up: local.layer },
     "left-first",
   );
-  return { x: x + 0, y: y + 0, z: z + 0 };
+  return cellOf({ x: x + 0, y: y + 0, z: z + 0 });
 }
 
 function toLocal(pose: TentPose, cell: Cell): TentLocalCell {
@@ -166,7 +166,7 @@ export function flapAt(pose: TentPose, cell: Cell): FlapId | undefined {
 export function flapCells(pose: TentPose, flap: FlapId): Cell[] {
   return tentCells(pose, PITCHED_STATE)
     .filter((c) => c.block.type === "flap" && c.block.id === flap)
-    .map(({ x, y, z }) => ({ x, y, z }));
+    .map(({ x, y, z }) => cellOf({ x, y, z }));
 }
 
 function footprintCells(pose: TentPose, layers: number[]): Cell[] {

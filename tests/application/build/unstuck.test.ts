@@ -7,6 +7,7 @@ import type {
   PlannedChange,
 } from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -21,7 +22,7 @@ import {
 
 const owner = asPlayerId("owner");
 const other = asPlayerId("other");
-const feet = { x: -2, y: 64, z: 3 };
+const feet = cellOf({ x: -2, y: 64, z: 3 });
 const head = { ...feet, y: feet.y + 1 };
 const stone = blockStateOf("minecraft:stone");
 function setup(ownerFeet = feet) {
@@ -29,7 +30,10 @@ function setup(ownerFeet = feet) {
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const log = { warn: vi.fn() };
-  players.occupants.set(owner, { dimensionId: overworld, feet: ownerFeet });
+  players.occupants.set(owner, {
+    dimensionId: overworld,
+    feet: ownerFeet,
+  });
   const jobs = new EditJobs(repo, world, new FakeFeedback(), log, players);
   const start = (
     plan: Iterable<PlannedChange>,
@@ -62,14 +66,20 @@ it("moves only the owner after every edit kind writes feet or head", () => {
 
 it("escapes above the dimension ceiling when no air pair exists below it", () => {
   const e = setup();
-  const netherFeet = { ...feet, y: 100 };
-  e.players.occupants.set(owner, { dimensionId: nether, feet: netherFeet });
+  const netherFeet = cellOf({ ...feet, y: 100 });
+  e.players.occupants.set(owner, {
+    dimensionId: nether,
+    feet: netherFeet,
+  });
   e.world.heightRanges.set(nether, NETHER_RANGE);
   for (let y = netherFeet.y + 1; y <= NETHER_RANGE.maxY; y++) {
-    e.world.put({ ...netherFeet, y }, blockStateOf("minecraft:netherrack"));
+    e.world.put(
+      cellOf({ ...netherFeet, y }),
+      blockStateOf("minecraft:netherrack"),
+    );
   }
   for (let y = NETHER_RANGE.maxY + 1; y <= OVERWORLD_RANGE.maxY; y++) {
-    e.world.unreadableCells.add(cellKey({ ...netherFeet, y }));
+    e.world.unreadableCells.add(cellKey(cellOf({ ...netherFeet, y })));
   }
   e.repo.getOrCreate(owner).beginEdit();
   e.jobs.start(owner, nether, [{ cell: netherFeet, after: stone }], "undoable");
@@ -98,18 +108,20 @@ it("finishes without moving an owner who was not buried by the edit or no longer
   fc.assert(
     fc.property(
       reason,
-      fc.record({
-        x: coordinate,
-        y: fc.integer({ min: 0, max: 100 }),
-        z: coordinate,
-      }),
+      fc
+        .record({
+          x: coordinate,
+          y: fc.integer({ min: 0, max: 100 }),
+          z: coordinate,
+        })
+        .map(cellOf),
       (reason, feet) => {
         const e = setup(feet);
         const key = cellKey(feet);
         function* plan(): Generator<PlannedChange> {
           if (reason.kind === "untouched") {
             e.world.put(feet, blockStateOf(reason.block));
-            yield { cell: { ...feet, x: feet.x + 1 }, after: stone };
+            yield { cell: cellOf({ ...feet, x: feet.x + 1 }), after: stone };
           } else if (reason.kind === "skipped") {
             e.world.put(feet, stone);
             if (reason.outcome === "refused") e.world.refusedCells.add(key);
@@ -204,7 +216,7 @@ it("isolates movement failure from history completion and another job", () => {
 it("reads occupancy once per run and uses the current column on later ticks", () => {
   const e = setup();
   const read = vi.spyOn(e.players, "occupantOf");
-  const later = { ...feet, x: feet.x + 1 };
+  const later = cellOf({ ...feet, x: feet.x + 1 });
   const plan = Array.from({ length: BUILD_SPEC.blocksPerTick }, () => ({
     cell: { ...feet, x: 20 },
     after: stone,
@@ -212,7 +224,10 @@ it("reads occupancy once per run and uses the current column on later ticks", ()
   e.start([...plan, { cell: later, after: stone }]);
   e.jobs.step();
   expect(read).toHaveBeenCalledTimes(1);
-  e.players.occupants.set(owner, { dimensionId: overworld, feet: later });
+  e.players.occupants.set(owner, {
+    dimensionId: overworld,
+    feet: later,
+  });
   e.jobs.step();
   expect(read).toHaveBeenCalledTimes(3);
   expect(e.players.moves).toEqual([

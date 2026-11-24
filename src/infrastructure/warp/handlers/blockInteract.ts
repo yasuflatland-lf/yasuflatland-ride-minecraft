@@ -1,6 +1,7 @@
 import { system } from "@minecraft/server";
 import type { OpenWarpList } from "../../../application/warp/openWarpList";
 import type { TapWarpBlock } from "../../../application/warp/tapWarpBlock";
+import { cellOf } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -27,7 +28,7 @@ export function registerWarpBlockInteract(
         const command = {
           playerId,
           dimension: asDimensionId(dimension.id),
-          cell: { ...block.location },
+          cell: cellOf({ ...block.location }),
           now,
         };
         system.run(() => {

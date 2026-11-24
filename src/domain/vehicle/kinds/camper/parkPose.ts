@@ -1,3 +1,4 @@
+import { type Cell, cellOf } from "../../../shared/cells";
 import { snapYaw } from "../../../shared/facing";
 import { forward, leftOf, type Vec2, type Vec3 } from "../../../shared/vec";
 import type { HoldPose } from "../../dock/floor";
@@ -34,16 +35,16 @@ export function cellAt(
   lx: number,
   lz: number,
   dy: number,
-): Vec3 {
+): Cell {
   const { f, l } = axes(pose.yaw);
-  return {
+  return cellOf({
     x: Math.floor(pose.x) + lx * l.x + lz * f.x + 0,
     y: pose.y + dy,
     z: Math.floor(pose.z) + lx * l.z + lz * f.z + 0,
-  };
+  });
 }
 
 /** The world cell of a local room cell at a parked pose. */
-export function localCellAt(pose: HoldPose, cell: LocalCell): Vec3 {
+export function localCellAt(pose: HoldPose, cell: LocalCell): Cell {
   return cellAt(pose, cell.x, cell.z, cell.layer);
 }

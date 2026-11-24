@@ -7,6 +7,7 @@ import type {
   FurniturePose,
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
+import { cellOf } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -83,7 +84,7 @@ export function registerTestFurniture(
           return;
         const dimension = world.getDimension("overworld");
         const at = { x, y, z };
-        if (!adapter.hostedAbove(asDimensionId(dimension.id), at))
+        if (!adapter.hostedAbove(asDimensionId(dimension.id), cellOf(at)))
           dimension.getBlock(at)?.setType("minecraft:stone");
       } else if (ev.id === TEST_FURNITURE_TOP) {
         const [kind, ...coordinates] = ev.message.trim().split(/\s+/);
@@ -100,7 +101,7 @@ export function registerTestFurniture(
           return;
         const owner = adapter.ownerAt(
           asDimensionId(world.getDimension("overworld").id),
-          { x, y, z },
+          cellOf({ x, y, z }),
         );
         if (owner)
           system.sendScriptEvent(
@@ -129,7 +130,7 @@ export function registerTestFurniture(
           kind,
           player: asPlayerId("test-furniture"),
           dimension: asDimensionId("minecraft:overworld"),
-          block: { x, y, z },
+          block: cellOf({ x, y, z }),
           face: "up",
           yaw,
           slot: 0,

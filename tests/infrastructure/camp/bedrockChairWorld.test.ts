@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asChairId } from "../../../src/domain/camp/chair";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockChairWorld } from "../../../src/infrastructure/camp/bedrock/bedrockChairWorld";
 import { CHAIR_KINDS } from "../../../src/infrastructure/camp/identifiers";
@@ -79,19 +80,19 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     dimension.getBlock.mockReturnValueOnce({
       typeId: "yasu_ride:camper_floor",
     });
-    expect(chairs.isOwnBlock(DIM, { x: 0, y: 0, z: 0 })).toBe(true);
+    expect(chairs.isOwnBlock(DIM, cellOf({ x: 0, y: 0, z: 0 }))).toBe(true);
     dimension.getBlock.mockReturnValueOnce({ typeId: "minecraft:grass_block" });
-    expect(chairs.isOwnBlock(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
+    expect(chairs.isOwnBlock(DIM, cellOf({ x: 0, y: 0, z: 0 }))).toBe(false);
     dimension.getBlock.mockImplementationOnce(() => {
       throw new Error("outside the world");
     });
-    expect(chairs.isOwnBlock(DIM, { x: 0, y: 999, z: 0 })).toBe(false);
+    expect(chairs.isOwnBlock(DIM, cellOf({ x: 0, y: 999, z: 0 }))).toBe(false);
   });
 
   it("asks the vehicles for their space", () => {
     const { chairs, isVehicleSpace } = fixture();
     isVehicleSpace.mockReturnValue(true);
-    expect(chairs.isVehicleSpace(DIM, { x: 1, y: 2, z: 3 })).toBe(true);
+    expect(chairs.isVehicleSpace(DIM, cellOf({ x: 1, y: 2, z: 3 }))).toBe(true);
     expect(isVehicleSpace).toHaveBeenCalledWith(DIM, { x: 1, y: 2, z: 3 });
   });
 
@@ -124,7 +125,9 @@ describe("BedrockChairWorld (ADR 0122)", () => {
         fc.double({ min: 0, max: 1, noNaN: true }),
         (x, y, z, fall) => {
           const chairs = oneChairAt({ x: x + 0.5, y: y - fall, z: z + 0.5 });
-          expect(chairs.hasChairAt("low_chair", DIM, { x, y, z })).toBe(true);
+          expect(chairs.hasChairAt("low_chair", DIM, cellOf({ x, y, z }))).toBe(
+            true,
+          );
         },
       ),
     );
@@ -144,7 +147,9 @@ describe("BedrockChairWorld (ADR 0122)", () => {
             y: y - fall,
             z: z + dz + 0.5,
           });
-          expect(chairs.hasChairAt("low_chair", DIM, { x, y, z })).toBe(false);
+          expect(chairs.hasChairAt("low_chair", DIM, cellOf({ x, y, z }))).toBe(
+            false,
+          );
         },
       ),
     );
@@ -249,11 +254,11 @@ describe("BedrockChairWorld (ADR 0122)", () => {
   it("counts only an air block as air, and a cell outside the world as not", () => {
     const { dimension, chairs } = fixture();
     dimension.getBlock.mockReturnValueOnce({ isAir: true });
-    expect(chairs.isAir(DIM, { x: 0, y: 65, z: 0 })).toBe(true);
+    expect(chairs.isAir(DIM, cellOf({ x: 0, y: 65, z: 0 }))).toBe(true);
     dimension.getBlock.mockReturnValueOnce({ isAir: false });
-    expect(chairs.isAir(DIM, { x: 0, y: 64, z: 0 })).toBe(false);
+    expect(chairs.isAir(DIM, cellOf({ x: 0, y: 64, z: 0 }))).toBe(false);
     dimension.getBlock.mockReturnValueOnce(undefined);
-    expect(chairs.isAir(DIM, { x: 0, y: 999, z: 0 })).toBe(false);
+    expect(chairs.isAir(DIM, cellOf({ x: 0, y: 999, z: 0 }))).toBe(false);
   });
 
   it("finds no chair in an unknown dimension", () => {
@@ -262,11 +267,15 @@ describe("BedrockChairWorld (ADR 0122)", () => {
       throw new Error("unknown dimension");
     });
     expect(
-      chairs.hasChairAt("low_chair", asDimensionId("nowhere"), {
-        x: 0,
-        y: 0,
-        z: 0,
-      }),
+      chairs.hasChairAt(
+        "low_chair",
+        asDimensionId("nowhere"),
+        cellOf({
+          x: 0,
+          y: 0,
+          z: 0,
+        }),
+      ),
     ).toBe(false);
   });
 

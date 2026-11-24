@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
@@ -133,9 +134,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
     const cell = {
-      x: 0,
-      y: 64,
-      z: 3,
+      ...cellOf({ ...cellOf({ x: 0, y: 64, z: 3 }) }),
       block: { type: "deck" as const, height: 9 },
     };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
@@ -158,7 +157,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
     const { dimension, car, world, fleet } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4, level: 15 };
+    const cell = { ...cellOf({ ...cellOf({ x: 0, y: 65, z: 4 }) }), level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     expect(grid.typeAt(cell)).toBe("minecraft:light_block_15");

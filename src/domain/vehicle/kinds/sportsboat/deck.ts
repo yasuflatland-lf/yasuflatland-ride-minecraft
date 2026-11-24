@@ -1,3 +1,4 @@
+import { cellOf } from "../../../shared/cells";
 // Collision floor geometry and water-relative hold height for a stopped sports boat (ADR 0063).
 import { clamp, forward, type Vec2 } from "../../../shared/vec";
 import type { DockCell, HoldPose } from "../../dock/floor";
@@ -89,7 +90,7 @@ export function floorCells(pose: HoldPose): DockCell[] {
         1,
         PIXELS_PER_BLOCK,
       );
-      cells.push({ x, y, z, block: { type: "deck", height } });
+      cells.push({ ...cellOf({ x, y, z }), block: { type: "deck", height } });
     }
   }
   return cells;

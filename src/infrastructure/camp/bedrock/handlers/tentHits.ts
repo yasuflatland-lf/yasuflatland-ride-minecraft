@@ -1,8 +1,8 @@
 import type { TakeDownTent } from "../../../../application/camp/takeDownTent";
 import type { Repaint } from "../../../../application/shared/repaint";
 import { asTentId, type TentId } from "../../../../domain/camp/tent";
+import type { Cell } from "../../../../domain/shared/cells";
 import type { DimensionId } from "../../../../domain/shared/ids";
-import type { Vec3 } from "../../../../domain/shared/vec";
 import { subscribeGearHits } from "../../../shared/gearHits";
 import { TENT_TYPE } from "../../identifiers";
 
@@ -11,7 +11,7 @@ export function registerTentHits(
   repaint: Repaint<TentId>,
   owner: (
     dimensionId: DimensionId,
-    cell: Vec3,
+    cell: Cell,
     typeId: string,
   ) => TentId | undefined,
 ): void {

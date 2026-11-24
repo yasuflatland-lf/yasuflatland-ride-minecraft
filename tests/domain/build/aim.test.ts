@@ -6,6 +6,7 @@ import {
   virtualEndPoint,
 } from "../../../src/domain/build/aim/aim";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const coord = fc.integer({ min: -1000, max: 1000 });
@@ -57,7 +58,7 @@ describe("virtualEndPoint", () => {
               direction: dir,
             };
             const result = virtualEndPoint(
-              point,
+              cellOf(point),
               ray,
               BUILD_SPEC.reach,
               OVERWORLD_RANGE,
@@ -100,7 +101,12 @@ describe("virtualEndPoint", () => {
             };
             origin[axis] = point[axis] + 0.5 - distance * d[axis];
             const ray = { origin, direction: d };
-            const result = virtualEndPoint(point, ray, BUILD_SPEC.reach, range);
+            const result = virtualEndPoint(
+              cellOf(point),
+              ray,
+              BUILD_SPEC.reach,
+              range,
+            );
             if (!result) return;
             const other = axis === "x" ? "z" : "x";
             const t =
@@ -131,7 +137,7 @@ describe("virtualEndPoint", () => {
           for (const distance of [-extra, BUILD_SPEC.reach + extra]) {
             expect(
               virtualEndPoint(
-                point,
+                cellOf(point),
                 {
                   origin: {
                     x: point.x + 0.5 - distance * d.x,
@@ -158,7 +164,7 @@ describe("virtualEndPoint", () => {
         (point, x) => {
           expect(
             virtualEndPoint(
-              point,
+              cellOf(point),
               {
                 origin: point,
                 direction: { x, y: Math.sqrt(1 - x * x), z: 0 },
@@ -199,9 +205,9 @@ describe("virtualEndPoint", () => {
             distance,
             BUILD_SPEC.reach,
           ]) {
-            expect(virtualEndPoint(point, ray, reach, OVERWORLD_RANGE)).toEqual(
-              distance <= reach ? { ...point, y } : undefined,
-            );
+            expect(
+              virtualEndPoint(cellOf(point), ray, reach, OVERWORLD_RANGE),
+            ).toEqual(distance <= reach ? { ...point, y } : undefined);
           }
         },
       ),
@@ -211,7 +217,7 @@ describe("virtualEndPoint", () => {
   it("includes the reach boundary and breaks horizontal ties toward x", () => {
     expect(
       virtualEndPoint(
-        { x: 64, y: 0, z: 0 },
+        cellOf({ x: 64, y: 0, z: 0 }),
         { origin: { x: 0.5, y: 0.5, z: 0.5 }, direction: { x: 1, y: 0, z: 0 } },
         BUILD_SPEC.reach,
         OVERWORLD_RANGE,
@@ -219,7 +225,7 @@ describe("virtualEndPoint", () => {
     ).toEqual({ x: 64, y: 0, z: 0 });
     expect(
       virtualEndPoint(
-        { x: 2, y: 0, z: 8 },
+        cellOf({ x: 2, y: 0, z: 8 }),
         {
           origin: { x: 0, y: 0, z: 0 },
           direction: { x: Math.SQRT1_2, y: 0, z: Math.SQRT1_2 },

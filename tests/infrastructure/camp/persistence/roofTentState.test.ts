@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
 import {
   decodeExit,
@@ -15,7 +16,7 @@ it("round-trips safe integer saved exits and setter lists in their original orde
       fc.record({ x: coordinate, y: coordinate, z: coordinate }),
       fc.array(fc.string().map(asPlayerId)),
       (exit, setters) => {
-        expect(decodeExit(encodeExit(exit))).toEqual(exit);
+        expect(decodeExit(encodeExit(cellOf(exit)))).toEqual(exit);
         expect(decodeSpawnSetters(encodeSpawnSetters(setters))).toEqual(
           setters,
         );

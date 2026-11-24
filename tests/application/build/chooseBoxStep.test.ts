@@ -7,6 +7,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { tappedSelection } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
@@ -42,11 +43,14 @@ it("captures the selected layers and choice facing immediately for Copy and Cut"
           ...tappedSelection(
             selectionOf(
               overworld,
-              boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: height - 1, z: 2 }),
+              boxOf(
+                cellOf({ x: 0, y: 0, z: 0 }),
+                cellOf({ x: 2, y: height - 1, z: 2 }),
+              ),
               blockStateOf("minecraft:stone"),
             ),
-            { x: 0, y: 0, z: 0 },
-            { x: 2, y: 0, z: 2 },
+            cellOf({ x: 0, y: 0, z: 0 }),
+            cellOf({ x: 2, y: 0, z: 2 }),
           ),
         });
         new ChooseBoxStep(repo, actions, feedback, reader).execute({

@@ -19,6 +19,7 @@ import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
 import {
@@ -39,15 +40,18 @@ import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone");
-const origin = { x: 0, y: 64, z: 0 };
-const wideBox = boxOf(origin, { x: 4, y: 65, z: 1 });
+const origin = cellOf({ x: 0, y: 64, z: 0 });
+const wideBox = boxOf(origin, cellOf({ x: 4, y: 65, z: 1 }));
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cellArb = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const sizeArb = fc.integer({ min: 1, max: 6 });
 const boxArb = fc
   .tuple(cellArb, sizeArb, sizeArb, sizeArb)
   .map(([min, x, y, z]) =>
-    boxOf(min, { x: min.x + x - 1, y: min.y + y - 1, z: min.z + z - 1 }),
+    boxOf(
+      cellOf(min),
+      cellOf({ x: min.x + x - 1, y: min.y + y - 1, z: min.z + z - 1 }),
+    ),
   );
 
 function setup(box: CellBox = wideBox) {
@@ -95,11 +99,14 @@ it("rotates any selection with one union snapshot and never writes outside the u
         new Set([...cellsOf(plan.union)].map((cell) => [overworld, cell])),
       );
       expect(
-        e.world.stateAt(overworld, {
-          x: plan.target.max.x,
-          y: plan.target.min.y,
-          z: plan.target.min.z,
-        }),
+        e.world.stateAt(
+          overworld,
+          cellOf({
+            x: plan.target.max.x,
+            y: plan.target.min.y,
+            z: plan.target.min.z,
+          }),
+        ),
       ).toEqual(stone);
       for (const [, cell] of writes.mock.calls)
         expect(contains(plan.union, cell)).toBe(true);
@@ -312,7 +319,7 @@ it.each(["tooLarge", "unreadable"] as const)(
 );
 
 it("checks union size before busy and busy before protection", () => {
-  const thin = boxOf(origin, { x: 63, y: 79, z: 0 });
+  const thin = boxOf(origin, cellOf({ x: 63, y: 79, z: 0 }));
   expect(volume(thin)).toBeLessThan(BUILD_SPEC.maxCopyVolume);
   for (const box of [thin, wideBox]) {
     const e = setup(box);
@@ -477,7 +484,7 @@ it("retains an earlier snapshot and frees a player buried in the rotated target"
 it.each([false, true])(
   "Build Undo reverses a fresh line rotation only when it succeeds (blocked: %s)",
   (blocked) => {
-    const end = { ...origin, x: origin.x + 4 };
+    const end = cellOf({ ...origin, x: origin.x + 4 });
     const box = boxOf(origin, end);
     const e = setup(box);
     const point = tapBlock({ kind: "idle" }, overworld, origin, stone);

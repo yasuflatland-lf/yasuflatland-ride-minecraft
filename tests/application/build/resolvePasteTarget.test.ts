@@ -20,6 +20,7 @@ import {
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -44,7 +45,9 @@ const aim = fc.record({
     direction: { x: 1, y: 0, z: 0 },
   }),
   block: fc.record({
-    cell: fc.record({ x: coordinate, y: coordinate, z: coordinate }),
+    cell: fc
+      .record({ x: coordinate, y: coordinate, z: coordinate })
+      .map(cellOf),
     face: fc.constantFrom<BlockFace>(
       "up",
       "down",
@@ -61,7 +64,7 @@ function setup(facing?: Facing) {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
   const clipboard = structureClipboard(
-    boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
+    boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 2, z: 3 })),
   );
   holdClipboard(session, clipboard);
   session.setFlowForTest({ kind: "pasteAim", manualTurn: 0, facing });
@@ -221,7 +224,7 @@ it("refuses no ground with feedback and no paste outline or placement", () => {
   reader.target = {
     input: "pointer",
     ray: { origin: { x: 0, y: 80, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-    block: { cell: { x: 0, y: 80, z: 0 }, face: "east" },
+    block: { cell: cellOf({ x: 0, y: 80, z: 0 }), face: "east" },
   };
   const feedback = new FakeFeedback();
   const execute = vi.fn<PasteAt["execute"]>(() => "pasted");
@@ -267,7 +270,7 @@ it("reuses a preview snap for an unchanged box until it expires, and presses alw
   const hit: AimResult = {
     input: "pointer",
     ray: { origin: { x: 0, y: 80, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-    block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
+    block: { cell: cellOf({ x: 0, y: 80, z: 0 }), face: "up" },
   };
   const resolve = (tick: number, extra: Partial<{ fresh: boolean }> = {}) => {
     probe.calls = [];
@@ -294,7 +297,7 @@ it("reuses a preview snap for an unchanged box until it expires, and presses alw
   resolver.execute({
     playerId,
     dimensionId: nether,
-    aim: { ...hit, block: { cell: { x: 1, y: 80, z: 0 }, face: "up" } },
+    aim: { ...hit, block: { cell: cellOf({ x: 1, y: 80, z: 0 }), face: "up" } },
     tick: BUILD_SPEC.groundCacheTicks,
   });
   expect(probe.calls.length).toBeGreaterThan(0);
@@ -302,7 +305,7 @@ it("reuses a preview snap for an unchanged box until it expires, and presses alw
   resolver.execute({
     playerId,
     dimensionId: asDimensionId("minecraft:overworld"),
-    aim: { ...hit, block: { cell: { x: 1, y: 80, z: 0 }, face: "up" } },
+    aim: { ...hit, block: { cell: cellOf({ x: 1, y: 80, z: 0 }), face: "up" } },
     tick: BUILD_SPEC.groundCacheTicks,
   });
   expect(probe.calls.length).toBeGreaterThan(0);
@@ -317,7 +320,7 @@ it("reads one cell per footprint column on flat ground", () => {
     aim: {
       input: "pointer",
       ray: { origin: { x: 0, y: 80, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-      block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
+      block: { cell: cellOf({ x: 0, y: 80, z: 0 }), face: "up" },
     },
     tick: 0,
   });
@@ -336,7 +339,7 @@ it("keeps the previous facing for diagonal hysteresis and vertical gaze", () => 
         const aim = {
           input: "pointer",
           ray: { origin: { x: 0, y: 80, z: 0 }, direction },
-          block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
+          block: { cell: cellOf({ x: 0, y: 80, z: 0 }), face: "up" },
         } as const;
         const facing = trackPasteFacing(session, aim);
         return resolver.execute({
@@ -367,7 +370,7 @@ it("uses the clipboard facing for an initial vertical gaze", () => {
       session.completeCopy(
         selectionOf(
           nether,
-          boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
+          boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 2, z: 3 })),
           AIR,
         ),
         { ...clipboard, facing },

@@ -1,5 +1,5 @@
 import { world } from "@minecraft/server";
-import type { Cell } from "../../domain/shared/cells";
+import { type Cell, cellOf } from "../../domain/shared/cells";
 import { asDimensionId, type DimensionId } from "../../domain/shared/ids";
 
 export type LaidBlockOwner = (
@@ -15,7 +15,7 @@ export function registerLaidBlockGuard(owner: LaidBlockOwner): void {
     const { block } = ev;
     const holderId = owner(
       asDimensionId(ev.dimension.id),
-      block.location,
+      cellOf(block.location),
       block.typeId,
     );
     if (holderId !== undefined) ev.cancel = true;

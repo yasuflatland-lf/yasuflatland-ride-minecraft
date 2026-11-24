@@ -264,9 +264,16 @@
 - Implementation: `src/infrastructure/warp/bedrock/bedrockWarpMenus.ts`; `src/infrastructure/warp/bedrock/bedrockWarpFeedback.ts`; `src/infrastructure/warp/messages.ts`
 - Verification: `tests/infrastructure/warp/menus.test.ts`; `tests/infrastructure/warp/feedback.test.ts`; `tests/packs/warpMessages.test.ts`. In-game presentation has not been tested; handler wiring belongs to the next series step.
 
-## Open issues
+### Block coordinates
 
-- `Cell` is an unbranded alias of `Vec3`, so TypeScript accepts fractional coordinates where a block cell is expected. A brand could catch these mistakes, but Bedrock block locations, generated cells, and integer offsets would all need explicit construction or casts.
+- Applies to: Block cells shared across the domain, application ports, and Bedrock adapters.
+- Rule: `Cell` is a branded `Vec3`. Use `cellOf` to floor world positions at the block boundary and `parseCell` to validate safe integer coordinates in saved data. `SpaceCheck`, `GroundCellsWorld`, and `sameCell` accept `Cell`.
+- Agreement: Accepted
+- Basis: [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md) Decision, shared block coordinates.
+- Implementation: `src/domain/shared/cells.ts`; `src/application/shared/ports/space.ts`; `src/application/shared/ports/groundCells.ts`
+- Verification: `tests/domain/shared/cells.test.ts`.
+
+## Open issues
 
 - ADR 0001 says to use only stable `@minecraft/server` 2.x; the implementation also imports stable server-ui forms and declares that module in the main manifest, as introduced by Proposed 0178 and retained by Proposed 0198 (`src/infrastructure/build/bedrock/buildMenus.ts`, `package.json`, `packs/yasu_ride_bp/manifest.json`); the ADR needs an edit or a superseding ADR.
 - ADR 0012 says import direction is checked by a test inspecting import statements, and ADR 0046 says the architecture test resolves relative imports and tests its parser; the implementation uses dependency-cruiser for the repository graph and architecture fixtures, as decided in 0065 (`.dependency-cruiser.cjs`, `tests/architecture.test.ts`); the ADR needs an edit or a superseding ADR.
@@ -284,7 +291,7 @@
 - ADR 0055 lists top and water placement surfaces and fixed clearance for the SUV and boat; the implementation supports lava and derives heights from each body's height, with kind profiles supplying horizontal clearance (`src/domain/vehicle/placement/placement.ts`, `src/domain/vehicle/kinds/suv/profile.ts`, `src/domain/vehicle/kinds/sportsboat/profile.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0055 says commands are the only vocabulary the core uses to act on the world and to revisit it if the vocabulary grows past eight operations; the implementation has four EngineCommand types but DriveStep also carries non-command world operations such as dock, clear, cut, pave, message, depart and boardDeckRiders (`src/domain/vehicle/drive.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0087 includes handbrakeGrip in the boat spec and refers to SPORTSBOAT_PROFILE.ram; the implementation removes that unused grip under 0089 and derives the profile's `body` instead (`src/domain/vehicle/kinds/sportsboat/spec.ts`, `src/domain/vehicle/kinds/sportsboat/profile.ts`); the ADR needs an edit or a superseding ADR.
-- ADR 0090 places paint in vehicle/paint/paint.ts, syncedValue and hit-counter driving helpers in the core, and Cell/cellKey in lighting/headlights.ts; the implementation has no vehicle paint folder and puts paint, syncedValue, hitCounter and cells in domain/shared, with syncedValue's move described by 0129 (`src/domain/shared/paint.ts`, `src/domain/shared/syncedValue.ts`, `src/domain/shared/hitCounter.ts`, `src/domain/shared/cells.ts`, `src/domain/vehicle/lighting/headlights.ts`); the ADR needs an edit or a superseding ADR.
+- ADR 0090 places paint in vehicle/paint/paint.ts and syncedValue and hit-counter driving helpers in the core. The implementation has no vehicle paint folder and puts paint, syncedValue and hitCounter in domain/shared, with syncedValue's move described by 0129 (`src/domain/shared/paint.ts`, `src/domain/shared/syncedValue.ts`, `src/domain/shared/hitCounter.ts`). The ADR needs an edit or a superseding ADR.
 - ADR 0090 says application vehicle ports still mix contexts in ports.ts; the implementation splits them into the ports directory, and adds the monitor core subfolder (`src/application/vehicle/ports`, `src/domain/vehicle/monitor`); the ADR needs an edit or a superseding ADR.
 - ADR 0129 says features see each other's space only through SpaceCheck and describes camp as claiming no space yet; the implementation additionally routes camp switch targets, claims tent space, and passes the combined vehicle/camp check to build (`src/infrastructure/bootstrap.ts`, `src/infrastructure/camp/install.ts`); the ADR needs an edit or a superseding ADR.
 - ADR 0047 gives the rename-time Resource Pack version and a smaller engine-fixed path list; the implementation uses the current manifest version and additionally treats catalogs, terrain and flipbook atlases, sounds.json and icons as fixed paths (`packs/yasu_ride_rp/manifest.json`, `packs/yasu_ride_bp/manifest.json`, `tests/packs/layout.test.ts`); the ADR needs an edit or a superseding ADR. The BP's Resource Pack dependency matches the current RP header; rename-time repository actions and other one-time migration consequences are not continuing rules.

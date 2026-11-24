@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
 import { parseWarpName } from "../../../src/domain/warp/warpName";
@@ -20,7 +21,7 @@ const point = {
   name: homeName,
   owner: "Alex",
   dimension: asDimensionId("minecraft:overworld"),
-  cell: { x: 0, y: 64, z: 0 },
+  cell: cellOf({ x: 0, y: 64, z: 0 }),
 };
 const feedback = new BedrockWarpFeedback();
 beforeEach(() => {

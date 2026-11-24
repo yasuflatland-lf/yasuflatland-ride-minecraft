@@ -11,17 +11,19 @@ import {
   furnitureSupportCells,
   overlapsAny,
 } from "../../../src/domain/resort/furniture";
-import { cellKey, sameCell } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf, sameCell } from "../../../src/domain/shared/cells";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 import { forward } from "../../../src/domain/shared/vec";
 
 const kinds = Object.keys(FURNITURE_SPEC) as FurnitureKind[];
 const facings: readonly Facing4[] = [0, 90, 180, 270];
-const cellArb = fc.record({
-  x: fc.integer({ min: -1000, max: 1000 }),
-  y: fc.integer({ min: -60, max: 300 }),
-  z: fc.integer({ min: -1000, max: 1000 }),
-});
+const cellArb = fc
+  .record({
+    x: fc.integer({ min: -1000, max: 1000 }),
+    y: fc.integer({ min: -60, max: 300 }),
+    z: fc.integer({ min: -1000, max: 1000 }),
+  })
+  .map(cellOf);
 const yawArb = fc.double({ min: -720, max: 720, noNaN: true });
 const playerRight: Record<Facing4, { x: number; z: number }> = {
   0: { x: -1, z: 0 },
@@ -110,7 +112,11 @@ describe("furniture placement", () => {
   });
 
   it("centres a dining chair above a negative-coordinate block", () => {
-    const pose = furniturePose({ x: -4, y: 12, z: -7 }, 90, "dining_chair");
+    const pose = furniturePose(
+      cellOf({ x: -4, y: 12, z: -7 }),
+      90,
+      "dining_chair",
+    );
     expect(pose).toEqual({
       kind: "dining_chair",
       yaw: 270,
@@ -120,7 +126,11 @@ describe("furniture placement", () => {
   });
 
   it("places a south-looking player's sofa across the x boundary", () => {
-    const pose = furniturePose({ x: 10, y: 64, z: 20 }, 0, "sofa_double");
+    const pose = furniturePose(
+      cellOf({ x: 10, y: 64, z: 20 }),
+      0,
+      "sofa_double",
+    );
     expect(pose.origin).toEqual({ x: 10, y: 65, z: 20.5 });
     expect(furnitureCells(pose)).toEqual([
       { x: 10, y: 65, z: 20 },
@@ -129,7 +139,11 @@ describe("furniture placement", () => {
   });
 
   it("places a west-looking player's sofa across the z boundary", () => {
-    const pose = furniturePose({ x: -3, y: 0, z: 5 }, 90, "sofa_double");
+    const pose = furniturePose(
+      cellOf({ x: -3, y: 0, z: 5 }),
+      90,
+      "sofa_double",
+    );
     expect(pose.origin).toEqual({ x: -2.5, y: 1, z: 5 });
     expect(furnitureCells(pose)).toEqual([
       { x: -3, y: 1, z: 5 },
@@ -139,11 +153,13 @@ describe("furniture placement", () => {
 });
 
 it("detects a shared cell by all three coordinates", () => {
-  const nearbyCell = fc.record({
-    x: fc.integer({ min: -2, max: 2 }),
-    y: fc.integer({ min: -2, max: 2 }),
-    z: fc.integer({ min: -2, max: 2 }),
-  });
+  const nearbyCell = fc
+    .record({
+      x: fc.integer({ min: -2, max: 2 }),
+      y: fc.integer({ min: -2, max: 2 }),
+      z: fc.integer({ min: -2, max: 2 }),
+    })
+    .map(cellOf);
   fc.assert(
     fc.property(
       fc.array(nearbyCell),

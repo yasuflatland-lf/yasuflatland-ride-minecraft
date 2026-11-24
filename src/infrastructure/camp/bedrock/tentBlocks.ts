@@ -8,6 +8,7 @@ import type {
   TentId,
   TentPlateSide,
 } from "../../../domain/camp/tent";
+import { parseCell } from "../../../domain/shared/cells";
 import type { LaidCell } from "../../../domain/shared/laidCells";
 import { type CellCodec, CellLayer } from "../../shared/laidCells";
 import {
@@ -67,11 +68,7 @@ export const TENT_CELL_CODEC: CellCodec<TentBlock> = {
         }
       : cell,
   isCell: (v): v is LaidCell<TentBlock> =>
-    isRecord(v) &&
-    Number.isInteger(v.x) &&
-    Number.isInteger(v.y) &&
-    Number.isInteger(v.z) &&
-    isTentBlock(v.block),
+    isRecord(v) && parseCell(v) !== undefined && isTentBlock(v.block),
   same: (a, b) => {
     switch (a.type) {
       case "wall":

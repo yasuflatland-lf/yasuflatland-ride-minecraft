@@ -6,6 +6,7 @@ import { AIR } from "../../../src/domain/build/blockState";
 import { cellBox } from "../../../src/domain/build/box";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -23,7 +24,10 @@ it("stores the player's facing when copying the confirmed selection", () => {
         session.confirmBox(
           selectionOf(
             overworld,
-            cellBox({ x: 0, y: 0, z: 0 }, { x: side, y: side, z: side }),
+            cellBox(
+              cellOf({ x: 0, y: 0, z: 0 }),
+              cellOf({ x: side, y: side, z: side }),
+            ),
             AIR,
           ),
         );

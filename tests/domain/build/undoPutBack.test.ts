@@ -12,10 +12,13 @@ import {
 import { BuildSession, isEditRefusal } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
 const dimensionId = asDimensionId("minecraft:overworld");
-const cell = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
+const cell = fc
+  .record({ x: fc.integer(), y: fc.integer(), z: fc.integer() })
+  .map(cellOf);
 const entry: fc.Arbitrary<UndoEntry> = fc.oneof(
   cell.map((cell) => ({
     kind: "cells" as const,

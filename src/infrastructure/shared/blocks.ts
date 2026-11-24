@@ -5,7 +5,12 @@ import {
   type Vector3,
   world,
 } from "@minecraft/server";
-import { type Cell, cellCenter, sameCell } from "../../domain/shared/cells";
+import {
+  type Cell,
+  cellCenter,
+  cellOf,
+  sameCell,
+} from "../../domain/shared/cells";
 import type { DimensionId } from "../../domain/shared/ids";
 import type { StandSample } from "../../domain/shared/standing";
 import type { Vec3 } from "../../domain/shared/vec";
@@ -13,7 +18,7 @@ import type { Vec3 } from "../../domain/shared/vec";
 /** The block at `cell`, or undefined for an unknown dimension, an unloaded chunk, or a cell outside the world. */
 export function safeBlockAt(
   dimension: Dimension | undefined,
-  cell: Cell,
+  cell: Vec3,
 ): Block | undefined {
   try {
     return dimension?.getBlock(cell);
@@ -43,7 +48,7 @@ export function sampleBlock(
       typeId,
       isAir,
       isLiquid,
-      solidTop: hit !== undefined && sameCell(hit.location, cell),
+      solidTop: hit !== undefined && sameCell(cellOf(hit.location), cell),
     };
   } catch {
     return undefined;
@@ -80,7 +85,7 @@ export function isSolidTop(dimensionId: DimensionId, cell: Cell): boolean {
       hit?.face === Direction.Up &&
       // The engine reports faceLocation.y inverted, so a full top reads 0 (ADR 0111).
       hit.faceLocation.y === 0 &&
-      sameCell(hit.block.location, cell)
+      sameCell(cellOf(hit.block.location), cell)
     );
   } catch {
     return false;

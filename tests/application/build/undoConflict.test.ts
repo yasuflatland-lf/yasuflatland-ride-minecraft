@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   cellKey,
@@ -15,7 +16,7 @@ import {
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
-const cell = { x: 0, y: 64, z: 0 };
+const cell = cellOf({ x: 0, y: 64, z: 0 });
 const before = blockStateOf("minecraft:dirt");
 const after = blockStateOf("minecraft:stone");
 
@@ -77,7 +78,7 @@ describe("Undo conflicts", () => {
         (cells) => {
           const e = setup();
           const changes = cells.map((c, x) => ({
-            cell: { x, y: 64, z: 0 },
+            cell: cellOf({ x, y: 64, z: 0 }),
             before: blockStateOf(c.type, { direction: c.state }),
             after: blockStateOf(c.type, { direction: c.state + 1 }),
           }));

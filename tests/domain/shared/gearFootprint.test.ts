@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import {
   footprintCellsAt,
   footprintClearCells,
@@ -9,7 +10,9 @@ import {
 } from "../../../src/domain/shared/gearFootprint";
 
 const coordinate = fc.integer({ min: -1000, max: 1000 });
-const cellArb = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const cellArb = fc
+  .record({ x: coordinate, y: coordinate, z: coordinate })
+  .map(cellOf);
 const offsetsArb = fc.uniqueArray(
   fc.record({
     ahead: fc.integer({ min: -4, max: 4 }),
@@ -33,11 +36,13 @@ describe("gear footprints", () => {
     fc.assert(
       fc.property(cellArb, offsetsArb, facingArb, (pressed, local, facing) => {
         const offsets = footprintOffsets(local, facing);
-        const floor = local.map(({ ahead, left }) => ({
-          x: pressed.x + ahead * facing.x + left * facing.z,
-          y: pressed.y + 1,
-          z: pressed.z + ahead * facing.z - left * facing.x,
-        }));
+        const floor = local.map(({ ahead, left }) =>
+          cellOf({
+            x: pressed.x + ahead * facing.x + left * facing.z,
+            y: pressed.y + 1,
+            z: pressed.z + ahead * facing.z - left * facing.x,
+          }),
+        );
         const origin = footprintOrigin(pressed, offsets);
         expect(footprintCellsAt(origin, offsets)).toEqual(floor);
         expect(footprintSupportCells(floor)).toEqual(

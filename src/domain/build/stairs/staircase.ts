@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import { sub3 } from "../../shared/vec";
 import { dominantHorizontalAxis } from "../axis";
 import type { Taps } from "../flow/tapCells";
@@ -60,10 +60,11 @@ export function* stairTreads(s: Staircase) {
 
 export function goalRowTaps(s: Staircase): Taps {
   const direction = facingVector(s.toward);
-  const advance = (cell: Cell): Cell => ({
-    x: cell.x + s.run * direction.x,
-    y: s.row.y + s.rise,
-    z: cell.z + s.run * direction.z,
-  });
+  const advance = (cell: Cell): Cell =>
+    cellOf({
+      x: cell.x + s.run * direction.x,
+      y: s.row.y + s.rise,
+      z: cell.z + s.run * direction.z,
+    });
   return { from: advance(s.row.min), to: advance(s.row.max) };
 }

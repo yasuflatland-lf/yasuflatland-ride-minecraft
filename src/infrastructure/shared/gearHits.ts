@@ -6,6 +6,7 @@ import {
   system,
   world,
 } from "@minecraft/server";
+import { type Cell, cellOf } from "../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -14,7 +15,6 @@ import {
 } from "../../domain/shared/ids";
 import type { Paint } from "../../domain/shared/paint";
 import { TickScopedSet } from "../../domain/shared/tickScoped";
-import type { Vec3 } from "../../domain/shared/vec";
 import { heldDye } from "./dyes";
 
 interface GearHit<Id> {
@@ -27,7 +27,7 @@ export function subscribeGearHits<Id>(opts: {
   idOf(entity: Entity): Id | undefined;
   ownerOfBlock?(
     dimension: DimensionId,
-    cell: Vec3,
+    cell: Cell,
     typeId: string,
   ): Id | undefined;
   onDye?(cmd: GearHit<Id> & { paint: Paint }): void;
@@ -66,7 +66,11 @@ export function subscribeGearHits<Id>(opts: {
   const owner = opts.ownerOfBlock;
   if (!owner) return;
   const blockOwner = (block: Block) =>
-    owner(asDimensionId(block.dimension.id), block.location, block.typeId);
+    owner(
+      asDimensionId(block.dimension.id),
+      cellOf(block.location),
+      block.typeId,
+    );
   world.afterEvents.entityHitBlock.subscribe(({ damagingEntity, hitBlock }) => {
     if (damagingEntity instanceof Player)
       hit(damagingEntity, blockOwner(hitBlock), opts.defer);

@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildPlayers } from "../../../src/infrastructure/build/bedrock/bedrockBuildPlayers";
 
@@ -28,7 +29,7 @@ it("reads floored feet and teleports to their horizontal center without changing
     feet: { x: -2, y: 64, z: 3 },
   });
   expect(p.getComponent).toHaveBeenCalledWith("minecraft:riding");
-  players.moveTo(id, { x: -2, y: 70, z: 3 });
+  players.moveTo(id, cellOf({ x: -2, y: 70, z: 3 }));
   expect(p.teleport).toHaveBeenCalledExactlyOnceWith({
     x: -1.5,
     y: 70,
@@ -46,7 +47,7 @@ it("does not read or move missing players, invalid handles, nonplayers, or rider
   ]) {
     engine.getEntity.mockReturnValue(p);
     expect(players.occupantOf(id)).toBeUndefined();
-    players.moveTo(id, { x: 0, y: 64, z: 0 });
+    players.moveTo(id, cellOf({ x: 0, y: 64, z: 0 }));
     if (p) expect(p.teleport).not.toHaveBeenCalled();
   }
 });

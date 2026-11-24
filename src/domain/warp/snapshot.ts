@@ -1,4 +1,4 @@
-import type { Cell } from "../shared/cells";
+import { type Cell, parseCell } from "../shared/cells";
 import type { DimensionId } from "../shared/ids";
 import { asWarpPointId } from "./ids";
 import { parseWarpName } from "./warpName";
@@ -46,16 +46,8 @@ function parsePoint(raw: unknown): WarpPoint | undefined {
     !isRecord(raw.cell)
   )
     return undefined;
-  const { x, y, z } = raw.cell;
-  if (
-    typeof x !== "number" ||
-    !Number.isInteger(x) ||
-    typeof y !== "number" ||
-    !Number.isInteger(y) ||
-    typeof z !== "number" ||
-    !Number.isInteger(z)
-  )
-    return undefined;
+  const cell = parseCell(raw.cell);
+  if (!cell) return undefined;
   const name = parseWarpName(raw.name);
   if (!name) return undefined;
   return {
@@ -63,7 +55,7 @@ function parsePoint(raw: unknown): WarpPoint | undefined {
     name,
     owner: raw.owner,
     dimension: raw.dimension as DimensionId,
-    cell: { x, y, z },
+    cell,
   };
 }
 

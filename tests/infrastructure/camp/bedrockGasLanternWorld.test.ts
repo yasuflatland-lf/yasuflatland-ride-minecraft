@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
@@ -95,18 +95,18 @@ it("lays, repairs, moves, and clears light saved across a reload", () => {
     SWITCH_CLICK_SOUND,
     f.entity.location,
   );
-  expect(f.at(f.cell)).toBe("minecraft:light_block_15");
+  expect(f.at(cellOf(f.cell))).toBe("minecraft:light_block_15");
   expect(JSON.parse(String(f.saved.get(GAS_LANTERN_CELLS_PROPERTY)))).toEqual([
     { ...f.cell, block: { level: 15 } },
   ]);
-  f.blocks.delete(cellKey(f.cell));
+  f.blocks.delete(cellKey(cellOf(f.cell)));
   f.world.relayLoaded();
-  expect(f.at(f.cell)).toBe("minecraft:light_block_15");
+  expect(f.at(cellOf(f.cell))).toBe("minecraft:light_block_15");
   f.entity.location.y -= 1;
-  const moved = { ...f.cell, y: 63 };
+  const moved = cellOf({ ...f.cell, y: 63 });
   f.world = f.makeWorld();
   f.world.relayLoaded();
-  expect(f.at(f.cell)).toBe("minecraft:air");
+  expect(f.at(cellOf(f.cell))).toBe("minecraft:air");
   expect(f.at(moved)).toBe("minecraft:light_block_15");
   f.world.setLit(f.id, false);
   f.world.relayLight(f.id);
@@ -119,12 +119,12 @@ it("clears a removed lantern on the loaded pass and preserves a player's replace
     const f = fixture();
     f.world.setLit(f.id, true);
     f.world.relayLoaded();
-    f.blocks.set(cellKey(f.cell), replacement);
+    f.blocks.set(cellKey(cellOf(f.cell)), replacement);
     f.entity.isValid = false;
     f.dimension.getEntities.mockReturnValue([]);
     f.world.relayLoaded();
     expect(f.world.isLit(f.id)).toBeUndefined();
-    expect(f.at(f.cell)).toBe(
+    expect(f.at(cellOf(f.cell))).toBe(
       replacement === "minecraft:stone" ? replacement : "minecraft:air",
     );
   }
@@ -136,11 +136,11 @@ it("clears saved light before take-back even before the first loaded pass", () =
   f.world.relayLight(f.id);
   f.world = f.makeWorld();
   f.world.clearLight(f.id);
-  expect(f.at(f.cell)).toBe("minecraft:air");
+  expect(f.at(cellOf(f.cell))).toBe("minecraft:air");
   f.entity.typeId = "minecraft:pig";
   expect(f.world.isLit(f.id)).toBeUndefined();
   f.world.relayLight(f.id);
-  expect(f.at(f.cell)).toBe("minecraft:air");
+  expect(f.at(cellOf(f.cell))).toBe("minecraft:air");
 });
 
 it("reads a lantern's host marker, its loaded host area, and whether a host exists", () => {

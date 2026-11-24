@@ -1,11 +1,12 @@
 import type { Player } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import { standsOnDeck } from "../../../../src/infrastructure/vehicle/bedrock/deck";
 import { DECK_FLOOR_BLOCK } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { blockGrid } from "../../../support/blockGrid";
 
-const DECK = { x: 0, y: 64, z: 0 };
+const DECK = cellOf({ x: 0, y: 64, z: 0 });
 const HALF_WIDTH = 0.3;
 // Keeps generated positions away from the exact edge of the footprint, where
 // the answer depends on the inset rather than on the rule under test.

@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import { type CellBox, sizeOf } from "../box";
 import type { HeightRange } from "../heightRange";
 import { type Facing, facingOfStep } from "../rotation/facing";
@@ -120,7 +120,7 @@ export function* roofCells(spec: RoofSpec, hollow: boolean): Iterable<Cell> {
           z <= interior.maxZ
         )
           continue;
-        yield { x, y: spec.base.min.y + layer, z };
+        yield cellOf({ x, y: spec.base.min.y + layer, z });
       }
     }
   }

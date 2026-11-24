@@ -17,15 +17,17 @@ import {
 import { uniformPattern } from "../../../src/domain/build/edit/pattern";
 import { planHeighted, planShape } from "../../../src/domain/build/edit/plan";
 import { roofCount } from "../../../src/domain/build/roof/roof";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 
-const smallCell = fc.record({
-  x: fc.integer({ min: -5, max: 5 }),
-  y: fc.integer({ min: -5, max: 5 }),
-  z: fc.integer({ min: -5, max: 5 }),
-});
+const smallCell = fc
+  .record({
+    x: fc.integer({ min: -5, max: 5 }),
+    y: fc.integer({ min: -5, max: 5 }),
+    z: fc.integer({ min: -5, max: 5 }),
+  })
+  .map(cellOf);
 const smallBox = fc.tuple(smallCell, smallCell).map(([a, b]) => boxOf(a, b));
 const stateArb: fc.Arbitrary<BlockState> = fc
   .tuple(

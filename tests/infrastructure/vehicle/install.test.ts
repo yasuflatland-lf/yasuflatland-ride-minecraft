@@ -8,6 +8,7 @@ import {
 } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { STARTER_KINDS } from "../../../src/domain/vehicle/placement/starter";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identifiers";
@@ -109,7 +110,7 @@ it("returns the vehicles' space check for other features (ADR 0122)", () => {
   expect(vehicleHost("missing")).toEqual({ status: "unknown" });
   // No vehicle is loaded and no room block is laid, so no cell is vehicle space.
   expect(
-    isVehicleSpace(asDimensionId("overworld"), { x: 0, y: 64, z: 0 }),
+    isVehicleSpace(asDimensionId("overworld"), cellOf({ x: 0, y: 64, z: 0 })),
   ).toBe(false);
 });
 

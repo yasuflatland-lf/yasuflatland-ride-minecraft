@@ -1,6 +1,6 @@
 import { world } from "@minecraft/server";
 import type { WarpWorld } from "../../../application/warp/ports/world";
-import { type Cell, cellCenter } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, cellOf } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { isStandable } from "../../../domain/shared/standing";
 import { WARP_LANDING_POLICY } from "../../../domain/warp/landing";
@@ -24,9 +24,9 @@ export class BedrockWarpWorld implements WarpWorld {
   isStandable(dimensionId: DimensionId, feet: Cell): boolean {
     try {
       const dimension = world.getDimension(dimensionId);
-      const floor = sampleBlock(dimension, { ...feet, y: feet.y - 1 });
+      const floor = sampleBlock(dimension, cellOf({ ...feet, y: feet.y - 1 }));
       const body = sampleBlock(dimension, feet);
-      const head = sampleBlock(dimension, { ...feet, y: feet.y + 1 });
+      const head = sampleBlock(dimension, cellOf({ ...feet, y: feet.y + 1 }));
       return isStandable(body, head, floor, WARP_LANDING_POLICY);
     } catch {
       return false;

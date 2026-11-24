@@ -1,7 +1,7 @@
 import type { Dimension } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { SingleBlockLayer } from "../../../src/infrastructure/shared/laidBlockLayer";
 import type { CellHolder } from "../../../src/infrastructure/shared/laidCells";
@@ -16,9 +16,9 @@ const AIR = "minecraft:air";
 const STONE = "minecraft:stone";
 const DIMENSION = asDimensionId("overworld");
 const OWNER = "shelter";
-const first = { x: 0, y: 4, z: 0 };
-const second = { x: 1, y: 4, z: 0 };
-const third = { x: 2, y: 4, z: 0 };
+const first = cellOf({ x: 0, y: 4, z: 0 });
+const second = cellOf({ x: 1, y: 4, z: 0 });
+const third = cellOf({ x: 2, y: 4, z: 0 });
 
 function fixture(saved?: string, dimensionId = DIMENSION) {
   const blocks = new Map<string, string>();
@@ -57,7 +57,9 @@ it("round trips integer cells in the flat saved format and omits empty records",
   fc.assert(
     fc.property(
       fc.uniqueArray(
-        fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
+        fc
+          .record({ x: fc.integer(), y: fc.integer(), z: fc.integer() })
+          .map(cellOf),
         { selector: cellKey },
       ),
       (cells) => {

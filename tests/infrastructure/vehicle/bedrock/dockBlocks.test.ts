@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { cellKey } from "../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../src/domain/shared/cells";
 import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
 import { DOCK_RECHECK_TICKS } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
@@ -25,15 +25,17 @@ vi.mock("@minecraft/server", () => ({
   },
 }));
 
-const cell = fc.record({
-  x: fc.integer({ min: -3, max: 3 }),
-  y: fc.integer({ min: -3, max: 3 }),
-  z: fc.integer({ min: -3, max: 3 }),
-  block: fc.record({
-    type: fc.constant("deck" as const),
-    height: fc.integer({ min: 1, max: 16 }),
-  }),
-});
+const cell = fc
+  .record({
+    x: fc.integer({ min: -3, max: 3 }),
+    y: fc.integer({ min: -3, max: 3 }),
+    z: fc.integer({ min: -3, max: 3 }),
+    block: fc.record({
+      type: fc.constant("deck" as const),
+      height: fc.integer({ min: 1, max: 16 }),
+    }),
+  })
+  .map((c) => ({ ...c, ...cellOf(c) }));
 const cells = fc.uniqueArray(cell, {
   selector: cellKey,
   minLength: 1,
@@ -49,8 +51,8 @@ const nextHeight = (c: DockCell): DockCell => ({
 });
 
 const deckCells: DockCell[] = [
-  { x: 0, y: 64, z: 0, block: { type: "deck", height: 9 } },
-  { x: 1, y: 64, z: 0, block: { type: "deck", height: 12 } },
+  { ...cellOf({ x: 0, y: 64, z: 0 }), block: { type: "deck", height: 9 } },
+  { ...cellOf({ x: 1, y: 64, z: 0 }), block: { type: "deck", height: 12 } },
 ];
 
 describe("DockBlocks (ADR 0063)", () => {
@@ -221,7 +223,7 @@ describe("DockBlocks (ADR 0063)", () => {
 
   it.each(["{", "{}"])("ignores malformed saved floor data: %s", (raw) => {
     const f = fixture();
-    const seed = { x: 0, y: 64, z: 0 };
+    const seed = cellOf({ x: 0, y: 64, z: 0 });
     f.blocks.set(cellKey(seed), { typeId: DECK_FLOOR_BLOCK });
     f.saved.set(DECK_CELLS_PROPERTY, raw);
     expect(() =>
@@ -292,7 +294,10 @@ describe("DockBlocks lost cells (ADR 0096)", () => {
   });
 
   it("keeps a laid light, lays it again once lost, and clears only its own light (ADR 0115)", () => {
-    const light: DockCell = { x: 3, y: 66, z: 4, block: { type: "light" } };
+    const light: DockCell = {
+      ...cellOf({ x: 3, y: 66, z: 4 }),
+      block: { type: "light" },
+    };
     const f = fixture();
     const docks = createDockBlocks();
     docks.lay(id, f.car, [light]);

@@ -3,6 +3,7 @@ import {
   acceptsAnyItemUse,
   routePress,
 } from "../../../../domain/build/flow/press";
+import { cellOf } from "../../../../domain/shared/cells";
 import type { Debounces } from "../../../../domain/shared/debounce";
 import {
   asDimensionId,
@@ -45,7 +46,7 @@ export function registerWand(
       player,
       playerId,
       dimensionId: asDimensionId(ev.block.dimension.id),
-      cell: ev.block.location,
+      cell: cellOf(ev.block.location),
     };
     system.run(() => pressBlockCell(context, command, intent));
   });

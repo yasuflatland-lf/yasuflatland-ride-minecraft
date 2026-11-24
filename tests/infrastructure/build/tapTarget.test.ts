@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerTapTarget } from "../../../src/infrastructure/build/bedrock/handlers/tapTarget";
@@ -31,8 +32,8 @@ vi.mock("@minecraft/server", () => ({
 }));
 
 const playerId = asPlayerId("owner");
-const start = { x: 0, y: 64, z: 0 };
-const cell = { x: 3, y: 66, z: 2 };
+const start = cellOf({ x: 0, y: 64, z: 0 });
+const cell = cellOf({ x: 3, y: 66, z: 2 });
 const target = { id: "target", typeId: TAP_TARGET_TYPE };
 
 function setup({ ownsTarget = true, holdsWand = true } = {}) {

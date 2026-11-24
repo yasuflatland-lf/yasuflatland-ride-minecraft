@@ -6,6 +6,7 @@ import {
   furniturePose,
   furnitureSupportCells,
 } from "../../domain/resort/furniture";
+import { cellOf } from "../../domain/shared/cells";
 import { snapYaw4 } from "../../domain/shared/facing";
 import {
   DINING_TABLE_TOP,
@@ -27,7 +28,7 @@ async function course(
   const failures: string[] = [];
   const spec = FURNITURE_SPEC.dining_table;
   for (const yaw of kind ? [0] : [0, 90, 180, 270]) {
-    const pose = furniturePose(block, yaw, "dining_table");
+    const pose = furniturePose(cellOf(block), yaw, "dining_table");
     const supports = furnitureSupportCells(pose);
     const clear = furnitureClearCells(pose);
     const saved = [...supports, ...clear].map((cell) => ({

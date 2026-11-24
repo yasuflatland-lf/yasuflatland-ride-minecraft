@@ -13,7 +13,7 @@ import { roofCells } from "../../../src/domain/build/roof/roof";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
-import { sameCell } from "../../../src/domain/shared/cells";
+import { cellOf, sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import {
@@ -55,27 +55,27 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
       fc.constantFrom("gable" as const, "hip" as const),
       (a, b, blink, viewer, height, heightedKind) => {
         const playerDimension = asDimensionId(`test:${viewer}`);
-        const box = boxOf(a, b);
+        const box = boxOf(cellOf(a), cellOf(b));
         const flows: BuildFlow[] = [
           { kind: "idle" },
-          { kind: "point1", start: { dimensionId, cell: a, material } },
+          { kind: "point1", start: { dimensionId, cell: cellOf(a), material } },
           {
             kind: "selected",
             menuLevel: "root",
             ...tappedSelection(
-              selectionOf(dimensionId, boxOf(a, b), material),
-              a,
-              b,
+              selectionOf(dimensionId, boxOf(cellOf(a), cellOf(b)), material),
+              cellOf(a),
+              cellOf(b),
             ),
           },
           {
             kind: "heightStep",
             heightLocked: false,
-            base: boxOf(a, { ...b, y: a.y }),
+            base: boxOf(cellOf(a), cellOf({ ...b, y: a.y })),
             heightedKind,
             liveHeight: height,
-            start: { dimensionId, cell: a, material },
-            taps: { from: a, to: b },
+            start: { dimensionId, cell: cellOf(a), material },
+            taps: { from: cellOf(a), to: cellOf(b) },
           },
           { kind: "pasteAim", manualTurn: 0 },
         ];
@@ -83,7 +83,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
           const model = previewModel(flow, {
             blink,
             playerDimension,
-            end: flow.kind === "selected" ? a : b,
+            end: flow.kind === "selected" ? cellOf(a) : cellOf(b),
             pasteBox: box,
             height: height,
           });
@@ -107,7 +107,9 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             set.paste.length + set.pasteVertical.length,
           ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
           if (flow.kind === "point1" || flow.kind === "selected")
-            expect(set).toMatchObject(endpointMarkers(a, b, blink));
+            expect(set).toMatchObject(
+              endpointMarkers(cellOf(a), cellOf(b), blink),
+            );
         }
       },
     ),
@@ -115,11 +117,11 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
 });
 
 it("draws the terrain confirmation at the confirmed selection height", () => {
-  const from = { x: 0, y: 60, z: 0 };
-  const to = { x: 3, y: 62, z: 3 };
+  const from = cellOf({ x: 0, y: 60, z: 0 });
+  const to = cellOf({ x: 3, y: 62, z: 3 });
   const selection = selectionOf(
     dimensionId,
-    boxOf(from, { ...to, y: 68 }),
+    boxOf(from, cellOf({ ...to, y: 68 })),
     material,
   );
   const common = tappedSelection(selection, from, to);
@@ -143,15 +145,18 @@ it("draws the terrain confirmation at the confirmed selection height", () => {
 it("blinks the start marker while the end is undefined", () => {
   fc.assert(
     fc.property(cell, fc.boolean(), (start, blink) => {
-      const markers = endpointMarkers(start, undefined, blink);
+      const markers = endpointMarkers(cellOf(start), undefined, blink);
       expect(markers).toEqual({
-        startMarker: blink ? cornerMarkerPoints(start) : [],
+        startMarker: blink ? cornerMarkerPoints(cellOf(start)) : [],
         endMarker: [],
         sharedMarker: [],
       });
       expect(
         previewModel(
-          { kind: "point1", start: { dimensionId, cell: start, material } },
+          {
+            kind: "point1",
+            start: { dimensionId, cell: cellOf(start), material },
+          },
           { blink },
         ).set,
       ).toMatchObject(markers);
@@ -162,10 +167,12 @@ it("blinks the start marker while the end is undefined", () => {
 it("draws one shared marker on every redraw for coincident endpoints", () => {
   fc.assert(
     fc.property(cell, fc.boolean(), (start, blink) => {
-      expect(endpointMarkers(start, { ...start }, blink)).toEqual({
+      expect(
+        endpointMarkers(cellOf(start), cellOf({ ...start }), blink),
+      ).toEqual({
         startMarker: [],
         endMarker: [],
-        sharedMarker: cornerMarkerPoints(start),
+        sharedMarker: cornerMarkerPoints(cellOf(start)),
       });
     }),
   );
@@ -174,10 +181,10 @@ it("draws one shared marker on every redraw for coincident endpoints", () => {
 it("draws both distinct endpoint markers on every redraw", () => {
   fc.assert(
     fc.property(cell, cell, fc.boolean(), (start, end, blink) => {
-      fc.pre(!sameCell(start, end));
-      expect(endpointMarkers(start, end, blink)).toEqual({
-        startMarker: cornerMarkerPoints(start),
-        endMarker: cornerMarkerPoints(end),
+      fc.pre(!sameCell(cellOf(start), cellOf(end)));
+      expect(endpointMarkers(cellOf(start), cellOf(end), blink)).toEqual({
+        startMarker: cornerMarkerPoints(cellOf(start)),
+        endMarker: cornerMarkerPoints(cellOf(end)),
         sharedMarker: [],
       });
     }),
@@ -198,7 +205,10 @@ it("leaves idle and unaimed paste empty", () => {
 });
 
 it("draws gable ridges on the long axis and hip ridges inset at both ends", () => {
-  const base = boxOf({ x: 0, y: 10, z: 0 }, { x: 8, y: 10, z: 4 });
+  const base = boxOf(
+    cellOf({ x: 0, y: 10, z: 0 }),
+    cellOf({ x: 8, y: 10, z: 4 }),
+  );
   const flow = {
     kind: "heightStep" as const,
     heightLocked: false,
@@ -227,7 +237,7 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
   const square = previewModel(
     {
       ...flow,
-      base: boxOf(base.min, { x: 4, y: 10, z: 4 }),
+      base: boxOf(base.min, cellOf({ x: 4, y: 10, z: 4 })),
       heightedKind: "hip",
     },
     { blink: false },
@@ -246,11 +256,14 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
       fc.integer({ min: 2, max: 12 }),
       fc.constantFrom("gable" as const, "hip" as const),
       (origin, width, depth, height, heightedKind) => {
-        const base = boxOf(origin, {
-          x: origin.x + width - 1,
-          y: origin.y,
-          z: origin.z + depth - 1,
-        });
+        const base = boxOf(
+          cellOf(origin),
+          cellOf({
+            x: origin.x + width - 1,
+            y: origin.y,
+            z: origin.z + depth - 1,
+          }),
+        );
         const points = previewModel(
           {
             kind: "heightStep",
@@ -258,8 +271,8 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
             base,
             heightedKind,
             liveHeight: height,
-            start: { dimensionId, cell: origin, material },
-            taps: { from: origin, to: base.max },
+            start: { dimensionId, cell: cellOf(origin), material },
+            taps: { from: cellOf(origin), to: base.max },
           },
           { blink: true },
         ).set.roof;
@@ -310,7 +323,10 @@ it.each([
 ] as const)(
   "draws a locked stair %s wireframe at its fixed pitch",
   (kind, ridge) => {
-    const box = boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 15, z: 6 });
+    const box = boxOf(
+      cellOf({ x: 0, y: 10, z: 0 }),
+      cellOf({ x: 4, y: 15, z: 6 }),
+    );
     const flow = chooseHeightedFlow(
       {
         kind: "selected",
@@ -351,13 +367,13 @@ it("draws a locked cylinder at the box height even when another height is aimed"
               selectionOf(
                 dimensionId,
                 boxOf(
-                  { x: 0, y: 10, z: 0 },
-                  { x: 4, y: 10 + height - 1, z: 5 },
+                  cellOf({ x: 0, y: 10, z: 0 }),
+                  cellOf({ x: 4, y: 10 + height - 1, z: 5 }),
                 ),
                 material,
               ),
-              { x: 0, y: 10, z: 0 },
-              { x: 4, y: 10 + height - 1, z: 5 },
+              cellOf({ x: 0, y: 10, z: 0 }),
+              cellOf({ x: 4, y: 10 + height - 1, z: 5 }),
             ),
           },
           "cylinder",
@@ -384,7 +400,10 @@ it("boxOutline adds extra points on horizontal edges only and stays within the b
       fc.integer({ min: 0, max: 40 }),
       fc.integer({ min: 0, max: 40 }),
       (dx, dy, dz) => {
-        const box = boxOf({ x: 0, y: 0, z: 0 }, { x: dx, y: dy, z: dz });
+        const box = boxOf(
+          cellOf({ x: 0, y: 0, z: 0 }),
+          cellOf({ x: dx, y: dy, z: dz }),
+        );
         const points = boxOutline(box);
         expect(points.length).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
         for (const p of points) {

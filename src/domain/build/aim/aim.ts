@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { length3 } from "../../shared/vec";
 import { dominantHorizontalAxis } from "../axis";
@@ -26,7 +26,7 @@ export function virtualEndPoint(
   if (t < 0 || t * length3(direction) > reach) {
     return undefined;
   }
-  return {
+  return cellOf({
     x: Math.floor(origin.x + t * direction.x),
     y: Math.max(
       range.minY,
@@ -34,7 +34,7 @@ export function virtualEndPoint(
     ),
     z: Math.floor(origin.z + t * direction.z),
     [axis]: point1[axis],
-  };
+  });
 }
 
 export function apexHeight(args: {

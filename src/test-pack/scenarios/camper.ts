@@ -932,10 +932,10 @@ async function camperStandSpots(a: Arena, car: Entity): Promise<Outcome> {
     if (!stand) return true;
     const feet = cellOf(stand);
     return (
-      a.dim.getBlock({ ...feet, y: feet.y - 1 })?.typeId !==
+      a.dim.getBlock(cellOf({ ...feet, y: feet.y - 1 }))?.typeId !==
         CAMPER_FLOOR_BLOCK ||
       a.dim.getBlock(feet)?.isAir !== true ||
-      a.dim.getBlock({ ...feet, y: feet.y + 1 })?.isAir !== true
+      a.dim.getBlock(cellOf({ ...feet, y: feet.y + 1 }))?.isAir !== true
     );
   }).length;
   return {

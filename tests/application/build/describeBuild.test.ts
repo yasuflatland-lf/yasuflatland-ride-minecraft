@@ -2,9 +2,9 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-
 import { openBuildMenu } from "../../../src/domain/build/flow/menu";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
 import {
@@ -25,11 +25,13 @@ const stone = blockStateOf("minecraft:stone");
 it("reports every flow, clipboard presence and domain paste entries without changing the session", () => {
   fc.assert(
     fc.property(
-      fc.record({
-        x: fc.integer({ min: -100, max: 100 }),
-        y: fc.integer({ min: 0, max: 100 }),
-        z: fc.integer({ min: -100, max: 100 }),
-      }),
+      fc
+        .record({
+          x: fc.integer({ min: -100, max: 100 }),
+          y: fc.integer({ min: 0, max: 100 }),
+          z: fc.integer({ min: -100, max: 100 }),
+        })
+        .map(cellOf),
       fc.boolean(),
       fc.boolean(),
       (cell, clipboard, history) => {
@@ -52,11 +54,14 @@ it("reports every flow, clipboard presence and domain paste entries without chan
         const idle: BuildFlow = { kind: "idle" };
         const first = tapBlock(idle, overworld, cell, stone);
         const endpoint = confirmEndpointHeight(
-          tapAir(first, {
-            ...cell,
-            x: cell.x + 2,
-            z: cell.z + 2,
-          }),
+          tapAir(
+            first,
+            cellOf({
+              ...cell,
+              x: cell.x + 2,
+              z: cell.z + 2,
+            }),
+          ),
         );
         const flows: BuildFlow[] = [
           idle,

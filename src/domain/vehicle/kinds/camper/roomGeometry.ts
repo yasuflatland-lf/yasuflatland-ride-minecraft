@@ -1,4 +1,5 @@
-import type { Vec2, Vec3 } from "../../../shared/vec";
+import type { Cell } from "../../../shared/cells";
+import type { Vec2 } from "../../../shared/vec";
 import type { Face, HoldPose } from "../../dock/floor";
 import {
   CAMPER_FURNITURE,
@@ -62,6 +63,6 @@ export function localInterior(layers: readonly number[]): LocalCell[] {
 }
 
 /** The interior cells at `layers` that no furniture block fills. */
-export function interior(pose: HoldPose, layers: readonly number[]): Vec3[] {
+export function interior(pose: HoldPose, layers: readonly number[]): Cell[] {
   return localInterior(layers).map((cell) => localCellAt(pose, cell));
 }

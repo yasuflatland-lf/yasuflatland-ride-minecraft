@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
-import { sameCell } from "../../../src/domain/shared/cells";
+import { cellOf, sameCell } from "../../../src/domain/shared/cells";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   DIMENSION,
@@ -176,9 +176,13 @@ describe("PlaceRoofTent", () => {
         (x, y, z, obstacle, offset) => {
           const world = new FakeRoofTentWorld();
           const lookup = vi.fn(() => PRESENT);
-          const blocked = { x: x + offset.x, y: y + offset.y, z: z + offset.z };
+          const blocked = cellOf({
+            x: x + offset.x,
+            y: y + offset.y,
+            z: z + offset.z,
+          });
           world.blockAt.mockImplementation((_dimension, cell) => {
-            if (sameCell(cell, { x, y, z }))
+            if (sameCell(cell, cellOf({ x, y, z })))
               return {
                 typeId:
                   obstacle === "support" ? "minecraft:fern" : "minecraft:stone",
@@ -205,7 +209,7 @@ describe("PlaceRoofTent", () => {
           expect(
             new PlaceRoofTent(world, lookup).execute({
               ...cmd,
-              target: { clicked: { x, y, z } },
+              target: { clicked: cellOf({ x, y, z }) },
               yaw: 100,
             }),
           ).toBe(clear);

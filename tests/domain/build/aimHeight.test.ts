@@ -4,6 +4,7 @@ import { aimedHeight } from "../../../src/domain/build/aim/height";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
@@ -29,11 +30,11 @@ it.each([OVERWORLD_RANGE, NETHER_RANGE])(
             tapBlock(
               { kind: "idle" },
               asDimensionId("minecraft:overworld"),
-              from,
+              cellOf(from),
               blockStateOf("minecraft:stone"),
               range,
             ),
-            to,
+            cellOf(to),
             range,
           );
           expect(flow.kind).toBe("baseHeight");

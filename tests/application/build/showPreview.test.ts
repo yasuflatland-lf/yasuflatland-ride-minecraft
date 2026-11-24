@@ -21,6 +21,7 @@ import {
 } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -42,8 +43,8 @@ import { FakeStructureStore } from "./fakes/structureStore";
 
 const alex = asPlayerId("alex");
 const material = blockStateOf("minecraft:stone");
-const cell = { x: 0, y: 64, z: 0 };
-const end = { x: 0, y: 66, z: 3 };
+const cell = cellOf({ x: 0, y: 64, z: 0 });
+const end = cellOf({ x: 0, y: 66, z: 3 });
 const ray = {
   origin: { x: -5, y: 66.5, z: 3.5 },
   direction: { x: 1, y: 0, z: 0 },
@@ -157,7 +158,7 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
     expect(entry.playerId).toBe(alex);
     expect(entry.dimensionId).toBe(nether);
     expect(entry.set.startMarker).toHaveLength(
-      cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
+      cornerMarkerPoints(cellOf({ x: 0, y: 0, z: 0 })).length,
     );
   }
 });
@@ -169,7 +170,7 @@ it("follows the aimed block and falls back to the air plane without changing the
     start: { dimensionId: overworld, cell, material },
   });
   const flow = session.flow;
-  const hit = { x: 4, y: 70, z: 2 };
+  const hit = cellOf({ x: 4, y: 70, z: 2 });
   aim.mockReturnValue({
     input: "pointer",
     ray,
@@ -223,7 +224,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
     previewModel(session.flow, { blink: true }).set,
   );
   expect(feedback.previews[0]?.set.startMarker).toHaveLength(
-    cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
+    cornerMarkerPoints(cellOf({ x: 0, y: 0, z: 0 })).length,
   );
   expect(feedback.previews[0]?.set.paste).toEqual([]);
 });
@@ -259,11 +260,11 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   session.setFlowForTest({
     kind: "heightStep",
     heightLocked: false,
-    base: boxOf(cell, { x: 8, y: 64, z: 4 }),
+    base: boxOf(cell, cellOf({ x: 8, y: 64, z: 4 })),
     heightedKind: "hip",
     liveHeight: 3,
     start: { dimensionId: nether, cell, material },
-    taps: { from: cell, to: { x: 8, y: 64, z: 4 } },
+    taps: { from: cell, to: cellOf({ x: 8, y: 64, z: 4 }) },
   });
   const flow = session.flow;
   aim.mockReturnValue({ input: "pointer", ray });
@@ -308,7 +309,10 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
     dimensionId: nether,
     set: previewModel(session.flow, {
       blink: true,
-      pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
+      pasteBox: boxOf(
+        cellOf({ x: 0, y: 65, z: 0 }),
+        cellOf({ x: 0, y: 67, z: 3 }),
+      ),
     }).set,
   });
   const hintsBeforeAir = feedback.modes.length;
@@ -447,7 +451,11 @@ it("reports height-step sizes only on changes and resets each player's memo on e
           start: { dimensionId: overworld, cell, material },
           taps: {
             from: cell,
-            to: { ...cell, x: cell.x + width - 1, z: cell.z + depth - 1 },
+            to: cellOf({
+              ...cell,
+              x: cell.x + width - 1,
+              z: cell.z + depth - 1,
+            }),
           },
         });
       }
@@ -501,11 +509,11 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
   session.setFlowForTest({
     kind: "heightStep",
     heightLocked: true,
-    base: boxOf(cell, { x: 8, y: 64, z: 4 }),
+    base: boxOf(cell, cellOf({ x: 8, y: 64, z: 4 })),
     heightedKind: "cylinder",
     liveHeight: 12,
     start: { dimensionId: overworld, cell, material },
-    taps: { from: cell, to: { x: 8, y: 64, z: 4 } },
+    taps: { from: cell, to: cellOf({ x: 8, y: 64, z: 4 }) },
   });
   preview.execute(0);
   aim.mockReturnValue({ input: "pointer", ray });
@@ -620,11 +628,14 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
       fc.boolean(),
       (x, y, z, hit) => {
         const { session, preview, feedback, aim } = setup();
-        const box = boxOf(cell, {
-          x: cell.x + x - 1,
-          y: cell.y + y - 1,
-          z: cell.z + z - 1,
-        });
+        const box = boxOf(
+          cell,
+          cellOf({
+            x: cell.x + x - 1,
+            y: cell.y + y - 1,
+            z: cell.z + z - 1,
+          }),
+        );
         const clipboard = structureClipboard(box, () => material);
         session.completeCopy(selectionOf(overworld, box, AIR), clipboard);
         aim.mockReturnValue(
@@ -684,7 +695,7 @@ it("outlines the rotated paste box at each heading", () => {
         block: { cell, face: "up" },
       });
       preview.execute(0);
-      const anchor = { x: 0, y: 65, z: 0 };
+      const anchor = cellOf({ x: 0, y: 65, z: 0 });
       const max = [
         { x: 0, y: 67, z: 3 },
         { x: -3, y: 67, z: 0 },
@@ -695,7 +706,7 @@ it("outlines the rotated paste box at each heading", () => {
       expect(feedback.previews[0]?.set).toEqual(
         previewModel(session.flow, {
           blink: true,
-          pasteBox: boxOf(anchor, max),
+          pasteBox: boxOf(anchor, cellOf(max)),
         }).set,
       );
     }),
@@ -761,7 +772,10 @@ it("shows the copied orientation on resume and leaves the position prompt visibl
   expect(e.feedback.previews[0]?.set).toEqual(
     previewModel(e.session.flow, {
       blink: true,
-      pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
+      pasteBox: boxOf(
+        cellOf({ x: 0, y: 65, z: 0 }),
+        cellOf({ x: 0, y: 67, z: 3 }),
+      ),
     }).set,
   );
   expect(e.feedback.modes).toEqual([]);
@@ -789,7 +803,10 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
       dimensionId: nether,
       set: previewModel(e.session.flow, {
         blink: true,
-        pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 3, y: 67, z: 0 }),
+        pasteBox: boxOf(
+          cellOf({ x: 0, y: 65, z: 0 }),
+          cellOf({ x: 3, y: 67, z: 0 }),
+        ),
       }).set,
     },
   ]);
@@ -848,8 +865,8 @@ it("shows the effective degrees for every facing and manual turn, including air 
 
 it("redraws the live selection outline and retains its last height for a vertical gaze", () => {
   const { session, preview, feedback, aim } = setup(false);
-  const from = { x: 0, y: 64, z: 0 };
-  const to = { x: 4, y: 64, z: 4 };
+  const from = cellOf({ x: 0, y: 64, z: 0 });
+  const to = cellOf({ x: 4, y: 64, z: 4 });
   session.setFlowForTest(
     tapAir(
       {
@@ -886,8 +903,8 @@ it("redraws the live selection outline and retains its last height for a vertica
 
 it("redraws faster while the gaze sets the height and at the usual pace otherwise", () => {
   const { session, preview, feedback, aim } = setup(false);
-  const from = { x: 0, y: 64, z: 0 };
-  const to = { x: 4, y: 64, z: 4 };
+  const from = cellOf({ x: 0, y: 64, z: 0 });
+  const to = cellOf({ x: 4, y: 64, z: 4 });
   const origin = { x: -1.5, y: 80, z: 2.5 };
   aim.mockReturnValue({
     input: "pointer",
@@ -922,8 +939,8 @@ it("redraws faster while the gaze sets the height and at the usual pace otherwis
 
 it("shows the live size while aiming the base height, once per change", () => {
   const { session, preview, feedback, aim } = setup(false);
-  const from = { x: 0, y: 64, z: 0 };
-  const to = { x: 4, y: 64, z: 2 };
+  const from = cellOf({ x: 0, y: 64, z: 0 });
+  const to = cellOf({ x: 4, y: 64, z: 2 });
   session.setFlowForTest(
     tapAir(
       {
@@ -969,7 +986,10 @@ it("redraws the rotated outline and tap markers on the next outline tick", () =>
     dimensionId: nether,
   });
   preview.execute(interval);
-  const turned = boxOf({ x: -1, y: 64, z: 1 }, { x: 2, y: 66, z: 1 });
+  const turned = boxOf(
+    cellOf({ x: -1, y: 64, z: 1 }),
+    cellOf({ x: 2, y: 66, z: 1 }),
+  );
   expect(feedback.previews).toHaveLength(2);
   expect(feedback.previews[1]?.set).toEqual(
     previewModel(

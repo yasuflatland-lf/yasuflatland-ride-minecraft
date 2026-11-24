@@ -1,5 +1,10 @@
 // The parked camper's room: its pose, its cells, and what may stand in them (ADR 0068).
-import { cellCenter, sameCell } from "../../../shared/cells";
+import {
+  type Cell,
+  cellCenter,
+  parseCell,
+  sameCell,
+} from "../../../shared/cells";
 import { QUARTER_TURN } from "../../../shared/facing";
 import { normalizeYaw, type Vec2, type Vec3 } from "../../../shared/vec";
 import {
@@ -205,7 +210,7 @@ export function roomCells(
  * The feet and head cells of a player moved to the exit: on the ground beside
  * the door step, so at the floor's layer and the one above it.
  */
-export function exitCells(pose: HoldPose): Vec3[] {
+export function exitCells(pose: HoldPose): Cell[] {
   return EXIT_LAYERS.map((layer) => cellAt(pose, EXIT.x, EXIT.z, layer));
 }
 
@@ -231,13 +236,15 @@ export function insideRoom(pose: HoldPose, feet: Vec3): boolean {
 
 /** The world cell a press on bed block `cell` of a camper parked at `pose` respawns the player in; undefined when `cell` is no sleepable cell (ADR 0182). */
 export function bedSpawnCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
+  const pressedCell = parseCell(cell);
+  if (!pressedCell) return undefined;
   const pressed = CAMPER_FURNITURE.find(
     ({ block, cells }) =>
       block !== undefined &&
       SLEEP_BLOCKS.has(block.type) &&
       cells.some((c) => {
         const at = localCellAt(pose, c);
-        return sameCell(at, cell);
+        return sameCell(at, pressedCell);
       }),
   );
   if (pressed === undefined) return undefined;

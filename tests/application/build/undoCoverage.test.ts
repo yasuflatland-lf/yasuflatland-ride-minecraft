@@ -36,6 +36,7 @@ import { cornerTaps, type Taps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -136,8 +137,14 @@ function undoAndExpectEmpty(e: Env) {
 
 it("Build Undo restores blocks after paste selects its result", () => {
   const e = setup();
-  const source = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 64, z: 0 });
-  const target = boxOf({ x: 5, y: 64, z: 0 }, { x: 7, y: 64, z: 0 });
+  const source = boxOf(
+    cellOf({ x: 0, y: 64, z: 0 }),
+    cellOf({ x: 2, y: 64, z: 0 }),
+  );
+  const target = boxOf(
+    cellOf({ x: 5, y: 64, z: 0 }),
+    cellOf({ x: 7, y: 64, z: 0 }),
+  );
   const before = seed(e, target);
   const point = tapBlock({ kind: "idle" }, overworld, source.min, stone);
   e.session.setFlowForTest(tapAir(point, source.max));
@@ -202,7 +209,7 @@ it.each(builds)(
         size,
         (origin, width, depth, originalHeight, chosenHeight) => {
           const e = setup();
-          const base = boxFromSize(origin, {
+          const base = boxFromSize(cellOf(origin), {
             x: width,
             y: 1,
             z: build.kind === "line" ? 1 : depth,
@@ -283,7 +290,10 @@ it.each(["frame", "gable"] as const)(
   "undo of %s leaves an unrelated active selection and Copy bounds intact",
   (kind) => {
     const e = setup();
-    const base = boxOf({ x: 0, y: 64, z: 0 }, { x: 3, y: 64, z: 4 });
+    const base = boxOf(
+      cellOf({ x: 0, y: 64, z: 0 }),
+      cellOf({ x: 3, y: 64, z: 4 }),
+    );
     select(e, base);
     if (kind === "frame") e.shape.execute({ playerId, style: kind });
     else {
@@ -294,7 +304,10 @@ it.each(["frame", "gable"] as const)(
     }
     e.drain();
 
-    const other = boxOf({ x: 10, y: 64, z: 10 }, { x: 13, y: 64, z: 14 });
+    const other = boxOf(
+      cellOf({ x: 10, y: 64, z: 10 }),
+      cellOf({ x: 13, y: 64, z: 14 }),
+    );
     const selection = selectionOf(overworld, other, stone);
     e.session.confirmBox(selection, "selected", cornerTaps(selection.box));
     const flow = e.session.flow;
@@ -312,8 +325,8 @@ it("CutBox then UndoEdit restores the box and consumes only its snapshot", () =>
     fc.property(size, size, (width, depth) => {
       const e = setup();
       const box = boxOf(
-        { x: -2, y: 64, z: 3 },
-        { x: width, y: 65, z: depth + 3 },
+        cellOf({ x: -2, y: 64, z: 3 }),
+        cellOf({ x: width, y: 65, z: depth + 3 }),
       );
       const before = seed(e, box);
       expect(
@@ -338,7 +351,10 @@ it("RotateSelection then taps, then one UndoEdit per rotation restores each step
   fc.assert(
     fc.property(size, fc.integer({ min: 2, max: 4 }), (width, turns) => {
       const e = setup();
-      const box = boxOf({ x: 0, y: 64, z: 0 }, { x: width - 1, y: 65, z: 1 });
+      const box = boxOf(
+        cellOf({ x: 0, y: 64, z: 0 }),
+        cellOf({ x: width - 1, y: 65, z: 1 }),
+      );
       const union = planRotationAboutCenter(box).union;
       const states = [seed(e, union)];
       select(e, box);
@@ -377,8 +393,8 @@ it.each(["Remove above", "Copy"] as const)(
   "%s leaves empty history unchanged and UndoEdit reports nothing to undo",
   (operation) => {
     const e = setup();
-    const floor = { x: 0, y: OVERWORLD_RANGE.maxY - 2, z: 0 };
-    const above = { ...floor, y: floor.y + 1 };
+    const floor = cellOf({ x: 0, y: OVERWORLD_RANGE.maxY - 2, z: 0 });
+    const above = cellOf({ ...floor, y: floor.y + 1 });
     const box = boxOf(floor, above);
     e.world.put(floor, stone);
     e.world.put(above, stone);
@@ -431,8 +447,8 @@ it("Undo while editing height again restores the pre-turn taps and height aim", 
       fc.integer({ min: 1, max: 8 }),
       (width, depth, height) => {
         const e = setup();
-        const from = { x: width, y: 65, z: 0 };
-        const to = { x: 0, y: 63, z: depth };
+        const from = cellOf({ x: width, y: 65, z: 0 });
+        const to = cellOf({ x: 0, y: 63, z: depth });
         const before = boxOf(from, to);
         e.session.setFlowForTest(
           tapAir(tapBlock(e.session.flow, overworld, from, stone), to),
@@ -466,8 +482,8 @@ it("Undo of a narrow sphere restores taps spanning the original footprint", () =
   fc.assert(
     fc.property(fc.integer({ min: 12, max: 24 }), (width) => {
       const e = setup();
-      const from = { x: width, y: 61, z: 0 };
-      const to = { x: 0, y: 60, z: 1 };
+      const from = cellOf({ x: width, y: 61, z: 0 });
+      const to = cellOf({ x: 0, y: 60, z: 1 });
       const first = tapBlock(e.session.flow, overworld, from, stone);
       const selected = confirmEndpointHeight(tapAir(first, to));
       e.session.setFlowForTest(chooseHeightedFlow(selected, "sphere"));
@@ -538,9 +554,9 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         const a = { x: -2, y: 65, z: 3 };
         const b = { x: a.x + width, y: 64, z: 4 };
         const [from, to] = reverse ? [b, a] : [a, b];
-        e.world.put(from, stone);
-        tap.execute({ ...cmd, cell: from });
-        tap.execute({ ...cmd, cell: to });
+        e.world.put(cellOf(from), stone);
+        tap.execute({ ...cmd, cell: cellOf(from) });
+        tap.execute({ ...cmd, cell: cellOf(to) });
         check();
         expect(e.session.confirmLiveHeight()).toBe(true);
         check();

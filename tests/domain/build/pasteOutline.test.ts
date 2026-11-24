@@ -7,6 +7,7 @@ import {
 } from "../../../src/domain/build/box";
 import { pasteOutline } from "../../../src/domain/build/preview/pasteOutline";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 
 const coordinate = fc.integer({ min: -10000, max: 10000 });
@@ -21,11 +22,14 @@ const boxes = (maxSide: number, minHeight = 1) =>
     )
     .map(
       ([min, width, height, depth]): CellBox =>
-        cellBox(min, {
-          x: min.x + width - 1,
-          y: min.y + height - 1,
-          z: min.z + depth - 1,
-        }),
+        cellBox(
+          cellOf(min),
+          cellOf({
+            x: min.x + width - 1,
+            y: min.y + height - 1,
+            z: min.z + depth - 1,
+          }),
+        ),
     );
 
 function bottomComplete(box: CellBox, points: Vec3[]) {

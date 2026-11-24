@@ -1,5 +1,5 @@
 import type { BlockFace } from "../../domain/shared/blockFace";
-import { cellCenter } from "../../domain/shared/cells";
+import { cellCenter, cellOf } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 // Use case: place a vehicle from its item on the cell its kind's placement rule
 // (profile.placement) picks (ADR 0008, ADR 0050): the SUV and the camper on the top
@@ -94,7 +94,7 @@ export class PlaceVehicle {
       return false;
     const result = this.world.spawnVehicle(
       cmd.dimensionId,
-      cellCenter(block, 1),
+      cellCenter(cellOf(block), 1),
       cmd.yaw,
       cmd.kind,
       cmd.playerId,

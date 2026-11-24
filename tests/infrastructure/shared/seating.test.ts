@@ -1,7 +1,7 @@
 import type { Dimension, Entity, Player } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import type { Cell } from "../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import {
   makeSafeStand,
@@ -133,7 +133,7 @@ it("requires a dry, non-decoration floor and two air cells outside vehicle and c
           isVehicleSpace: (_, cell) => vehicle[cell.y] === true,
           isCampSpace: (_, cell) => camp[cell.y] === true,
         });
-        expect(isSafe({ x: 0, y: 0, z: 0 })).toBe(
+        expect(isSafe(cellOf({ x: 0, y: 0, z: 0 }))).toBe(
           acceptedFloors.includes(floor) &&
             air.every(Boolean) &&
             !vehicle.some(Boolean) &&
@@ -158,13 +158,13 @@ it.each([0, 1])("rejects an unavailable body cell at height %s", (y) => {
     isVehicleSpace: () => false,
     isCampSpace: () => false,
   });
-  expect(isSafe({ x: 0, y: 0, z: 0 })).toBe(true);
+  expect(isSafe(cellOf({ x: 0, y: 0, z: 0 }))).toBe(true);
   expect(getBlockAbove).not.toHaveBeenCalled();
   getBlock.mockImplementation((cell) => {
     if (cell.y === y) throw Error("unloaded");
     return { typeId: "minecraft:stone", isAir: cell.y !== -1, isLiquid: false };
   });
-  expect(isSafe({ x: 0, y: 0, z: 0 })).toBe(false);
+  expect(isSafe(cellOf({ x: 0, y: 0, z: 0 }))).toBe(false);
 });
 
 it("finds the first player among any mix of riders", () => {

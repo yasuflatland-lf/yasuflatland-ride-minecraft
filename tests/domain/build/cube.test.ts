@@ -7,7 +7,7 @@ import {
   cubeVolume,
 } from "../../../src/domain/build/volume/cube";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
-import type { Cell } from "../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const side = fc.integer({ min: 1, max: 12 });
@@ -19,7 +19,10 @@ const spec = fc
     side,
   )
   .map(([min, width, depth, height]) => ({
-    base: boxOf(min, { x: min.x + width - 1, y: min.y, z: min.z + depth - 1 }),
+    base: boxOf(
+      cellOf(min),
+      cellOf({ x: min.x + width - 1, y: min.y, z: min.z + depth - 1 }),
+    ),
     kind: "cube" as const,
     height,
   }));
@@ -151,7 +154,7 @@ describe("cube geometry", () => {
 
   it("samples the top and bottom edges four times per block and the vertical edges once per block", () => {
     const spec = {
-      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 2 }),
+      base: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 2 })),
       kind: "cube" as const,
       height: 6,
     };
@@ -167,7 +170,7 @@ describe("cube geometry", () => {
 
   it("gives up the vertical edges before the horizontal ones under a tight budget", () => {
     const spec = {
-      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 9, y: 0, z: 9 }),
+      base: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 9, y: 0, z: 9 })),
       kind: "cube" as const,
       height: 10,
     };

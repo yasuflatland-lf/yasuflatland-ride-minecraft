@@ -10,11 +10,11 @@ import {
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -47,7 +47,7 @@ function setup() {
   const structures = new FakeStructureStore(world);
   const repo = new FakeSessions(structures);
   const session = repo.getOrCreate(playerId);
-  const at = { x: 0, y: 0, z: 0 };
+  const at = cellOf({ x: 0, y: 0, z: 0 });
   holdClipboard(
     session,
     structureClipboard(boxOf(at, at), () => stone, structures),
@@ -64,7 +64,7 @@ function setup() {
     if (!session.clipboard) throw new Error("Expected clipboard");
     return pasteTarget(
       session.clipboard,
-      block,
+      cellOf(block),
       "up",
       turnBetween(session.clipboard.facing, "east"),
       "east",
@@ -76,9 +76,9 @@ function setup() {
 it("leaves any flow after the exact grace delay and does not re-trigger", () => {
   fc.assert(
     fc.property(cell, fc.nat({ max: 30 }), (at, extraTicks) => {
-      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      const first = tapBlock({ kind: "idle" }, overworld, cellOf(at), stone);
       const endpoint = confirmEndpointHeight(
-        tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+        tapAir(first, cellOf({ ...at, x: at.x + 2, z: at.z + 2 })),
       );
       const height = chooseHeightedFlow(endpoint, "gable");
       for (const flow of [
@@ -94,7 +94,9 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         const modes = new UpdateBuildModes(e.repo, leave);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, held: "wand" }]);
-        e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
+        e.session.confirmBox(
+          selectionOf(overworld, boxOf(cellOf(at), cellOf(at)), stone),
+        );
         e.session.setFlowForTest(flow);
         const clipboard = e.session.clipboard;
         const box = e.session.confirmedBox;
@@ -129,9 +131,9 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
 it("LeaveBuild twice has the same effect as once in every flow", () => {
   fc.assert(
     fc.property(cell, (at) => {
-      const first = tapBlock({ kind: "idle" }, overworld, at, stone);
+      const first = tapBlock({ kind: "idle" }, overworld, cellOf(at), stone);
       const endpoint = confirmEndpointHeight(
-        tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+        tapAir(first, cellOf({ ...at, x: at.x + 2, z: at.z + 2 })),
       );
       for (const flow of [
         { kind: "idle" } as const,
@@ -141,7 +143,9 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         beginPasteAim(),
       ]) {
         const e = setup();
-        e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
+        e.session.confirmBox(
+          selectionOf(overworld, boxOf(cellOf(at), cellOf(at)), stone),
+        );
         e.session.setFlowForTest(flow);
         const leave = new LeaveBuild(e.repo, new FakeTapTargets());
         const end = vi.spyOn(e.session, "endPasting");
@@ -177,7 +181,7 @@ it("EndPasting preserves the completed snapshot and older cell history", () => {
       const e = setup();
       const older = {
         dimensionId: overworld,
-        changes: [{ cell: block, before: stone, after: AIR }],
+        changes: [{ cell: cellOf(block), before: stone, after: AIR }],
       };
       e.session.finishEdit(older, "undoable");
       const target = e.target(block);
@@ -389,9 +393,9 @@ it("retains the selection across build tool swaps and resets the leave grace", (
         }
         const session = repo.getOrCreate(playerId);
 
-        const first = tapBlock(session.flow, overworld, a, stone);
+        const first = tapBlock(session.flow, overworld, cellOf(a), stone);
         const selection = confirmEndpointHeight(
-          tapBlock(first, overworld, b, stone),
+          tapBlock(first, overworld, cellOf(b), stone),
         );
         session.setFlowForTest(selection);
         const tick = (held: HeldBuildItem) =>
@@ -427,11 +431,11 @@ it.each(["pasteRotate", "pastePlace"] as const)(
     const first = tapBlock(
       session.flow,
       overworld,
-      { x: 0, y: 0, z: 0 },
+      cellOf({ x: 0, y: 0, z: 0 }),
       stone,
     );
     session.setFlowForTest(
-      tapBlock(first, overworld, { x: 2, y: 1, z: 2 }, stone),
+      tapBlock(first, overworld, cellOf({ x: 2, y: 1, z: 2 }), stone),
     );
     for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++)
       modes.execute([{ playerId, held }]);

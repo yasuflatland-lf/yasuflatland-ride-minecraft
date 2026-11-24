@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../shared/decorations";
 import { type Facing4, snapYaw4 } from "../../shared/facing";
 import type { Host } from "../../shared/hosted";
@@ -27,7 +27,9 @@ export function groundRoofTentCells(clicked: Cell) {
   for (const dx of [-1, 0, 1])
     for (const dz of [-1, 0, 1])
       for (const dy of [1, 2])
-        clear.push({ x: clicked.x + dx, y: clicked.y + dy, z: clicked.z + dz });
+        clear.push(
+          cellOf({ x: clicked.x + dx, y: clicked.y + dy, z: clicked.z + dz }),
+        );
   return { support: [clicked], clear };
 }
 

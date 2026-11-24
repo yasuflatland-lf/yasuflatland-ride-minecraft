@@ -18,7 +18,7 @@ import type {
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
 import type { DecorPlacingWorld } from "../../../src/application/vehicle/room/ports";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import {
   asPlayerId,
   asVehicleId,
@@ -174,7 +174,9 @@ export class FakeWorld
     cells: readonly Vec3[],
   ): (string | undefined)[] {
     this.calls.push("blockTypes");
-    return cells.map((c) => this.typesAt.get(cellKey(c)) ?? "minecraft:air");
+    return cells.map(
+      (c) => this.typesAt.get(cellKey(cellOf(c))) ?? "minecraft:air",
+    );
   }
   clearBlocks(vehicleId: string, cells: readonly ClearCell[]) {
     this.calls.push("clearBlocks");

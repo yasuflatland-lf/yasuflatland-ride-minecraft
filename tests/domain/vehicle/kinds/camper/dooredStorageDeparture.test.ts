@@ -2,7 +2,7 @@
 // drive reads those plate cells with ownPlateBlock instead of as cargo (ADR 0121, 0123).
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 import { slotCells } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
@@ -26,7 +26,7 @@ function parked(yaw: number) {
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
     (cells: readonly { x: number; y: number; z: number }[]) =>
-      cells.map((c) => blocks.get(cellKey(c)) ?? AIR),
+      cells.map((c) => blocks.get(cellKey(cellOf(c))) ?? AIR),
   );
   let tick = 0;
   const ctx: TickContext = {

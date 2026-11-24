@@ -30,7 +30,7 @@ import {
   TRAPEZOID_LAYOUT,
   tentShellAt,
 } from "../../../src/domain/camp/tentLayout";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { dot, forward, normalizeYaw } from "../../../src/domain/shared/vec";
@@ -52,11 +52,12 @@ const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 // A quarter turn of the yaw turns the world offsets (a, b) into (-b, a).
-const turned = (pose: TentPose, c: Cell): Cell => ({
-  x: pose.x - (c.z - pose.z) + 0,
-  y: c.y,
-  z: pose.z + (c.x - pose.x) + 0,
-});
+const turned = (pose: TentPose, c: Cell): Cell =>
+  cellOf({
+    x: pose.x - (c.z - pose.z) + 0,
+    y: c.y,
+    z: pose.z + (c.x - pose.x) + 0,
+  });
 const TURNED_FACE: Record<TentPlateSide, TentPlateSide> = {
   "-z": "+x",
   "+z": "-x",
@@ -265,7 +266,9 @@ describe("tentCells (ADR 0130, 0131)", () => {
               : c.block,
         }));
         const sort = (cs: { x: number; y: number; z: number }[]) =>
-          [...cs].sort((a, b) => cellKey(a).localeCompare(cellKey(b)));
+          [...cs].sort((a, b) =>
+            cellKey(cellOf(a)).localeCompare(cellKey(cellOf(b))),
+          );
         expect(sort(mapped)).toEqual(sort(tentCells(next, PITCHED_STATE)));
       }),
     );
@@ -357,7 +360,7 @@ describe("the lantern cell", () => {
     fc.assert(
       fc.property(arbPose, arbState, (pose, state) => {
         const l = lanternCell(pose);
-        const standing = { x: l.x, y: pose.y + 1, z: l.z };
+        const standing = cellOf({ x: l.x, y: pose.y + 1, z: l.z });
         const below = cellKey(standing);
         expect(tentCells(pose, state).map(cellKey)).not.toContain(below);
         expect(
@@ -397,11 +400,11 @@ describe("tentBlockAt (ADR 0131)", () => {
         (pose, d) => {
           const cells = tentCells(pose, PITCHED_STATE);
           for (const c of cells) expect(tentBlockAt(pose, c)).toEqual(c.block);
-          const probe = {
+          const probe = cellOf({
             x: pose.x + d.dx,
             y: pose.y + d.dy,
             z: pose.z + d.dz,
-          };
+          });
           const laid = cells.find((c) => cellKey(c) === cellKey(probe));
           expect(tentBlockAt(pose, probe)).toEqual(laid?.block);
         },
@@ -438,7 +441,7 @@ describe("clear and ground cells (ADR 0131)", () => {
         for (let x = min.x - 1; x <= min.x + size.x; x++)
           for (let y = min.y - 1; y <= min.y + size.y; y++)
             for (let z = min.z - 1; z <= min.z + size.z; z++) {
-              const c = { x, y, z };
+              const c = cellOf({ x, y, z });
               const inBox =
                 x >= min.x &&
                 x < min.x + size.x &&
@@ -523,7 +526,7 @@ describe("tentGround (ADR 0131)", () => {
   });
 
   it("rests a tent clicked on a snow layer on the block under it, with the snow in its clear cells", () => {
-    const clicked = { x: 4, y: 70, z: -2 };
+    const clicked = cellOf({ x: 4, y: 70, z: -2 });
     const ground = tentGround(clicked, (at) =>
       at.y === 70 ? "minecraft:snow_layer" : "minecraft:dirt",
     );

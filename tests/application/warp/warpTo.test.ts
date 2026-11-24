@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { WarpTo } from "../../../src/application/warp/warpTo";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { WARP_SPEC } from "../../../src/domain/warp/spec";
 import { nether, player, point, setup } from "./fakes";
 
@@ -17,7 +18,7 @@ it("teleports two blocks away in the target dimension or falls back above", asyn
         const target = {
           ...point(),
           dimension: nether,
-          cell: { x, y: 70, z: -3 },
+          cell: cellOf({ x, y: 70, z: -3 }),
         };
         const e = setup({ points: [target] });
         const side = { ...target.cell, x: x + 2 };

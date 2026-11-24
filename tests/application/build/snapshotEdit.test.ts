@@ -9,6 +9,7 @@ import type { EditKind } from "../../../src/domain/build/edit/change";
 import { BuildSession } from "../../../src/domain/build/session";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { overworld as dimensionId, FakeFeedback } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -16,8 +17,8 @@ import { FakeStructureStore } from "./fakes/structureStore";
 const playerId = asPlayerId("alex");
 const coordinate = fc.integer({ min: -3, max: 3 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-const boxes = fc.tuple(cell, cell).map(([a, b]) => boxOf(a, b));
-const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+const boxes = fc.tuple(cell, cell).map(([a, b]) => boxOf(cellOf(a), cellOf(b)));
+const box = boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 0, z: 0 }));
 
 function setup() {
   const session = new BuildSession(playerId);

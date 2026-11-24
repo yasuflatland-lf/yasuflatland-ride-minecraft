@@ -5,6 +5,7 @@ import type {
   PlacementWorld,
   VehicleSpawnResult,
 } from "../../../application/vehicle/ports/placement";
+import { cellOf } from "../../../domain/shared/cells";
 import {
   asVehicleId,
   type DimensionId,
@@ -36,7 +37,7 @@ export class BedrockPlacementWorld implements PlacementWorld {
   ) {}
 
   isCampSpace(dimensionId: DimensionId, at: Vec3): boolean {
-    return this.campSpace(dimensionId, at);
+    return this.campSpace(dimensionId, cellOf(at));
   }
 
   isAir(dimensionId: DimensionId, at: Vec3): boolean {

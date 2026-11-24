@@ -7,13 +7,14 @@ import type { UndoEntry } from "../../../src/domain/build/history/history";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { StructureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
 import { overworld } from "../../application/build/fakes";
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 
 const player = asPlayerId("builder");
-const cell = { x: 0, y: 0, z: 0 };
+const cell = cellOf({ x: 0, y: 0, z: 0 });
 const box = boxOf(cell, cell);
 const material = blockStateOf("minecraft:stone");
 const selection = selectionOf(overworld, box, material);

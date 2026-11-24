@@ -19,7 +19,7 @@ import {
   tentGroundCells,
 } from "../../../src/domain/camp/tent";
 import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -168,7 +168,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
           );
           const original = new Map(values);
           dimension.getBlock.mockImplementation((cell: Vec3) => {
-            const at = cellKey(cell);
+            const at = cellKey(cellOf(cell));
             return {
               typeId: values.get(at),
               setType: (type: string) => {
@@ -298,15 +298,15 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { dimension, world } = fixture();
     const clear = tentClearCells(POSE);
     const ground = tentGroundCells(POSE);
-    const at = (i: number) => cellKey(clear[i] ?? { x: 0, y: 0, z: 0 });
+    const at = (i: number) => cellKey(cellOf(clear[i] ?? { x: 0, y: 0, z: 0 }));
     dimension.getBlock.mockImplementation(
       (c: { x: number; y: number; z: number }) => {
-        const k = cellKey(c);
+        const k = cellKey(cellOf(c));
         if (k === at(0))
           return { typeId: "minecraft:light_block_15", isLiquid: false };
         if (k === at(1)) return undefined;
         if (k === at(2)) throw new Error("unloaded");
-        if (k === cellKey(ground[0] ?? c))
+        if (k === cellKey(cellOf(ground[0] ?? c)))
           return { typeId: "minecraft:water", isLiquid: true };
         return {
           typeId: c.y < POSE.y ? "minecraft:stone" : "minecraft:air",
@@ -405,7 +405,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     );
     if (!wall || !ceiling) throw new Error("no cells");
     expect(world.isCampSpace(DIM, wall)).toBe(true);
-    expect(world.isCampSpace(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
+    expect(world.isCampSpace(DIM, cellOf({ x: 0, y: 0, z: 0 }))).toBe(false);
     expect(world.isCampSpace(asDimensionId("minecraft:nether"), wall)).toBe(
       false,
     );
@@ -493,12 +493,12 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { blocks, dimension, registry, world } = fixture([ENTRY]);
     game.getEntity.mockReturnValue(undefined);
     const cells = tentCells(POSE, PITCHED_STATE);
-    const replaced = cellKey(cells[0] ?? POSE);
-    const unloaded = cellKey(cells[1] ?? POSE);
+    const replaced = cellKey(cellOf(cells[0] ?? POSE));
+    const unloaded = cellKey(cellOf(cells[1] ?? POSE));
     const set = new Map<string, ReturnType<typeof vi.fn>>();
     dimension.getBlock.mockImplementation(
       (c: { x: number; y: number; z: number }) => {
-        const k = cellKey(c);
+        const k = cellKey(cellOf(c));
         if (k === unloaded) throw new Error("unloaded");
         const laid = cells.find((l) => cellKey(l) === k);
         const setType = vi.fn();
@@ -684,7 +684,8 @@ describe("BedrockTentWorld (ADR 0131)", () => {
               z: cell.z + 0.5 + sign * normal.z * 0.24,
             };
             dimension.getPlayers.mockImplementation((q) =>
-              cellKey((q as { location: Vec3 }).location) === cellKey(cell)
+              cellKey(cellOf((q as { location: Vec3 }).location)) ===
+              cellKey(cell)
                 ? [player]
                 : [],
             );
@@ -710,7 +711,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const cell = defined(flapCells(POSE, flap)[0], "flap cell");
     f.player.location = { x: cell.x + 0.5, y: cell.y + 0.125, z: cell.z + 0.5 };
     f.dimension.getPlayers.mockImplementation((q) =>
-      cellKey((q as { location: Vec3 }).location) === cellKey(cell)
+      cellKey(cellOf((q as { location: Vec3 }).location)) === cellKey(cell)
         ? [f.player]
         : [],
     );
@@ -722,7 +723,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { world, dimension, player } = fixture([{ ...ENTRY, pose }]);
     player.location = { x: 0.67, y: -60, z: 10.74 };
     dimension.getPlayers.mockImplementation((q) =>
-      cellKey((q as { location: Vec3 }).location) === "0,-60,10"
+      cellKey(cellOf((q as { location: Vec3 }).location)) === "0,-60,10"
         ? [player]
         : [],
     );
@@ -804,7 +805,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
             : "minecraft:air",
       }));
       dimension.getPlayers.mockImplementation((q) => {
-        const key = cellKey((q as { location: Vec3 }).location);
+        const key = cellKey(cellOf((q as { location: Vec3 }).location));
         return key === cellKey(cell)
           ? [player]
           : blocker === "blocked player" && key === cellKey(last)
@@ -814,7 +815,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
       dimension.getEntities.mockImplementation((q) => {
         const query = q as { location: Vec3; families?: string[] };
         return blocker === "mob" &&
-          cellKey(query.location) === cellKey(last) &&
+          cellKey(cellOf(query.location)) === cellKey(last) &&
           query.families?.includes("mob")
           ? [{}]
           : [];
@@ -829,7 +830,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { world, dimension, player, cell } = closingFixture("front");
     const other = { ...player, id: "other", teleport: vi.fn() };
     dimension.getPlayers.mockImplementation((q) =>
-      cellKey((q as { location: Vec3 }).location) === cellKey(cell)
+      cellKey(cellOf((q as { location: Vec3 }).location)) === cellKey(cell)
         ? [player, other]
         : [],
     );
@@ -886,7 +887,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     expect(survey.clear.every((c) => c === undefined)).toBe(true);
     expect(survey.ground.every((g) => g === undefined)).toBe(true);
     expect(survey.occupants).toBe(0);
-    world.clearDecorations(elsewhere, [{ x: 0, y: 0, z: 0 }]);
+    world.clearDecorations(elsewhere, [cellOf({ x: 0, y: 0, z: 0 })]);
     expect(dimension.getBlock).not.toHaveBeenCalled();
     expect(dimension.getEntities).not.toHaveBeenCalled();
   });
@@ -906,7 +907,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { blocks, registry, world } = fixture([ENTRY]);
     const other = asTentId("other");
     blocks.laidBlockOwner.mockReturnValueOnce(other as never);
-    const cell = { x: 1, y: 2, z: 3 };
+    const cell = cellOf({ x: 1, y: 2, z: 3 });
     expect(world.tentBlockOwner(DIM, cell, TENT_WALL_BLOCK)).toBe(other);
     expect(registry.all).not.toHaveBeenCalled();
   });
@@ -943,10 +944,10 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   it("clears decorations to air, skipping an unloaded cell and one that refuses the change", () => {
     const { dimension, world } = fixture();
     const cells = [
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 0, z: 0 },
-      { x: 2, y: 0, z: 0 },
-      { x: 3, y: 0, z: 0 },
+      cellOf({ x: 0, y: 0, z: 0 }),
+      cellOf({ x: 1, y: 0, z: 0 }),
+      cellOf({ x: 2, y: 0, z: 0 }),
+      cellOf({ x: 3, y: 0, z: 0 }),
     ];
     const setTypes = new Map<string, ReturnType<typeof vi.fn>>();
     dimension.getBlock.mockImplementation(
@@ -956,16 +957,16 @@ describe("BedrockTentWorld (ADR 0131)", () => {
         const setType = vi.fn(() => {
           if (c.x === 0) throw new Error("changed since the survey");
         });
-        setTypes.set(cellKey(c), setType);
+        setTypes.set(cellKey(cellOf(c)), setType);
         return { typeId: "minecraft:short_grass", setType };
       },
     );
     world.clearDecorations(DIM, cells);
     expect(dimension.getBlock).toHaveBeenCalledTimes(4);
     for (const x of [0, 3])
-      expect(setTypes.get(cellKey({ x, y: 0, z: 0 }))).toHaveBeenCalledWith(
-        "minecraft:air",
-      );
+      expect(
+        setTypes.get(cellKey(cellOf({ x, y: 0, z: 0 }))),
+      ).toHaveBeenCalledWith("minecraft:air");
   });
 
   it("drops no item for a tent with neither an entity nor an entry", () => {

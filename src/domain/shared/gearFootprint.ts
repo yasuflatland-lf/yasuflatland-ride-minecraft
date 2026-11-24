@@ -48,7 +48,7 @@ export function footprintCellsAt(
 }
 
 export function footprintSupportCells(floor: readonly Cell[]): Cell[] {
-  return floor.map((cell) => ({ ...cell, y: cell.y - 1 }));
+  return floor.map((cell) => cellOf({ ...cell, y: cell.y - 1 }));
 }
 
 export function footprintClearCells(
@@ -59,9 +59,9 @@ export function footprintClearCells(
   const layers = Array.from({ length: clearance }, (_, up) => up);
   if (order === "column")
     return floor.flatMap((cell) =>
-      layers.map((up) => ({ ...cell, y: cell.y + up })),
+      layers.map((up) => cellOf({ ...cell, y: cell.y + up })),
     );
   return layers.flatMap((up) =>
-    floor.map((cell) => ({ ...cell, y: cell.y + up })),
+    floor.map((cell) => cellOf({ ...cell, y: cell.y + up })),
   );
 }

@@ -1,10 +1,11 @@
 import { system } from "@minecraft/server";
 import {
+  parasolBaseCenter,
   parasolCeilingCells,
   parasolPose,
 } from "../../domain/resort/parasolPose";
 import { PARASOL_SPEC } from "../../domain/resort/spec";
-import { cellCenter } from "../../domain/shared/cells";
+import { cellOf } from "../../domain/shared/cells";
 import { snapYaw4 } from "../../domain/shared/facing";
 import { PAINTS } from "../../domain/shared/paint";
 import {
@@ -21,12 +22,12 @@ import { PAINT_VARIANT } from "./support/paintContract";
 
 async function course(a: Arena, rain: boolean): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
-  const pose = parasolPose(block, 0);
+  const pose = parasolPose(cellOf(block), 0);
   const cells = parasolCeilingCells(pose);
   const near = (type: string) =>
     a.dim.getEntities({
       type,
-      location: cellCenter(pose.base),
+      location: parasolBaseCenter(pose),
       maxDistance: 2,
     });
   const drops = () =>
@@ -95,12 +96,12 @@ export function parasolRainCeiling(a: Arena): Promise<Outcome> {
 
 export async function parasolPaint(a: Arena): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
-  const pose = parasolPose(block, 0);
+  const pose = parasolPose(cellOf(block), 0);
   const cells = parasolCeilingCells(pose);
   const near = () =>
     a.dim.getEntities({
       type: BEACH_PARASOL,
-      location: cellCenter(pose.base),
+      location: parasolBaseCenter(pose),
       maxDistance: 2,
     });
   try {

@@ -2,6 +2,7 @@ import { InputMode } from "@minecraft/server";
 import type { AimReader } from "../../../application/build/ports/aim";
 import type { AimSample, InputKind } from "../../../domain/build/aim/sample";
 import { BUILD_SPEC } from "../../../domain/build/spec";
+import { cellOf } from "../../../domain/shared/cells";
 import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { blockFaceOf } from "../../shared/faces";
@@ -54,7 +55,7 @@ export class BedrockAimReader implements AimReader {
       return {
         ray: { origin, direction },
         block: hit
-          ? { cell: hit.block.location, face: blockFaceOf(hit.face) }
+          ? { cell: cellOf(hit.block.location), face: blockFaceOf(hit.face) }
           : undefined,
         input:
           override?.input ??

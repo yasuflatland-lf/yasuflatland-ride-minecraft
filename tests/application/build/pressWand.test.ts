@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { chooseStairs } from "../../../src/domain/build/flow/stairFlow";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -16,11 +17,13 @@ const playerId = asPlayerId("builder");
 const player = { playerId, dimensionId: nether };
 const stone = blockStateOf("minecraft:stone");
 const coord = fc.integer({ min: -80, max: 80 });
-const cells = fc.record({
-  x: coord,
-  y: fc.integer({ min: 0, max: 80 }),
-  z: coord,
-});
+const cells = fc
+  .record({
+    x: coord,
+    y: fc.integer({ min: 0, max: 80 }),
+    z: coord,
+  })
+  .map(cellOf);
 
 it("samples the final ray before offering the shape or roof contents menu", () => {
   fc.assert(
@@ -33,7 +36,11 @@ it("samples the final ray before offering the shape or roof contents menu", () =
         const end = { ...cell, x: cell.x + 4, z: cell.z + 4 };
         for (const point of [cell, end]) {
           expect(
-            press.execute({ ...player, intent: "selectPoint", cell: point }),
+            press.execute({
+              ...player,
+              intent: "selectPoint",
+              cell: point,
+            }),
           ).toBe("none");
         }
         const session = repo.getOrCreate(playerId);
@@ -50,7 +57,9 @@ it("samples the final ray before offering the shape or roof contents menu", () =
         ).toBe("utilityMenu");
         expect(session.flow).toMatchObject({
           kind: "selected",
-          selection: { box: boxOf(cell, { ...end, y: cell.y + 3 }) },
+          selection: {
+            box: boxOf(cell, cellOf({ ...end, y: cell.y + 3 })),
+          },
         });
         session.setFlowForTest(chooseHeightedFlow(session.flow, roof));
         expect(press.execute({ playerId, intent: "aimHeight" })).toBe("none");
@@ -108,7 +117,7 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
           ...sample,
           block: {
             face: "up",
-            cell: { x: cell.x + 4, y: cell.y + 2, z: cell.z + 1 },
+            cell: cellOf({ x: cell.x + 4, y: cell.y + 2, z: cell.z + 1 }),
           },
         };
         expect(press.execute({ playerId, intent: "fixStairGoal" })).toBe(

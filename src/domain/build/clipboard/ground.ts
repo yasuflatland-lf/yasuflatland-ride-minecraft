@@ -1,3 +1,4 @@
+import { cellOf } from "../../shared/cells";
 import { boxFromSize, type CellBox, sizeOf } from "../box";
 import { BUILD_SPEC } from "../spec";
 
@@ -32,5 +33,5 @@ export function snapToGround(
   }
   return highest === undefined
     ? undefined
-    : boxFromSize({ ...box.min, y: highest + 1 }, sizeOf(box));
+    : boxFromSize(cellOf({ ...box.min, y: highest + 1 }), sizeOf(box));
 }

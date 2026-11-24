@@ -14,7 +14,7 @@ import {
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import { CELL_FOOTPRINT_PX } from "../../../domain/resort/spec";
-import { type Cell, cellCenter } from "../../../domain/shared/cells";
+import { type Cell, cellCenter, cellOf } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import {
@@ -175,12 +175,12 @@ export class BedrockFurnitureWorld
     return this.topCells(entity).some(
       (cell) =>
         this.cellOverlaps(entity, cell, at, footprint) &&
-        safeBlockAt(entity.dimension, { ...cell, y: cell.y + 1 })?.isAir !==
-          true,
+        safeBlockAt(entity.dimension, cellOf({ ...cell, y: cell.y + 1 }))
+          ?.isAir !== true,
     );
   }
   hostedAbove(dimension: DimensionId, destination: Cell): boolean {
-    const cell = { ...destination, y: destination.y - 1 };
+    const cell = cellOf({ ...destination, y: destination.y - 1 });
     const id = this.ownerAt(dimension, cell);
     const entity = id && this.entity(id);
     const host = entity && this.deps.topHosts.hostTypeOf(entity);
@@ -203,8 +203,8 @@ export class BedrockFurnitureWorld
     ];
     return cells.some(
       (cell) =>
-        safeBlockAt(entity.dimension, { ...cell, y: cell.y + 1 })?.isAir !==
-        true,
+        safeBlockAt(entity.dimension, cellOf({ ...cell, y: cell.y + 1 }))
+          ?.isAir !== true,
     );
   }
   dropItem(id: FurnitureId, player: PlayerId): void {

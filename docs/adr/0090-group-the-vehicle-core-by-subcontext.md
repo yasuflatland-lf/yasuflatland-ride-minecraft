@@ -25,9 +25,10 @@ The dependency-cruiser rule that keeps the core away from `motion/` (0055, 0065)
 - `tests/` mirrors the moves: a test of a moved file moves to the matching subfolder under `tests/domain/vehicle/`
 - A new core file goes into the subfolder of its context, or stays flat when it belongs to driving
 
+- Shared block coordinates live in `src/domain/shared/cells.ts`. Block APIs use the branded `Cell` type. `cellOf` floors world coordinates and `parseCell` validates saved coordinates.
+
 ## Consequences
 
 - The tree shows the contexts. Application and infrastructure imports name the context in their path, for example `domain/vehicle/fleet/fleet`
-- `Cell` and `cellKey` stay in `lighting/headlights.ts`, so `dock/` imports `lighting/`. Moving the block grid types to a file of their own is left for a later change
 - The application ports in `src/application/vehicle/ports.ts` still mix the contexts; splitting them is a separate change
 - Revisit when a subfolder needs its own import rules, for example if `fleet/` must not depend on driving

@@ -1,5 +1,5 @@
 import { type CellBox, cellBox } from "../../../domain/build/box";
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, cellOf } from "../../../domain/shared/cells";
 import { buildId } from "../identifiers";
 
 const STRUCTURE_PURPOSE = "box";
@@ -24,11 +24,11 @@ export function isStructureTooLarge(box: CellBox): boolean {
 
 /** The structure-relative location of `cell`, whose structure was saved from `box`. */
 export function structureOffset(box: CellBox, cell: Cell): Cell {
-  return {
+  return cellOf({
     x: cell.x - box.min.x,
     y: cell.y - box.min.y,
     z: cell.z - box.min.z,
-  };
+  });
 }
 
 export function* fillChunks(box: CellBox): Generator<CellBox> {
@@ -42,12 +42,12 @@ export function* fillChunks(box: CellBox): Generator<CellBox> {
     for (let y = box.min.y; y <= box.max.y; y += dy) {
       for (let z = box.min.z; z <= box.max.z; z += dz) {
         yield cellBox(
-          { x, y, z },
-          {
+          cellOf({ x, y, z }),
+          cellOf({
             x: Math.min(x + dx - 1, box.max.x),
             y: Math.min(y + dy - 1, box.max.y),
             z: Math.min(z + dz - 1, box.max.z),
-          },
+          }),
         );
       }
     }
