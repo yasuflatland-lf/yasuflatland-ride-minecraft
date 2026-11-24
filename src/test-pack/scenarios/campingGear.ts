@@ -1,5 +1,5 @@
 import { BlockPermutation, ItemStack } from "@minecraft/server";
-import gear from "../../../tools/camping_gear.json";
+import { CAMPING_GEAR_IDS } from "../../domain/vehicle/kinds/index";
 import { id } from "../../infrastructure/shared/identifiers";
 import {
   DECOR_FACE_STATE,
@@ -20,9 +20,9 @@ const SPOTS = 5;
 export function campingGearBlocks(a: Arena): Promise<Outcome> {
   const failed: string[] = [];
   try {
-    gear.forEach((g, i) => {
+    CAMPING_GEAR_IDS.forEach((gear, i) => {
       const at = a.at(ROW.x, a.gy, ROW.z + i);
-      const blockId = decorBlockId(g.id);
+      const blockId = decorBlockId(gear);
       const face = i % 4;
       const height = (i * 5) % 16;
       const spot = i % SPOTS;
@@ -34,9 +34,9 @@ export function campingGearBlocks(a: Arena): Promise<Outcome> {
             [DECOR_SPOT_STATE]: spot,
           }),
         );
-        new ItemStack(id(g.id));
+        new ItemStack(id(gear));
       } catch {
-        failed.push(g.id);
+        failed.push(gear);
         return;
       }
       // getState only accepts vanilla state names in @minecraft/server 2.x typings
@@ -48,15 +48,15 @@ export function campingGearBlocks(a: Arena): Promise<Outcome> {
         states?.[DECOR_HEIGHT_STATE] !== height ||
         states?.[DECOR_SPOT_STATE] !== spot
       )
-        failed.push(g.id);
+        failed.push(gear);
     });
     return Promise.resolve({
       pass: failed.length === 0,
-      detail: `gear=${gear.length} failed=${failed.join("|")}`,
+      detail: `gear=${CAMPING_GEAR_IDS.length} failed=${failed.join("|")}`,
     });
   } finally {
     a.dim.runCommand(
-      `fill ${a.box(ROW.x, a.gy, ROW.z, ROW.x, a.gy, ROW.z + gear.length - 1)} air`,
+      `fill ${a.box(ROW.x, a.gy, ROW.z, ROW.x, a.gy, ROW.z + CAMPING_GEAR_IDS.length - 1)} air`,
     );
   }
 }

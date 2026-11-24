@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import { parseDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import {
   drawerBlockHit,
   drawerHit,
@@ -91,10 +91,13 @@ it("closes empty open drawers and returns populated contents for each recorded f
       expect(camperRoom(d).decor.decor()).toEqual([]);
       if (!full)
         expect(
-          camperRoom(d).storage.drawerTarget(eye, {
-            x: -0.43,
-            y: -0.903,
-            z: 0.014,
+          camperRoom(d).storage.drawerTarget({
+            eye,
+            direction: {
+              x: -0.43,
+              y: -0.903,
+              z: 0.014,
+            },
           })?.open,
         ).not.toBe(true);
     }),
@@ -104,7 +107,11 @@ it("places in the hit bottom slot and cannot fall back from a missed floor ray",
   fc.assert(
     fc.property(fc.constantFrom(...points), (point) => {
       expect(
-        camperRoom(drive()).decor.decorSlotFor(mug, point, floor, false, eye),
+        camperRoom(drive()).decor.decorSlotFor(
+          mug,
+          { cell: floor, point, eye },
+          "nearestFree",
+        ),
       ).toBe("drawer_bottom_0");
       expect(
         drawerBlockHit(pose, floor, eye, point, [], new Set()),
@@ -112,10 +119,8 @@ it("places in the hit bottom slot and cannot fall back from a missed floor ray",
       expect(
         camperRoom(drive(false, false)).decor.decorSlotFor(
           mug,
-          point,
-          floor,
-          false,
-          eye,
+          { cell: floor, point, eye },
+          "nearestFree",
         ),
       ).toBeUndefined();
     }),
@@ -128,7 +133,7 @@ it("uses the recorded itemUse view ray and confines the touch fallback to a sole
     takeContents: false,
   });
   expect(
-    camperRoom(drive()).storage.drawerTarget(eye, direction, undefined, mug),
+    camperRoom(drive()).storage.drawerTarget({ eye, direction }, mug),
   ).toMatchObject({
     slot: "drawer_bottom_0",
     open: true,
@@ -136,23 +141,29 @@ it("uses the recorded itemUse view ray and confines the touch fallback to a sole
   const away = { x: 1, y: 0, z: 0 };
   const feet = { x: eye.x, y: -59, z: eye.z };
   expect(
-    camperRoom(drive()).storage.drawerTarget(eye, away, undefined, mug, feet)
-      ?.slot,
+    camperRoom(drive()).storage.drawerTarget(
+      { eye, direction: away, feet },
+      mug,
+    )?.slot,
   ).toBe("drawer_bottom_0");
   expect(
     camperRoom(drive(true)).storage.drawerTarget(
-      eye,
-      away,
-      undefined,
+      { eye, direction: away, feet },
       mug,
-      feet,
     ),
   ).toBeUndefined();
   expect(
-    camperRoom(drive()).storage.drawerTarget(eye, away, undefined, mug, {
-      ...feet,
-      z: feet.z + 1,
-    }),
+    camperRoom(drive()).storage.drawerTarget(
+      {
+        eye,
+        direction: away,
+        feet: {
+          ...feet,
+          z: feet.z + 1,
+        },
+      },
+      mug,
+    ),
   ).toBeUndefined();
   const both = drive();
   camperRoom(both).storage.pressStorage({
@@ -161,7 +172,7 @@ it("uses the recorded itemUse view ray and confines the touch fallback to a sole
     tick: 500,
   });
   expect(
-    camperRoom(both).storage.drawerTarget(eye, away, undefined, mug, feet),
+    camperRoom(both).storage.drawerTarget({ eye, direction: away, feet }, mug),
   ).toBeUndefined();
 });
 it("ignores other floor cells and rays missing every target", () => {

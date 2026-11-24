@@ -1,11 +1,10 @@
-import type { DecorPlacement } from "../../dock/decor";
+import type { Cell } from "../../../shared/cells";
 import type { ClearCell } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand, TickContext } from "../../drive";
 import type { Hold } from "../../motion/dock";
 import { readBlockGroups } from "./blockGroups";
-import { DECOR_CELLS } from "./decor";
-import { decorBlockName, ownSlotBlock, slotCells } from "./decorCells";
+import { slotCells } from "./decorCells";
 import { STORAGE_DOORS } from "./furniture";
 import {
   isPassable,
@@ -15,12 +14,20 @@ import {
   wallFootCells,
 } from "./groundCheck";
 import { exitCells } from "./roomCells";
-import {
-  cargoCells,
-  holdsCargo,
-  ownPlateBlock,
-  storagePlateChecks,
-} from "./storagePlates";
+import { AIR } from "./roomGeometry";
+import { cargoCells, holdsCargo, storagePlateChecks } from "./storagePlates";
+
+function obstruction(
+  ctx: TickContext,
+  cell: Cell,
+  typeId: string | undefined,
+): string | undefined {
+  return typeId !== undefined &&
+    typeId !== AIR &&
+    ctx.ownsLaidBlock?.(cell, typeId)
+    ? AIR
+    : typeId;
+}
 
 export class CamperParking {
   // A newly parked body still collides until the dock event takes effect (ADR 0068).
@@ -49,7 +56,10 @@ export class CamperParking {
     const cells = parkCheckCells(pose);
     const feet = wallFootCells(pose);
     const blocks = readBlockGroups(ctx, { cells, feet });
-    return planPark(cells, blocks.cells, feet, blocks.feet, parkGround(pose));
+    const types = cells.map((cell, i) =>
+      obstruction(ctx, cell, blocks.cells[i]),
+    );
+    return planPark(cells, types, feet, blocks.feet, parkGround(pose));
   }
 
   park(pose: HoldPose, clear: readonly ClearCell[]): EngineCommand[] {
@@ -86,25 +96,22 @@ export class CamperParking {
   departureCheck(
     pose: HoldPose,
     ctx: TickContext,
-    decor: readonly DecorPlacement[],
   ): { readonly blocked: boolean; readonly exitClear: boolean } {
-    const plates = storagePlateChecks(pose, STORAGE_DOORS);
+    const room = [
+      ...slotCells(pose),
+      ...storagePlateChecks(pose, STORAGE_DOORS).map(({ cell }) => cell),
+    ];
     // The same departure batch checks cargo, the room's own blocks, and the overflow exit
     // (ADR 0093, 0097, 0105, 0121).
     const blocks = readBlockGroups(ctx, {
       cargo: cargoCells(pose),
-      slots: slotCells(pose),
-      plates: plates.map(({ cell }) => cell),
+      room,
       exits: exitCells(pose),
     });
     return {
       blocked:
         holdsCargo(blocks.cargo) ||
-        DECOR_CELLS.some(
-          ({ cell }, i) =>
-            !ownSlotBlock(blocks.slots[i], decorBlockName(cell, decor)),
-        ) ||
-        plates.some(({ door }, i) => !ownPlateBlock(blocks.plates[i], door)),
+        room.some((cell, i) => obstruction(ctx, cell, blocks.room[i]) !== AIR),
       exitClear: blocks.exits.every(isPassable),
     };
   }

@@ -1,33 +1,30 @@
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
-import type { Vec3 } from "../../../domain/shared/vec";
 import type {
   DecorItemId,
   DecorSlotId,
-} from "../../../domain/vehicle/dock/decor";
+} from "../../../domain/vehicle/kinds/index";
 // Use case: a player long-pressed a parked vehicle's room holding a camping gear item (ADR 0093, 0097).
-import { DECOR_MESSAGES } from "../../../domain/vehicle/dock/decorMessages";
-import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
+import {
+  CAMPER_ROOM,
+  type CamperRoom,
+  DECOR_MESSAGES,
+} from "../../../domain/vehicle/kinds/index";
 import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
 import type { DecorPlacingWorld } from "./ports";
 
-export interface PlaceDecorCommand {
+type SlotForPress = Parameters<CamperRoom["decor"]["decorSlotFor"]>;
+
+export type PlaceDecorCommand = SlotForPress[1] & {
   /** Require this exact resolved slot for itemUse drawer placement. */
   slot?: DecorSlotId;
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The camping gear id of the held item. */
   item: DecorItemId;
-  /** The world point the player pressed. */
-  point: Vec3;
-  /** The world cell of the block the player pressed (ADR 0097). */
-  cell: Vec3;
   /** The hotbar slot that held the item when the player pressed. */
   hotbarSlot: number;
-  /** The press names one slot (a dinette deck seat); refuse instead of falling back to another slot (ADR 0104). */
-  exact: boolean;
-  /** The player's eye: the slot is picked where the line of sight through `point` crosses its surface (ADR 0110). */
-  eye?: Vec3;
-}
+  fallback: SlotForPress[2];
+};
 
 export class PlaceDecor {
   constructor(
@@ -36,29 +33,34 @@ export class PlaceDecor {
   ) {}
 
   /** Returns whether the item was placed; only then is the decor saved. */
-  execute(cmd: PlaceDecorCommand): boolean {
-    const vehicle = this.repo.get(cmd.vehicleId);
+  execute({
+    playerId,
+    vehicleId,
+    item,
+    slot: requestedSlot,
+    hotbarSlot,
+    fallback,
+    ...press
+  }: PlaceDecorCommand): boolean {
+    const vehicle = this.repo.get(vehicleId);
     if (!vehicle) return false;
     const decor = vehicle.capability(CAMPER_ROOM)?.decor;
-    const slot = decor?.decorSlotFor(
-      cmd.item,
-      cmd.point,
-      cmd.cell,
-      cmd.exact,
-      cmd.eye,
-    );
-    if (slot === undefined || (cmd.slot !== undefined && cmd.slot !== slot)) {
-      this.world.showMessage(cmd.playerId, DECOR_MESSAGES.noSlot);
+    const slot = decor?.decorSlotFor(item, press, fallback);
+    if (
+      slot === undefined ||
+      (requestedSlot !== undefined && requestedSlot !== slot)
+    ) {
+      this.world.showMessage(playerId, DECOR_MESSAGES.noSlot);
       return false;
     }
     // Like a vehicle item, Creative places without taking the item (ADR 0024).
     if (
-      !this.world.isCreative(cmd.playerId) &&
-      !this.world.consumeDecorItem(cmd.playerId, cmd.hotbarSlot, cmd.item)
+      !this.world.isCreative(playerId) &&
+      !this.world.consumeDecorItem(playerId, hotbarSlot, item)
     )
       return false;
-    if (!decor?.placeDecor(slot, cmd.item)) return false;
-    this.world.saveDecor(cmd.vehicleId, decor.decor());
+    if (!decor?.placeDecor(slot, item)) return false;
+    this.world.saveDecor(vehicleId, decor.decor());
     return true;
   }
 }

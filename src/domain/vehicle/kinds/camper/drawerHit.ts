@@ -1,7 +1,7 @@
 import { type Cell, parseCell, sameCell } from "../../../shared/cells";
 import { add3, distanceSq, sub3, type Vec3 } from "../../../shared/vec";
-import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
+import type { DecorPlacement } from "./decorData";
 import {
   DRAWER_COMPARTMENT,
   KITCHEN_DRAWERS,

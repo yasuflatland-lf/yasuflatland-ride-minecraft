@@ -4,6 +4,7 @@ import type { SpaceCheck } from "../../../../src/application/shared/ports/space"
 import { cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import { id } from "../../../../src/infrastructure/shared/identifiers";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -15,10 +16,7 @@ import {
   OWNER_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
-import {
-  campingGearItem,
-  isStandableRoomBlock,
-} from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import {
   fakeVehicleEntities,
@@ -32,7 +30,7 @@ vi.mock("@minecraft/server", async () =>
   (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
 );
 
-function fixture(gearItemType = campingGearItem) {
+function fixture(gearItemType = id) {
   const { car, dimension, entities } = fakeVehicleEntities();
   const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
@@ -176,7 +174,7 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
         },
       } as unknown as VehicleReleaser,
       { giveItems: vi.fn() },
-      campingGearItem,
+      id,
     );
     expect(() => fleet.removeVehicle(asVehicleId(car.id))).toThrow("x");
     expect(car.remove).not.toHaveBeenCalled();

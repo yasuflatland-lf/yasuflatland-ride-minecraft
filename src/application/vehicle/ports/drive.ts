@@ -1,3 +1,4 @@
+import type { Cell } from "../../../domain/shared/cells";
 import type {
   DimensionId,
   PlayerId,
@@ -76,6 +77,8 @@ export interface SurroundingsWorld {
     vehicleId: VehicleId,
     cells: readonly Vec3[],
   ): (string | undefined)[];
+
+  ownsLaidBlock(vehicleId: VehicleId, cell: Cell, typeId: string): boolean;
 
   targetsNear(vehicleId: VehicleId): RamTarget[];
 }

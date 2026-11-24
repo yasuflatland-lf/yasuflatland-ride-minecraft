@@ -30,11 +30,16 @@ import {
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import type { TentFlapStore } from "./tentFlapStore";
 import { BedrockTentFlapWorld } from "./tentFlapWorld";
-import { TentLayout } from "./tentLayout";
+import { TentPitching } from "./tentPitching";
+import { TentSpace } from "./tentSpace";
+import { TentTakeDown } from "./tentTakeDown";
+
 export class BedrockTentWorld
   implements TentWorld, TentFlapWorld, LegacyTentWorld
 {
-  private readonly layout: TentLayout;
+  private readonly space: TentSpace;
+  private readonly pitching: TentPitching;
+  private readonly takeDown: TentTakeDown;
   private readonly flap: BedrockTentFlapWorld;
 
   constructor(deps: {
@@ -43,12 +48,25 @@ export class BedrockTentWorld
     blocks: CellLayer<TentId, TentBlock>;
     flaps: TentFlapStore;
   }) {
-    this.layout = new TentLayout(deps);
-    this.flap = new BedrockTentFlapWorld(this.layout, deps.flaps);
+    const { isVehicleSpace, registry, blocks, flaps } = deps;
+    this.space = new TentSpace({ registry, blocks });
+    this.pitching = new TentPitching({
+      space: this.space,
+      isVehicleSpace,
+      registry,
+      blocks,
+    });
+    this.takeDown = new TentTakeDown({
+      space: this.space,
+      registry,
+      blocks,
+      flaps,
+    });
+    this.flap = new BedrockTentFlapWorld(this.space, flaps);
   }
   /** Whether a pitched tent in that dimension takes `cell`; answers from the saved registry, before any tent is loaded. */
   isCampSpace(dimensionId: DimensionId, cell: Cell): boolean {
-    return this.layout.isCampSpace(dimensionId, cell);
+    return this.space.isCampSpace(dimensionId, cell);
   }
 
   /** The tent whose block `typeId` is at `cell`; before the first lay after /reload, from the registry. */
@@ -57,7 +75,7 @@ export class BedrockTentWorld
     cell: Cell,
     typeId: string,
   ): TentId | undefined {
-    return this.layout.tentBlockOwner(dimensionId, cell, typeId);
+    return this.space.tentBlockOwner(dimensionId, cell, typeId);
   }
 
   /** The tent and flap whose tent_flap block is at `cell`; before the first lay after /reload, from the registry. */
@@ -81,15 +99,15 @@ export class BedrockTentWorld
   }
 
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean {
-    return this.layout.isOwnBlock(dimensionId, at);
+    return this.space.isOwnBlock(dimensionId, at);
   }
 
   typeIdAt(dimensionId: DimensionId, at: Vec3): string | undefined {
-    return this.layout.typeIdAt(dimensionId, at);
+    return this.space.typeIdAt(dimensionId, at);
   }
 
   survey(dimensionId: DimensionId, pose: TentPose): PitchSurvey {
-    return this.layout.survey(dimensionId, pose);
+    return this.pitching.survey(dimensionId, pose);
   }
 
   private readonly payment = paidItem(TENT_ITEM);
@@ -98,11 +116,11 @@ export class BedrockTentWorld
   readonly refund = this.payment.refund;
 
   clearDecorations(dimensionId: DimensionId, cells: readonly Cell[]): void {
-    this.layout.clearDecorations(dimensionId, cells);
+    this.pitching.clearDecorations(dimensionId, cells);
   }
 
   pitch(dimensionId: DimensionId, pose: TentPose): TentId | undefined {
-    return this.layout.pitch(dimensionId, pose);
+    return this.pitching.pitch(dimensionId, pose);
   }
 
   showPitchRefusal(playerId: PlayerId, reason: PitchRefusal): void {
@@ -117,43 +135,43 @@ export class BedrockTentWorld
 
   /** The loaded tent in that dimension whose rooms hold `feet`. */
   tentContaining(dimensionId: DimensionId, feet: Vec3): TentId | undefined {
-    return this.layout.tentContaining(dimensionId, feet);
+    return this.space.tentContaining(dimensionId, feet);
   }
 
   isOccupied(tentId: TentId): boolean {
-    return this.layout.isOccupied(tentId);
+    return this.takeDown.isOccupied(tentId);
   }
 
   returnTentItem(tentId: TentId, playerId: PlayerId | undefined): void {
-    this.layout.returnTentItem(tentId, playerId);
+    this.takeDown.returnTentItem(tentId, playerId);
   }
 
   entityLoaded(tentId: TentId): boolean {
-    return this.layout.entityLoaded(tentId);
+    return this.space.entityLoaded(tentId);
   }
 
   unlayBlocks(tentId: TentId): void {
-    this.layout.unlayBlocks(tentId);
+    this.takeDown.unlayBlocks(tentId);
   }
 
   clearBlocksByPose(tentId: TentId): void {
-    this.layout.clearBlocksByPose(tentId);
+    this.takeDown.clearBlocksByPose(tentId);
   }
 
   clearTentBlocks(dimensionId: DimensionId, cells: readonly Cell[]): void {
-    this.layout.clearTentBlocks(dimensionId, cells);
+    this.takeDown.clearTentBlocks(dimensionId, cells);
   }
 
   removeTent(tentId: TentId): void {
-    this.layout.removeTent(tentId);
+    this.takeDown.removeTent(tentId);
   }
 
   listTents(): readonly TentEntry[] {
-    return this.layout.listTents();
+    return this.space.listTents();
   }
 
   anchorLoaded(entry: TentEntry): boolean {
-    return this.layout.anchorLoaded(entry);
+    return this.space.anchorLoaded(entry);
   }
 
   ejectPlayers(
@@ -161,7 +179,7 @@ export class BedrockTentWorld
     cells: readonly Cell[],
     exit: Cell,
   ): void {
-    this.layout.ejectPlayers(dimensionId, cells, exit);
+    this.takeDown.ejectPlayers(dimensionId, cells, exit);
   }
 
   showHitsLeft(playerId: PlayerId, hitsLeft: number): void {

@@ -1,5 +1,6 @@
 import { ticks } from "../../../shared/ticks";
 import { transformingSpecOf } from "../../motion/transforming";
+import type { CampingGearId } from "./campingGear";
 
 /**
  * Keeps the 16.22 px closed aisle at least the 9.6 px player width (0.6 block):
@@ -145,7 +146,7 @@ export const CAMPER_SPEC = Object.freeze({
   seatPressIdleTicks: ticks(10), // a held touch repeats every 4-6 ticks on mobile (ADR 0024)
 } as const);
 
-export const DRAWER_GEAR_IDS: ReadonlySet<string> = new Set([
+export const DRAWER_GEAR_IDS: ReadonlySet<CampingGearId> = new Set([
   "saucepan",
   "mug_pair",
   "sugar_pot",

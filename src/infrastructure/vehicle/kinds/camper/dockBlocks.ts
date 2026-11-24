@@ -1,11 +1,11 @@
-import type { Entity } from "@minecraft/server";
+import type { DockCell } from "../../../../domain/vehicle/dock/floor";
 import {
+  asCampingGear,
+  type CamperRoomBlock,
   type DecorItemId,
-  isDecorItem,
-} from "../../../../domain/vehicle/dock/decor";
-import type { DockBlock, Face } from "../../../../domain/vehicle/dock/floor";
-import { STANDING_GEAR_IDS } from "../../../../domain/vehicle/kinds/index";
-import { type CellCodec, savedLaidCells } from "../../../shared/laidCells";
+  type Face,
+  STANDING_GEAR_IDS,
+} from "../../../../domain/vehicle/kinds/index";
 import { type DockBlockCodecs, dockBlock } from "../../bedrock/dockLayer";
 import {
   CAMPER_BED_BLOCK,
@@ -58,10 +58,7 @@ function isDecorSpot(v: unknown): v is number {
 }
 
 function isPairEnd(v: unknown): v is DecorItemId | undefined {
-  return (
-    v === undefined ||
-    (typeof v === "string" && isDecorItem(v) && STANDING_GEAR_IDS.includes(v))
-  );
+  return v === undefined || STANDING_GEAR_IDS.some((gear) => gear === v);
 }
 
 function isFace(v: unknown): v is Face {
@@ -153,7 +150,7 @@ export const CAMPER_ROOM_CODEC = {
     id: (b) => decorBlockId(b.item),
     isBlock: (b) =>
       typeof b.item === "string" &&
-      isDecorItem(b.item) &&
+      asCampingGear(b.item) === b.item &&
       isFace(b.face) &&
       isDecorHeight(b.height) &&
       isDecorSpot(b.spot),
@@ -180,10 +177,10 @@ export const CAMPER_ROOM_CODEC = {
       ...pairEndStates(1, b.end1),
     }),
   }),
-} satisfies Partial<DockBlockCodecs>;
+} satisfies Omit<DockBlockCodecs<CamperRoomBlock>, "deck" | "light">;
 
 function facePlate(id: string) {
-  return dockBlock<Extract<DockBlock, { face: Face }>>({
+  return dockBlock<Extract<CamperRoomBlock, { face: Face }>>({
     id,
     isBlock: (b) => isFace(b.face),
     states: (b) => ({ [ROOM_FACE_STATE]: b.face }),
@@ -191,17 +188,16 @@ function facePlate(id: string) {
 }
 
 /** State derived from the cells actually laid, with one saved-property read per rebuild. */
-export function savedDock(
-  vehicle: Entity,
-  codec: CellCodec<DockBlock>,
-): {
+export function savedDock(cells: readonly DockCell[]): {
   laid: boolean;
   doorOpen: boolean | undefined;
 } {
-  const cells = savedLaidCells(vehicle, codec);
-  const door = cells.find((c) => c.block.type === "door");
+  const door = cells.find((c) => c.block.type === "door")?.block;
   return {
     laid: cells.length > 0,
-    doorOpen: door?.block.type === "door" ? door.block.open : undefined,
+    doorOpen:
+      door && "open" in door && typeof door.open === "boolean"
+        ? door.open
+        : undefined,
   };
 }

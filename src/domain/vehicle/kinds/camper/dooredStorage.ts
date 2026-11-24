@@ -3,10 +3,9 @@
 // the code every unit shares and no unit's data (ADR 0114, 0121).
 
 import { TapToggle } from "../../../shared/tapToggle";
-import type { DecorItemId, StoragePress } from "../../dock/decor";
-import type { Face } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import { SyncedCommands } from "../../syncedCommands";
+import type { DecorItemId, StoragePress } from "./decorData";
 import { DOOR_STEPS, restoredDoorStep, stepOpening } from "./doorSwing";
 import type {
   DecorSlot,
@@ -14,6 +13,7 @@ import type {
   StoragePlateBlock,
 } from "./furniture";
 import { type LocalCell, sameLocalCell } from "./localCell";
+import type { Face } from "./roomBlocks";
 import { CAMPER_SPEC } from "./spec";
 
 /** A slot behind `door`; its pair end routes decor in the domain, including entity-only drawer items. */
@@ -73,11 +73,6 @@ export interface DooredStorage<
   readonly doors: readonly StorageDoorDef<Id>[];
   readonly compartmentBlock: (look: CompartmentLook) => StorageCompartmentBlock;
   readonly plateBlock: (look: PlateLook) => StoragePlateBlock;
-  /**
-   * The namespace-free name of the block plateBlock lays: a plate in the room's inside layers
-   * lets the camper park and leave while its cell holds it (storagePlates.ts ownPlateBlock).
-   */
-  readonly plateBlockName: string;
 }
 
 /** A door with the unit it belongs to. */

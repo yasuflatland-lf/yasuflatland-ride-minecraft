@@ -1,10 +1,10 @@
 import { type Cell, cellKey, parseCell, sameCell } from "../../../shared/cells";
 import { quarterOf } from "../../../shared/facing";
 import type { Vec2, Vec3 } from "../../../shared/vec";
-import type { DecorPlacement } from "../../dock/decor";
-import type { DockCell, Face, HoldPose } from "../../dock/floor";
+import type { DockCell, HoldPose } from "../../dock/floor";
 import { decorSlot } from "./decor";
 import { pairItems, slotCells } from "./decorCells";
+import type { DecorPlacement } from "./decorData";
 import type {
   HingedStorageDoor,
   StorageDoor,
@@ -16,8 +16,10 @@ import {
   STORAGE_DOORS,
   type StorageCompartmentBlock,
   type StorageDoorId,
+  type StoragePlateBlock,
 } from "./furniture";
 import { axes, localCellAt } from "./parkPose";
+import type { Face } from "./roomBlocks";
 import {
   AIR,
   CEILING_LAYER,
@@ -52,7 +54,7 @@ function insidePlateDoors<Id extends string>(
   );
 }
 
-type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
+type CompartmentCell = DockCell<StorageCompartmentBlock>;
 
 /**
  * The block in each storage compartment, with the item at each end, its items drawn while its
@@ -117,7 +119,7 @@ export function storagePlateCells(
   open: ReadonlySet<StorageDoorId>,
   lightsOn: boolean,
   doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
-): DockCell[] {
+): DockCell<StoragePlateBlock>[] {
   const { f } = axes(pose.yaw);
   return insidePlateDoors(doors)
     .filter(({ id }) => open.has(id))
@@ -132,8 +134,7 @@ export function storagePlateCells(
 
 /**
  * The doors whose plates stand in the room's inside layers, with their plate cells at `pose`.
- * Parking checks those cells, and departure reads them with ownPlateBlock instead of as
- * cargo (ADR 0121).
+ * Parking checks those cells, and departure checks their dock ownership (ADR 0121).
  */
 export function storagePlateChecks<Id extends string>(
   pose: HoldPose,
@@ -143,19 +144,6 @@ export function storagePlateChecks<Id extends string>(
     door,
     cell: localCellAt(pose, door.opening.plate),
   }));
-}
-
-/**
- * An inside-layer plate cell lets the camper leave only while it holds air or `door`'s plate:
- * the plate goes when departure shuts the door (ADR 0121).
- */
-export function ownPlateBlock(
-  typeId: string | undefined,
-  door: StorageDoor,
-): boolean {
-  return (
-    typeId === AIR || typeId?.endsWith(`:${door.unit.plateBlockName}`) === true
-  );
 }
 
 /**
@@ -186,8 +174,7 @@ export function storagePressTarget<Id extends string>(
 /**
  * Cells where a player's block keeps the camper parked: the interior outside
  * furniture blocks, decor slots and storage plates, then the roof top (ADR 0092, 0093,
- * 0097, 0121). Slot cells are read separately, with ownSlotBlock, and storage plate cells
- * with ownPlateBlock.
+ * 0097, 0121). Slot and plate cells have their own departure check.
  */
 export function cargoCells(
   pose: HoldPose,

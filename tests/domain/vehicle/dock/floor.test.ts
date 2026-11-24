@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { cellOf } from "../../../../src/domain/shared/cells";
 import { relayCells } from "../../../../src/domain/shared/laidCells";
 import {
-  type DockBlock,
   type DockCell,
   sameBlock,
 } from "../../../../src/domain/vehicle/dock/floor";
+import type { CamperRoomBlock } from "../../../../src/domain/vehicle/kinds/camper/roomBlocks";
 import { decorItemId } from "../../../support/decorIds";
 
 const decorBlock = fc.record({
@@ -46,7 +46,7 @@ const drawersBlock = fc
     ...(counter === undefined ? {} : { counter: decorItemId(counter) }),
   }));
 const showerToiletFace = fc.constantFrom(0, 1, 2, 3);
-const block: fc.Arbitrary<DockBlock> = fc.oneof(
+const block: fc.Arbitrary<CamperRoomBlock> = fc.oneof(
   fc.record({
     type: fc.constant("deck" as const),
     height: fc.integer({ min: 1, max: 16 }),
@@ -72,15 +72,15 @@ const block: fc.Arbitrary<DockBlock> = fc.oneof(
   drawersBlock,
 );
 it("changes only the door when its open state changes", () => {
-  const floor: DockCell = {
+  const floor: DockCell<CamperRoomBlock> = {
     ...cellOf({ x: 0, y: 0, z: 0 }),
     block: { type: "floor" },
   };
-  const door: DockCell = {
+  const door: DockCell<CamperRoomBlock> = {
     ...cellOf({ x: 1, y: 0, z: 0 }),
     block: { type: "door", face: 1, open: true },
   };
-  const closed: DockCell = {
+  const closed: DockCell<CamperRoomBlock> = {
     ...door,
     block: { type: "door", face: 1, open: false },
   };
@@ -206,6 +206,52 @@ describe("sameBlock", () => {
           expect(sameBlock({ type: "bed" }, furniture)).toBe(false);
         },
       ),
+    );
+  });
+});
+
+const primitive = fc.oneof(
+  fc.string(),
+  fc.integer(),
+  fc.boolean(),
+  fc.constant(null),
+  fc.constant(undefined),
+);
+const fields = fc.dictionary(
+  fc.string().filter((key) => key !== "type" && key !== "extra"),
+  primitive,
+);
+
+describe("generic block equality", () => {
+  it("compares primitive own fields regardless of insertion order", () => {
+    fc.assert(
+      fc.property(fc.string(), fields, primitive, (type, values, extra) => {
+        const a = { type, ...values };
+        const b = {
+          ...Object.fromEntries(Object.entries(values).reverse()),
+          type,
+        };
+        expect(sameBlock(a, b)).toBe(true);
+        expect(sameBlock(a, { ...b, extra })).toBe(false);
+        expect(sameBlock({ ...a, extra }, b)).toBe(false);
+        expect(
+          sameBlock({ ...a, extra }, { ...b, extra: extra !== true }),
+        ).toBe(false);
+      }),
+    );
+  });
+
+  it("ignores inherited fields and compares symbol keys", () => {
+    fc.assert(
+      fc.property(primitive, (value) => {
+        const key = Symbol();
+        const a = { type: "test", [key]: value };
+        const b = { type: "test" };
+        Object.setPrototypeOf(b, { [key]: value });
+        expect(sameBlock(b, { type: "test" })).toBe(true);
+        expect(sameBlock(a, b)).toBe(false);
+        expect(sameBlock(a, { type: "test", [Symbol()]: value })).toBe(false);
+      }),
     );
   });
 });

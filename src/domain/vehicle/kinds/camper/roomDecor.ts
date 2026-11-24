@@ -1,13 +1,4 @@
-import type { Vec3 } from "../../../shared/vec";
-import {
-  type DecorItemId,
-  type DecorPlacement,
-  type DecorSlotId,
-  isDecorItem,
-  parseDecor,
-} from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
-import { currentGearId } from "./campingGear";
 import {
   cellTaken,
   DECOR_SLOTS,
@@ -16,9 +7,16 @@ import {
   savedSlotId,
   sharingSlots,
 } from "./decor";
+import {
+  type DecorItemId,
+  type DecorPlacement,
+  type DecorSlotId,
+  parseDecor,
+} from "./decorData";
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { drawerBlockHit, drawerPressCell } from "./drawerHit";
 import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";
+import type { DecorFallback, DecorPress, RoomPress } from "./room";
 import { storagePressTarget } from "./storagePlates";
 
 export interface ParkedRoom {
@@ -39,14 +37,12 @@ export class CamperRoomDecor {
     // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
     // saved in a renamed slot loads as if saved in its new one (ADR 0112), and an item that
     // left the catalog is dropped without being handed back (ADR 0169).
-    const entries = parseDecor(saved).flatMap((entry) => {
-      const item = currentGearId(entry.item);
-      return item === undefined
-        ? []
-        : [{ slot: savedSlotId(entry.slot), item }];
-    });
     const homeless: DecorPlacement[] = [];
-    for (const entry of entries) {
+    for (const savedEntry of parseDecor(saved)) {
+      const entry = {
+        slot: savedSlotId(savedEntry.slot),
+        item: savedEntry.item,
+      };
       const slot = decorSlot(entry.slot);
       if (
         slot &&
@@ -89,7 +85,7 @@ export class CamperRoomDecor {
   /** Sets or clears one slot; an item replaces whatever a slot sharing its place held (ADR 0107, 0108). */
   set(slot: DecorSlotId, item: DecorItemId | undefined): boolean {
     const target = decorSlot(slot);
-    if (!target || (item !== undefined && !isDecorItem(item))) return false;
+    if (!target) return false;
     if (this.decorBySlot.get(slot) === item) return false;
     if (item === undefined) {
       this.decorBySlot.delete(slot);
@@ -113,11 +109,10 @@ export class CamperRoomDecor {
   slotFor(
     { pose, open }: ParkedRoom,
     item: DecorItemId,
-    point: Vec3,
-    cell: Vec3,
-    exact: boolean,
-    eye?: Vec3,
+    press: DecorPress,
+    fallback: DecorFallback,
   ): DecorSlotId | undefined {
+    const { cell, point, eye } = press;
     const hit = eye
       ? drawerBlockHit(pose, cell, eye, point, this.placed(), open)
       : undefined;
@@ -127,10 +122,8 @@ export class CamperRoomDecor {
         pose,
         item,
         this.placed(),
-        counter ?? cell,
-        hit.point,
-        true,
-        undefined,
+        { cell: counter ?? cell, point: hit.point },
+        "none",
         open,
         hit.door,
       );
@@ -141,15 +134,12 @@ export class CamperRoomDecor {
       (cell.x !== counter.x || cell.y !== counter.y || cell.z !== counter.z)
     )
       return undefined;
-    point = hit?.point ?? point;
     const slot = slotForPress(
       pose,
       item,
       this.placed(),
-      cell,
-      point,
-      exact,
-      eye,
+      hit ? { ...press, point: hit.point } : press,
+      fallback,
       open,
     );
     return slot && this.canSave(slot, item) ? slot.id : undefined;
@@ -168,9 +158,7 @@ export class CamperRoomDecor {
    */
   remove(
     { pose, open }: ParkedRoom,
-    cell: Vec3,
-    point?: Vec3,
-    eye?: Vec3,
+    { cell, point, eye }: RoomPress,
   ): DecorItemId | undefined {
     const hit =
       point && eye
@@ -197,9 +185,8 @@ export class CamperRoomDecor {
 
   takeBehindDoor(
     pose: HoldPose,
-    cell: Vec3,
+    { cell, point }: RoomPress,
     door: StorageDoorId,
-    point: Vec3 | undefined,
   ): DecorItemId | undefined {
     const ends = slotsAt(pose, cell).filter((s) => s.door === door);
     const end =

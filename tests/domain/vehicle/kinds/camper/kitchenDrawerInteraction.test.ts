@@ -43,7 +43,7 @@ function fixture() {
       DECOR_SLOTS.find((s) => s.id === id),
       "slot",
     );
-  const command = (id: string, item = "mug_pair", exact = false) => {
+  const command = (id: string, item = "mug_pair") => {
     const s = slot(id);
     return {
       playerId: asPlayerId("p"),
@@ -51,7 +51,7 @@ function fixture() {
       cell: localCellAt(f.pose, s.cell),
       point: slotPoint(f.pose, s),
       hotbarSlot: 0,
-      exact,
+      fallback: "nearestFree" as const,
       item: decorItemId(item),
     };
   };
@@ -210,7 +210,7 @@ it("loads an old save without drawer properties or placements as closed and empt
 it("uses the normal no-slot refusal for all nonallowlisted gear, never another drawer or the counter", () => {
   fc.assert(
     fc.property(
-      fc.constantFrom(...CAMPING_GEAR_IDS, "unknown_item"),
+      fc.constantFrom(...CAMPING_GEAR_IDS),
       fc.constantFrom("drawer_top_0", "drawer_bottom_0"),
       (item, id) => {
         const f = fixture();

@@ -2,7 +2,10 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { cellKey, cellOf } from "../../../../src/domain/shared/cells";
 import { asDimensionId, asVehicleId } from "../../../../src/domain/shared/ids";
-import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
+import type {
+  DeckBlock,
+  DockCell,
+} from "../../../../src/domain/vehicle/dock/floor";
 import { DOCK_RECHECK_TICKS } from "../../../../src/infrastructure/vehicle/bedrock/dockBlocks";
 import {
   DECK_CELLS_PROPERTY,
@@ -42,7 +45,7 @@ const cells = fc.uniqueArray(cell, {
   maxLength: 8,
 });
 
-const nextHeight = (c: DockCell): DockCell => ({
+const nextHeight = (c: DockCell<DeckBlock>): DockCell<DeckBlock> => ({
   ...c,
   block: {
     type: "deck",
@@ -50,7 +53,7 @@ const nextHeight = (c: DockCell): DockCell => ({
   },
 });
 
-const deckCells: DockCell[] = [
+const deckCells: DockCell<DeckBlock>[] = [
   { ...cellOf({ x: 0, y: 64, z: 0 }), block: { type: "deck", height: 9 } },
   { ...cellOf({ x: 1, y: 64, z: 0 }), block: { type: "deck", height: 12 } },
 ];

@@ -20,6 +20,7 @@ import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { STARTER_KINDS } from "../../domain/vehicle/placement/starter";
 import { consoleLogger as log } from "../shared/consoleLogger";
+import { id } from "../shared/identifiers";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
@@ -49,10 +50,7 @@ import {
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
 import { CAMPER_ROOM_CODEC } from "./kinds/camper/dockBlocks";
-import {
-  campingGearItem,
-  isStandableRoomBlock,
-} from "./kinds/camper/identifiers";
+import { isStandableRoomBlock } from "./kinds/camper/identifiers";
 import { installCamper } from "./kinds/camper/install";
 import { readCamperRestored } from "./kinds/camper/restored";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
@@ -85,20 +83,23 @@ export function installVehicles(deps: {
     ...LIGHT_CODEC,
     ...CAMPER_ROOM_CODEC,
   });
+  const docks = new DockBlocks(deps.isCampSpace, dockCodec);
   const bedrock = new BedrockVehicleWorld(
     index,
     testInputs,
     testHeldItems,
     deps.isCampSpace,
-    new DockBlocks(deps.isCampSpace, dockCodec),
-    { camper: (vehicle) => readCamperRestored(vehicle, dockCodec) },
+    docks,
+    {
+      camper: (vehicle) => readCamperRestored(vehicle, docks.restore(vehicle)),
+    },
     isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(
     index,
     bedrock.releaser,
     inventory,
-    campingGearItem,
+    id,
   );
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
   const riders = new RiderEffects(bedrock, log);

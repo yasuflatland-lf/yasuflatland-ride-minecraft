@@ -1,6 +1,8 @@
 // Reads the blocks and targets surrounding a vehicle (ADR 0012).
+
 import type { SurroundingsWorld } from "../../../application/vehicle/ports/drive";
-import type { VehicleId } from "../../../domain/shared/ids";
+import type { Cell } from "../../../domain/shared/cells";
+import { asDimensionId, type VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { add3, sub3 } from "../../../domain/shared/vec";
 import { RAM_QUERY_RADIUS } from "../../../domain/vehicle/kinds/index";
@@ -8,12 +10,28 @@ import type { RamTarget } from "../../../domain/vehicle/ram";
 import { AIR_BLOCK } from "../../shared/identifiers";
 import { isLightBlock } from "../../shared/lightBlocks";
 import { mountOf } from "../../shared/mount";
+import type { DockLayer } from "./dockLayer";
 import type { EntityIndex } from "./entityIndex";
 import { ramMountOf } from "./identifiers";
 import { isLavaAt, isWaterAt } from "./water";
 
 export class BedrockSurroundings implements SurroundingsWorld {
-  constructor(private readonly index: EntityIndex) {}
+  constructor(
+    private readonly index: EntityIndex,
+    private readonly docks: DockLayer,
+  ) {}
+
+  ownsLaidBlock(vehicleId: VehicleId, cell: Cell, typeId: string): boolean {
+    const vehicle = this.index.entity(vehicleId);
+    return (
+      vehicle !== undefined &&
+      this.docks.laidBlockOwner(
+        asDimensionId(vehicle.dimension.id),
+        cell,
+        typeId,
+      ) === vehicleId
+    );
+  }
 
   waterAt(vehicleId: VehicleId, offset: Vec3): boolean {
     const vehicle = this.index.entity(vehicleId);

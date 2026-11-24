@@ -2,11 +2,11 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { PlaceDecor } from "../../../../../src/application/vehicle/room/placeDecor";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
-import { serializeDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import {
   DECOR_SLOTS,
   decorFits,
 } from "../../../../../src/domain/vehicle/kinds/camper/decor";
+import { serializeDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import { slotPoint } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
 import {
   localCellAt,
@@ -115,7 +115,7 @@ it("refuses an overflowing placement before consuming survival gear and preserve
       cell: localCellAt(pose, slot.cell),
       point: slotPoint(pose, slot),
       hotbarSlot: 0,
-      exact: true,
+      fallback: "none",
     }),
   ).toBe(false);
   expect(world.calls).toEqual(["showMessage"]);

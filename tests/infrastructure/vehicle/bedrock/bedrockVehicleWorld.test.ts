@@ -10,9 +10,11 @@ import {
 } from "../../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import type { Departure } from "../../../../src/domain/vehicle/dock/dock";
+import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import type { CamperRoomBlock } from "../../../../src/domain/vehicle/kinds/camper/roomBlocks";
 import {
   entityContractOf,
   profileOf,
@@ -38,6 +40,7 @@ import type { RestoredReaders } from "../../../../src/infrastructure/vehicle/bed
 import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPaver";
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
 import {
+  CAMPER_DOOR_BLOCK,
   CAMPER_FLOOR_BLOCK,
   DECOR_PROPERTY,
   isStandableRoomBlock,
@@ -49,7 +52,7 @@ import {
   bedrockVehicleGame as game,
 } from "../../../support/bedrockVehicleMocks";
 import { blockGrid } from "../../../support/blockGrid";
-import { createDockBlocks, dockCodec } from "../../../support/dockBlocks";
+import { createDockBlocks } from "../../../support/dockBlocks";
 
 vi.mock("@minecraft/server", async () =>
   (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
@@ -77,7 +80,10 @@ function seatIdlePlayer(
   );
 }
 
-function fixture(restoredReaders: RestoredReaders = {}) {
+function fixture(
+  restoredReaders: RestoredReaders = {},
+  docks = createDockBlocks(noCampSpace),
+) {
   const { car, dimension, entities } = fakeVehicleEntities();
   const inputs = new VehicleTestStore<RawInput>();
   const testHeldItems = new VehicleTestStore<string>();
@@ -94,7 +100,7 @@ function fixture(restoredReaders: RestoredReaders = {}) {
       inputs,
       testHeldItems,
       noCampSpace,
-      createDockBlocks(noCampSpace),
+      docks,
       restoredReaders,
       isStandableRoomBlock,
     ),
@@ -1001,9 +1007,13 @@ describe("BedrockVehicleWorld dock ports", () => {
 
 it("restores dock values and decor lazily from saved dynamic properties instead of entity properties", () => {
   vi.resetAllMocks();
-  const { world, car } = fixture({
-    camper: (vehicle) => readCamperRestored(vehicle, dockCodec),
-  });
+  const docks = createDockBlocks(noCampSpace);
+  const { world, car } = fixture(
+    {
+      camper: (vehicle) => readCamperRestored(vehicle, docks.restore(vehicle)),
+    },
+    docks,
+  );
   car.typeId = ENTITY_TYPE.camper;
   const decor = '[{"slot":"table","item":"potted_plant"}]';
   car.getDynamicProperty.mockImplementation((key: string) => {
@@ -1027,6 +1037,13 @@ it("restores dock values and decor lazily from saved dynamic properties instead 
     [DECK_CELLS_PROPERTY],
     [DECOR_PROPERTY],
   ]);
+  const door = cellOf({ x: 0, y: 64, z: 0 });
+  expect(
+    world.ownsLaidBlock(asVehicleId(car.id), door, CAMPER_DOOR_BLOCK),
+  ).toBe(true);
+  expect(
+    world.ownsLaidBlock(asVehicleId(car.id), door, "minecraft:stone"),
+  ).toBe(false);
   expect(car.getProperty.mock.calls.flat()).not.toContain("yasu_ride:dockLaid");
 });
 
@@ -1126,20 +1143,38 @@ describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("reports the vehicle that laid a cell as its owner, and only a door as a door owner", () => {
-    const { dimension, car, world } = fixture();
+    const { dimension, car, entities, world } = fixture();
+    const other = { ...car, id: "other" };
+    entities.push(other);
     Object.assign(dimension, { id: "overworld" });
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const floor = { x: 0, y: 64, z: 0 };
-    const door = { x: 1, y: 64, z: 0 };
+    const floor = cellOf({ x: 0, y: 64, z: 0 });
+    const door = cellOf({ x: 1, y: 64, z: 0 });
     world.loadedVehicles();
-    world.layDock(asVehicleId(car.id), [
-      { ...cellOf(floor), block: { type: "floor" } },
-      { ...cellOf(door), block: { type: "door", face: 0, open: false } },
-    ]);
+    const cells: DockCell<CamperRoomBlock>[] = [
+      { ...floor, block: { type: "floor" } },
+      {
+        ...door,
+        block: { type: "door", face: 0, open: false },
+      },
+    ];
+    world.layDock(asVehicleId(car.id), cells);
     const here = asDimensionId("overworld");
     expect(world.dockCellOwner(here, floor)).toBe(car.id);
     expect(world.dockBlockOwner(here, floor, CAMPER_FLOOR_BLOCK)).toBe(car.id);
+    expect(
+      world.ownsLaidBlock(asVehicleId(car.id), floor, CAMPER_FLOOR_BLOCK),
+    ).toBe(true);
+    expect(
+      world.ownsLaidBlock(asVehicleId(other.id), floor, CAMPER_FLOOR_BLOCK),
+    ).toBe(false);
+    expect(
+      world.ownsLaidBlock(asVehicleId(car.id), floor, "other:camper_floor"),
+    ).toBe(false);
+    expect(
+      world.ownsLaidBlock(asVehicleId("missing"), floor, CAMPER_FLOOR_BLOCK),
+    ).toBe(false);
     expect(world.dockCellOwner(here, door)).toBe(car.id);
     expect(world.dockDoorOwner(here, floor)).toBeUndefined();
     expect(world.dockDoorOwner(here, door)).toBe(car.id);

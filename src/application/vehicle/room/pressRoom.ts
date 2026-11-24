@@ -1,6 +1,6 @@
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import { add3, sub3, type Vec3 } from "../../../domain/shared/vec";
-import type { DecorItemId } from "../../../domain/vehicle/dock/decor";
+import type { DecorItemId } from "../../../domain/vehicle/kinds/index";
 import { DRAWER_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
 import type { PlaceDecor, PlaceDecorCommand } from "./placeDecor";
 import type { PressStorage } from "./pressStorage";
@@ -15,7 +15,7 @@ type Surface =
   | { kind: "floor"; drawerPoint: Vec3; allowPlacementOnMiss: boolean }
   | { kind: "drawers"; sideFace: boolean };
 
-type RoomPress = Actor &
+type PressRoomCommand = Actor &
   (
     | {
         source: "block";
@@ -39,14 +39,20 @@ export class PressRoom {
   ) {}
 
   /** Resolve the target before cancellation. Only running the returned action may change the room or inventory. */
-  prepare(press: RoomPress): (() => Outcome) | undefined {
+  prepare(press: PressRoomCommand): (() => Outcome) | undefined {
     const actor = { playerId: press.playerId, vehicleId: press.vehicleId };
     if (press.source === "itemUse") return this.prepareItemUse(actor, press);
 
     const { cell, point } = press;
     if (press.source === "seat")
       return () =>
-        this.placeGear({ ...actor, ...press.held, cell, point, exact: true });
+        this.placeGear({
+          ...actor,
+          ...press.held,
+          cell,
+          point,
+          fallback: "none",
+        });
     const { eye, surface, held } = press;
     if (surface.kind === "drawers")
       return () =>
@@ -56,12 +62,11 @@ export class PressRoom {
           held,
         );
     if (surface.kind === "floor" && (!held || DRAWER_GEAR_IDS.has(held.item))) {
-      const target = this.storage.drawerTarget(
-        actor.vehicleId,
+      const target = this.storage.drawerTarget(actor.vehicleId, {
         eye,
-        sub3(surface.drawerPoint, eye),
+        direction: sub3(surface.drawerPoint, eye),
         cell,
-      );
+      });
       if (target) {
         // A footprint has no ray intersection to replay on the next tick.
         const hit: DrawerHit = target.floorFootprint
@@ -73,22 +78,26 @@ export class PressRoom {
     }
     if (held)
       return () =>
-        this.placeGear({ ...actor, ...held, cell, point, eye, exact: false });
+        this.placeGear({
+          ...actor,
+          ...held,
+          cell,
+          point,
+          eye,
+          fallback: "nearestFree",
+        });
   }
 
   private prepareItemUse(
     actor: Actor,
-    press: Extract<RoomPress, { source: "itemUse" }>,
+    press: Extract<PressRoomCommand, { source: "itemUse" }>,
   ): (() => Outcome) | undefined {
     const { eye, direction, feet, held } = press;
     if (!DRAWER_GEAR_IDS.has(held.item)) return;
     const target = this.storage.drawerTarget(
       actor.vehicleId,
-      eye,
-      direction,
-      undefined,
+      { eye, direction, feet },
       held.item,
-      feet,
     );
     if (!target) return;
     const { cell, point, slot } = target;
@@ -107,7 +116,14 @@ export class PressRoom {
     // An occupied drawer still claims this tap, including a duplicate itemUse next tick.
     if (!slot) return () => "unchanged";
     return () =>
-      this.placeGear({ ...actor, ...held, cell, point, slot, exact: true });
+      this.placeGear({
+        ...actor,
+        ...held,
+        cell,
+        point,
+        slot,
+        fallback: "none",
+      });
   }
 
   private pressDrawer(
@@ -119,7 +135,12 @@ export class PressRoom {
     if (held && kind !== "footprint") {
       if (this.storage.execute({ ...cmd, openOnly: true, takeContents: false }))
         return "storage";
-      return this.placeGear({ ...actor, ...hit, ...held, exact: false });
+      return this.placeGear({
+        ...actor,
+        ...hit,
+        ...held,
+        fallback: "nearestFree",
+      });
     }
     if (
       this.storage.execute({

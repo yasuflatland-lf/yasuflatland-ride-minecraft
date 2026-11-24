@@ -958,11 +958,14 @@ describe("DriveVehicles dock ports", () => {
   function fixture(step: Partial<DriveStep>, driver = false, query = false) {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const at = { x: 8, y: 64, z: 9 };
+    const at = cellOf({ x: 8, y: 64, z: 9 });
     world.typesAt.set("8,64,9", "minecraft:stone");
     let types: readonly (string | undefined)[] = [];
     const drive = driveReturning((_raw, ctx) => {
-      if (query) types = ctx.blockTypes([at, { ...at, y: 65 }]);
+      if (query) {
+        types = ctx.blockTypes([at, { ...at, y: 65 }]);
+        if (types[0] !== undefined) ctx.ownsLaidBlock?.(at, types[0]);
+      }
       return step;
     });
     repo.save(new Vehicle(asVehicleId("a"), SUV_PROFILE, drive));
@@ -1112,11 +1115,13 @@ describe("DriveVehicles dock ports", () => {
   it("forwards lazy block queries with the vehicle id and world cells", () => {
     const { world, at, run } = fixture({}, false, true);
     const blockTypes = vi.spyOn(world, "blockTypes");
+    const owns = vi.spyOn(world, "ownsLaidBlock");
     expect(run()).toEqual(["minecraft:stone", "minecraft:air"]);
     expect(blockTypes).toHaveBeenCalledExactlyOnceWith("a", [
       at,
       { ...at, y: 65 },
     ]);
+    expect(owns).toHaveBeenCalledExactlyOnceWith("a", at, "minecraft:stone");
     const idle = fixture({});
     const unused = vi.spyOn(idle.world, "blockTypes");
     idle.run();
@@ -1356,6 +1361,7 @@ it("stands each leaving rider at their exit after the final commands", () => {
     tick: 0,
     waterAt: () => false,
     solidAt: () => false,
+    ownsLaidBlock: () => false,
     blockTypes: () => [],
     targets: () => [],
   });

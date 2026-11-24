@@ -1,10 +1,7 @@
 import {
-  type DecorItemId,
-  isDecorItem,
-} from "../../../../domain/vehicle/dock/decor";
-import type { DockBlock } from "../../../../domain/vehicle/dock/floor";
-import {
   CAMPING_GEAR_IDS,
+  type CamperRoomBlock,
+  type CampingGearId,
   pairHeights,
   STANDING_GEAR_IDS,
 } from "../../../../domain/vehicle/kinds/index";
@@ -13,7 +10,7 @@ import { id } from "../../../shared/identifiers";
 /** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
 export const DECOR_PROPERTY = id("decor");
 /** The item type of a camping gear id (ADR 0093). */
-export function campingGearItem(gear: string): string {
+export function campingGearItem(gear: CampingGearId): string {
   return id(gear);
 }
 
@@ -62,7 +59,7 @@ export const DECOR_HEIGHT_STATE = id("height");
 /** Decor block state: where on its cell the item stands, an index in DECOR_SPOTS (ADR 0107). */
 export const DECOR_SPOT_STATE = id("spot");
 /** The decor block that shows a camping gear item in a parked camper (ADR 0093). */
-export function decorBlockId(item: string): string {
+export function decorBlockId(item: CampingGearId): string {
   return id(`${item}_decor`);
 }
 
@@ -89,7 +86,7 @@ export const PAIR_PAGE_SIZE = 10;
 /** The pair block's states for `item` at end `end`, both 0 for an empty end (ADR 0108). */
 export function pairEndStates(
   end: 0 | 1,
-  item: string | undefined,
+  item: CampingGearId | undefined,
 ): Record<string, number> {
   const code = item === undefined ? 0 : STANDING_GEAR_IDS.indexOf(item) + 1;
   const states = PAIR_END_STATES[end];
@@ -165,21 +162,20 @@ export function isCamperRoomBlock(typeId: string): boolean {
 /** The camping gear id of an item type, if it is camping gear. */
 export function campingGearOfItem(
   typeId: string | undefined,
-): DecorItemId | undefined {
-  const item = CAMPING_GEAR_IDS.find(
-    (gear) => campingGearItem(gear) === typeId,
-  );
-  return item !== undefined && isDecorItem(item) ? item : undefined;
+): CampingGearId | undefined {
+  return CAMPING_GEAR_IDS.find((gear) => campingGearItem(gear) === typeId);
 }
 
 /** The camping gear id of a decor block type, if it is one. */
-export function campingGearOfDecorBlock(typeId: string): string | undefined {
+export function campingGearOfDecorBlock(
+  typeId: string,
+): CampingGearId | undefined {
   return CAMPING_GEAR_IDS.find((gear) => decorBlockId(gear) === typeId);
 }
 
 /** Drawer contents render on the entity; the block carries only counter decor (ADR 0121). */
 export function drawerBlockStates(
-  block: Extract<DockBlock, { type: "drawers" }>,
+  block: Extract<CamperRoomBlock, { type: "drawers" }>,
 ): Record<string, number | boolean> {
   const counter =
     block.counter === undefined

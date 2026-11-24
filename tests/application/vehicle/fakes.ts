@@ -28,7 +28,6 @@ import {
 import type { Paint } from "../../../src/domain/shared/paint";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import type { CutColumn } from "../../../src/domain/vehicle/cut";
-import type { DecorPlacement } from "../../../src/domain/vehicle/dock/decor";
 import type {
   ClearCell,
   Departure,
@@ -47,6 +46,7 @@ import {
 import type { FleetRepository } from "../../../src/domain/vehicle/fleet/fleetRepository";
 import type { Hint } from "../../../src/domain/vehicle/hints";
 import type { VehicleKind } from "../../../src/domain/vehicle/kind";
+import type { DecorPlacement } from "../../../src/domain/vehicle/kinds/camper/decorData";
 import { parkPose } from "../../../src/domain/vehicle/kinds/camper/parkPose";
 import { createVehicle } from "../../../src/domain/vehicle/kinds/index";
 import type { LitCell } from "../../../src/domain/vehicle/lighting/headlights";
@@ -168,6 +168,10 @@ export class FakeWorld
     this.calls.push(`clearPose:${playerId}`);
   }
   private nextId = 1;
+
+  ownsLaidBlock(): boolean {
+    return false;
+  }
 
   blockTypes(
     _vehicleId: string,

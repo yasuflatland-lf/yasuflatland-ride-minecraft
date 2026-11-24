@@ -1,4 +1,5 @@
 // Composes the vehicle ports from shared Bedrock role adapters (ADR 0012).
+
 import type { Entity } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostState } from "../../../application/shared/ports/vehicleHost";
@@ -6,6 +7,7 @@ import type {
   DriveWorld,
   VehicleSnapshot,
 } from "../../../application/vehicle/ports/drive";
+import type { Cell } from "../../../domain/shared/cells";
 import type {
   DimensionId,
   PlayerId,
@@ -99,7 +101,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       holds,
       this.releaser,
     );
-    this.surroundings = new BedrockSurroundings(index);
+    this.surroundings = new BedrockSurroundings(index, dockBlocks);
     this.impulse = new BedrockVehicleImpulse(index, holds);
     this.blocks = new BedrockVehicleBlocks(
       index,
@@ -171,6 +173,10 @@ export class BedrockVehicleWorld implements DriveWorld {
 
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean {
     return this.surroundings.solidAt(vehicleId, offset);
+  }
+
+  ownsLaidBlock(vehicleId: VehicleId, cell: Cell, typeId: string): boolean {
+    return this.surroundings.ownsLaidBlock(vehicleId, cell, typeId);
   }
 
   blockTypes(

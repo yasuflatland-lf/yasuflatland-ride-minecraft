@@ -1,3 +1,4 @@
+import type { CamperRoomBlock } from "../../../../../src/domain/vehicle/kinds/camper/roomBlocks";
 import { camperRoom } from "../../../../support/camperRoom";
 // The wall cabinet's doors against a small reference model, over arbitrary press and tick
 // sequences: what each press returns, the door properties each tick, the compartment and
@@ -8,10 +9,7 @@ import { expect, it, vi } from "vitest";
 import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import type {
-  DockBlock,
-  DockCell,
-} from "../../../../../src/domain/vehicle/dock/floor";
+import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
 import type {
   DriveStep,
   TickContext,
@@ -124,7 +122,7 @@ it("matches a reference model of the cabinet doors over any press and tick seque
               open: d.step > 0,
               ...(end0 === undefined ? {} : { end0: decorItemId(end0) }),
               ...(end1 === undefined ? {} : { end1: decorItemId(end1) }),
-            } satisfies DockBlock);
+            } satisfies CamperRoomBlock);
             expect(blockAt(out.dock?.cells, plate(id))?.type).toBe(
               d.open ? "cabinetDoor" : "ceiling",
             );

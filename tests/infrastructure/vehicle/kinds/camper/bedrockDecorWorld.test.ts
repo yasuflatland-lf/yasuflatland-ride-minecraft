@@ -1,7 +1,8 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
-import { serializeDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
+import { serializeDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import { EntityIndex } from "../../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { PLAYER_TYPE } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import {
@@ -19,7 +20,7 @@ vi.mock("@minecraft/server", () => ({
 const decorList = fc.uniqueArray(
   fc.record({
     slot: fc.string().map(decorSlotId),
-    item: fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/).map(decorItemId),
+    item: fc.constantFrom(...CAMPING_GEAR_IDS),
   }),
   { selector: (d) => d.slot, minLength: 0 },
 );
