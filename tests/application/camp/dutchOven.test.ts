@@ -8,18 +8,18 @@ import type { DutchOvenWorld } from "../../../src/application/camp/ports/dutchOv
 import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
+import { decodeCampHost } from "../../../src/domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
-  TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { snapYaw } from "../../../src/domain/shared/facing";
-import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
+import { DUTCH_OVEN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 
 const oven = asDutchOvenId("oven");
 const player = asPlayerId("player");
@@ -66,7 +66,7 @@ function fixture(
     showHitsLeft: vi.fn(),
     ...overrides,
   } satisfies DutchOvenWorld;
-  return { actions: new DutchOvenActions(world), world };
+  return { actions: new DutchOvenActions(world, DUTCH_OVEN_ON_TOP), world };
 }
 
 it("accepts only block tops outside add-on rooms", () => {
@@ -313,7 +313,7 @@ it("taking back an oven frees its place for a replacement", () => {
     host: (id) => hosts.get(id) ?? "",
     itemsOnTop: () =>
       [...hosts.values()].flatMap((text) => {
-        const host = decodeHost(text);
+        const host = decodeCampHost(text);
         return host.kind === "top" && host.hostType === "camp_table"
           ? [{ at: host.at, footprint: DUTCH_OVEN_FOOTPRINT_PX }]
           : [];
@@ -390,9 +390,3 @@ it("ignores missing ovens without starting their cooldown", () => {
   expect(actions.toggleLid(oven, 1)).toBe(true);
   expect(world.setSimmering).toHaveBeenCalledExactlyOnceWith(oven, true);
 });
-
-function decodeHost(text: string) {
-  return decodeSharedHost(text, (type, spot) =>
-    type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
-  );
-}

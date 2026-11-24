@@ -7,11 +7,11 @@ import {
   contains,
 } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import type { HeightedSpec } from "../../../src/domain/build/volume/geometry";
 import {
   spherePlacement,
   sphereVolume,
 } from "../../../src/domain/build/volume/sphere";
+import type { HeightedSpec } from "../../../src/domain/build/volume/types";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -100, max: 100 });

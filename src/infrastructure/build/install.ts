@@ -25,6 +25,10 @@ import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
 import { FixStairGoal } from "../../application/build/fixStairGoal";
 import { LeaveBuild } from "../../application/build/leaveBuild";
+import {
+  type MenuCases,
+  MenuChoices,
+} from "../../application/build/menuChoices";
 import { NewCopy } from "../../application/build/newCopy";
 import { OpenBuildMenu } from "../../application/build/openBuildMenu";
 import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
@@ -179,8 +183,9 @@ export function installBuild(deps: {
     confirmShape: cases.fill,
     cancel,
     setHeight: new SetHeightTo(repo),
-  };
-  const menus = new BedrockBuildMenus(repo, menuCases);
+  } satisfies MenuCases;
+  const menuChoices = new MenuChoices(repo, menuCases);
+  const menus = new BedrockBuildMenus(repo, menuChoices);
   const pressPasteAim = new PressPasteAim(
     repo,
     cases.pasteAt,
@@ -255,6 +260,7 @@ export function installBuild(deps: {
     modes,
     routes,
     menuCases,
+    menuChoices,
     pressPasteAim,
     pressUndo,
     endSession,

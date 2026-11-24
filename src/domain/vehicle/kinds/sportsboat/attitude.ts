@@ -5,14 +5,7 @@ import type { MotionLimits } from "../../motion/limits";
 import { turnFraction } from "../../motion/turn";
 import { SPORTSBOAT_SPEC } from "./spec";
 
-/** Trim and roll limits, read from SPORTSBOAT_SPEC (ADR 0087). */
-export const SPORTSBOAT_ATTITUDE = Object.freeze({
-  maxTrim: SPORTSBOAT_SPEC.maxTrim,
-  trimRiseRate: SPORTSBOAT_SPEC.trimRiseRate,
-  trimSettleRate: SPORTSBOAT_SPEC.trimSettleRate,
-  maxRoll: SPORTSBOAT_SPEC.maxRoll,
-  rollRate: SPORTSBOAT_SPEC.rollRate,
-});
+export const SPORTSBOAT_ATTITUDE = SPORTSBOAT_SPEC.attitude;
 
 /**
  * Next bow rise in degrees, 0 to `maxTrim`. Afloat, the target follows how

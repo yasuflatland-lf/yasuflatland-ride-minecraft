@@ -3,7 +3,7 @@ import { commandsFor, type EntityContract } from "../../entityContract";
 import { DOCK_EVENTS, DOCK_PROPERTIES } from "../../motion/dockEntity";
 import { SPORTSBOAT_SPEC } from "./spec";
 
-const { maxTrim, maxRoll } = SPORTSBOAT_SPEC;
+const { maxTrim, maxRoll } = SPORTSBOAT_SPEC.attitude;
 
 export const SPORTSBOAT_ENTITY = {
   properties: {

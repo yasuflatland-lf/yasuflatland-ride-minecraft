@@ -1,0 +1,330 @@
+import fc from "fast-check";
+import { expect, it } from "vitest";
+import type { MenuChoices } from "../../../src/application/build/menuChoices";
+import { boxOf } from "../../../src/domain/build/box";
+import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
+import {
+  buildMenu,
+  contentsMenu,
+  shapeMenu,
+} from "../../../src/domain/build/flow/menu";
+import {
+  chooseStairs,
+  fixStairGoal,
+} from "../../../src/domain/build/flow/stairFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
+import { selectionOf } from "../../../src/domain/build/selection";
+import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
+import { asPlayerId } from "../../../src/domain/shared/ids";
+import {
+  holdClipboard,
+  structureClipboard,
+} from "../../support/buildClipboard";
+import { overworld } from "./fakes";
+import {
+  endpoint,
+  from,
+  playerId,
+  selected,
+  setupMenuChoices,
+  stone,
+  to,
+} from "./fakes/menuChoices";
+
+const cell = fc.record({
+  x: fc.integer({ min: -20, max: 20 }),
+  y: fc.integer({ min: 0, max: 319 }),
+  z: fc.integer({ min: -20, max: 20 }),
+});
+
+const command = { playerId };
+const shapeRoutes = {
+  place: ["confirmShape", { playerId, style: "fill" }],
+  fill: ["confirmShape", { playerId, style: "fill" }],
+  frame: ["confirmShape", { playerId, style: "frame" }],
+  faces: ["confirmShape", { playerId, style: "faces" }],
+  walls: ["confirmShape", { playerId, style: "walls" }],
+  gable: ["chooseHeighted", { playerId, kind: "gable" }],
+  hip: ["chooseHeighted", { playerId, kind: "hip" }],
+  cylinder: ["chooseHeighted", { playerId, kind: "cylinder" }],
+  sphere: ["chooseHeighted", { playerId, kind: "sphere" }],
+  cube: ["chooseHeighted", { playerId, kind: "cube" }],
+  sideCylinder: ["chooseSideCylinder", command],
+  stairs: ["chooseStairs", { playerId, op: "stairs" }],
+  terrace: ["chooseStairs", { playerId, op: "terrace" }],
+  copy: ["chooseBoxStep", { playerId, kind: "copy" }],
+  cut: ["chooseBoxStep", { playerId, kind: "cut" }],
+  removeAbove: ["chooseTerrain", { playerId, op: "removeAbove" }],
+  fillBelow: ["chooseTerrain", { playerId, op: "fillBelow" }],
+  buildShape: ["openBuildMenu", command],
+  back: ["closeBuildMenu", command],
+  adjustHeight: ["chooseAdjustHeight", command],
+  cancel: ["clear", command],
+} as const;
+const contentsRoutes = {
+  fill: ["confirmHeighted", { playerId, fill: "fill" }],
+  hollow: ["confirmHeighted", { playerId, fill: "hollow" }],
+  tube: ["confirmHeighted", { playerId, fill: "tube" }],
+  cancel: ["cancel", command],
+} as const;
+const stairRoutes = {
+  passage: ["confirmStairs", { playerId, contents: "passage" }],
+  fillBelow: ["confirmStairs", { playerId, contents: "fillBelow" }],
+  stepsOnly: ["confirmStairs", { playerId, contents: "stepsOnly" }],
+  cancel: ["cancel", command],
+} as const;
+const terraceRoutes = {
+  confirm: ["confirmTerrace", command],
+  cancel: ["cancel", command],
+} as const;
+const terrainRoutes = {
+  confirm: ["confirmTerrain", command],
+  cancel: ["cancel", command],
+} as const;
+
+function expectDispatch(
+  flow: BuildFlow,
+  method: Extract<keyof MenuChoices, `choose${string}`>,
+  offered: string[],
+  routes: Record<
+    string,
+    | readonly [keyof ReturnType<typeof setupMenuChoices>["cases"], object]
+    | undefined
+  >,
+) {
+  expect(Object.keys(routes)).toEqual(expect.arrayContaining(offered));
+  for (const [id, expected] of Object.entries({
+    ...routes,
+    invalid: undefined,
+  })) {
+    const { session, cases, choices } = setupMenuChoices();
+    session.setFlow(flow);
+    const available = offered.includes(id);
+    expect(choices[method](playerId, id), id).toBe(available);
+    const calls = Object.entries(cases).flatMap(([action, useCase]) => {
+      const spy = "execute" in useCase ? useCase.execute : useCase.backToAiming;
+      return spy.mock.calls.map((args) => [action, ...args]);
+    });
+    expect(calls, id).toEqual(available ? [expected] : []);
+  }
+}
+
+it("dispatches only entries offered by the current flow, including stale choices", () => {
+  const span = fc.integer({ min: -2, max: 2 });
+  fc.assert(
+    fc.property(
+      cell,
+      span,
+      span,
+      span,
+      fc.constantFrom("root", "build"),
+      (start, dx, dy, dz, level) => {
+        const flow = selected(
+          start,
+          { x: start.x + dx, y: start.y + dy, z: start.z + dz },
+          level,
+        );
+        expectDispatch(
+          flow,
+          "chooseShape",
+          [...shapeMenu(flow), ...buildMenu(flow)].map(({ id }) => id),
+          shapeRoutes,
+        );
+        expectDispatch(flow, "chooseContents", [], contentsRoutes);
+      },
+    ),
+  );
+  expectDispatch({ kind: "idle" }, "chooseShape", [], shapeRoutes);
+});
+
+it("dispatches only contents offered for the selected shape", () => {
+  for (const kind of ["hip", "cube"] as const) {
+    const flow = chooseHeighted(endpoint, kind);
+    expectDispatch(
+      flow,
+      "chooseContents",
+      contentsMenu(flow).map(({ id }) => id),
+      contentsRoutes,
+    );
+  }
+});
+
+it("dispatches stair and terrace choices only for the matching fixed goal", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 1, max: 5 }),
+      fc.constantFrom("stairs", "terrace"),
+      fc.boolean(),
+      (width, op, fixed) => {
+        const aim = chooseStairs(selected(from, { ...from, x: width - 1 }), op);
+        if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
+        const goal = staircaseToward(aim.row, { x: 0, y: 62, z: 4 });
+        if (!goal) throw new Error("Expected staircase");
+        const flow = fixed ? fixStairGoal(aim, goal) : aim;
+        expectDispatch(
+          flow,
+          "chooseStairContents",
+          fixed && op === "stairs"
+            ? ["passage", "fillBelow", "stepsOnly", "cancel"]
+            : [],
+          { ...stairRoutes, confirm: undefined },
+        );
+        expectDispatch(
+          flow,
+          "chooseTerrace",
+          fixed && op === "terrace" ? ["confirm", "cancel"] : [],
+          { ...terraceRoutes, passage: undefined },
+        );
+      },
+    ),
+  );
+});
+
+it("validates utility availability before dispatching", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.boolean(),
+      (confirmed, clipboard, history) => {
+        const { session, cases, choices } = setupMenuChoices();
+        session.setFlow({ kind: "idle" });
+        const box = boxOf(from, to);
+        if (confirmed) session.confirmBox(selectionOf(overworld, box, stone));
+        if (clipboard)
+          holdClipboard(
+            session,
+            structureClipboard(box, () => stone),
+          );
+        if (history)
+          session.finishEdit(
+            {
+              dimensionId: overworld,
+              changes: [{ cell: from, before: stone, after: stone }],
+            },
+            "undoable",
+          );
+        for (const [id, offered] of [
+          ["copy", confirmed],
+          ["undo", history],
+          ["clear", confirmed],
+        ] as const) {
+          expect(choices.chooseUtility(playerId, id)).toBe(offered);
+          if (offered)
+            expect(cases[id].execute).toHaveBeenCalledExactlyOnceWith({
+              playerId,
+            });
+          else expect(cases[id].execute).not.toHaveBeenCalled();
+        }
+      },
+    ),
+  );
+});
+
+it("ends paste aiming and clears the clipboard and confirmed box", () => {
+  const { session, choices, cases } = setupMenuChoices();
+  for (const flow of [
+    { kind: "idle" } as const,
+    {
+      kind: "point1",
+      dimensionId: overworld,
+      cell: from,
+      material: stone,
+    } as const,
+    endpoint,
+    chooseHeighted(endpoint, "hip"),
+  ]) {
+    session.setFlow(flow);
+    expect(choices.choosePaste(playerId, "endPaste")).toBe(false);
+  }
+  expect(cases.endPasting.execute).not.toHaveBeenCalled();
+  session.completeCopy(
+    selectionOf(overworld, boxOf(from, to), stone),
+    structureClipboard(boxOf(from, to), () => stone),
+  );
+  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  expect(choices.choosePaste(playerId, "endPaste")).toBe(true);
+  expect(cases.endPasting.execute).toHaveBeenCalledExactlyOnceWith(playerId);
+  expect(session.flow.kind).toBe("idle");
+  expect(session.clipboard).toBeUndefined();
+  expect(session.confirmedBox).toBeUndefined();
+  expect(choices.chooseUtility(playerId, "paste")).toBe(false);
+  expect(choices.choosePaste(playerId, "endPaste")).toBe(false);
+});
+
+it("offers terrain entries only during the confirmation", () => {
+  expectDispatch(endpoint, "chooseTerrain", [], terrainRoutes);
+  expectDispatch(
+    chooseTerrain(endpoint, "removeAbove"),
+    "chooseTerrain",
+    ["confirm", "cancel"],
+    terrainRoutes,
+  );
+});
+
+it("ignores responses for players without a session", () => {
+  const { choices, repo } = setupMenuChoices();
+  const absent = asPlayerId("absent");
+  expect(choices.chooseShape(absent, "cut")).toBe(false);
+  expect(choices.chooseContents(absent, "fill")).toBe(false);
+  expect(choices.chooseStairContents(absent, "passage")).toBe(false);
+  expect(choices.chooseTerrace(absent, "confirm")).toBe(false);
+  expect(choices.chooseTerrain(absent, "confirm")).toBe(false);
+  expect(choices.chooseUtility(absent, "clear")).toBe(false);
+  expect(choices.choosePaste(absent, "endPaste")).toBe(false);
+  expect(repo.get(absent)).toBeUndefined();
+});
+
+it("dispatches each offered paste entry exactly once and ignores all unoffered ids", () => {
+  fc.assert(
+    fc.property(
+      fc.boolean(),
+      fc.boolean(),
+      fc.oneof(
+        fc.constantFrom(
+          "undo",
+          "endPaste",
+          "copy",
+          "paste",
+          "cancel",
+          "endPasting",
+          "newCopy",
+        ),
+        fc.option(fc.string(), { nil: undefined }),
+      ),
+      (history, aiming, entryId) => {
+        const { session, choices, cases } = setupMenuChoices();
+        session.setFlow(
+          aiming ? { kind: "pasteAim", manualTurn: 0 } : { kind: "idle" },
+        );
+        if (history)
+          session.finishEdit(
+            {
+              dimensionId: overworld,
+              changes: [{ cell: from, before: stone, after: stone }],
+            },
+            "undoable",
+          );
+        const offered =
+          aiming &&
+          (entryId === "newCopy" ||
+            entryId === "endPaste" ||
+            entryId === "cancel");
+        expect(choices.choosePaste(playerId, entryId)).toBe(offered);
+        const routes = new Map([
+          ["newCopy", cases.newCopy.execute],
+          ["endPaste", cases.endPasting.execute],
+        ]);
+        const expected = offered && entryId ? routes.get(entryId) : undefined;
+        for (const useCase of Object.values(cases)) {
+          const call =
+            "execute" in useCase ? useCase.execute : useCase.backToAiming;
+          expect(call.mock.calls).toEqual(
+            call === expected ? [[playerId]] : [],
+          );
+        }
+      },
+    ),
+  );
+});

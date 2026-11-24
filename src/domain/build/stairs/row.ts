@@ -1,7 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { HorizontalAxis } from "../axis";
 import { boxOf, cellsOf } from "../box";
-import type { Taps } from "../flow/flow";
+import type { Taps } from "../flow/tapCells";
 
 export interface StairRow {
   readonly y: number;

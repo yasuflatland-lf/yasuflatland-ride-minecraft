@@ -1,5 +1,5 @@
 import { dyeable } from "../../../shared/paint";
-import type { MotionLimits } from "../../motion/limits";
+import { motionLimitsOf } from "../../motion/limits";
 import {
   clearanceHeight,
   type PlacementLiquid,
@@ -63,14 +63,4 @@ export const SPORTSBOAT_PROFILE: VehicleProfile = Object.freeze({
 });
 
 /** The sports boat's motion limits, read from SPORTSBOAT_SPEC (ADR 0087). */
-export const SPORTSBOAT_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: SPORTSBOAT_SPEC.maxSpeed,
-  maxReverse: SPORTSBOAT_SPEC.maxReverse,
-  accel: SPORTSBOAT_SPEC.accel,
-  reverseAccel: SPORTSBOAT_SPEC.reverseAccel,
-  brake: SPORTSBOAT_SPEC.brake,
-  drag: SPORTSBOAT_SPEC.drag,
-  turnRate: SPORTSBOAT_SPEC.turnRate,
-  steerFullSpeed: SPORTSBOAT_SPEC.steerFullSpeed,
-  grip: SPORTSBOAT_SPEC.grip,
-});
+export const SPORTSBOAT_MOTION = motionLimitsOf(SPORTSBOAT_SPEC);
