@@ -43,7 +43,7 @@ export function selected(
 }
 export const endpoint = selected(from, to);
 
-export function menuCasesFor(repo: FakeSessions) {
+export function menuCasesFor(repo: FakeSessions, world = new FakeWorld()) {
   const preview = { refresh: vi.fn() };
   return {
     openSelectionMenu: {
@@ -82,7 +82,7 @@ export function menuCasesFor(repo: FakeSessions) {
     confirmShape: { execute: vi.fn() },
     chooseHeighted: {
       execute: vi.fn((cmd) =>
-        new ChooseHeighted(repo, new FakeFeedback()).execute(cmd),
+        new ChooseHeighted(repo, new FakeFeedback(), world).execute(cmd),
       ),
     },
     chooseSideCylinder: {
@@ -91,7 +91,7 @@ export function menuCasesFor(repo: FakeSessions) {
           repo,
           new FakeFeedback(),
           { aim: () => undefined },
-          new ChooseHeighted(repo, new FakeFeedback()),
+          new ChooseHeighted(repo, new FakeFeedback(), world),
         ).execute(cmd),
       ),
     },
@@ -105,7 +105,7 @@ export function menuCasesFor(repo: FakeSessions) {
     confirmStairs: { execute: vi.fn() },
     chooseTerrain: {
       execute: vi.fn((cmd) =>
-        new ChooseTerrain(repo, new FakeFeedback()).execute(cmd),
+        new ChooseTerrain(repo, new FakeFeedback(), world).execute(cmd),
       ),
     },
     confirmTerrain: { execute: vi.fn() },
@@ -133,6 +133,7 @@ export function setupMenuChoices() {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
   session.setFlow(endpoint);
-  const cases = menuCasesFor(repo);
-  return { repo, session, cases, choices: new MenuChoices(repo, cases) };
+  const world = new FakeWorld();
+  const cases = menuCasesFor(repo, world);
+  return { repo, world, session, cases, choices: new MenuChoices(repo, cases) };
 }

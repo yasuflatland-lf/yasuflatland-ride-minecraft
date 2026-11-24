@@ -1,5 +1,6 @@
 import type { Cell } from "../../shared/cells";
 import { type CellBox, sizeOf } from "../box";
+import type { HeightRange } from "../heightRange";
 import { type Facing, facingOfStep } from "../rotation/facing";
 
 export type RoofKind = "gable" | "hip";
@@ -26,16 +27,10 @@ interface Rectangle {
   readonly maxZ: number;
 }
 
-export function maxRoofHeight(base: CellBox, worldTopY?: number): number {
+export function maxRoofHeight(base: CellBox, range: HeightRange): number {
   const size = sizeOf(base);
   const limit = 3 * Math.max(size.x, size.z);
-  return Math.max(
-    1,
-    Math.min(
-      limit,
-      worldTopY === undefined ? limit : worldTopY - base.min.y + 1,
-    ),
-  );
+  return Math.max(1, Math.min(limit, range.maxY - base.min.y + 1));
 }
 
 function maxInset(sx: number, sz: number): number {

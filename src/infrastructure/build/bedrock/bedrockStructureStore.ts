@@ -25,6 +25,7 @@ import {
 } from "../../../domain/build/structure/handle";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
+import { blockHeightRange } from "./bedrockBlockWorld";
 import {
   fillChunks,
   isStructureTooLarge,
@@ -68,8 +69,8 @@ export class BedrockStructureStore implements BuildStructureStore {
     if (isStructureTooLarge(box)) return "tooLarge";
     try {
       const dimension = world.getDimension(dimensionId);
-      const height = dimension.heightRange;
-      if (box.min.y < height.min || box.max.y >= height.max)
+      const height = blockHeightRange(dimension);
+      if (box.min.y < height.minY || box.max.y > height.maxY)
         return "unreadable";
       let name: string;
       do {

@@ -25,6 +25,7 @@ import {
   structureHandle,
 } from "../../../src/domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
@@ -609,7 +610,7 @@ it("replaces taps and bounds together only while selected or aiming height", () 
       session.setFlow(flow);
       const selection = selectionOf(dim, box, stone);
       const taps = { from: box.max, to: box.min };
-      session.replaceSelection(selection, taps);
+      session.replaceSelection(selection, taps, OVERWORLD_RANGE);
       if (flow.kind === "selected" || flow.kind === "baseHeight") {
         expect(session.flow).toMatchObject({
           kind: flow.kind,
@@ -619,7 +620,10 @@ it("replaces taps and bounds together only while selected or aiming height", () 
         if (flow.kind === "baseHeight")
           expect(session.flow).toMatchObject({
             baseBox: boxWithHeight(box, 1),
-            previous: Math.min(flow.previous, selectionHeightLimit(box)),
+            previous: Math.min(
+              flow.previous,
+              selectionHeightLimit(box, OVERWORLD_RANGE),
+            ),
           });
       } else expect(session.flow).toBe(flow);
       expect(session.confirmedBox).toBeUndefined();
@@ -650,6 +654,7 @@ it("advances rotation selections and only updates confirmed boxes in the same di
         session.replaceSelection(
           selectionOf(dim, target, stone),
           cornerTaps(target),
+          OVERWORLD_RANGE,
         );
         expect(session.flow).toEqual({
           kind: "selected",

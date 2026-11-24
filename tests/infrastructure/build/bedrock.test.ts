@@ -565,15 +565,27 @@ it("draws outlines with the marker particle and flames without Molang variables 
 
 it("converts each dimension's exclusive height maximum to the highest block Y", () => {
   fc.assert(
-    fc.property(fc.integer({ min: -63, max: 1024 }), (max) => {
-      const blocks = new BedrockBlockWorld({ isProtected: () => false });
-      engine.getDimension.mockImplementation((id: string) => ({
-        heightRange: { min: -64, max: id === "minecraft:nether" ? max : 320 },
-      }));
-      expect(blocks.topY(asDimensionId("minecraft:nether"))).toBe(max - 1);
-      expect(engine.getDimension).toHaveBeenLastCalledWith("minecraft:nether");
-      expect(blocks.topY(dimension)).toBe(319);
-      expect(engine.getDimension).toHaveBeenLastCalledWith(dimension);
-    }),
+    fc.property(
+      fc.integer({ min: -128, max: 128 }),
+      fc.integer({ min: 1, max: 1024 }),
+      (min, span) => {
+        const blocks = new BedrockBlockWorld({ isProtected: () => false });
+        engine.getDimension.mockImplementation((id: string) => ({
+          heightRange:
+            id === "minecraft:overworld"
+              ? { min: -64, max: 320 }
+              : { min, max: min + span },
+        }));
+        expect(blocks.heightRange(asDimensionId("minecraft:nether"))).toEqual({
+          minY: min,
+          maxY: min + span - 1,
+        });
+        expect(engine.getDimension).toHaveBeenLastCalledWith(
+          "minecraft:nether",
+        );
+        expect(blocks.heightRange(dimension)).toEqual({ minY: -64, maxY: 319 });
+        expect(engine.getDimension).toHaveBeenLastCalledWith(dimension);
+      },
+    ),
   );
 });

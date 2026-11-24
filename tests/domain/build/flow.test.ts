@@ -63,6 +63,7 @@ import {
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../src/domain/shared/keptBlocks";
 import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
@@ -84,15 +85,27 @@ const flows = fc
   .chain(([a, b]) =>
     fc.constantFrom(
       idle,
-      tapBlock(idle, dim, a, stone),
-      confirmEndpointHeight(tapAir(tapBlock(idle, dim, a, stone), b)),
+      tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+      confirmEndpointHeight(
+        tapAir(
+          tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+          b,
+          OVERWORLD_RANGE,
+        ),
+      ),
     ),
   );
 
 it("detects only transitions into base height", () => {
   const endpoint = fc
     .tuple(cell, cell)
-    .map(([from, to]) => tapAir(tapBlock(idle, dim, from, stone), to));
+    .map(([from, to]) =>
+      tapAir(
+        tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+        to,
+        OVERWORLD_RANGE,
+      ),
+    );
   const flow = fc.oneof(flows, endpoint);
   fc.assert(
     fc.property(flow, flow, (before, after) => {
@@ -120,8 +133,8 @@ it("keeps taps only in the selected and terrain confirmation flows", () => {
       fc.integer({ min: 1, max: 20 }),
       (from, dx, dz) => {
         const to = { x: from.x - dx, y: from.y, z: from.z + dz };
-        const point = tapBlock(idle, dim, from, stone);
-        const base = tapAir(point, to);
+        const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
+        const base = tapAir(point, to, OVERWORLD_RANGE);
         const selected = confirmEndpointHeight(base);
         for (const flow of [selected, chooseTerrain(selected, "fillBelow")])
           expect(tapsOf(flow)).toEqual({ from, to });
@@ -142,7 +155,7 @@ it("cancel always reaches idle, and air without an endpoint changes nothing", ()
   fc.assert(
     fc.property(flows, (flow) => {
       expect(cancel(flow)).toEqual(idle);
-      expect(tapAir(flow)).toBe(flow);
+      expect(tapAir(flow, undefined, OVERWORLD_RANGE)).toBe(flow);
       expect(backToAiming(flow)).toBe(flow);
     }),
   );
@@ -151,16 +164,20 @@ it("cancel always reaches idle, and air without an endpoint changes nothing", ()
 it("selects the same box from an air press or a second block tap", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {
-      const endpoint = tapAir(tapBlock(idle, dim, a, stone), b);
-      const aiming = tapBlock(idle, dim, a, stone);
+      const endpoint = tapAir(
+        tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+        b,
+        OVERWORLD_RANGE,
+      );
+      const aiming = tapBlock(idle, dim, a, stone, OVERWORLD_RANGE);
       expect(aiming).toEqual({
         kind: "point1",
         dimensionId: dim,
         cell: a,
         material: stone,
       });
-      expect(tapBlock(aiming, dim, b, dirt)).toEqual(endpoint);
-      expect(tapAir(aiming, b)).toEqual(endpoint);
+      expect(tapBlock(aiming, dim, b, dirt, OVERWORLD_RANGE)).toEqual(endpoint);
+      expect(tapAir(aiming, b, OVERWORLD_RANGE)).toEqual(endpoint);
       expect(endpoint.kind).toBe(
         shapeOf(a, b).kind === "line" ? "selected" : "baseHeight",
       );
@@ -176,7 +193,7 @@ it("a block tap in another dimension starts a fresh point 1 before selection", (
     fc.property(flows, cell, (flow, at) => {
       if (flow.kind === "selected") return;
       const before = structuredClone(flow);
-      expect(tapBlock(flow, other, at, dirt)).toEqual({
+      expect(tapBlock(flow, other, at, dirt, OVERWORLD_RANGE)).toEqual({
         kind: "point1",
         dimensionId: other,
         cell: at,
@@ -191,12 +208,18 @@ it("keeps the selection on subsequent air and block taps", () => {
   fc.assert(
     fc.property(cell, cell, cell, (a, b, c) => {
       const endpoint = confirmEndpointHeight(
-        tapAir(tapBlock(idle, dim, a, stone), b),
+        tapAir(
+          tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+          b,
+          OVERWORLD_RANGE,
+        ),
       );
-      expect(tapBlock(endpoint, dim, c, dirt)).toBe(endpoint);
-      expect(tapBlock(endpoint, other, c, dirt)).toBe(endpoint);
-      expect(tapAir(endpoint, c)).toBe(endpoint);
-      expect(tapAir(idle, c)).toBe(idle);
+      expect(tapBlock(endpoint, dim, c, dirt, OVERWORLD_RANGE)).toBe(endpoint);
+      expect(tapBlock(endpoint, other, c, dirt, OVERWORLD_RANGE)).toBe(
+        endpoint,
+      );
+      expect(tapAir(endpoint, c, OVERWORLD_RANGE)).toBe(endpoint);
+      expect(tapAir(idle, c, OVERWORLD_RANGE)).toBe(idle);
     }),
   );
 });
@@ -217,7 +240,11 @@ it("offers the ordered root and build menus for every shape and returns unchange
           z: from.z + delta.z,
         };
         const flow = confirmEndpointHeight(
-          tapAir(tapBlock(idle, dim, from, stone), to),
+          tapAir(
+            tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+            to,
+            OVERWORLD_RANGE,
+          ),
         );
         const shape = shapeOf(from, to);
         const before = structuredClone(flow);
@@ -243,12 +270,13 @@ it("offers the ordered root and build menus for every shape and returns unchange
           { id: "back" },
         ]);
         expect(closeBuildMenu(opened)).toEqual(flow);
-        expect(adjustHeight(opened)).toBe(opened);
-        expect(adjustHeight(idle)).toBe(idle);
-        if (shape.kind === "line") expect(adjustHeight(flow)).toBe(flow);
+        expect(adjustHeight(opened, OVERWORLD_RANGE)).toBe(opened);
+        expect(adjustHeight(idle, OVERWORLD_RANGE)).toBe(idle);
+        if (shape.kind === "line")
+          expect(adjustHeight(flow, OVERWORLD_RANGE)).toBe(flow);
         expect(closeBuildMenu(flow)).toBe(flow);
         expect(openBuildMenu(opened)).toBe(opened);
-        expect(tapAir(opened, to)).toBe(opened);
+        expect(tapAir(opened, to, OVERWORLD_RANGE)).toBe(opened);
         expect(Object.isFrozen(opened)).toBe(true);
         for (const entry of [...shapeMenu(flow), ...buildMenu(opened)]) {
           expect(isShapeEntryOffered(flow, entry.id)).toBe(
@@ -262,20 +290,30 @@ it("offers the ordered root and build menus for every shape and returns unchange
       }
       for (const flow of [
         idle,
-        tapBlock(idle, dim, from, stone),
+        tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
         beginPasteAim(),
         chooseHeightedFlow(
           confirmEndpointHeight(
-            tapAir(tapBlock(idle, dim, from, stone), {
-              ...from,
-              x: from.x + 2,
-              z: from.z + 2,
-            }),
+            tapAir(
+              tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+              {
+                ...from,
+                x: from.x + 2,
+                z: from.z + 2,
+              },
+              OVERWORLD_RANGE,
+            ),
           ),
           "gable",
         ),
         chooseTerrain(
-          confirmEndpointHeight(tapAir(tapBlock(idle, dim, from, stone), from)),
+          confirmEndpointHeight(
+            tapAir(
+              tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+              from,
+              OVERWORLD_RANGE,
+            ),
+          ),
           "removeAbove",
         ),
       ]) {
@@ -314,7 +352,8 @@ it("offers utility entries exactly when their prerequisites exist", () => {
             },
             "undoable",
           );
-        if (aiming) session.setFlow(tapBlock(idle, dim, at, stone));
+        if (aiming)
+          session.setFlow(tapBlock(idle, dim, at, stone, OVERWORLD_RANGE));
         expect(utilityMenu(session).map((e) => e.id)).toEqual([
           ...(confirmed ? ["copy"] : []),
           ...(history ? ["undo"] : []),
@@ -404,7 +443,11 @@ it("accepts every heighted kind only on its supported shapes", () => {
           const from = reverse ? end : origin;
           const to = reverse ? origin : end;
           const flow = confirmEndpointHeight(
-            tapAir(tapBlock(idle, dim, from, stone), to),
+            tapAir(
+              tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+              to,
+              OVERWORLD_RANGE,
+            ),
           );
           expect(buildEntries(shapeOf(from, to)).map((e) => e.id)).toEqual(ids);
           for (const kind of [
@@ -414,7 +457,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
             "sphere",
             "cube",
           ] as const) {
-            const result = chooseHeighted(flow, kind);
+            const result = chooseHeighted(flow, kind, OVERWORLD_RANGE);
             if (!(ids as readonly string[]).includes(kind)) {
               expect(result).toEqual({ refused: "shape" });
               continue;
@@ -458,7 +501,7 @@ it("accepts every heighted kind only on its supported shapes", () => {
 it.each(["gable", "hip"] as const)(
   "locks a stair %s to its pitch and keeps the original box for Undo",
   (kind) => {
-    const min = { x: 0, y: BUILD_SPEC.worldTopY - 2, z: 0 };
+    const min = { x: 0, y: OVERWORLD_RANGE.maxY - 2, z: 0 };
     const box = boxOf(min, { x: 4, y: min.y + 1, z: 6 });
     const stair = blockStateOf("minecraft:oak_stairs", {
       weirdo_direction: 3,
@@ -493,7 +536,9 @@ it.each(["gable", "hip"] as const)(
         stair,
       ),
     };
-    expect(chooseHeighted(aboveTop, kind)).toEqual({ refused: "tooLarge" });
+    expect(chooseHeighted(aboveTop, kind, OVERWORLD_RANGE)).toEqual({
+      refused: "tooLarge",
+    });
   },
 );
 
@@ -506,10 +551,14 @@ it("roof and paste stages accept only their own transitions and ignore selection
       fc.integer(),
       (a, b, kind, height) => {
         const endpoint = confirmEndpointHeight(
-          tapAir(tapBlock(idle, dim, a, stone), b),
+          tapAir(
+            tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+            b,
+            OVERWORLD_RANGE,
+          ),
         );
         const shape = shapeOf(a, b);
-        const roof = chooseHeighted(endpoint, kind);
+        const roof = chooseHeighted(endpoint, kind, OVERWORLD_RANGE);
         if (
           shape.kind === "box" ||
           (shape.kind === "rect" && shape.flat === "y")
@@ -533,18 +582,22 @@ it("roof and paste stages accept only their own transitions and ignore selection
         } else expect(roof).toEqual({ refused: "shape" });
         const horizontal = chooseHeightedFlow(
           confirmEndpointHeight(
-            tapAir(tapBlock(idle, dim, a, stone), {
-              x: a.x + 2,
-              y: a.y,
-              z: a.z + 3,
-            }),
+            tapAir(
+              tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+              {
+                x: a.x + 2,
+                y: a.y,
+                z: a.z + 3,
+              },
+              OVERWORLD_RANGE,
+            ),
           ),
           kind,
         );
         const paste = beginPasteAim();
         for (const flow of [
           idle,
-          tapBlock(idle, dim, a, stone),
+          tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
           endpoint,
           horizontal,
           paste,
@@ -553,7 +606,9 @@ it("roof and paste stages accept only their own transitions and ignore selection
             flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );
           if (flow.kind !== "selected")
-            expect(chooseHeighted(flow, kind)).toEqual({ refused: "shape" });
+            expect(chooseHeighted(flow, kind, OVERWORLD_RANGE)).toEqual({
+              refused: "shape",
+            });
           expect(contentsMenu(flow)).toEqual(
             flow.kind === "heightStep"
               ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
@@ -562,8 +617,8 @@ it("roof and paste stages accept only their own transitions and ignore selection
           expect(cancel(flow)).toEqual(idle);
         }
         for (const flow of [horizontal, paste]) {
-          expect(tapBlock(flow, other, b, dirt)).toBe(flow);
-          expect(tapAir(flow, b)).toBe(flow);
+          expect(tapBlock(flow, other, b, dirt, OVERWORLD_RANGE)).toBe(flow);
+          expect(tapAir(flow, b, OVERWORLD_RANGE)).toBe(flow);
           expect(backToAiming(flow)).toEqual(
             flow.kind === "heightStep"
               ? {
@@ -592,7 +647,11 @@ it("roof Cancel preserves the original first point for either selection directio
         const from = reverse ? b : a;
         const to = reverse ? a : b;
         const endpoint = confirmEndpointHeight(
-          tapAir(tapBlock(idle, dim, from, stone), to),
+          tapAir(
+            tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+            to,
+            OVERWORLD_RANGE,
+          ),
         );
         for (const kind of ["gable", "hip"] as const) {
           expect(backToAiming(chooseHeightedFlow(endpoint, kind))).toEqual({
@@ -698,8 +757,8 @@ it("offers Undo on a plain air press only when idle", () => {
 it("enters the terrain confirmation only from an end point, keeps the points, and returns to aiming on Cancel", () => {
   fc.assert(
     fc.property(cell, cell, cell, (a, b, c) => {
-      const first = tapBlock(idle, dim, a, stone);
-      const endpoint = confirmEndpointHeight(tapAir(first, b));
+      const first = tapBlock(idle, dim, a, stone, OVERWORLD_RANGE);
+      const endpoint = confirmEndpointHeight(tapAir(first, b, OVERWORLD_RANGE));
       for (const flow of [idle, first, beginPasteAim()])
         expect(chooseTerrain(flow, "removeAbove")).toBe(flow);
       const confirming = chooseTerrain(endpoint, "removeAbove");
@@ -711,8 +770,10 @@ it("enters the terrain confirmation only from an end point, keeps the points, an
         op: "removeAbove",
       });
       expect(chooseTerrain(confirming, "removeAbove")).toBe(confirming);
-      expect(tapBlock(confirming, dim, c, stone)).toBe(confirming);
-      expect(tapAir(confirming, c)).toBe(confirming);
+      expect(tapBlock(confirming, dim, c, stone, OVERWORLD_RANGE)).toBe(
+        confirming,
+      );
+      expect(tapAir(confirming, c, OVERWORLD_RANGE)).toBe(confirming);
       expect(backToAiming(confirming)).toEqual(first);
       expect(cancel(confirming)).toEqual(idle);
       expect(opensUtilityMenu(confirming, false)).toBe(false);
@@ -725,7 +786,11 @@ it("offers Cut then Remove above first for every shape and the confirmation only
   fc.assert(
     fc.property(cell, cell, (a, b) => {
       const endpoint = confirmEndpointHeight(
-        tapAir(tapBlock(idle, dim, a, stone), b),
+        tapAir(
+          tapBlock(idle, dim, a, stone, OVERWORLD_RANGE),
+          b,
+          OVERWORLD_RANGE,
+        ),
       );
       const ids = shapeMenu(endpoint).map((entry) => entry.id);
       expect(ids.filter((id) => id !== "adjustHeight").slice(0, 2)).toEqual([
@@ -745,8 +810,8 @@ it("offers Cut then Remove above first for every shape and the confirmation only
 
 it("offers Stairs only for a horizontal row and returns from either stair flow to point 1", () => {
   const from = { x: 2, y: 5, z: 0 };
-  const point = tapBlock(idle, dim, from, stone);
-  const chosen = tapAir(point, { ...from, x: 0 });
+  const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
+  const chosen = tapAir(point, { ...from, x: 0 }, OVERWORLD_RANGE);
   const aim = chooseStairs(chosen, "stairs");
   if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
   expect(aim.taps.from).toEqual(from);
@@ -771,7 +836,7 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
     { ...from, y: 7 },
     { ...from, x: 0, z: 2 },
   ]) {
-    const other = confirmEndpointHeight(tapAir(point, to));
+    const other = confirmEndpointHeight(tapAir(point, to, OVERWORLD_RANGE));
     expect(isShapeEntryOffered(other, "stairs")).toBe(false);
     expect(chooseStairs(other, "stairs")).toBe(other);
   }
@@ -790,8 +855,10 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
 it("offers Stairs and Terrace after Build shape for a single-cell box only when both taps match it", () => {
   fc.assert(
     fc.property(cell, (foot) => {
-      const point = tapBlock(idle, dim, foot, stone);
-      const selected = confirmEndpointHeight(tapBlock(point, dim, foot, stone));
+      const point = tapBlock(idle, dim, foot, stone, OVERWORLD_RANGE);
+      const selected = confirmEndpointHeight(
+        tapBlock(point, dim, foot, stone, OVERWORLD_RANGE),
+      );
       if (selected.kind !== "selected")
         throw new Error("Expected a selected cell");
       expect(shapeMenu(selected).map(({ id }) => id)).toEqual([
@@ -830,8 +897,10 @@ it("offers Stairs and Terrace after Build shape for a single-cell box only when 
 
 it("opens Terrace confirmation from a single-cell foot", () => {
   const foot = { x: 2, y: 5, z: 1 };
-  const point = tapBlock(idle, dim, foot, stone);
-  const selected = confirmEndpointHeight(tapBlock(point, dim, foot, stone));
+  const point = tapBlock(idle, dim, foot, stone, OVERWORLD_RANGE);
+  const selected = confirmEndpointHeight(
+    tapBlock(point, dim, foot, stone, OVERWORLD_RANGE),
+  );
   const aim = chooseStairs(selected, "terrace");
   if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
   expect(aim.op).toBe("terrace");
@@ -846,13 +915,14 @@ it("opens Terrace confirmation from a single-cell foot", () => {
 it("uses the rotated row for stairs and resumes aiming from its minimum corner", () => {
   const from = { x: 3, y: 5, z: 0 };
   const to = { ...from, x: 1 };
-  const point = tapBlock(idle, dim, from, stone);
+  const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
   const session = new BuildSession(asPlayerId("p"));
-  session.setFlow(tapAir(point, to));
+  session.setFlow(tapAir(point, to, OVERWORLD_RANGE));
   const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
   session.replaceSelection(
     selectionOf(dim, rotated, stone),
     tapsForBox(rotated, { from, to }),
+    OVERWORLD_RANGE,
   );
   const aim = chooseStairs(session.flow, "stairs");
   expect(aim).toMatchObject({
@@ -866,7 +936,13 @@ it("uses the rotated row for stairs and resumes aiming from its minimum corner",
 it("starts and re-enters live height at the clamped tapped span", () => {
   fc.assert(
     fc.property(cell, cell, (from, to) => {
-      const flow = tapBlock(tapBlock(idle, dim, from, stone), dim, to, dirt);
+      const flow = tapBlock(
+        tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+        dim,
+        to,
+        dirt,
+        OVERWORLD_RANGE,
+      );
       fc.pre(flow.kind === "baseHeight");
       if (flow.kind !== "baseHeight") return;
       const box = flow.selection.box;
@@ -875,7 +951,7 @@ it("starts and re-enters live height at the clamped tapped span", () => {
         Math.max(
           1,
           Math.min(
-            BUILD_SPEC.worldTopY - box.min.y + 1,
+            OVERWORLD_RANGE.maxY - box.min.y + 1,
             Math.floor(
               BUILD_SPEC.maxCopyVolume /
                 ((Math.abs(to.x - from.x) + 1) * (Math.abs(to.z - from.z) + 1)),
@@ -883,15 +959,18 @@ it("starts and re-enters live height at the clamped tapped span", () => {
           ),
         ),
       );
-      expect(tappedSpanHeight(box)).toBe(expected);
-      expect(flow.previous).toBe(tappedSpanHeight(box));
-      const adjusted = adjustHeight({
-        kind: "selected",
-        menuLevel: "root",
-        selection: flow.selection,
-        from,
-        to,
-      });
+      expect(tappedSpanHeight(box, OVERWORLD_RANGE)).toBe(expected);
+      expect(flow.previous).toBe(tappedSpanHeight(box, OVERWORLD_RANGE));
+      const adjusted = adjustHeight(
+        {
+          kind: "selected",
+          menuLevel: "root",
+          selection: flow.selection,
+          from,
+          to,
+        },
+        OVERWORLD_RANGE,
+      );
       expect(adjusted).toEqual(withoutStepBack(flow));
     }),
   );
@@ -906,7 +985,11 @@ it("confirms the initial tapped span or the reopened box independently of the li
       fc.constantFrom(stone, dirt),
       fc.integer(),
       (from, to, dimensionId, material, previous) => {
-        const flow = tapAir(tapBlock(idle, dimensionId, from, material), to);
+        const flow = tapAir(
+          tapBlock(idle, dimensionId, from, material, OVERWORLD_RANGE),
+          to,
+          OVERWORLD_RANGE,
+        );
         fc.pre(flow.kind === "baseHeight");
         if (flow.kind !== "baseHeight") return;
         const box = boxOf(from, to);
@@ -917,20 +1000,22 @@ it("confirms the initial tapped span or the reopened box independently of the li
           to,
           selection: selectionOf(
             dimensionId,
-            boxWithHeight(box, tappedSpanHeight(box)),
+            boxWithHeight(box, tappedSpanHeight(box, OVERWORLD_RANGE)),
             material,
           ),
         };
-        expect(confirmTappedSpan({ ...flow, previous })).toEqual(expected);
+        expect(
+          confirmTappedSpan({ ...flow, previous }, OVERWORLD_RANGE),
+        ).toEqual(expected);
         const confirmed = confirmLiveHeight({
           ...flow,
-          previous: Math.min(2, selectionHeightLimit(box)),
+          previous: Math.min(2, selectionHeightLimit(box, OVERWORLD_RANGE)),
         });
-        const reopened = adjustHeight(confirmed);
+        const reopened = adjustHeight(confirmed, OVERWORLD_RANGE);
         if (reopened.kind === "baseHeight")
-          expect(confirmTappedSpan({ ...reopened, previous })).toEqual(
-            confirmed,
-          );
+          expect(
+            confirmTappedSpan({ ...reopened, previous }, OVERWORLD_RANGE),
+          ).toEqual(confirmed);
       },
     ),
   );
@@ -939,16 +1024,22 @@ it("confirms the initial tapped span or the reopened box independently of the li
 it("keeps the fresh endpoint through live height updates but ends it on confirmation and adjustment", () => {
   fc.assert(
     fc.property(cell, fc.integer({ min: 1, max: 20 }), (start, height) => {
-      const point = tapBlock(idle, dim, start, stone);
-      const base = tapAir(point, { ...start, x: start.x + 3, z: start.z + 2 });
+      const point = tapBlock(idle, dim, start, stone, OVERWORLD_RANGE);
+      const base = tapAir(
+        point,
+        { ...start, x: start.x + 3, z: start.z + 2 },
+        OVERWORLD_RANGE,
+      );
       if (base.kind !== "baseHeight") throw new Error("Expected base height");
       expect(setHeight(base, height)).toHaveProperty("stepBackTo", point);
       for (const confirmed of [
         confirmLiveHeight(base),
-        confirmTappedSpan(base),
+        confirmTappedSpan(base, OVERWORLD_RANGE),
       ]) {
         expect(confirmed).not.toHaveProperty("stepBackTo");
-        expect(adjustHeight(confirmed)).not.toHaveProperty("stepBackTo");
+        expect(adjustHeight(confirmed, OVERWORLD_RANGE)).not.toHaveProperty(
+          "stepBackTo",
+        );
         const session = new BuildSession(asPlayerId("p"));
         session.setFlow(base);
         session.confirmBox(confirmed.selection, "selected", {

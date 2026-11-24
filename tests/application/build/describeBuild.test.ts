@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import { openBuildMenu } from "../../../src/domain/build/flow/menu";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -14,6 +14,8 @@ import {
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 import { FakeSessions, overworld } from "./fakes";
 

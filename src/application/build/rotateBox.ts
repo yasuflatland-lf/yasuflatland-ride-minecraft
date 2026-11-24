@@ -88,6 +88,7 @@ export class RotateBox {
     session.replaceSelection(
       withBox(selection, plan.target),
       tapsForBox(plan.target, flow),
+      this.world.heightRange(dimensionId),
     );
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);
     this.feedback.showMessage(playerId, "rotateDone", volume(selectedBox));

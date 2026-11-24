@@ -7,6 +7,7 @@ import {
   virtualAimedEndPoint,
 } from "../../../src/domain/build/aim/endPoint";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const point1 = { x: 4, y: 60, z: 2 };
 const aim = {
@@ -32,7 +33,11 @@ it("returns a touch virtual point only within tap reach along the ray", () => {
     fc.property(planeDistance, slope, (distance, rise) => {
       const plane = { ...point1, x: distance };
       const ray = { ...aim.ray, direction: { x: 1, y: rise, z: 0 } };
-      const result = aimedEndPoint(plane, { input: "touch", ray });
+      const result = aimedEndPoint(
+        plane,
+        { input: "touch", ray },
+        OVERWORLD_RANGE,
+      );
       expect(result !== undefined).toBe(
         distance * Math.hypot(1, rise) <= BUILD_SPEC.touchTapReach,
       );
@@ -54,9 +59,19 @@ it("uses the full virtual end point reach for pointer rays", () => {
           ray,
           ...(hasBlock ? { block } : {}),
         };
-        const expected = virtualEndPoint(plane, ray, BUILD_SPEC.reach);
-        expect(virtualAimedEndPoint(plane, sample)).toEqual(expected);
-        if (!hasBlock) expect(aimedEndPoint(plane, sample)).toEqual(expected);
+        const expected = virtualEndPoint(
+          plane,
+          ray,
+          BUILD_SPEC.reach,
+          OVERWORLD_RANGE,
+        );
+        expect(virtualAimedEndPoint(plane, sample, OVERWORLD_RANGE)).toEqual(
+          expected,
+        );
+        if (!hasBlock)
+          expect(aimedEndPoint(plane, sample, OVERWORLD_RANGE)).toEqual(
+            expected,
+          );
       },
     ),
   );
@@ -67,9 +82,9 @@ it("prefers block hits throughout build reach for both input kinds", () => {
     fc.property(fc.integer({ min: 0, max: BUILD_SPEC.reach }), (distance) => {
       const hit = { ...block, cell: { ...block.cell, x: distance } };
       for (const input of ["touch", "pointer"] as const) {
-        expect(aimedEndPoint(point1, { ...aim, input, block: hit })).toEqual(
-          hit.cell,
-        );
+        expect(
+          aimedEndPoint(point1, { ...aim, input, block: hit }, OVERWORLD_RANGE),
+        ).toEqual(hit.cell);
       }
     }),
   );

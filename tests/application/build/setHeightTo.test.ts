@@ -8,7 +8,7 @@ import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { chooseHeightedFlow } from "../../support/buildSelection";
-import { FakeSessions, overworld } from "./fakes";
+import { FakeSessions, FakeWorld, overworld } from "./fakes";
 
 it("sets only a roof flow's height and leaves other players and missing sessions alone", () => {
   fc.assert(
@@ -81,7 +81,7 @@ it("keeps locked box heights and other players unchanged for aiming and explicit
         session.setFlow(flow);
         new SetHeightTo(repo).execute({ playerId, height: requested });
         expect(session.flow).toBe(flow);
-        new AimHeight(repo).execute({
+        new AimHeight(repo, new FakeWorld()).execute({
           playerId,
           ray: {
             origin: { x: -10, y: requested, z: 2 },
