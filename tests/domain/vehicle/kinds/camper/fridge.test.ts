@@ -46,6 +46,7 @@ const HEIGHT = { fridge_bottom: 3, fridge_top: 4 } as const;
 const PLATE_BLOCK = "yasu_ride:camper_fridge_door";
 
 function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
+  const laid = new Set<string>();
   const blocks = new Map<string, string>();
   const ctx: TickContext = {
     tick: 0,
@@ -55,6 +56,8 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
     deckSeatInputs: [],
     solidAt: () => false,
     waterAt: () => false,
+    ownsLaidBlock: (cell, typeId) =>
+      laid.has(cellKey(cell)) && typeId === PLATE_BLOCK,
     blockTypes: vi.fn((cells: readonly Vec3[]) =>
       cells.map((c) => blocks.get(cellKey(c)) ?? AIR),
     ),
@@ -94,6 +97,7 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
   const inside = { x: front.x + 0.5, y: front.y - 1, z: front.z + 0.5 };
   return {
     blocks,
+    laid,
     ctx,
     drive,
     pose,
@@ -316,7 +320,11 @@ it("shuts both fridge doors on departure past their own plates, keeps their item
   f.park();
   for (const door of DOORS) f.press(door, "compartment");
   f.settle();
-  for (const door of DOORS) f.blocks.set(cellKey(f.plate(door)), PLATE_BLOCK);
+  for (const door of DOORS) {
+    const key = cellKey(f.plate(door));
+    f.blocks.set(key, PLATE_BLOCK);
+    f.laid.add(key);
+  }
   const out = f.step(PUSH);
   expect(out.depart).toBeDefined();
   for (const door of DOORS)

@@ -3,6 +3,7 @@ import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { cellKey } from "../../../domain/shared/cells";
 import {
   asDimensionId,
+  asVehicleId,
   type DimensionId,
   type VehicleId,
 } from "../../../domain/shared/ids";
@@ -114,6 +115,10 @@ export class DockBlocks implements DockLayer {
     codec: CellCodec<DockBlock>,
   ) {
     this.layer = new CellLayer(codec, DOCK_RECHECK_TICKS);
+  }
+
+  restore(vehicle: Entity): readonly DockCell[] {
+    return this.layer.restore(asVehicleId(vehicle.id), vehicle);
   }
 
   /** The vehicle whose laid door is at this cell, if any. */

@@ -186,11 +186,7 @@ export class CamperDrive extends TransformingDrive {
     const parked = this.hold.held;
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
-      const { blocked, exitClear } = this.parking.departureCheck(
-        parked,
-        ctx,
-        this.roomDecor.placed(),
-      );
+      const { blocked, exitClear } = this.parking.departureCheck(parked, ctx);
       if (blocked)
         return {
           ...this.parkedStep(parked, ctx),
