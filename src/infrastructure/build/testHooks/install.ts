@@ -27,7 +27,7 @@ export function installBuildTestHooks(
     ctx.blocks,
     ctx.menuCases.openSelectionMenu,
     ctx.aim,
-    ctx.menuCases.aimHeight,
+    ctx.pressWand,
   );
   registerTestMode(ctx.modes, ctx.repo);
   const describe = new DescribeBuild(ctx.repo);
