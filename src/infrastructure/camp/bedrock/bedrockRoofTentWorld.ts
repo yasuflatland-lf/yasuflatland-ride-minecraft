@@ -13,16 +13,15 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { PAINTS, type Paint } from "../../../domain/shared/paint";
+import type { Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { blockIn } from "../../shared/blocks";
-import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
+import { paintEvent } from "../../shared/dyes";
 import { entityOfType, hasEntityNear } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { paidItem } from "../../shared/groundCells";
 import { id } from "../../shared/identifiers";
 import {
-  consumeHeld,
   playerById,
   showActionBar,
   showHitsLeftHint,
@@ -155,24 +154,5 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
   }
   showRefusal(id: PlayerId, reason: RoofTentRefusal): void {
     showActionBar(id, { translate: ROOF_TENT_REFUSAL_MESSAGE[reason] });
-  }
-  paintOf(id: RoofTentId): Paint | undefined {
-    const tent = roofTentEntity(id);
-    return tent
-      ? PAINTS[tent.getComponent("minecraft:variant")?.value ?? 0]
-      : undefined;
-  }
-  paint(id: RoofTentId, paint: Paint): void {
-    const tent = roofTentEntity(id);
-    if (!tent) return;
-    tent.triggerEvent(paintEvent(paint));
-  }
-  playPaintSound(id: RoofTentId): void {
-    const tent = roofTentEntity(id);
-    if (tent) playPaintSound(tent);
-  }
-  consumeDye(id: PlayerId, paint: Paint): void {
-    const player = playerById(id);
-    if (player) consumeHeld(player, dyeOf(paint), player.selectedSlotIndex);
   }
 }

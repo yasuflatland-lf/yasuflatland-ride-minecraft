@@ -38,7 +38,7 @@ same-tick, and Creative rules.
   per player per tick, so a dye hit leaves take-down available that tick.
   It defers each accepted command through `system.run` with the original tick.
   A dye hit can repaint even while someone is inside, without an occupied hint.
-  `PaintTent` wraps one `Repaint<TentId>` for the session.
+  All three hit paths call the same `Repaint<TentId>` for the session.
 - The tent item stays single-color: a painted tent taken down returns the plain
   `yasu_ride:tent_item`, as a painted vehicle returns its plain item (0031).
 
