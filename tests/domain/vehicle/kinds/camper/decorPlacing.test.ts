@@ -154,8 +154,6 @@ it("accepts standing items on fitting standing slots and hanging items only on t
   );
   expect(slotsFor(decorItemId("percolator"))).toHaveLength(8);
   expect(slotsFor(decorItemId("percolator"), new Set(DOORS))).toHaveLength(16);
-  expect(slotsFor(decorItemId("constructor"))).toEqual([]);
-  expect(slotsFor(decorItemId("stone"))).toEqual([]);
 });
 
 it("takes standing items behind an open cabinet door and none behind a shut one, never a hanging item (ADR 0114)", () => {

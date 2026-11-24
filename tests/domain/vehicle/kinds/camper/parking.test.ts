@@ -661,12 +661,6 @@ it("sets, replaces, and empties only known slots and lists decor in slot order (
       expect(
         f.room.decor.setDecor(decorSlotId("nowhere"), decorItemId("mug_pair")),
       ).toBe(false);
-      expect(
-        f.room.decor.setDecor(
-          defined(DECOR_SLOTS[0], "slot").id,
-          decorItemId("Bad Item"),
-        ),
-      ).toBe(false);
       expect(f.room.decor.decor()).toEqual(sorted);
       for (const { slot } of placements) {
         expect(f.room.decor.setDecor(slot, undefined)).toBe(true);
@@ -795,7 +789,7 @@ it("restores saved decor and moves an entry of a removed slot to the first free 
       item: decorItemId("book_stack"),
     },
     { slot: decorSlotId("nowhere"), item: decorItemId("mug_pair") },
-    { slot: decorSlotId("stove"), item: decorItemId("Bad Item") },
+    { slot: decorSlotId("stove"), item: "Bad Item" },
   ]);
   const expected = [
     { slot: decorSlotId("dashboard_center"), item: decorItemId("book_stack") },

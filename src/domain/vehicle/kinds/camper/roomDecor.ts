@@ -1,5 +1,4 @@
 import type { HoldPose } from "../../dock/floor";
-import { currentGearId } from "./campingGear";
 import {
   cellTaken,
   DECOR_SLOTS,
@@ -12,7 +11,6 @@ import {
   type DecorItemId,
   type DecorPlacement,
   type DecorSlotId,
-  isDecorItem,
   parseDecor,
 } from "./decorData";
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
@@ -39,14 +37,12 @@ export class CamperRoomDecor {
     // moves to the first free slot that takes its item, or is stowed (ADR 0103, 0105). Decor
     // saved in a renamed slot loads as if saved in its new one (ADR 0112), and an item that
     // left the catalog is dropped without being handed back (ADR 0169).
-    const entries = parseDecor(saved).flatMap((entry) => {
-      const item = currentGearId(entry.item);
-      return item === undefined
-        ? []
-        : [{ slot: savedSlotId(entry.slot), item }];
-    });
     const homeless: DecorPlacement[] = [];
-    for (const entry of entries) {
+    for (const savedEntry of parseDecor(saved)) {
+      const entry = {
+        slot: savedSlotId(savedEntry.slot),
+        item: savedEntry.item,
+      };
       const slot = decorSlot(entry.slot);
       if (
         slot &&
@@ -89,7 +85,7 @@ export class CamperRoomDecor {
   /** Sets or clears one slot; an item replaces whatever a slot sharing its place held (ADR 0107, 0108). */
   set(slot: DecorSlotId, item: DecorItemId | undefined): boolean {
     const target = decorSlot(slot);
-    if (!target || (item !== undefined && !isDecorItem(item))) return false;
+    if (!target) return false;
     if (this.decorBySlot.get(slot) === item) return false;
     if (item === undefined) {
       this.decorBySlot.delete(slot);

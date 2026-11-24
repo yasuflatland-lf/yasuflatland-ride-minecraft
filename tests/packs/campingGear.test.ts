@@ -9,6 +9,7 @@ import { decorSpotOffset } from "../../src/domain/vehicle/kinds/camper/decorCell
 import { DECOR_SPOTS } from "../../src/domain/vehicle/kinds/camper/furniture";
 import {
   CAMPING_GEAR_IDS,
+  type CampingGearId,
   STANDING_GEAR_IDS,
 } from "../../src/domain/vehicle/kinds/index";
 import {
@@ -64,7 +65,7 @@ const MAX_STANDING_HEIGHT = 8;
 const MAX_HANGING_HEIGHT = 10;
 
 interface Gear {
-  id: string;
+  id: CampingGearId;
   name_en: string;
   name_ja: string;
   width_px: number;

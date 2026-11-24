@@ -8,6 +8,7 @@ import { Hold, heldStep, pushesStick } from "../../motion/dock";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SPEC } from "../../spec";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
+import type { CampingGearId } from "./campingGear";
 import { decorCells, furnitureCells } from "./decorCells";
 import { CamperFixtures } from "./fixtures";
 import { PARK_MESSAGES } from "./groundCheck";
@@ -135,7 +136,7 @@ export class CamperDrive extends TransformingDrive {
     return offer(key, CAMPER_ROOM, this.room);
   }
 
-  cargo(): readonly string[] {
+  cargo(): readonly CampingGearId[] {
     return this.roomDecor.all().map(({ item }) => item);
   }
 

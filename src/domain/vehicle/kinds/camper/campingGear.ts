@@ -1,6 +1,5 @@
 // The camping gear catalog, copied from tools/camping_gear.json (ADR 0093, 0097);
 // tests/domain/vehicle/kinds/camper/campingGear.test.ts keeps the two equal.
-import { type DecorItemId, isDecorItem } from "./decorData.ts";
 
 /** Every camping gear id, in the order of tools/camping_gear.json. */
 const CAMPING_GEAR_CATALOG = Object.freeze([
@@ -27,10 +26,10 @@ const CAMPING_GEAR_CATALOG = Object.freeze([
 ] as const);
 
 export type CampingGearId = (typeof CAMPING_GEAR_CATALOG)[number];
-export const CAMPING_GEAR_IDS: readonly string[] = CAMPING_GEAR_CATALOG;
+export const CAMPING_GEAR_IDS: readonly CampingGearId[] = CAMPING_GEAR_CATALOG;
 
 /** The gear that hangs from the ceiling hook; every other item stands (ADR 0097). */
-export const HANGING_GEAR_IDS: ReadonlySet<string> = new Set([
+export const HANGING_GEAR_IDS: ReadonlySet<CampingGearId> = new Set([
   "macrame_planter",
 ]);
 
@@ -38,25 +37,20 @@ export const HANGING_GEAR_IDS: ReadonlySet<string> = new Set([
  * The gear that stands, in catalog order: what a pair block, the table's or a compartment's, can
  * draw at each end; its yasu_ride:end<n> code is 1 + the index here, 0 for an empty end (ADR 0108).
  */
-export const STANDING_GEAR_IDS: readonly string[] = Object.freeze(
+export const STANDING_GEAR_IDS: readonly CampingGearId[] = Object.freeze(
   CAMPING_GEAR_IDS.filter((id) => !HANGING_GEAR_IDS.has(id)),
 );
 
 /** Saved catalog ids: null drops removed gear without returning an item (ADR 0169, 0173). */
-export const LEGACY_GEAR_IDS: Readonly<Record<string, string | null>> = {
+export const LEGACY_GEAR_IDS: Readonly<Record<string, CampingGearId | null>> = {
   lava_lamp: null,
   oil_lamp: null,
   lantern: null,
 };
 
-export function currentGearId(saved: DecorItemId): DecorItemId | undefined {
-  if (CAMPING_GEAR_IDS.includes(saved)) return saved;
-  // hasOwn keeps inherited keys such as "constructor" from reading as legacy ids.
-  if (!Object.hasOwn(LEGACY_GEAR_IDS, saved)) return undefined;
-  const mapped = LEGACY_GEAR_IDS[saved];
-  return mapped != null &&
-    isDecorItem(mapped) &&
-    CAMPING_GEAR_IDS.includes(mapped)
-    ? mapped
-    : undefined;
+export function asCampingGear(raw: unknown): CampingGearId | undefined {
+  if (typeof raw !== "string") return undefined;
+  if (Object.hasOwn(LEGACY_GEAR_IDS, raw))
+    return LEGACY_GEAR_IDS[raw] ?? undefined;
+  return CAMPING_GEAR_IDS.find((gear) => gear === raw);
 }

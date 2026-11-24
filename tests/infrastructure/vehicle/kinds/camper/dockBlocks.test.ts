@@ -611,7 +611,7 @@ it("ignores saved cells with a generated invalid field", () => {
       decor,
       decorBlockId("potted_plant"),
       "item",
-      fc.constantFrom(decorItemId("Potted Plant"), 3),
+      fc.constantFrom("Potted Plant", "unknown_gear", 3),
     ),
     changed(decor, decorBlockId("potted_plant"), "face", invalidFace),
     changed(decor, decorBlockId("potted_plant"), "height", invalidHeight),

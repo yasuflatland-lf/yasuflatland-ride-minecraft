@@ -90,7 +90,7 @@ export interface DecorSlot {
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
   /** Optional clearance restriction for a shallow furniture surface (ADR 0097). */
-  readonly items?: readonly string[];
+  readonly items?: readonly CampingGearId[];
   /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0107). */
   readonly spot?: number;
   /**
