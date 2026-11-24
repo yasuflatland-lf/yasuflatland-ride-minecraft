@@ -130,6 +130,8 @@ export class DriveVehicles {
         lavaAt: (offset) => this.world.lavaAt(snap.id, offset),
         solidAt: (offset) => this.world.solidAt(snap.id, offset),
         blockTypes: (cells) => this.world.blockTypes(snap.id, cells),
+        ownsLaidBlock: (cell, typeId) =>
+          this.world.ownsLaidBlock(snap.id, cell, typeId),
         targets: () => this.world.targetsNear(snap.id),
       });
       // Latches advance while building commands; a failed tick or send must retry every value (ADR 0127).

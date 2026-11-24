@@ -132,8 +132,7 @@ export function storagePlateCells(
 
 /**
  * The doors whose plates stand in the room's inside layers, with their plate cells at `pose`.
- * Parking checks those cells, and departure reads them with ownPlateBlock instead of as
- * cargo (ADR 0121).
+ * Parking checks those cells, and departure checks their dock ownership (ADR 0121).
  */
 export function storagePlateChecks<Id extends string>(
   pose: HoldPose,
@@ -143,19 +142,6 @@ export function storagePlateChecks<Id extends string>(
     door,
     cell: localCellAt(pose, door.opening.plate),
   }));
-}
-
-/**
- * An inside-layer plate cell lets the camper leave only while it holds air or `door`'s plate:
- * the plate goes when departure shuts the door (ADR 0121).
- */
-export function ownPlateBlock(
-  typeId: string | undefined,
-  door: StorageDoor,
-): boolean {
-  return (
-    typeId === AIR || typeId?.endsWith(`:${door.unit.plateBlockName}`) === true
-  );
 }
 
 /**
@@ -185,8 +171,7 @@ export function storagePressTarget<Id extends string>(
 /**
  * Cells where a player's block keeps the camper parked: the interior outside
  * furniture blocks, decor slots and storage plates, then the roof top (ADR 0092, 0093,
- * 0097, 0121). Slot cells are read separately, with ownSlotBlock, and storage plate cells
- * with ownPlateBlock.
+ * 0097, 0121). Slot and plate cells have their own departure check.
  */
 export function cargoCells(
   pose: HoldPose,

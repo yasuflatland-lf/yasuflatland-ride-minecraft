@@ -99,7 +99,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       holds,
       this.releaser,
     );
-    this.surroundings = new BedrockSurroundings(index);
+    this.surroundings = new BedrockSurroundings(index, dockBlocks);
     this.impulse = new BedrockVehicleImpulse(index, holds);
     this.blocks = new BedrockVehicleBlocks(
       index,
@@ -171,6 +171,10 @@ export class BedrockVehicleWorld implements DriveWorld {
 
   solidAt(vehicleId: VehicleId, offset: Vec3): boolean {
     return this.surroundings.solidAt(vehicleId, offset);
+  }
+
+  ownsLaidBlock(vehicleId: VehicleId, cell: Vec3, typeId: string): boolean {
+    return this.surroundings.ownsLaidBlock(vehicleId, cell, typeId);
   }
 
   blockTypes(

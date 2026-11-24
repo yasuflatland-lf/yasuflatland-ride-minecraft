@@ -16,11 +16,9 @@ import {
   DECOR_SLOTS,
 } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import {
-  decorBlockName,
   decorCells,
   decorSlotCell,
   furnitureCells,
-  ownSlotBlock,
   slotCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import {
@@ -85,7 +83,6 @@ const decor = fc
       ),
     ),
   );
-const itemId = fc.stringMatching(/^[a-z][a-z0-9_]{0,15}$/);
 const openDoors = fc
   .subarray(STORAGE_DOORS.map(({ id }) => id))
   .map((doors) => new Set<StorageDoorId>(doors));
@@ -807,44 +804,6 @@ it("lays the stove's furniture block once, at its burner's height, while the sto
   );
 });
 
-it("lets a slot cell hold only air, the furniture block, or the block its decor lays (ADR 0097, 0108)", () => {
-  fc.assert(
-    fc.property(itemId, itemId, (item, other) => {
-      fc.pre(item !== other);
-      for (const name of [`${item}_decor`, undefined]) {
-        expect(ownSlotBlock(AIR, name)).toBe(true);
-        expect(ownSlotBlock("yasu_ride:camper_furniture", name)).toBe(true);
-        expect(ownSlotBlock(undefined, name)).toBe(false);
-        expect(ownSlotBlock("minecraft:stone", name)).toBe(false);
-        expect(ownSlotBlock(`yasu_ride:${other}_decor`, name)).toBe(false);
-        expect(ownSlotBlock(`yasu_ride:${item}_decor`, name)).toBe(
-          name !== undefined,
-        );
-      }
-    }),
-  );
-});
-
-it("names the block a cell's decor lays: the pair block on the table, else the item's decor block, and the unit's compartment block in a compartment cell even when empty (ADR 0093, 0108, 0114, 0121)", () => {
-  fc.assert(
-    fc.property(decor, (d) => {
-      for (const { cell, slots } of DECOR_CELLS) {
-        const placed = d.find((e) => slots.some((s) => s.id === e.slot));
-        const pair = slots.find((s) => s.pair)?.pair;
-        expect(decorBlockName(cell, d)).toBe(
-          isCabinetCell(cell)
-            ? `${pair?.kind}_decor_pair`
-            : placed === undefined
-              ? undefined
-              : pair
-                ? `${pair.kind}_decor_pair`
-                : `${placed.item}_decor`,
-        );
-      }
-    }),
-  );
-});
-
 it("puts each dinette deck seat under its dinette slot, the first slot cell from the seat's cell up, and no other deck seat under a slot (ADR 0097)", () => {
   fc.assert(
     fc.property(pose, (p) => {
@@ -1043,22 +1002,6 @@ it("lays the cabinet blocks over the sink and the stove in the ceiling layer, in
       );
     }),
   );
-});
-
-it("lets a compartment cell hold air, the furniture block, or its unit's compartment block when the camper departs (ADR 0114, 0121)", () => {
-  for (const { compartment: cell, unit } of STORAGE_DOORS) {
-    const name = decorBlockName(cell, []);
-    expect(ownSlotBlock(`yasu_ride:${unit.pairKind}_decor_pair`, name)).toBe(
-      true,
-    );
-    for (const other of ["cabinet", "fridge"].filter(
-      (k) => k !== unit.pairKind,
-    ))
-      expect(ownSlotBlock(`yasu_ride:${other}_decor_pair`, name)).toBe(false);
-    expect(ownSlotBlock(AIR, name)).toBe(true);
-    expect(ownSlotBlock("yasu_ride:camper_ceiling", name)).toBe(false);
-    expect(ownSlotBlock("minecraft:stone", name)).toBe(false);
-  }
 });
 
 it("maps each level's cells to its own aisle cell on the floor, and rejects every other room or interior cell at any pose (ADR 0092, 0182)", () => {
