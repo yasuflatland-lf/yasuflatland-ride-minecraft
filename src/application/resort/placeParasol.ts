@@ -5,6 +5,7 @@ import {
   tooCloseToOtherBase,
 } from "../../domain/resort/parasolPose";
 import { PARASOL_SPEC } from "../../domain/resort/spec";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canUseBlockTop, placeOnCells } from "../shared/groundPlacement";
@@ -16,7 +17,7 @@ export class PlaceParasol {
     player: PlayerId;
     dimension: DimensionId;
     block: Cell;
-    face: string;
+    face: BlockFace;
     yaw: number;
     slot: number;
   }): boolean {
