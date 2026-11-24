@@ -22,7 +22,7 @@ const shapes = fc.oneof(
 it("preserves the original roof tent columns for both variants", () => {
   fc.assert(
     fc.property(origin, yaw, (at, angle) => {
-      for (const variant of ["ground", "ladder"] as const) {
+      for (const variant of ["flat", "raised"] as const) {
         const actual = new Set(
           roofTentCeilingCells(at, angle, variant).map(cellKey),
         );

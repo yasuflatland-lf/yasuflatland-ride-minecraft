@@ -10,7 +10,9 @@ import type { Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
 
-export interface RoofTentWorld extends HitsLeftFeedback {
+import type { ItemPayment } from "../../shared/ports/itemPayment";
+
+export interface RoofTentWorld extends ItemPayment, HitsLeftFeedback {
   spawn(
     plan: RoofTentPlan,
     at: { dimensionId: DimensionId; location: Vec3; yaw: number },
@@ -27,14 +29,7 @@ export interface RoofTentWorld extends HitsLeftFeedback {
   isCampSpace(dimensionId: DimensionId, cell: Vec3): boolean;
   hasRoofTentNear(dimensionId: DimensionId, at: Vec3): boolean;
   loaded(): readonly RoofTentId[];
-  isCreative(playerId: PlayerId): boolean;
-  consumeItem(playerId: PlayerId, slot: number): boolean;
-  giveItem(playerId: PlayerId): void;
   showRefusal(playerId: PlayerId, reason: RoofTentRefusal): void;
-  paintOf(tentId: RoofTentId): Paint | undefined;
-  paint(tentId: RoofTentId, paint: Paint): void;
-  consumeDye(playerId: PlayerId, paint: Paint): void;
-  playPaintSound(tentId: RoofTentId): void;
 }
 
 export interface OccupantEjector {

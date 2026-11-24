@@ -3,6 +3,8 @@ import type { ChairId, ChairKindId } from "../../../domain/camp/chair";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 
+import type { ItemPayment } from "../../shared/ports/itemPayment";
+
 export interface ChairWorld {
   kindOf(chairId: ChairId): ChairKindId | undefined;
   isAir(dimensionId: DimensionId, at: Vec3): boolean;
@@ -12,15 +14,7 @@ export interface ChairWorld {
   isOwnBlock(dimensionId: DimensionId, at: Vec3): boolean;
   /** Whether a chair already stands in `cell`. */
   hasChairAt(kind: ChairKindId, dimensionId: DimensionId, cell: Vec3): boolean;
-  /** Whether the player is in Creative; false when the player is not in the world. */
-  isCreative(playerId: PlayerId): boolean;
-  /** Takes one chair item from `slot`. False when that slot no longer holds one. */
-  consumeChairItem(
-    kind: ChairKindId,
-    playerId: PlayerId,
-    slot: number,
-  ): boolean;
-  refundChairItem(kind: ChairKindId, playerId: PlayerId): void;
+  paymentFor(kind: ChairKindId): ItemPayment;
   spawnChair(
     kind: ChairKindId,
     dimensionId: DimensionId,

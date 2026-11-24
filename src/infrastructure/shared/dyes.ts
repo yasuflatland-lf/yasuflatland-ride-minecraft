@@ -1,10 +1,14 @@
 // The vanilla dye for each paint, the paint each dye gives, and the entity event
 // that applies a paint to each painted entity (ADR 0031, 0135).
 
-import type { Entity, Player } from "@minecraft/server";
+import { type Entity, type Player, world } from "@minecraft/server";
+import type { RepaintWorld } from "../../application/shared/ports/repaint";
+import type { PlayerId } from "../../domain/shared/ids";
 import { PAINTS, type Paint, paintEventName } from "../../domain/shared/paint";
+import { entityOfType } from "./entities";
 import { heldTypeId } from "./heldItem";
 import { id, NAMESPACE } from "./identifiers";
+import { consumeHeld, isCreative, playerById } from "./players";
 
 /** The vanilla dye that paints an entity with a paint (ADR 0031); brown dye restores variant 0 (ADR 0076). */
 export function dyeOf(paint: Paint): string {
@@ -43,5 +47,47 @@ export function playPaintSound(entity: Entity): void {
     entity.dimension.playSound(PAINT_SOUND, entity.location);
   } catch (error) {
     console.warn(`[${NAMESPACE}] paint sound failed: ${error}`);
+  }
+}
+
+export class BedrockVariantPaintWorld<Id extends string>
+  implements RepaintWorld<Id>
+{
+  constructor(
+    private readonly typeId: string,
+    private readonly defaultPaint: Paint,
+  ) {}
+
+  private entity(id: Id): Entity | undefined {
+    return entityOfType(world, id, this.typeId);
+  }
+
+  paintOf(id: Id): Paint | undefined {
+    const entity = this.entity(id);
+    return entity
+      ? PAINTS[entity.getComponent("minecraft:variant")?.value ?? 0]
+      : undefined;
+  }
+
+  defaultPaintOf(id: Id): Paint | undefined {
+    return this.entity(id) ? this.defaultPaint : undefined;
+  }
+
+  setPaint(id: Id, paint: Paint): void {
+    this.entity(id)?.triggerEvent(paintEvent(paint));
+  }
+
+  consumeDye(id: PlayerId, paint: Paint): void {
+    const player = playerById(id);
+    if (player) consumeHeld(player, dyeOf(paint), player.selectedSlotIndex);
+  }
+
+  playPaintSound(id: Id): void {
+    const entity = this.entity(id);
+    if (entity) playPaintSound(entity);
+  }
+
+  isCreative(id: PlayerId): boolean {
+    return isCreative(playerById(id));
   }
 }

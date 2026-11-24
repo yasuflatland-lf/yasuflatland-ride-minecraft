@@ -53,7 +53,7 @@ describe("PlaceRoofTent", () => {
                 : undefined,
           );
           expect(world.consumeItem).not.toHaveBeenCalled();
-          expect(world.giveItem).not.toHaveBeenCalled();
+          expect(world.refund).not.toHaveBeenCalled();
           expect(world.spawn).not.toHaveBeenCalled();
           expect(world.remove).not.toHaveBeenCalled();
           expect(world.showRefusal).not.toHaveBeenCalled();
@@ -219,7 +219,12 @@ describe("PlaceRoofTent", () => {
             });
           if (clear)
             expect(world.spawn).toHaveBeenCalledWith(
-              { host: { kind: "ground" }, facing: 90, ladder: false },
+              {
+                host: { kind: "ground" },
+                facing: 90,
+                shell: "flat",
+                ladder: false,
+              },
               {
                 dimensionId: DIMENSION,
                 location: { x: x + 0.5, y: y + 1, z: z + 0.5 },
@@ -243,7 +248,7 @@ describe("PlaceRoofTent", () => {
     world.spawn.mockReturnValue(undefined);
     expect(new PlaceRoofTent(world, () => PRESENT).execute(cmd)).toBe(false);
     expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(PLAYER, cmd.slot);
-    expect(world.giveItem).toHaveBeenCalledExactlyOnceWith(PLAYER);
+    expect(world.refund).toHaveBeenCalledExactlyOnceWith(PLAYER, cmd.slot);
   });
 
   it("ignores unrelated hosts when placing a roof tent", () => {

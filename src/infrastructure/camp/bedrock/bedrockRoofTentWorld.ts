@@ -13,16 +13,15 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import { PAINTS, type Paint } from "../../../domain/shared/paint";
+import type { Paint } from "../../../domain/shared/paint";
+import type { RoofTentShell } from "../../../domain/shared/roofTent";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { blockIn } from "../../shared/blocks";
-import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
+import { paintEvent } from "../../shared/dyes";
 import { entityOfType, hasEntityNear } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
-import { id } from "../../shared/identifiers";
+import { paidItem } from "../../shared/groundCells";
 import {
-  consumeHeld,
-  isCreative,
   playerById,
   showActionBar,
   showHitsLeftHint,
@@ -33,6 +32,8 @@ import {
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
   ROOF_TENT_OWNER_PROPERTY,
+  ROOF_TENT_SHELL_PROPERTY,
+  ROOF_TENT_SUV_BOUNDS_EVENT,
   ROOF_TENT_TYPE,
   TENT_HITS_LEFT_HINT,
 } from "../identifiers";
@@ -47,6 +48,16 @@ const ROOF_TENT_REFUSAL_MESSAGE: Readonly<Record<RoofTentRefusal, string>> = {
 
 export function roofTentEntity(id: RoofTentId): Entity | undefined {
   return entityOfType(world, id, ROOF_TENT_TYPE);
+}
+
+export function roofTentShell(entity: Entity): RoofTentShell {
+  const stored = entity.getDynamicProperty(ROOF_TENT_SHELL_PROPERTY);
+  if (stored === "raised" || stored === "flat") return stored;
+  // Older saves recorded the shell only through the synced ladder flag.
+  const shell =
+    entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true ? "raised" : "flat";
+  entity.setDynamicProperty(ROOF_TENT_SHELL_PROPERTY, shell);
+  return shell;
 }
 
 export class BedrockRoofTentWorld implements RoofTentWorld {
@@ -74,7 +85,9 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
         .spawnEntity(ROOF_TENT_TYPE, at.location);
       entity.setRotation({ x: 0, y: at.yaw });
       entity.setProperty(ROOF_TENT_LADDER_PROPERTY, plan.ladder);
-      if (plan.ladder) entity.triggerEvent(id("suv_bounds"));
+      entity.setDynamicProperty(ROOF_TENT_SHELL_PROPERTY, plan.shell);
+      if (plan.shell === "raised")
+        entity.triggerEvent(ROOF_TENT_SUV_BOUNDS_EVENT);
       entity.setDynamicProperty(ROOF_TENT_OWNER_PROPERTY, ownerId);
       entity.setDynamicProperty(ROOF_TENT_HOST_PROPERTY, encodeHost(plan.host));
       entity.triggerEvent(paintEvent(paint));
@@ -142,40 +155,18 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
   loaded(): readonly RoofTentId[] {
     return loadedEntityIds(ROOF_TENT_TYPE).map(asRoofTentId);
   }
-  isCreative(id: PlayerId): boolean {
-    return isCreative(playerById(id));
-  }
-  consumeItem(id: PlayerId, slot: number): boolean {
-    const player = playerById(id);
-    return player !== undefined && consumeHeld(player, ROOF_TENT_ITEM, slot);
-  }
-  giveItem(id: PlayerId): void {
+  private readonly payment = paidItem(ROOF_TENT_ITEM);
+  readonly isCreative = this.payment.isCreative;
+  readonly consumeItem = this.payment.consumeItem;
+  refund(id: PlayerId, _slot: number): void {
     const player = playerById(id);
     if (player?.isValid) giveBack(player, ROOF_TENT_ITEM, player);
   }
+
   showHitsLeft(id: PlayerId, hitsLeft: number): void {
     showHitsLeftHint(id, TENT_HITS_LEFT_HINT, hitsLeft);
   }
   showRefusal(id: PlayerId, reason: RoofTentRefusal): void {
     showActionBar(id, { translate: ROOF_TENT_REFUSAL_MESSAGE[reason] });
-  }
-  paintOf(id: RoofTentId): Paint | undefined {
-    const tent = roofTentEntity(id);
-    return tent
-      ? PAINTS[tent.getComponent("minecraft:variant")?.value ?? 0]
-      : undefined;
-  }
-  paint(id: RoofTentId, paint: Paint): void {
-    const tent = roofTentEntity(id);
-    if (!tent) return;
-    tent.triggerEvent(paintEvent(paint));
-  }
-  playPaintSound(id: RoofTentId): void {
-    const tent = roofTentEntity(id);
-    if (tent) playPaintSound(tent);
-  }
-  consumeDye(id: PlayerId, paint: Paint): void {
-    const player = playerById(id);
-    if (player) consumeHeld(player, dyeOf(paint), player.selectedSlotIndex);
   }
 }

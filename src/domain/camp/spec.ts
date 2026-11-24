@@ -161,7 +161,7 @@ export const ROOF_TENT_SPEC = Object.freeze({
   exitSearch: Object.freeze({ radius: 4, up: 4, down: 8 }),
   /** SUV shell lift (5 px) plus sleeping-bag rise above its platform (2.4 px), from tools/gen_roof_tent.py. */
   seatLift: (5 + 2.4) / 16,
-  /** SUV shell ridge from tools/gen_roof_tent.py, in blocks above the tent origin. */
+  /** Raised shell ridge from tools/gen_roof_tent.py, in blocks above the tent origin. */
   shellRidge: (5 + 1.2 * 12 + 6.6) / 16,
   /** Short expiry bounds invisibility after a crash or lost tracking. */
   concealTicks: ticks(30),

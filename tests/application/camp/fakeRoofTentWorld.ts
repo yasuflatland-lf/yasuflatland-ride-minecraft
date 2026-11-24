@@ -16,6 +16,7 @@ export const PRESENT: Extract<VehicleHostState, { status: "present" }> = {
     roofHeight: 2,
     anchor: { x: 1, z: 3 },
     ladder: true,
+    shell: "raised",
     entrance: { x: 0, z: 1 },
   },
   driverPresent: false,
@@ -42,11 +43,7 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   loaded = () => [...this.hosts.keys()];
   isCreative = vi.fn<RoofTentWorld["isCreative"]>(() => false);
   consumeItem = vi.fn<RoofTentWorld["consumeItem"]>(() => true);
-  giveItem = vi.fn<RoofTentWorld["giveItem"]>();
+  refund = vi.fn<RoofTentWorld["refund"]>();
   showRefusal = vi.fn<RoofTentWorld["showRefusal"]>();
   showHitsLeft = vi.fn<RoofTentWorld["showHitsLeft"]>();
-  paintOf = vi.fn<RoofTentWorld["paintOf"]>();
-  paint = vi.fn<RoofTentWorld["paint"]>();
-  consumeDye = vi.fn<RoofTentWorld["consumeDye"]>();
-  playPaintSound = vi.fn<RoofTentWorld["playPaintSound"]>();
 }

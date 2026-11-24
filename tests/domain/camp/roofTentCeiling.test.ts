@@ -6,7 +6,7 @@ import {
 } from "../../../src/domain/camp/roofTent/ceiling";
 import { forward } from "../../../src/domain/shared/vec";
 
-const variants = fc.constantFrom("ladder", "ground" as const);
+const variants = fc.constantFrom("raised", "flat" as const);
 const origin = fc.record({
   x: fc.double({ min: -200, max: 200, noNaN: true }),
   y: fc.integer({ min: -50, max: 200 }),
@@ -52,7 +52,7 @@ it("stays within the footprint's rotated bounds and grows with the SUV shell", (
     }),
   );
   const at = { x: 0.5, y: 64, z: 0.5 };
-  expect(roofTentCeilingCells(at, 0, "ladder").length).toBeGreaterThan(
-    roofTentCeilingCells(at, 0, "ground").length,
+  expect(roofTentCeilingCells(at, 0, "raised").length).toBeGreaterThan(
+    roofTentCeilingCells(at, 0, "flat").length,
   );
 });

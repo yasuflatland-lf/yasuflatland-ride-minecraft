@@ -12,6 +12,7 @@ All driven entities belong to the vehicle feature, but 0046 left its internal la
 
 - Define `VehicleKind` in `src/domain/vehicle/kind.ts`, starting with `"suv"`; `"sportsboat"` follows in 6/8
 - Keep core-facing values such as ram body, seat layout, and headlight beams in each kind's `VehicleProfile`. Keep shared core tuning in `SPEC` and each kind's motion and form tuning in `kinds/<kind>/spec.ts`. The shared pickers in `motion/` build frozen motion limits, tyre limits, and transforming specs with air and water media from the fields they need. Each transforming kind supplies its bank easing and water policy
+- Each supported kind declares its roof tent shell and entrance ladder independently in its mount profile. Bounds, ceiling dimensions, and rideable seat height follow the shell
 - Build the SUV profile from its own tuning and seat layout so the SUV behaves as before
 - Keep seats, driver, ram, hit counter, headlight switch, and motion state in the `Vehicle` aggregate. Delegate the rest of a tick to a `Drive` chosen by kind. `SuvDrive` holds the forms, gear, and bank (0039, 0040); the boat gets its own drive in 6/8
 - Map kind to entity ID and item ID in one infrastructure table. Find vehicles by the family `yasu_ride_vehicle`; queries and event filters never compare with a single vehicle type
