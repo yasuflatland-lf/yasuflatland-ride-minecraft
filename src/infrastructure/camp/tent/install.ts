@@ -1,16 +1,18 @@
 import { FoldLegacyTents } from "../../../application/camp/foldLegacyTents";
-import { PaintTent } from "../../../application/camp/paintTent";
 import { PitchTent } from "../../../application/camp/pitchTent";
 import { SwitchLantern } from "../../../application/camp/switchLantern";
 import { TakeDownTent } from "../../../application/camp/takeDownTent";
 import { UseTentFlap } from "../../../application/camp/useTentFlap";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
+import { Repaint } from "../../../application/shared/repaint";
 import type { SleepInBed } from "../../../application/shared/sleepInBed";
+import { TENT_SPEC } from "../../../domain/camp/spec";
+import type { TentId } from "../../../domain/camp/tent";
 import { registerBedBlock } from "../../shared/bedBlock";
+import { BedrockVariantPaintWorld } from "../../shared/dyes";
 import type { LaidBlockOwner } from "../../shared/laidBlockGuard";
 import { registerLaidBlockGuard } from "../../shared/laidBlockGuard";
 import { BedrockLanternWorld } from "../bedrock/bedrockLanternWorld";
-import { BedrockTentPaintWorld } from "../bedrock/bedrockTentPaintWorld";
 import { BedrockTentWorld } from "../bedrock/bedrockTentWorld";
 import { registerTentFlap } from "../bedrock/handlers/tentFlap";
 import { registerTentHits } from "../bedrock/handlers/tentHits";
@@ -20,7 +22,7 @@ import { registerTentPlacement } from "../bedrock/handlers/tentPlacement";
 import { lanternSwitchTarget } from "../bedrock/lanternSwitch";
 import { createTentBlocks } from "../bedrock/tentBlocks";
 import { TentFlapStore } from "../bedrock/tentFlapStore";
-import { TENT_MATTRESS_COMPONENT } from "../identifiers";
+import { TENT_MATTRESS_COMPONENT, TENT_TYPE } from "../identifiers";
 import { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 
 export interface TentParts {
@@ -55,7 +57,9 @@ export function installTents(
   const pitchTent = new PitchTent(world);
   const takeDownTent = new TakeDownTent(world);
   const foldLegacy = new FoldLegacyTents(world);
-  const paintTent = new PaintTent(new BedrockTentPaintWorld());
+  const paintTent = new Repaint(
+    new BedrockVariantPaintWorld<TentId>(TENT_TYPE, TENT_SPEC.defaultPaint),
+  );
   const tentBlockOwner = world.tentBlockOwner.bind(world);
   registerTentPlacement(pitchTent);
   registerTentHits(takeDownTent, paintTent, tentBlockOwner);

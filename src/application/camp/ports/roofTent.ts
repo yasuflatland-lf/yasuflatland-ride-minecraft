@@ -30,10 +30,6 @@ export interface RoofTentWorld extends ItemPayment, HitsLeftFeedback {
   hasRoofTentNear(dimensionId: DimensionId, at: Vec3): boolean;
   loaded(): readonly RoofTentId[];
   showRefusal(playerId: PlayerId, reason: RoofTentRefusal): void;
-  paintOf(tentId: RoofTentId): Paint | undefined;
-  paint(tentId: RoofTentId, paint: Paint): void;
-  consumeDye(playerId: PlayerId, paint: Paint): void;
-  playPaintSound(tentId: RoofTentId): void;
 }
 
 export interface OccupantEjector {

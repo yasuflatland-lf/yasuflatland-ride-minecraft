@@ -2,7 +2,7 @@
 // (ADR 0131), and paint textures (ADR 0135).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TENT_SPEC } from "../../src/domain/camp/spec";
 import { PAINTS } from "../../src/domain/shared/paint";
 import {
@@ -28,6 +28,8 @@ import {
 import { paintEvent } from "../../src/infrastructure/shared/dyes";
 import { readLang } from "../support/lang";
 import { TENT_PACK_CONTRACT } from "../support/packContract";
+
+vi.mock("@minecraft/server", () => ({}));
 
 const LEAN_WIDTH = TENT_SPEC.leanWidth * 16;
 const LEAN_DEPTH = TENT_SPEC.leanDepth * 16;
