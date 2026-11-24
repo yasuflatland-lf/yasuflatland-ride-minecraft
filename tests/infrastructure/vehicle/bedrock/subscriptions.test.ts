@@ -1286,7 +1286,7 @@ it("places held camping gear on a camper room, furniture, decor, or pair block o
       point: { x: 1.25, y, z: 2.5 },
       cell: { x: 1, y: 64, z: 2 },
       hotbarSlot: 4,
-      exact: false,
+      fallback: "nearestFree",
       eye: { x: 1.5, y: 66.62, z: 2.5 },
     });
     game.run.mockClear();
@@ -1331,12 +1331,11 @@ it("uses the same corrected touch point for the floor ray and ordinary placement
   ev.player.inputInfo.lastInputModeUsed = "Touch";
   expect(send(ev).cancel).toBe(true);
   const eye = ev.player.getHeadLocation();
-  expect(storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
-    "car",
+  expect(storage.drawerTarget).toHaveBeenCalledExactlyOnceWith("car", {
     eye,
-    { x: 1.75 - eye.x, y: 65 - eye.y, z: 2.5 - eye.z },
-    ev.block.location,
-  );
+    direction: { x: 1.75 - eye.x, y: 65 - eye.y, z: 2.5 - eye.z },
+    cell: ev.block.location,
+  });
   for (const [run] of game.run.mock.calls) run();
   expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ point: { x: 1.75, y: 65, z: 2.5 } }),
@@ -1469,7 +1468,7 @@ it("places held camping gear on the dinette slot under a pressed deck seat inste
       point: { x: 1.5, y: 64.68, z: 2.5 },
       cell: slot,
       hotbarSlot: 3,
-      exact: true,
+      fallback: "none",
     });
     game.run.mockClear();
     expect(sendSeat(seatEvent()).cancel).toBe(true);
@@ -1546,7 +1545,7 @@ it("places held camping gear pressed on the shower-toilet block like on any room
     point: { x: 1.25, y: 65, z: 2.5 },
     cell: { x: 1, y: 64, z: 2 },
     hotbarSlot: 4,
-    exact: false,
+    fallback: "nearestFree",
     eye: { x: 1.5, y: 66.62, z: 2.5 },
   });
 });
@@ -2239,12 +2238,11 @@ it("routes corrected touch floor side-face points through the drawer ray", () =>
     f.storage.execute.mockReturnValue(true);
     expect(f.send(ev).cancel).toBe(true);
     for (const [callback] of game.run.mock.calls) callback();
-    expect(f.storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
-      "car",
-      ev.player.getHeadLocation(),
-      { x: 0.5, y: 64.75 - 66.62, z: 0 },
-      ev.block.location,
-    );
+    expect(f.storage.drawerTarget).toHaveBeenCalledExactlyOnceWith("car", {
+      eye: ev.player.getHeadLocation(),
+      direction: { x: 0.5, y: 64.75 - 66.62, z: 0 },
+      cell: ev.block.location,
+    });
     expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         cell: counter,

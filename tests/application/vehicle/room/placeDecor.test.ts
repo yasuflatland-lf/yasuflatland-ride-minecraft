@@ -33,7 +33,7 @@ function setup() {
     point: slotPoint(pose, stove),
     cell: decorSlotCell(pose, stove),
     hotbarSlot: 4,
-    exact: false,
+    fallback: "nearestFree",
   };
   return { car, pose, repo, tick, world, place, stove, cmd };
 }
@@ -145,7 +145,7 @@ describe("PlaceDecor (ADR 0093, 0097)", () => {
     expect(place.execute(cmd)).toBe(true);
     world.calls.length = 0;
     expect(
-      place.execute({ ...cmd, item: decorItemId("toaster"), exact: true }),
+      place.execute({ ...cmd, item: decorItemId("toaster"), fallback: "none" }),
     ).toBe(false);
     expect(world.messages.at(-1)).toEqual({
       playerId: "p",
