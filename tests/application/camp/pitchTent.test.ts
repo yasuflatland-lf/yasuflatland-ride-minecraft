@@ -60,7 +60,7 @@ describe("PitchTent (ADR 0131)", () => {
     });
     expect(new PitchTent(world).execute(cmd)).toBe(true);
     expect(world.calls).toEqual([
-      ["consumeTentItem", PLAYER, 2],
+      ["consumeItem", PLAYER, 2],
       ["clearDecorations", [cells[3], cells[0]]],
       ["pitch", POSE],
     ]);
@@ -71,7 +71,7 @@ describe("PitchTent (ADR 0131)", () => {
     world.creative = true;
     expect(new PitchTent(world).execute(cmd)).toBe(true);
     expect(world.calls).toContainEqual(["pitch", POSE]);
-    expect(world.names()).not.toContain("consumeTentItem");
+    expect(world.names()).not.toContain("consumeItem");
   });
 
   it("rests the tent under a snow layer or a tuft of grass that took the click", () => {
@@ -102,7 +102,7 @@ describe("PitchTent (ADR 0131)", () => {
     const world = new FakeTentWorld();
     world.consumeResult = false;
     expect(new PitchTent(world).execute(cmd)).toBe(false);
-    expect(world.names()).toEqual(["consumeTentItem"]);
+    expect(world.names()).toEqual(["consumeItem"]);
   });
 
   it("gives the item back when the spawn fails", () => {
@@ -110,10 +110,10 @@ describe("PitchTent (ADR 0131)", () => {
     world.pitchResult = undefined;
     expect(new PitchTent(world).execute(cmd)).toBe(false);
     expect(world.names()).toEqual([
-      "consumeTentItem",
+      "consumeItem",
       "clearDecorations",
       "pitch",
-      "giveTentItem",
+      "refund",
     ]);
   });
 

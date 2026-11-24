@@ -1,4 +1,5 @@
 import type { ChairWorld } from "../../../src/application/camp/ports/chair";
+import type { ItemPayment } from "../../../src/application/shared/ports/itemPayment";
 import {
   asChairId,
   type ChairId,
@@ -22,7 +23,8 @@ export class FakeChairWorld implements ChairWorld {
   creative = false;
   consumeResult = true;
   failSpawn = false;
-  readonly refunded: { kind: ChairKindId; playerId: PlayerId }[] = [];
+  readonly refunded: { kind: ChairKindId; playerId: PlayerId; slot: number }[] =
+    [];
   occupied = new Set<ChairId>();
   readonly consumed: { kind: ChairKindId; playerId: PlayerId; slot: number }[] =
     [];
@@ -47,19 +49,17 @@ export class FakeChairWorld implements ChairWorld {
   hasChairAt(_kind: ChairKindId, _d: DimensionId, cell: Vec3): boolean {
     return this.chairs.has(key(cell));
   }
-  isCreative(): boolean {
-    return this.creative;
-  }
-  consumeChairItem(
-    kind: ChairKindId,
-    playerId: PlayerId,
-    slot: number,
-  ): boolean {
-    if (this.consumeResult) this.consumed.push({ kind, playerId, slot });
-    return this.consumeResult;
-  }
-  refundChairItem(kind: ChairKindId, playerId: PlayerId): void {
-    this.refunded.push({ kind, playerId });
+  paymentFor(kind: ChairKindId): ItemPayment {
+    return {
+      isCreative: () => this.creative,
+      consumeItem: (playerId, slot) => {
+        if (this.consumeResult) this.consumed.push({ kind, playerId, slot });
+        return this.consumeResult;
+      },
+      refund: (playerId, slot) => {
+        this.refunded.push({ kind, playerId, slot });
+      },
+    };
   }
   spawnChair(
     kind: ChairKindId,

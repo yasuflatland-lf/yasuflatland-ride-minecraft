@@ -6,7 +6,6 @@ import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { trackPasteFacing } from "../../../src/application/build/trackGaze";
-import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
@@ -20,6 +19,7 @@ import {
 } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -45,7 +45,14 @@ const aim = fc.record({
   }),
   block: fc.record({
     cell: fc.record({ x: coordinate, y: coordinate, z: coordinate }),
-    face: fc.constantFrom<Face>("up", "down", "north", "south", "east", "west"),
+    face: fc.constantFrom<BlockFace>(
+      "up",
+      "down",
+      "north",
+      "south",
+      "east",
+      "west",
+    ),
   }),
 });
 const facing = fc.constantFrom(...FACINGS);
@@ -383,7 +390,7 @@ it("never covers the aimed block on a side face for any gaze", () => {
     fc.property(
       aim,
       facing,
-      fc.constantFrom<Face>("north", "east", "south", "west"),
+      fc.constantFrom<BlockFace>("north", "east", "south", "west"),
       (hit, facing, face) => {
         const { repo } = setup();
         const cell = hit.block.cell;

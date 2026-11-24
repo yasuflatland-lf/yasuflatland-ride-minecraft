@@ -1,7 +1,7 @@
 import { Direction } from "@minecraft/server";
-import type { Face } from "../../../domain/build/aim/face";
+import type { BlockFace } from "../../domain/shared/blockFace";
 
-export const FACES: Record<Direction, Face> = {
+const FACES: Record<Direction, BlockFace> = {
   [Direction.Up]: "up",
   [Direction.Down]: "down",
   [Direction.North]: "north",
@@ -9,3 +9,7 @@ export const FACES: Record<Direction, Face> = {
   [Direction.East]: "east",
   [Direction.West]: "west",
 };
+
+export function blockFaceOf(direction: Direction): BlockFace {
+  return FACES[direction];
+}

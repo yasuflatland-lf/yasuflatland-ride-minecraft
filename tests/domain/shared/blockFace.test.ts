@@ -2,14 +2,22 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import {
   anchorCell,
-  type Face,
-  parseFace,
-} from "../../../src/domain/build/aim/face";
+  type BlockFace,
+  isTopFace,
+  parseBlockFace,
+} from "../../../src/domain/shared/blockFace";
 
-const faces: readonly Face[] = ["up", "down", "north", "south", "east", "west"];
+const faces: readonly BlockFace[] = [
+  "up",
+  "down",
+  "north",
+  "south",
+  "east",
+  "west",
+];
 
 it("anchorCell moves to the neighboring cell on the selected face", () => {
-  const offsets: Record<Face, readonly [number, number, number]> = {
+  const offsets: Record<BlockFace, readonly [number, number, number]> = {
     up: [0, 1, 0],
     down: [0, -1, 0],
     north: [0, 0, -1],
@@ -34,7 +42,7 @@ it("anchorCell moves to the neighboring cell on the selected face", () => {
   );
 });
 
-it("parseFace round-trips all six faces in any letter case", () => {
+it("parseBlockFace round-trips all six faces in any letter case", () => {
   fc.assert(
     fc.property(
       fc.array(fc.boolean(), { minLength: 5, maxLength: 5 }),
@@ -43,22 +51,38 @@ it("parseFace round-trips all six faces in any letter case", () => {
           const mixed = [...face]
             .map((letter, i) => (upper[i] ? letter.toUpperCase() : letter))
             .join("");
-          expect(parseFace(mixed)).toBe(face);
+          expect(parseBlockFace(mixed)).toBe(face);
         }
       },
     ),
   );
 });
 
-it("parseFace rejects every string other than a case-insensitive face", () => {
+it("parseBlockFace rejects every string other than a case-insensitive face", () => {
   fc.assert(
     fc.property(
       fc
         .string()
         .filter((value) => !faces.some((face) => face === value.toLowerCase())),
       (value) => {
-        expect(parseFace(value)).toBeUndefined();
+        expect(parseBlockFace(value)).toBeUndefined();
       },
     ),
   );
+});
+
+it("moving up and then down returns to the original cell", () => {
+  const coordinate = fc.integer();
+  fc.assert(
+    fc.property(
+      fc.record({ x: coordinate, y: coordinate, z: coordinate }),
+      (block) => {
+        expect(anchorCell(anchorCell(block, "up"), "down")).toEqual(block);
+      },
+    ),
+  );
+});
+
+it("only the up face is the top", () => {
+  for (const face of faces) expect(isTopFace(face)).toBe(face === "up");
 });

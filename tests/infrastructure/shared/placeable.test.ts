@@ -3,7 +3,7 @@ import { subscribeItemOnBlock } from "../../../src/infrastructure/shared/placeab
 
 const game = vi.hoisted(() => ({ tick: 0, subscribe: vi.fn(), run: vi.fn() }));
 vi.mock("@minecraft/server", () => ({
-  Direction: { Up: "Up" },
+  Direction: { Up: "Up", North: "North" },
   world: {
     beforeEvents: { playerInteractWithBlock: { subscribe: game.subscribe } },
   },
@@ -56,7 +56,7 @@ it("leaves unhandled presses alone and allows a later accepted press in the same
   expect(accept).toHaveBeenCalledExactlyOnceWith(
     "nether",
     { x: 1, y: 2, z: 3 },
-    "other",
+    "north",
   );
   expect(ev.cancel).toBe(false);
   expect(game.run).not.toHaveBeenCalled();
@@ -93,7 +93,7 @@ it("cancels duplicates and defers one snapshot per player per tick", () => {
     player: "alice",
     dimension: "nether",
     block: { x: 1, y: 2, z: 3 },
-    face: "other",
+    face: "north",
     yaw: 45,
     slot: 3,
   });

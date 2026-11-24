@@ -20,6 +20,7 @@ Split `src/` into the following three layers. Dependencies point one way only: i
 | Infrastructure | `src/infrastructure/` | Implementations of ports and repositories, event subscriptions, wiring (`bootstrap`)                                                                                                                                                 | Application, domain, `@minecraft/server` |
 
 - Only the infrastructure layer may import `@minecraft/server`
+- Camp and resort placement use the shared `ItemPayment` port for Creative checks, consumption from the captured slot, and refunds. Single-item worlds extend the port directly. Chair and furniture worlds bind the requested kind through `paymentFor(kind)` so the same item is charged and refunded.
 - The entry point `src/main.ts` only calls `bootstrap()`
 - The direction of dependencies is checked by a test (`tests/architecture.test.ts`) that inspects import statements
 - The in-game test pack (`src/test-pack/`) is a testing tool that runs in a script environment separate from the main pack, so it sits outside these three layers

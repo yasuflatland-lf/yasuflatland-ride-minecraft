@@ -3,7 +3,6 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { FoldRoofTent } from "../../../src/application/camp/foldRoofTent";
 import { LeaveRoofTent } from "../../../src/application/camp/leaveRoofTent";
-import { PaintRoofTent } from "../../../src/application/camp/paintRoofTent";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { RoofTentHostGuard } from "../../../src/application/camp/roofTentHostGuard";
 import {
@@ -11,7 +10,8 @@ import {
   RoofTentCleanup,
 } from "../../../src/application/camp/roofTentRemoved";
 import type { VehicleHostState } from "../../../src/application/shared/ports/vehicleHost";
-import { asRoofTentId } from "../../../src/domain/camp/ids";
+import { Repaint } from "../../../src/application/shared/repaint";
+import { asRoofTentId, type RoofTentId } from "../../../src/domain/camp/ids";
 import { roofTentCeilingCells } from "../../../src/domain/camp/roofTent/ceiling";
 import { seatPosition } from "../../../src/domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
@@ -32,7 +32,10 @@ import { registerRoofTentPlacement } from "../../../src/infrastructure/camp/bedr
 import { RoofTentHosts } from "../../../src/infrastructure/camp/bedrock/roofTentHosts";
 import * as ids from "../../../src/infrastructure/camp/identifiers";
 import { registerTestRoofTent } from "../../../src/infrastructure/camp/testHooks/roofTent";
-import { paintEvent } from "../../../src/infrastructure/shared/dyes";
+import {
+  BedrockVariantPaintWorld,
+  paintEvent,
+} from "../../../src/infrastructure/shared/dyes";
 
 const game = vi.hoisted(() => {
   const handlers = new Map<string, (ev: unknown) => void>();
@@ -300,64 +303,6 @@ it("rolls back a failed spawn so placement can refund the item", () => {
   ).toBeUndefined();
   expect(tent.remove).toHaveBeenCalledOnce();
 });
-it("reads every paint variant and rejects invalid or unrelated entities", () => {
-  const tent = entity();
-  fc.assert(
-    fc.property(fc.integer({ min: 0, max: PAINTS.length - 1 }), (index) => {
-      tent.getComponent.mockReturnValue({ value: index });
-      expect(tents.paintOf(asRoofTentId("tent"))).toBe(PAINTS[index]);
-    }),
-  );
-  tent.isValid = false;
-  expect(tents.paintOf(asRoofTentId("tent"))).toBeUndefined();
-  entity("other", "minecraft:cow");
-  expect(tents.paintOf(asRoofTentId("other"))).toBeUndefined();
-});
-it.each(PAINTS)(
-  "triggers the %s paint event without playing a sound",
-  (paint) => {
-    const tent = entity();
-    tents.paint(asRoofTentId(tent.id), paint);
-    expect(tent.triggerEvent).toHaveBeenCalledExactlyOnceWith(
-      paintEvent(paint),
-    );
-    expect(game.dimension.playSound).not.toHaveBeenCalled();
-  },
-);
-it("plays dye.use at the tent", () => {
-  const tent = entity();
-  tents.playPaintSound(asRoofTentId(tent.id));
-  expect(game.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
-    "dye.use",
-    tent.location,
-  );
-});
-it("warns once without throwing when the paint sound fails", () => {
-  const tent = entity();
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-  game.dimension.playSound.mockImplementation(() => {
-    throw new Error("boom");
-  });
-  try {
-    expect(() => tents.playPaintSound(asRoofTentId(tent.id))).not.toThrow();
-    expect(game.dimension.playSound).toHaveBeenCalledExactlyOnceWith(
-      "dye.use",
-      tent.location,
-    );
-    expect(warn).toHaveBeenCalledOnce();
-  } finally {
-    warn.mockRestore();
-    game.dimension.playSound.mockReset();
-  }
-});
-it("does nothing when painting or playing a paint sound for a missing tent", () => {
-  const tent = entity();
-  const missing = asRoofTentId("missing");
-  expect(() => tents.paint(missing, "red")).not.toThrow();
-  expect(() => tents.playPaintSound(missing)).not.toThrow();
-  expect(tent.triggerEvent).not.toHaveBeenCalled();
-  expect(game.dimension.playSound).not.toHaveBeenCalled();
-});
 it("returns an item to an online owner and drops it at the tent when offline", () => {
   const tent = spawn();
   const owner = player();
@@ -500,6 +445,11 @@ it("uses only the first top-face ground interaction and shares the per-player ti
     slot: p.selectedSlotIndex,
   });
 });
+const paintWorld = new BedrockVariantPaintWorld<RoofTentId>(
+  ids.ROOF_TENT_TYPE,
+  ROOF_TENT_SPEC.defaultPaint,
+);
+
 it("routes a dye before folding and counts each swing once", () => {
   const tent = spawn();
   const p = player();
@@ -508,7 +458,7 @@ it("routes a dye before folding and counts each swing once", () => {
   p.getComponent.mockReturnValue({
     container: { getItem: () => held, setItem },
   });
-  registerRoofTentHits(new FoldRoofTent(tents), new PaintRoofTent(tents));
+  registerRoofTentHits(new FoldRoofTent(tents), new Repaint(paintWorld));
   const ev = { damagingEntity: p, hitEntity: tent };
   fire("after:entityHitEntity", ev);
   fire("after:entityHitEntity", ev);
@@ -725,13 +675,13 @@ it("keeps Creative items and dyes and ignores painting the existing color", () =
   const tent = spawn();
   const p = player();
   p.getGameMode = () => "Creative";
-  const consume = vi.spyOn(tents, "consumeDye");
+  const consume = vi.spyOn(paintWorld, "consumeDye");
   const takeItem = vi.spyOn(tents, "consumeItem");
-  const paint = new PaintRoofTent(tents);
+  const paint = new Repaint(paintWorld);
   expect(
     paint.execute({
       playerId: PLAYER,
-      tentId: asRoofTentId("tent"),
+      entityId: asRoofTentId("tent"),
       paint: "khaki",
       tick: 1,
     }),
@@ -739,7 +689,7 @@ it("keeps Creative items and dyes and ignores painting the existing color", () =
   expect(
     paint.execute({
       playerId: PLAYER,
-      tentId: asRoofTentId("tent"),
+      entityId: asRoofTentId("tent"),
       paint: "red",
       tick: 2,
     }),

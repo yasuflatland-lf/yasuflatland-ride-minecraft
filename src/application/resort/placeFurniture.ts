@@ -8,6 +8,7 @@ import {
   overlapsAny,
   RESORT_GEAR_QUERY_RADIUS,
 } from "../../domain/resort/furniture";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { canUseBlockTop, placeOnCells } from "../shared/groundPlacement";
@@ -19,7 +20,7 @@ export class PlaceFurniture {
     player: PlayerId;
     dimension: DimensionId;
     block: Cell;
-    face: string;
+    face: BlockFace;
     yaw: number;
     slot: number;
     kind: FurnitureKind;
@@ -32,13 +33,8 @@ export class PlaceFurniture {
     };
     if (!canUseBlockTop(world, dimension, block, face)) return blocked();
     const pose = furniturePose(block, yaw, kind);
-    const payment = {
-      isCreative: (p: PlayerId) => world.isCreative(p),
-      consumeItem: (p: PlayerId, s: number) => world.consumeItem(p, kind, s),
-      refund: (p: PlayerId, s: number) => world.refund(p, kind, s),
-    };
     const result = placeOnCells(
-      { dimension, cells: world, payment },
+      { dimension, cells: world, payment: world.paymentFor(kind) },
       {
         support: furnitureSupportCells(pose),
         clear: furnitureClearCells(pose),

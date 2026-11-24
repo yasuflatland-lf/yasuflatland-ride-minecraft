@@ -185,18 +185,16 @@ it("places gear behind an open door only, and never takes a cabinet item through
   const cell = f.compartment("sink");
   const shut = camperRoom(f.drive).decor.decorSlotFor(
     decorItemId("mug_pair"),
-    point,
-    cell,
-    false,
+    { cell, point },
+    "nearestFree",
   );
   expect(shut).toBeDefined();
   expect(slotNamed(defined(shut, "slot")).door).toBeUndefined();
   expect(
     camperRoom(f.drive).decor.decorSlotFor(
       decorItemId("mug_pair"),
-      point,
-      cell,
-      true,
+      { cell, point },
+      "none",
     ),
   ).toBeUndefined();
   expect(
@@ -206,9 +204,8 @@ it("places gear behind an open door only, and never takes a cabinet item through
   expect(
     camperRoom(f.drive).decor.decorSlotFor(
       decorItemId("mug_pair"),
-      point,
-      cell,
-      false,
+      { cell, point },
+      "nearestFree",
     ),
   ).toBe(sink.id);
   expect(
@@ -217,12 +214,13 @@ it("places gear behind an open door only, and never takes a cabinet item through
   expect(
     camperRoom(f.drive).decor.decorSlotFor(
       decorItemId("cushion"),
-      point,
-      cell,
-      false,
+      { cell, point },
+      "nearestFree",
     ),
   ).toBe("cabinet_sink_front");
-  expect(camperRoom(f.drive).decor.removeDecor(cell, point)).toBeUndefined();
+  expect(
+    camperRoom(f.drive).decor.removeDecor({ cell, point }),
+  ).toBeUndefined();
   expect(camperRoom(f.drive).decor.decor()).toEqual([
     { slot: sink.id, item: "mug_pair" },
   ]);
@@ -237,9 +235,11 @@ it("places gear behind an open door only, and never takes a cabinet item through
   // The stove's compartment stays shut, so a press on it sends the item elsewhere.
   const stoveSide = camperRoom(f.drive).decor.decorSlotFor(
     decorItemId("cushion"),
-    slotPoint(f.pose, slotNamed("cabinet_stove_rear")),
-    f.compartment("stove"),
-    false,
+    {
+      cell: f.compartment("stove"),
+      point: slotPoint(f.pose, slotNamed("cabinet_stove_rear")),
+    },
+    "nearestFree",
   );
   expect(slotNamed(defined(stoveSide, "slot")).door).not.toBe("stove");
 });

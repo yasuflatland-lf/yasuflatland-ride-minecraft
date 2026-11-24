@@ -16,7 +16,7 @@ The Dining set design adds a Dining Table, Dining Chair, single sofa, and double
 
 Keep furniture in the resort feature. Store all per-kind tuning in the deeply frozen `FURNITURE_SPEC` table, following 0050. Shared furniture logic reads the table without branching on kind. Each entry defines pressed-cell offsets, clearance, the protected spaces it refuses (`vehicle` and `camp`), rideable seats, three hits to take back, a 100-tick hit reset window, and an optional `TopSurface`.
 
-Place furniture one cell above the pressed block and face the player with `snapYaw4(playerYaw + 180)`. Use the footprint centre at floor height as the entity origin. The initial single-cell pieces need two clearance layers. The double sofa occupies the pressed column and the column to the player's right, with offsets `{ ahead: 0, left: 0 }` and `{ ahead: 0, left: -1 }`. Its origin lies on their shared boundary; seats are at model x = -0.5 and +0.5 blocks.
+Place furniture one cell above the pressed block and face the player with `snapYaw4(playerYaw + 180)`. Use the footprint centroid at floor height as the entity origin. Use the same grid footprint helpers as the Beach Chair and Camp Table to resolve the centroid and derive support and clearance cells where the placement rules require them. The initial single-cell pieces need two clearance layers. The double sofa occupies the pressed column and the column to the player's right, with offsets `{ ahead: 0, left: 0 }` and `{ ahead: 0, left: -1 }`. Its origin lies on their shared boundary; seats are at model x = -0.5 and +0.5 blocks.
 
 Sitting uses `minecraft:rideable` with the per-kind seat offsets and vanilla riding behavior. Do not apply the lounge pose override from 0238 to furniture.
 
@@ -28,4 +28,4 @@ Refuse placement with the existing blocked hint before payment if a floor cell o
 
 ## Consequences
 
-Later furniture pieces share placement geometry and recovery parameters without inheriting Beach Chair behavior. Some pose math is intentionally separate because the Beach Chair has different geometry and posture requirements. Pack work must verify seat offsets against the table and may refine initial model dimensions. The table's dual representation requires lifecycle cleanup and interaction forwarding in later issues; domain tests alone do not verify those engine behaviors.
+Later furniture pieces share grid placement geometry and recovery parameters. The Beach Chair retains its foot, middle, and head pose for its lounge and folding behavior. Pack work must verify seat offsets against the table and may refine initial model dimensions. The table's dual representation requires lifecycle cleanup and interaction forwarding in later issues; domain tests alone do not verify those engine behaviors.

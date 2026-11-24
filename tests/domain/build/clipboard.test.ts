@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { anchorCell, type Face } from "../../../src/domain/build/aim/face";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
   aimedPasteTarget,
@@ -12,9 +11,20 @@ import {
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
+import {
+  anchorCell,
+  type BlockFace,
+} from "../../../src/domain/shared/blockFace";
 import { structureClipboard } from "../../support/buildClipboard";
 
-const faces: readonly Face[] = ["up", "down", "north", "south", "east", "west"];
+const faces: readonly BlockFace[] = [
+  "up",
+  "down",
+  "north",
+  "south",
+  "east",
+  "west",
+];
 const face = fc.constantFrom(...faces);
 const coordinate = fc.integer();
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -87,7 +97,7 @@ it("east-facing vertical-face targets reproduce the original positive-axis box",
     fc.property(
       clipboard,
       cell,
-      fc.constantFrom<Face>("up", "down"),
+      fc.constantFrom<BlockFace>("up", "down"),
       (clip, block, face) => {
         const { anchor, box } = pasteTarget(
           clip,

@@ -240,9 +240,8 @@ it("places gear behind an open fridge door only, and lays it in the open compart
   expect(
     camperRoom(f.drive).decor.decorSlotFor(
       decorItemId("mug_pair"),
-      point,
-      cell,
-      true,
+      { cell, point },
+      "none",
     ),
   ).toBeUndefined();
   expect(
@@ -252,15 +251,16 @@ it("places gear behind an open fridge door only, and lays it in the open compart
   expect(
     camperRoom(f.drive).decor.decorSlotFor(
       decorItemId("mug_pair"),
-      point,
-      cell,
-      false,
+      { cell, point },
+      "nearestFree",
     ),
   ).toBe(top.id);
   expect(
     camperRoom(f.drive).decor.placeDecor(top.id, decorItemId("mug_pair")),
   ).toBe(true);
-  expect(camperRoom(f.drive).decor.removeDecor(cell, point)).toBeUndefined();
+  expect(
+    camperRoom(f.drive).decor.removeDecor({ cell, point }),
+  ).toBeUndefined();
   f.step();
   expect(blockAt(f.step().dock?.cells, cell)).toEqual({
     type: "fridge",
