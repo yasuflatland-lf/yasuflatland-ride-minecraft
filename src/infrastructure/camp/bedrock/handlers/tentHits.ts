@@ -1,5 +1,5 @@
-import type { PaintTent } from "../../../../application/camp/paintTent";
 import type { TakeDownTent } from "../../../../application/camp/takeDownTent";
+import type { Repaint } from "../../../../application/shared/repaint";
 import { asTentId, type TentId } from "../../../../domain/camp/tent";
 import type { DimensionId } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
@@ -8,7 +8,7 @@ import { TENT_TYPE } from "../../identifiers";
 
 export function registerTentHits(
   takeDown: TakeDownTent,
-  paintTent: PaintTent,
+  repaint: Repaint<TentId>,
   owner: (
     dimensionId: DimensionId,
     cell: Vec3,
@@ -20,7 +20,7 @@ export function registerTentHits(
       entity.typeId === TENT_TYPE ? asTentId(entity.id) : undefined,
     ownerOfBlock: owner,
     onDye: ({ id, player, tick, paint }) =>
-      paintTent.execute({ tentId: id, playerId: player, tick, paint }),
+      repaint.execute({ entityId: id, playerId: player, tick, paint }),
     onHit: ({ id, player, tick }) =>
       takeDown.execute({ tentId: id, playerId: player, tick }),
     defer: true,
