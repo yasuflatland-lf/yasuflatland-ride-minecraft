@@ -7,13 +7,16 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   confirmLiveHeight,
   setHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import { selectionHeightLimit } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { confirmEndpointHeight } from "../../support/buildSelection";
-import { FakeFeedback, FakeSessions, overworld } from "./fakes";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import {
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
 
@@ -91,7 +94,7 @@ it("adjusts an existing selection from its current height and confirms the new h
         if (initial.kind !== "selected") throw new Error("Expected selection");
         session.setFlow(initial);
         const feedback = new FakeFeedback();
-        const adjust = new ChooseAdjustHeight(repo, feedback);
+        const adjust = new ChooseAdjustHeight(repo, feedback, new FakeWorld());
         adjust.execute({ playerId });
         adjust.execute({ playerId });
         expect(feedback.messages).toEqual([{ message: "heightAim" }]);
@@ -100,7 +103,10 @@ it("adjusts an existing selection from its current height and confirms the new h
         expect(flow.selection).toEqual(initial.selection);
         expect(flow.baseBox.max.y).toBe(initial.selection.box.min.y);
         expect(flow.previous).toBe(
-          Math.min(height, selectionHeightLimit(initial.selection.box)),
+          Math.min(
+            height,
+            selectionHeightLimit(initial.selection.box, OVERWORLD_RANGE),
+          ),
         );
         const changed = setHeight(flow, nextHeight);
         if (changed.kind !== "baseHeight")

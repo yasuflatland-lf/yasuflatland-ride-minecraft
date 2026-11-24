@@ -2,11 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+
 import { openBuildMenu } from "../../../src/domain/build/flow/menu";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -15,7 +11,12 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 import { FakeSessions, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
@@ -62,7 +63,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           first,
           endpoint,
           openBuildMenu(endpoint),
-          chooseHeighted(endpoint, "hip"),
+          chooseHeightedFlow(endpoint, "hip"),
           { kind: "pasteAim", manualTurn: 0 },
         ];
         for (const flow of flows) {

@@ -12,7 +12,6 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
-  chooseHeighted,
   setHeight,
   tapAir,
   tapBlock,
@@ -30,11 +29,15 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -84,12 +87,18 @@ function roof(
   base: ReturnType<typeof boxOf>,
   kind: "gable" | "hip",
   material = stone,
+  dimensionId = overworld,
 ) {
+  const range = e.world.heightRange(dimensionId);
   const selected = confirmEndpointHeight(
-    tapAir(tapBlock({ kind: "idle" }, overworld, base.min, material), base.max),
+    tapAir(
+      tapBlock({ kind: "idle" }, dimensionId, base.min, material, range),
+      base.max,
+      range,
+    ),
   );
   e.session.setFlow(selected);
-  new ChooseHeighted(e.repo, e.feedback).execute({ playerId, kind });
+  new ChooseHeighted(e.repo, e.feedback, e.world).execute({ playerId, kind });
   return selected;
 }
 
@@ -109,7 +118,7 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
           z: min.z + sz - 1,
         });
         roof(e, base, kind);
-        const aim = new AimHeight(e.repo);
+        const aim = new AimHeight(e.repo, e.world);
         // The rise to the center line is a multiple of 0.375, so a 0.2 offset
         // keeps the aimed point at least 0.075 off a layer boundary, where
         // floating-point error could flip the floored layer.
@@ -121,7 +130,7 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
             direction: { x: 0.8, y: 0.6, z: 0 },
           },
         });
-        const cap = maxRoofHeight(base, BUILD_SPEC.worldTopY);
+        const cap = maxRoofHeight(base, OVERWORLD_RANGE);
         const expected = Math.max(
           1,
           Math.min(
@@ -145,14 +154,14 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
           dimensionId: nether,
           cell: min,
         });
-        new TapAir(e.repo, e.feedback).execute({ playerId, end: min });
+        new TapAir(e.repo, e.feedback, e.world).execute({ playerId, end: min });
         expect(e.session.flow).toBe(before);
       },
     ),
   );
   const e = setup();
   roof(e, boxOf({ x: 0, y: 318, z: 0 }, { x: 3, y: 318, z: 3 }), "hip");
-  new AimHeight(e.repo).execute({
+  new AimHeight(e.repo, e.world).execute({
     playerId,
     ray: { origin: { x: 0, y: 999, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
   });
@@ -266,16 +275,28 @@ it("counts only the open-bottom shell when refusing an oversized stair roof", ()
   expect(e.session.isEditing).toBe(false);
 });
 
-it("reports tooLarge when the fixed pitch would cross the world top", () => {
-  const e = setup();
-  const y = BUILD_SPEC.worldTopY - 1;
-  const base = boxOf({ x: 0, y, z: 0 }, { x: 4, y, z: 6 });
-  const selected = roof(e, base, "gable", stairs);
-  expect(e.session.flow).toBe(selected);
-  expect(e.feedback.messages.map(({ message }) => message)).toEqual([
-    "tooLarge",
-  ]);
-});
+it.each([
+  [overworld, OVERWORLD_RANGE],
+  [nether, NETHER_RANGE],
+] as const)(
+  "accepts a stair roof at the %s ceiling and refuses one layer above",
+  (dimensionId, range) => {
+    const e = setup();
+    e.world.heightRanges.set(dimensionId, range);
+    const baseAt = (y: number) => boxOf({ x: 0, y, z: 0 }, { x: 4, y, z: 6 });
+    roof(e, baseAt(range.maxY - 2), "gable", stairs, dimensionId);
+    expect(e.session.flow).toMatchObject({ kind: "heightStep", previous: 3 });
+    const selected = roof(
+      e,
+      baseAt(range.maxY - 1),
+      "gable",
+      stairs,
+      dimensionId,
+    );
+    expect(e.session.flow).toBe(selected);
+    expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
+  },
+);
 
 it("refuses oversized and busy roofs without consuming the height stage", () => {
   const e = setup();
@@ -481,7 +502,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
         const e = setup();
         const base = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 5 });
         const choose = (box: ReturnType<typeof boxOf>) =>
-          chooseHeighted(
+          chooseHeightedFlow(
             {
               kind: "selected",
               menuLevel: "build",

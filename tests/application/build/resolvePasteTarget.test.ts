@@ -29,6 +29,7 @@ import {
   FakeFeedback,
   FakeGroundProbe,
   FakeSessions,
+  FakeWorld,
   fakeSyncTapTarget,
   nether,
 } from "./fakes";
@@ -155,6 +156,7 @@ it("draws the same paste box that the press sends to PasteAt", () => {
           reader,
           resolver,
           fakeSyncTapTarget(),
+          new FakeWorld(),
         ).execute(0);
         const result = press.execute({
           playerId,
@@ -235,6 +237,7 @@ it("refuses no ground with feedback and no paste outline or placement", () => {
     reader,
     resolver,
     fakeSyncTapTarget(),
+    new FakeWorld(),
   ).execute(0);
   expect(
     new PressPasteAim(

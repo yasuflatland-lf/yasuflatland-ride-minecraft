@@ -102,12 +102,9 @@ vi.mock("../../../src/infrastructure/shared/starterItem", () => ({
   registerStarterItem: vi.fn(),
   BedrockStarterItemWorld: starterWorld,
 }));
-vi.mock(
-  "../../../src/infrastructure/resort/bedrock/bedrockParasolPaintWorld",
-  () => ({
-    BedrockParasolPaintWorld: class {},
-  }),
-);
+vi.mock("../../../src/infrastructure/shared/dyes", () => ({
+  BedrockVariantPaintWorld: class {},
+}));
 vi.mock(
   "../../../src/infrastructure/resort/bedrock/bedrockParasolWorld",
   () => ({

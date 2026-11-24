@@ -3,12 +3,13 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FoldLegacyTents } from "../../../src/application/camp/foldLegacyTents";
 import type { HitChair } from "../../../src/application/camp/hitChair";
-import type { PaintTent } from "../../../src/application/camp/paintTent";
 import type { PitchTent } from "../../../src/application/camp/pitchTent";
 import type { PlaceChair } from "../../../src/application/camp/placeChair";
 import type { SwitchLantern } from "../../../src/application/camp/switchLantern";
 import type { TakeDownTent } from "../../../src/application/camp/takeDownTent";
+import type { Repaint } from "../../../src/application/shared/repaint";
 import { TENT_LAYOUT_VERSION, TENT_SPEC } from "../../../src/domain/camp/spec";
+import type { TentId } from "../../../src/domain/camp/tent";
 import {
   PITCHED_STATE,
   type TentBlock,
@@ -417,7 +418,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
     );
     registerTentHits(
       { execute } as unknown as TakeDownTent,
-      { execute: paint } as unknown as PaintTent,
+      { execute: paint } as unknown as Repaint<TentId>,
       owner as never,
     );
     return { execute, paint, owner };
@@ -569,7 +570,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
         defined(game.run.mock.calls[0]?.[0], "deferred paint")();
         expect(paintTent).toHaveBeenCalledExactlyOnceWith({
           playerId: "p",
-          tentId: "tent",
+          entityId: "tent",
           paint,
           tick: 10,
         });
@@ -591,7 +592,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
         defined(game.run.mock.calls[0]?.[0], "deferred paint")();
         expect(paintTent).toHaveBeenCalledExactlyOnceWith({
           playerId: "p",
-          tentId: "t",
+          entityId: "t",
           paint,
           tick: 10,
         });
@@ -614,7 +615,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
         defined(game.run.mock.calls[0]?.[0], "deferred break")();
         expect(paintTent).toHaveBeenCalledExactlyOnceWith({
           playerId: "p",
-          tentId: "tent",
+          entityId: "tent",
           paint,
           tick: 10,
         });
@@ -635,7 +636,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
     defined(game.run.mock.calls[0]?.[0], "deferred break")();
     expect(paint).toHaveBeenCalledExactlyOnceWith({
       playerId: "p",
-      tentId: "tent",
+      entityId: "tent",
       paint: "red",
       tick: 10,
     });

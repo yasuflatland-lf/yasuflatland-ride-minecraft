@@ -2,14 +2,18 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import {
   inDimension,
   selectionOf,
   withBox,
 } from "../../../src/domain/build/selection";
 import { asDimensionId } from "../../../src/domain/shared/ids";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 
 const cell = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
 const dimensionId = asDimensionId("minecraft:overworld");
