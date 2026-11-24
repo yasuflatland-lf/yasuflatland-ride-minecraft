@@ -1,7 +1,6 @@
 import { system } from "@minecraft/server";
 import { BeachChairMenu } from "../../application/resort/beachChairMenu";
 import { LieOnBeachChair } from "../../application/resort/lieOnBeachChair";
-import { PaintParasol } from "../../application/resort/paintParasol";
 import { PlaceBeachChair } from "../../application/resort/placeBeachChair";
 import { PlaceFurniture } from "../../application/resort/placeFurniture";
 import { PlaceParasol } from "../../application/resort/placeParasol";
@@ -19,7 +18,9 @@ import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { Repaint } from "../../application/shared/repaint";
 import { FURNITURE_SPEC } from "../../domain/resort/furniture";
-import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
+import type { ParasolId } from "../../domain/resort/ids";
+import { BEACH_CHAIR_SPEC, PARASOL_SPEC } from "../../domain/resort/spec";
+import { BedrockVariantPaintWorld } from "../shared/dyes";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
@@ -28,7 +29,6 @@ import type { PlaceHostedOnTop } from "../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../shared/tableTop/registry";
 import { BedrockBeachChairWorld } from "./bedrock/bedrockBeachChairWorld";
 import { BedrockFurnitureWorld } from "./bedrock/bedrockFurnitureWorld";
-import { BedrockParasolPaintWorld } from "./bedrock/bedrockParasolPaintWorld";
 import { BedrockParasolWorld } from "./bedrock/bedrockParasolWorld";
 import { BedrockShowSound } from "./bedrock/bedrockShowSound";
 import { BedrockToiletWorld } from "./bedrock/bedrockToiletWorld";
@@ -51,6 +51,7 @@ import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLDED,
   BEACH_CHAIR_TOP_REFUSAL_HINTS,
+  BEACH_PARASOL,
   BEACH_PARASOL_ITEM,
   BEACH_PARASOL_STARTER_RECEIVED_PROPERTY,
   DINING_TABLE_TOP_REFUSAL_HINTS,
@@ -133,7 +134,12 @@ export function installResort(deps: {
   const takeBack = new TakeBackParasol(adapter);
   registerParasolHits(
     takeBack,
-    new PaintParasol(new Repaint(new BedrockParasolPaintWorld())),
+    new Repaint(
+      new BedrockVariantPaintWorld<ParasolId>(
+        BEACH_PARASOL,
+        PARASOL_SPEC.defaultPaint,
+      ),
+    ),
   );
   registerParasolLifecycle(adapter, new SyncParasolCeilings(adapter));
   return {
