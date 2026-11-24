@@ -1,12 +1,12 @@
 // Wires the vehicle feature's repositories, port implementations, and use cases
 // together.
 
+import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
 import { SleepInBed } from "../../application/shared/sleepInBed";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
-import { GiveStarterVehicle } from "../../application/vehicle/giveStarterVehicle";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { NormalizePaint } from "../../application/vehicle/normalizePaint";
@@ -27,8 +27,13 @@ import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import { SwitchTool } from "../../application/vehicle/switchTool";
 import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
+import { STARTER_KINDS } from "../../domain/vehicle/placement/starter";
 import { BedrockBedWorld } from "../shared/bedrockBedWorld";
 import { consoleLogger as log } from "../shared/consoleLogger";
+import {
+  BedrockStarterItemWorld,
+  registerStarterItem,
+} from "../shared/starterItem";
 import type { SwitchTarget } from "../shared/switchRouter";
 import { BedrockDecorWorld } from "./bedrock/bedrockDecorWorld";
 import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
@@ -38,13 +43,23 @@ import { BedrockInventory } from "./bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
+import {
+  composeDockCodec,
+  DECK_CODEC,
+  DockBlocks,
+  LIGHT_CODEC,
+} from "./bedrock/dockBlocks";
 import { EntityIndex } from "./bedrock/entityIndex";
 import { registerCutDrops } from "./bedrock/handlers/cutDrops";
 import { registerDockGuard } from "./bedrock/handlers/dockGuard";
-import { isFleetEntityType } from "./bedrock/identifiers";
+import {
+  ITEM_TYPE,
+  isFleetEntityType,
+  STARTER_RECEIVED_PROPERTY,
+} from "./bedrock/identifiers";
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
-import { DockBlocks } from "./kinds/camper/dockBlocks";
+import { CAMPER_ROOM_CODEC } from "./kinds/camper/dockBlocks";
 import { isStandableRoomBlock } from "./kinds/camper/identifiers";
 import { installCamper } from "./kinds/camper/install";
 import { readCamperRestored } from "./kinds/camper/restored";
@@ -74,13 +89,18 @@ export function installVehicles(deps: {
   const index = new EntityIndex();
   const inventory = new BedrockInventory(index);
   const decorWorld = new BedrockDecorWorld(index, inventory);
+  const dockCodec = composeDockCodec({
+    ...DECK_CODEC,
+    ...LIGHT_CODEC,
+    ...CAMPER_ROOM_CODEC,
+  });
   const bedrock = new BedrockVehicleWorld(
     index,
     testInputs,
     testHeldItems,
     deps.isCampSpace,
-    new DockBlocks(deps.isCampSpace),
-    { camper: readCamperRestored },
+    new DockBlocks(deps.isCampSpace, dockCodec),
+    { camper: (vehicle) => readCamperRestored(vehicle, dockCodec) },
     isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(index, bedrock.releaser, inventory);
@@ -95,7 +115,6 @@ export function installVehicles(deps: {
         repo,
         log,
       ),
-      starter: new GiveStarterVehicle(inventory),
       gift: new OpenGift(inventory),
       hit: new HitVehicle(fleetWorld, repo, fleets, systemClock),
       limit: new LimitVehicles(fleetWorld, repo, fleets, log),
@@ -144,6 +163,17 @@ export function installVehicles(deps: {
     deps.laterSwitchTargets,
   );
   registerCutDrops((entity) => bedrock.sweepCutDrop(entity));
+  for (const kind of STARTER_KINDS) {
+    registerStarterItem(
+      new GiveStarterItem(
+        new BedrockStarterItemWorld(
+          ITEM_TYPE[kind],
+          STARTER_RECEIVED_PROPERTY[kind],
+        ),
+        { skipCreative: false },
+      ),
+    );
+  }
   return {
     isFleetEntityType,
     testHooks: { repo, decorWorld, testHeldItems },

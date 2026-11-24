@@ -1,7 +1,9 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { FirePitActions } from "../../../application/camp/firePit";
 import { asFirePitId } from "../../../domain/camp/firePit";
+import { toggleFirePitWithItem } from "../bedrock/handlers/firePit";
 import {
+  FIRE_PIT_IGNITER_ITEM,
   FIRE_PIT_TYPE,
   TEST_FIRE_PIT_EVENT,
   TEST_FIRE_PIT_HIT_EVENT,
@@ -18,7 +20,7 @@ export function registerTestFirePit(actions: FirePitActions): void {
     if (ev.id === TEST_FIRE_PIT_HIT_EVENT) {
       actions.hit(id, undefined, system.currentTick);
     } else {
-      actions.toggle(id, undefined, "minecraft:flint_and_steel", 0);
+      toggleFirePitWithItem(actions, id, undefined, FIRE_PIT_IGNITER_ITEM, 0);
     }
   });
 }

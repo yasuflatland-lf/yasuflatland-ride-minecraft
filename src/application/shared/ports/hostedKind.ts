@@ -1,6 +1,6 @@
 import type { Host } from "../../../domain/shared/hosted";
 
-/** One kind of item that can stand on a table or a Fire Pit (ADR 0185). */
+/** One kind of item whose host is checked for removal (ADR 0185). */
 export interface HostedKindPort {
   /** Ids of the loaded entities of this kind. */
   loaded(): readonly string[];

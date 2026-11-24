@@ -12,7 +12,7 @@ import {
   type PitchSurvey,
   planPitch,
   TENT_FLAPS,
-  type TentFace,
+  type TentPlateSide,
   type TentPose,
   type TentState,
   type TentYaw,
@@ -32,13 +32,14 @@ import {
 } from "../../../src/domain/camp/tentLayout";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { dot, forward, normalizeYaw } from "../../../src/domain/shared/vec";
 import { lanternCell } from "../../../src/test-pack/scenarios/support/tentContract";
 import { defined } from "../../support/defined";
 import { TENT_PACK_CONTRACT } from "../../support/packContract";
 
 const AIR = "minecraft:air";
-const YAWS: readonly TentYaw[] = [0, 90, 180, -90];
+const YAWS: readonly TentYaw[] = [0, 90, 180, -90].map((yaw) => snapYaw(yaw));
 const arbYaw = fc.constantFrom(...YAWS);
 const arbPose: fc.Arbitrary<TentPose> = fc.record({
   x: fc.integer({ min: -1000, max: 1000 }),
@@ -56,7 +57,12 @@ const turned = (pose: TentPose, c: Cell): Cell => ({
   y: c.y,
   z: pose.z + (c.x - pose.x) + 0,
 });
-const TURNED_FACE: Record<TentFace, TentFace> = { 0: 3, 1: 2, 2: 0, 3: 1 };
+const TURNED_FACE: Record<TentPlateSide, TentPlateSide> = {
+  "-z": "+x",
+  "+z": "-x",
+  "-x": "-z",
+  "+x": "+z",
+};
 
 describe("tentPose (ADR 0131)", () => {
   it("stands on the clicked block, snapped to a quarter turn, facing the player", () => {
@@ -121,12 +127,12 @@ describe("tentCells (ADR 0130, 0131)", () => {
     }
     const inner = defined(TENT_FLAPS.bedroom[0], "bedroom flap").depth;
     for (const { cell, face } of TRAPEZOID_LAYOUT.walls) {
-      if (cell.depth === inner && face === 1) continue;
+      if (cell.depth === inner && face === "+z") continue;
       const shell = tentShellAt(cell.layer + 0.5);
       const distance =
-        face >= 2
+        face === "-x" || face === "+x"
           ? shell.halfWidth - Math.abs(cell.x)
-          : face === 0
+          : face === "-z"
             ? cell.depth + 0.5 - shell.front
             : shell.rear - cell.depth - 0.5;
       // The cell centre is inside, and its outer face is at most 0.5 from the shell.
@@ -159,7 +165,7 @@ describe("tentCells (ADR 0130, 0131)", () => {
   it("lays one block per layout cell in any state", () => {
     fc.assert(
       fc.property(arbState, (state) => {
-        const pose: TentPose = { x: 0, y: 0, z: 0, yaw: 0 };
+        const pose: TentPose = { x: 0, y: 0, z: 0, yaw: snapYaw(0) };
         const count =
           TRAPEZOID_LAYOUT.walls.length +
           TRAPEZOID_LAYOUT.ceilings.length +
@@ -735,7 +741,7 @@ describe("mattresses (ADR 0092, 0133)", () => {
 
 describe("planPitch (ADR 0131)", () => {
   const STONE: GroundReading = { typeId: "minecraft:stone", liquid: false };
-  const pose: TentPose = { x: 0, y: 64, z: 0, yaw: 0 };
+  const pose: TentPose = { x: 0, y: 64, z: 0, yaw: snapYaw(0) };
   const fine = (): PitchSurvey => ({
     clear: tentClearCells(pose).map(() => AIR),
     ground: tentGroundCells(pose).map(() => STONE),

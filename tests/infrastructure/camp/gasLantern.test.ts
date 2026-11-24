@@ -8,6 +8,7 @@ import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
+import { GAS_LANTERN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 import {
   CAMP_TABLE_TYPE,
   GAS_LANTERN_ITEM,
@@ -102,7 +103,7 @@ function fixture() {
     isHostAreaLoaded: () => true,
     hostExists: () => true,
   };
-  const actions = new GasLanternActions(world);
+  const actions = new GasLanternActions(world, GAS_LANTERN_ON_TOP);
   const topHosts = campTopHosts();
   registerGasLantern(
     actions,
@@ -183,7 +184,7 @@ it("switches on tool hits without hints or progress toward taking back a lantern
     ["player", 1],
   ]);
   strike();
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern");
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern", "player");
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith("lantern");
 });
 
@@ -204,7 +205,7 @@ it("accepts the take-back test hook only from the server for a Gas Lantern", () 
   expect(world.dropItem).not.toHaveBeenCalled();
   send("Server");
   expect(world.showHitsLeft).not.toHaveBeenCalled();
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern");
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("lantern", undefined);
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith("lantern");
 });
 

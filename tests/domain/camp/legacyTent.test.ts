@@ -7,6 +7,7 @@ import {
 } from "../../../src/domain/camp/legacyTent";
 import type { TentYaw } from "../../../src/domain/camp/tent";
 import { cellKey } from "../../../src/domain/shared/cells";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { forward, leftOf } from "../../../src/domain/shared/vec";
 
 it("covers exactly layout 1's cleanup box at every pose and yaw", () => {
@@ -17,7 +18,9 @@ it("covers exactly layout 1's cleanup box at every pose and yaw", () => {
         x: fc.integer({ min: -10000, max: 10000 }),
         y: fc.integer({ min: -60, max: 300 }),
         z: fc.integer({ min: -10000, max: 10000 }),
-        yaw: fc.constantFrom<TentYaw>(0, 90, 180, -90),
+        yaw: fc.constantFrom<TentYaw>(
+          ...[0, 90, 180, -90].map((yaw) => snapYaw(yaw)),
+        ),
       }),
       (pose) => {
         const cells = legacyTentClearCells(pose);
@@ -53,7 +56,7 @@ it("puts the exit outside the legacy cleanup box at every yaw", () => {
       }),
       (anchor) => {
         for (const yaw of [0, 90, 180, -90] as const) {
-          const pose = { ...anchor, yaw };
+          const pose = { ...anchor, yaw: snapYaw(yaw) };
           expect(legacyTentClearCells(pose).map(cellKey)).not.toContain(
             cellKey(legacyTentExit(pose)),
           );

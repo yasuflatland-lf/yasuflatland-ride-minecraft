@@ -1,4 +1,4 @@
-import { type Entity, ItemStack, world } from "@minecraft/server";
+import { type Entity, world } from "@minecraft/server";
 import type { DutchOvenWorld } from "../../../application/camp/ports/dutchOven";
 import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import {
@@ -19,6 +19,7 @@ import type {
 } from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -195,12 +196,14 @@ export class BedrockDutchOvenWorld
     return isHostAreaLoaded(dutchOven(id));
   }
 
-  dropItem(id: DutchOvenId): void {
+  dropItem(id: DutchOvenId, hitter?: PlayerId): void {
     const entity = dutchOven(id);
-    entity?.dimension.spawnItem(
-      new ItemStack(DUTCH_OVEN_ITEM, 1),
-      entity.location,
-    );
+    if (entity)
+      giveBack(
+        entity,
+        DUTCH_OVEN_ITEM,
+        giveBackReceiver(DUTCH_OVEN_SPEC.giveBack, hitter),
+      );
   }
 
   removeDutchOven(id: DutchOvenId): void {

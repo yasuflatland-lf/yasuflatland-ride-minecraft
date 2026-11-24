@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { asFirePitId, type FirePitId } from "../../../src/domain/camp/firePit";
+import { decodeCampHost } from "../../../src/domain/camp/hosted";
 import { TABLE_SPOTS } from "../../../src/domain/camp/spec";
 import { asTableId, type TableId } from "../../../src/domain/camp/table";
 import {
@@ -36,14 +37,69 @@ const hosts: fc.Arbitrary<Host> = fc.oneof(
   }),
 );
 
+it("preserves the exact saved marker strings for every current host", () => {
+  const golden: [Host, string][] = [
+    [{ kind: "ground" }, ""],
+    [{ kind: "vehicle", id: asVehicleId("a:b") }, "vehicle:a:b"],
+    [
+      { kind: "spot", hostType: "fire_pit", id: "a:b", spot: 0 },
+      "fire_pit:a:b:0",
+    ],
+    [
+      {
+        kind: "top",
+        hostType: "camp_table",
+        id: "a:b",
+        at: { x: -2.346, z: -0 },
+      },
+      "camp_table:a:b:@-2.35,0",
+    ],
+    [
+      { kind: "top", hostType: "beach_chair", id: "c", at: { x: 0, z: 1.5 } },
+      "beach_chair:c:@0,1.5",
+    ],
+    [
+      { kind: "top", hostType: "dining_table", id: "d", at: { x: 3, z: -4 } },
+      "dining_table:d:@3,-4",
+    ],
+  ];
+  for (const [host, marker] of golden) expect(encodeHost(host)).toBe(marker);
+});
+
 it("round-trips hosts with hundredth coordinates and non-empty ids", () => {
   fc.assert(
     fc.property(hosts, (host) => {
-      expect(decodeHost(encodeHost(host))).toEqual(host);
+      expect(decodeCampHost(encodeHost(host))).toEqual(host);
     }),
   );
   expect(encodeHost({ kind: "ground" })).toBe("");
-  expect(decodeHost("")).toEqual({ kind: "ground" });
+  expect(decodeCampHost("")).toEqual({ kind: "ground" });
+});
+
+it("reserves integer markers only for the supplied spot host types", () => {
+  fc.assert(
+    fc.property(
+      fc.stringMatching(/^[a-z_]+$/).filter((type) => type !== "vehicle"),
+      ids,
+      fc.nat(),
+      (hostType, id, spot) => {
+        const host: Host = { kind: "spot", hostType, id, spot };
+        const marker = `${hostType}:${id}:${spot}`;
+        const point = `${hostType}:${id}:@1,2`;
+        const options = { spotHostTypes: new Set([hostType]) };
+        expect(encodeHost(host)).toBe(marker);
+        expect(decodeSharedHost(marker, options)).toEqual(host);
+        expect(decodeSharedHost(point, options)).toEqual({ kind: "ground" });
+        expect(decodeSharedHost(marker)).toEqual({ kind: "ground" });
+        expect(decodeSharedHost(point)).toEqual({
+          kind: "top",
+          hostType,
+          id,
+          at: { x: 1, z: 2 },
+        });
+      },
+    ),
+  );
 });
 
 it("migrates only existing legacy table spots into fresh points", () => {
@@ -52,7 +108,7 @@ it("migrates only existing legacy table spots into fresh points", () => {
       ids,
       fc.oneof(fc.constantFrom(0, 1, 2, -1), fc.integer()),
       (id, spot) => {
-        const host = decodeHost(`camp_table:${id}:${spot}`);
+        const host = decodeCampHost(`camp_table:${id}:${spot}`);
         const at = TABLE_SPOTS[spot];
         expect(host).toEqual(
           at
@@ -76,7 +132,7 @@ it("accepts only complete valid markers and never throws for arbitrary strings",
           .map(([kind, id, suffix]) => `${kind}:${id}:${suffix}`),
       ),
       (text) => {
-        const host = decodeHost(text);
+        const host = decodeCampHost(text);
         const separator = text.lastIndexOf(":");
         const prefix = text.slice(0, text.indexOf(":"));
         const id = text.slice(text.indexOf(":") + 1, separator);
@@ -93,9 +149,10 @@ it("accepts only complete valid markers and never throws for arbitrary strings",
         const valid =
           id.length > 0 &&
           ((prefix === "fire_pit" && validSpot) ||
+            (prefix !== "fire_pit" && /^[a-z_]+$/.test(prefix) && validPoint) ||
             (prefix === "camp_table" &&
-              (validPoint ||
-                (validSpot && TABLE_SPOTS[Number(suffix)] !== undefined))));
+              validSpot &&
+              TABLE_SPOTS[Number(suffix)] !== undefined));
         const validVehicle = text.startsWith("vehicle:") && text.length > 8;
         expect(host.kind !== "ground").toBe(Boolean(valid || validVehicle));
       },
@@ -119,7 +176,7 @@ it("accepts only complete valid markers and never throws for arbitrary strings",
     "fire_pit:a:0\n",
     "fire_pit:a:9007199254740992",
   ])
-    expect(decodeHost(text)).toEqual({ kind: "ground" });
+    expect(decodeCampHost(text)).toEqual({ kind: "ground" });
 });
 
 it("writes finite doubles as decimal coordinates rounded to at most two places", () => {
@@ -139,13 +196,13 @@ it("writes finite doubles as decimal coordinates rounded to at most two places",
         /^camp_table:a:@-?[0-9]+(?:\.[0-9]{1,2})?,-?[0-9]+(?:\.[0-9]{1,2})?$/,
       );
       const rounded = (value: number) => Number(value.toFixed(2)) || 0;
-      expect(decodeHost(encoded)).toEqual({
+      expect(decodeCampHost(encoded)).toEqual({
         kind: "top",
         hostType: "camp_table",
         id: asTableId("a"),
         at: { x: rounded(x), z: rounded(z) },
       });
-      expect(encodeHost(decodeHost(encoded))).toBe(encoded);
+      expect(encodeHost(decodeCampHost(encoded))).toBe(encoded);
     }),
   );
 });
@@ -156,23 +213,17 @@ it("preserves all characters after the vehicle prefix", () => {
       expect(encodeHost({ kind: "vehicle", id: asVehicleId(id) })).toBe(
         `vehicle:${id}`,
       );
-      expect(decodeHost(`vehicle:${id}`)).toEqual({
+      expect(decodeCampHost(`vehicle:${id}`)).toEqual({
         kind: "vehicle",
         id: asVehicleId(id),
       });
     }),
   );
-  expect(decodeHost("vehicle:a:b\nc")).toEqual({
+  expect(decodeCampHost("vehicle:a:b\nc")).toEqual({
     kind: "vehicle",
     id: asVehicleId("a:b\nc"),
   });
 });
-
-function decodeHost(text: string) {
-  return decodeSharedHost(text, (type, spot) =>
-    type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
-  );
-}
 
 // Frozen pre-refactor codec: saved-marker compatibility must not follow the new implementation.
 type OldHost =
@@ -289,7 +340,7 @@ it("preserves the meaning and exact bytes of markers written by the old codec", 
   fc.assert(
     fc.property(oldHosts, (host) => {
       const marker = oldEncodeHost(host);
-      const decoded = decodeHost(marker);
+      const decoded = decodeCampHost(marker);
       expect(decoded).toEqual(sharedMeaning(oldDecodeHost(marker)));
       expect(encodeHost(decoded)).toBe(marker);
     }),
@@ -304,7 +355,7 @@ it("migrates legacy table markers with the same meaning and canonical bytes as t
       (id, spot) => {
         const marker = `camp_table:${id}:${spot}`;
         const old = oldDecodeHost(marker);
-        const decoded = decodeHost(marker);
+        const decoded = decodeCampHost(marker);
         expect(decoded).toEqual(sharedMeaning(old));
         expect(encodeHost(decoded)).toBe(oldEncodeHost(old));
       },
@@ -315,9 +366,7 @@ it("migrates legacy table markers with the same meaning and canonical bytes as t
 it("round-trips top host types without a camp dependency or a legacy resolver", () => {
   fc.assert(
     fc.property(
-      fc
-        .stringMatching(/^[a-z_]+$/)
-        .filter((type) => type !== "vehicle" && type !== "fire_pit"),
+      fc.stringMatching(/^[a-z_]+$/).filter((type) => type !== "vehicle"),
       ids,
       coordinate,
       coordinate,
@@ -337,7 +386,7 @@ it("rejects invalid top host type prefixes and reserved fire pit point markers",
       coordinate,
       coordinate,
       (hostType, id, x, z) => {
-        expect(decodeSharedHost(`${hostType}:${id}:@${x},${z}`)).toEqual({
+        expect(decodeCampHost(`${hostType}:${id}:@${x},${z}`)).toEqual({
           kind: "ground",
         });
       },

@@ -6,7 +6,7 @@ export type Host =
   | { readonly kind: "vehicle"; readonly id: VehicleId }
   | {
       readonly kind: "spot";
-      readonly hostType: "fire_pit";
+      readonly hostType: string;
       readonly id: string;
       readonly spot: number;
     }
@@ -44,7 +44,7 @@ export function encodeHost(host: Host): string {
     case "vehicle":
       return `vehicle:${host.id}`;
     case "spot":
-      return `fire_pit:${host.id}:${host.spot}`;
+      return `${host.hostType}:${host.id}:${host.spot}`;
     case "top":
       return `${host.hostType}:${host.id}:@${encodeCoordinate(host.at.x)},${encodeCoordinate(host.at.z)}`;
   }
@@ -52,7 +52,10 @@ export function encodeHost(host: Host): string {
 
 export function decodeHost(
   text: string,
-  legacySpot?: (hostType: string, spot: number) => LocalPoint | undefined,
+  options?: {
+    spotHostTypes?: ReadonlySet<string>;
+    legacySpot?: (hostType: string, spot: number) => LocalPoint | undefined;
+  },
 ): Host {
   if (text.startsWith("vehicle:") && text.length > "vehicle:".length)
     return { kind: "vehicle", id: asVehicleId(text.slice("vehicle:".length)) };
@@ -65,7 +68,7 @@ export function decodeHost(
     if (
       !hostType ||
       hostType === "vehicle" ||
-      hostType === "fire_pit" ||
+      options?.spotHostTypes?.has(hostType) ||
       !id ||
       !Number.isFinite(x) ||
       !Number.isFinite(z)
@@ -84,8 +87,9 @@ export function decodeHost(
   const [, kind, id, rawSpot] = marker;
   const spot = Number(rawSpot);
   if (!kind || !id || !Number.isSafeInteger(spot)) return { kind: "ground" };
-  if (kind === "fire_pit") return { kind: "spot", hostType: kind, id, spot };
-  const at = legacySpot?.(kind, spot);
+  if (options?.spotHostTypes?.has(kind))
+    return { kind: "spot", hostType: kind, id, spot };
+  const at = options?.legacySpot?.(kind, spot);
   return at
     ? { kind: "top", hostType: kind, id, at: { ...at } }
     : { kind: "ground" };
