@@ -13,10 +13,12 @@ import {
 import { isFillable } from "../../../src/domain/build/terrain/fillable";
 import type { Cell } from "../../../src/domain/shared/cells";
 
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+
 const areaOf = (a: Cell, b: Cell) => terrainAreaOf(boxOf(a, b), a, b);
 const cell = fc.record({
   x: fc.integer({ min: -100, max: 100 }),
-  y: fc.integer({ min: -64, max: BUILD_SPEC.worldTopY }),
+  y: fc.integer({ min: OVERWORLD_RANGE.minY, max: OVERWORLD_RANGE.maxY }),
   z: fc.integer({ min: -100, max: 100 }),
 });
 
@@ -36,12 +38,13 @@ describe("terrainAreaOf", () => {
               direction: { x: 1, y: 1, z: 0 },
             },
             BUILD_SPEC.reach,
+            OVERWORLD_RANGE,
           );
           expect(end).toBeDefined();
           if (!end) return;
           const area = terrainAreaOf(boxOf(a, b), point, end);
-          expect(area.higherY).toBeLessThanOrEqual(BUILD_SPEC.worldTopY);
-          expect(area.lowerY).toBeGreaterThanOrEqual(BUILD_SPEC.worldBottomY);
+          expect(area.higherY).toBeLessThanOrEqual(OVERWORLD_RANGE.maxY);
+          expect(area.lowerY).toBeGreaterThanOrEqual(OVERWORLD_RANGE.minY);
         },
       ),
     );
@@ -90,33 +93,39 @@ describe("terrainAreaOf", () => {
 describe("removeAboveBox", () => {
   it("excludes the floor layer and reaches the world top over the whole footprint", () => {
     fc.assert(
-      fc.property(cell, cell, (a, b) => {
-        const area = areaOf(a, b);
-        const box = removeAboveBox(area);
-        if (area.lowerY >= BUILD_SPEC.worldTopY) {
-          expect(box).toBeUndefined();
-          return;
-        }
-        expect(box).toEqual({
-          min: { x: area.minX, y: area.lowerY + 1, z: area.minZ },
-          max: { x: area.maxX, y: BUILD_SPEC.worldTopY, z: area.maxZ },
-        });
-        if (!box) return;
-        expect(contains(box, { x: a.x, y: area.lowerY, z: a.z })).toBe(false);
-        expect(contains(box, { x: b.x, y: BUILD_SPEC.worldTopY, z: b.z })).toBe(
-          true,
-        );
-      }),
+      fc.property(
+        cell,
+        cell,
+        fc.constantFrom(OVERWORLD_RANGE, NETHER_RANGE),
+        (a, b, range) => {
+          const area = areaOf(a, b);
+          const box = removeAboveBox(area, range);
+          if (area.lowerY >= range.maxY) {
+            expect(box).toBeUndefined();
+            return;
+          }
+          expect(box).toEqual({
+            min: { x: area.minX, y: area.lowerY + 1, z: area.minZ },
+            max: { x: area.maxX, y: range.maxY, z: area.maxZ },
+          });
+          if (!box) return;
+          expect(contains(box, { x: a.x, y: area.lowerY, z: a.z })).toBe(false);
+          expect(contains(box, { x: b.x, y: range.maxY, z: b.z })).toBe(true);
+        },
+      ),
     );
   });
 
   it("leaves nothing to remove only when the floor is the top layer", () => {
     const at = (y: number) =>
-      removeAboveBox(areaOf({ x: 0, y, z: 0 }, { x: 1, y, z: 1 }));
-    expect(at(BUILD_SPEC.worldTopY)).toBeUndefined();
-    expect(at(BUILD_SPEC.worldTopY - 1)).toEqual({
-      min: { x: 0, y: BUILD_SPEC.worldTopY, z: 0 },
-      max: { x: 1, y: BUILD_SPEC.worldTopY, z: 1 },
+      removeAboveBox(
+        areaOf({ x: 0, y, z: 0 }, { x: 1, y, z: 1 }),
+        OVERWORLD_RANGE,
+      );
+    expect(at(OVERWORLD_RANGE.maxY)).toBeUndefined();
+    expect(at(OVERWORLD_RANGE.maxY - 1)).toEqual({
+      min: { x: 0, y: OVERWORLD_RANGE.maxY, z: 0 },
+      max: { x: 1, y: OVERWORLD_RANGE.maxY, z: 1 },
     });
   });
 });
@@ -132,7 +141,7 @@ describe("fitsTerrainLimit", () => {
       fc.property(side, side, cell, (sx, sz, origin) => {
         const to = {
           x: origin.x + sx - 1,
-          y: BUILD_SPEC.worldTopY,
+          y: OVERWORLD_RANGE.maxY,
           z: origin.z + sz - 1,
         };
         expect(fitsTerrainLimit(areaOf(origin, to))).toBe(
@@ -150,7 +159,9 @@ it("spans the selected footprint from the given bottom through the higher tap", 
       const area = terrainAreaOf(footprint, from, to);
       const topY = Math.max(from.y, to.y);
       const bottomY = Math.min(bottom.y, topY);
-      expect(fillBelowBox(area, bottomY)).toEqual({
+      expect(
+        fillBelowBox(area, { minY: bottomY, maxY: OVERWORLD_RANGE.maxY }),
+      ).toEqual({
         min: { ...footprint.min, y: bottomY },
         max: { ...footprint.max, y: topY },
       });

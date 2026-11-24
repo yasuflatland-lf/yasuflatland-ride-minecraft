@@ -234,6 +234,7 @@ it("uses the supplied test corner and reports the selection menu only on a later
   } as unknown as Player;
   vi.mocked(world.getAllPlayers).mockReturnValue([player]);
   engine.getEntity.mockReturnValue(player);
+  engine.getDimension.mockReturnValue({ heightRange: { min: -64, max: 320 } });
   const build = installBuild({
     isProtected: () => false,
     isExcludedEntityType: () => false,

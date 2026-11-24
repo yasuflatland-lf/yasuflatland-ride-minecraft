@@ -34,19 +34,19 @@ import {
   adjustHeight,
   confirmLiveHeight,
   setHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { cornerTaps, type Taps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
-import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 import {
   FakeAimReader,
@@ -91,7 +91,7 @@ function setup() {
     terrain: new ConfirmTerrain(repo, feedback, jobs, world),
     copy: new CopyBox(repo, structures, feedback),
     cut: new CutBox(repo, world, structures, feedback, log),
-    rotate: new RotateSelection(repo, rotateBox, feedback),
+    rotate: new RotateSelection(repo, rotateBox, feedback, world),
     paste: new PasteAt(repo, world, feedback, structures, players),
     undo,
     pressUndo: new PressUndo(new StepBackSelection(repo, feedback), undo),
@@ -380,7 +380,7 @@ it.each(["Remove above", "Copy"] as const)(
   "%s leaves empty history unchanged and UndoEdit reports nothing to undo",
   (operation) => {
     const e = setup();
-    const floor = { x: 0, y: BUILD_SPEC.worldTopY - 2, z: 0 };
+    const floor = { x: 0, y: OVERWORLD_RANGE.maxY - 2, z: 0 };
     const above = { ...floor, y: floor.y + 1 };
     const box = boxOf(floor, above);
     e.world.put(floor, stone);
@@ -441,7 +441,9 @@ it("Undo while editing height again restores the pre-turn taps and height aim", 
         expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
           "rotated",
         );
-        e.session.setFlow(setHeight(adjustHeight(e.session.flow), height));
+        e.session.setFlow(
+          setHeight(adjustHeight(e.session.flow, OVERWORLD_RANGE), height),
+        );
         expect(e.pressUndo.execute({ playerId })).toBe("undone");
         const restored = e.session.flow;
         expect(restored).toMatchObject({
@@ -535,9 +537,9 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         const cmd = { playerId, dimensionId: overworld };
         const tap = new SetPoint(e.repo, e.world, e.feedback);
         const confirm = new ConfirmLiveHeight(e.repo);
-        const adjust = new ChooseAdjustHeight(e.repo, e.feedback);
+        const adjust = new ChooseAdjustHeight(e.repo, e.feedback, e.world);
         const menu = new OpenBuildMenu(e.repo, { refresh: () => {} });
-        const choose = new ChooseHeighted(e.repo, e.feedback);
+        const choose = new ChooseHeighted(e.repo, e.feedback, e.world);
         const cancel = new BackToAiming(e.repo);
         const check = () => expectTapFootprint(e.session.flow);
         const a = { x: -2, y: 65, z: 3 };
@@ -577,7 +579,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         }
         expect(e.rotate.execute(cmd)).toBe("rotated");
         check();
-        new ChooseTerrain(e.repo, e.feedback).execute({
+        new ChooseTerrain(e.repo, e.feedback, e.world).execute({
           ...cmd,
           op: "removeAbove",
         });

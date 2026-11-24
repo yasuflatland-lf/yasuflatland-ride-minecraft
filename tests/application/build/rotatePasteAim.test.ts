@@ -3,16 +3,19 @@ import { expect, it, vi } from "vitest";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { nextQuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import { structureClipboard } from "../../support/buildClipboard";
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
 
@@ -42,6 +45,7 @@ it("hints and preserves every inactive flow, including a missing session or clip
         nether,
         at,
         blockStateOf("minecraft:stone"),
+        NETHER_RANGE,
       );
       const endpoint = confirmEndpointHeight(
         tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),

@@ -86,6 +86,7 @@ export class UndoEdit {
         session.replaceSelection(
           decision.restore.selection,
           decision.restore.taps,
+          this.world.heightRange(decision.restore.selection.dimensionId),
         );
     }
     if (entry.kind === "snapshot")

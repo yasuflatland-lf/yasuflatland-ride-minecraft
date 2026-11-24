@@ -9,10 +9,11 @@ import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
@@ -21,6 +22,8 @@ import {
   chooseHeightedFlow,
   confirmEndpointHeight,
   selectionFlows,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
@@ -161,13 +164,23 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
   fc.assert(
     fc.property(cell, face, tick, (block, face, tick) => {
       const e = setup(block, face, tick);
-      const first = tapBlock({ kind: "idle" }, nether, block, stone);
+      const first = tapBlock(
+        { kind: "idle" },
+        nether,
+        block,
+        stone,
+        NETHER_RANGE,
+      );
       const endpoint = confirmEndpointHeight(
-        tapAir(first, {
-          ...block,
-          x: block.x + 2,
-          z: block.z + 2,
-        }),
+        tapAir(
+          first,
+          {
+            ...block,
+            x: block.x + 2,
+            z: block.z + 2,
+          },
+          NETHER_RANGE,
+        ),
       );
       for (const flow of [
         { kind: "idle" } as const,

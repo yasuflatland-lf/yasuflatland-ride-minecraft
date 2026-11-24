@@ -13,9 +13,9 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 import {
   FakeAimReader,
   FakeBuildPlayers,
@@ -45,7 +45,7 @@ function fixture() {
   const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   const choose = new ChooseStairs(repo, feedback);
   const fix = new FixStairGoal(repo, feedback, aim);
-  const confirm = new ConfirmStairs(repo, feedback, jobs);
+  const confirm = new ConfirmStairs(repo, feedback, jobs, world);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const cancel = new BackToAiming(repo);
   const preview = new ShowPreview(
@@ -54,6 +54,7 @@ function fixture() {
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
     fakeSyncTapTarget(),
+    world,
   );
   const session = repo.getOrCreate(playerId);
   const select = (material = stone, end = to) => {
@@ -72,7 +73,7 @@ function fixture() {
     choose,
     fix,
     confirm,
-    terrace: new ConfirmTerrace(repo, feedback, jobs),
+    terrace: new ConfirmTerrace(repo, feedback, jobs, world),
     undo,
     cancel,
     preview,

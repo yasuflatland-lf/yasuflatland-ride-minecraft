@@ -9,6 +9,7 @@ import {
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import type { HeightedSpec } from "../../../src/domain/build/volume/types";
 import { cellKey } from "../../../src/domain/shared/cells";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const coordinate = fc.integer({ min: -30, max: 30 });
 const size = fc.integer({ min: 1, max: 12 });
@@ -159,7 +160,9 @@ it("bounds the preview budget and samples the end ellipses or the top and bottom
             ).toBeCloseTo(1);
           }
         }
-        expect(volume.maxHeight(spec.base, 319)).toBe(Math.max(1, 320 - min.y));
+        expect(volume.maxHeight(spec.base, OVERWORLD_RANGE)).toBe(
+          Math.max(1, 320 - min.y),
+        );
       }
     }),
   );
