@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import { chooseStairs } from "../../../src/domain/build/flow/stairFlow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";
@@ -15,6 +14,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 
 const menus = {
   showContentsMenu: vi.fn(),
@@ -216,7 +216,7 @@ it.each(["air", "block"] as const)(
     f.interact(end);
     f.flush();
     f.press.execute({ playerId: id, intent: "confirmLiveHeight", ray });
-    session.setFlow(chooseHeighted(session.flow, "gable"));
+    session.setFlow(chooseHeightedFlow(session.flow, "gable"));
     f.player.isSneaking = true;
     f.aim.target = {
       input: "touch",

@@ -46,8 +46,8 @@ export const cylinderPlacement: HeightedPlacement = {
 };
 
 export const cylinderVolume: HeightedVolume = {
-  maxHeight(base, worldTopY) {
-    return Math.max(1, worldTopY - base.min.y + 1);
+  maxHeight(base, { maxY }) {
+    return Math.max(1, maxY - base.min.y + 1);
   },
   wireframe: cylinderWireframe,
 };

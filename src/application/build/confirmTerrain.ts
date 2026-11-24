@@ -5,10 +5,9 @@ import { backToAiming } from "../../domain/build/flow/stepBack";
 import { cornerTaps, tapsOf } from "../../domain/build/flow/taps";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
-import { BUILD_SPEC } from "../../domain/build/spec";
 import { removeAboveBox, terrainAreaOf } from "../../domain/build/terrain/area";
+import { isFillable } from "../../domain/build/terrain/fillable";
 import type { PlayerId } from "../../domain/shared/ids";
-import { isOpenBlock } from "../../domain/shared/keptBlocks";
 import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
@@ -38,7 +37,8 @@ export class ConfirmTerrain {
     const { dimensionId, material } = selection;
     const taps = tapsOf(flow) ?? cornerTaps(selection.box);
     const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
-    const box = removeAboveBox(area);
+    const range = this.world.heightRange(dimensionId);
+    const box = removeAboveBox(area, range);
     if (flow.op === "removeAbove" && !box) {
       session.confirmBox(selection, "selected", taps);
       this.feedback.showMessage(playerId, "editDoneCount", 0);
@@ -60,15 +60,11 @@ export class ConfirmTerrain {
         ? planFillBelow(
             area,
             material,
-            (cell) => {
-              const state = this.world.stateAt(dimensionId, cell);
-              return (
-                state !== undefined &&
-                isOpenBlock(state.typeId) &&
-                this.world.mayEdit(dimensionId, cell)
-              );
-            },
-            BUILD_SPEC.worldBottomY,
+            (cell) =>
+              isFillable(this.world.stateAt(dimensionId, cell)?.typeId, () =>
+                this.world.mayEdit(dimensionId, cell),
+              ),
+            range.minY,
           )
         : box
           ? planShape(shapeOf(box.min, box.max), "fill", uniformPattern(AIR))

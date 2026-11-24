@@ -195,9 +195,9 @@ describe("cylinder geometry", () => {
   it("caps height at the inclusive world top with a minimum of one", () => {
     fc.assert(
       fc.property(spec, coordinate, ({ base }, worldTopY) => {
-        expect(cylinderVolume.maxHeight(base, worldTopY)).toBe(
-          Math.max(1, worldTopY - base.min.y + 1),
-        );
+        expect(
+          cylinderVolume.maxHeight(base, { minY: -64, maxY: worldTopY }),
+        ).toBe(Math.max(1, worldTopY - base.min.y + 1));
       }),
     );
   });

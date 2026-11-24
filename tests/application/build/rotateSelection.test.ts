@@ -8,11 +8,11 @@ import {
   adjustHeight,
   confirmLiveHeight,
   setHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -50,7 +50,7 @@ function setup(previous: number) {
     session,
     structures,
     feedback,
-    rotate: new RotateSelection(repo, core, feedback),
+    rotate: new RotateSelection(repo, core, feedback, world),
   };
 }
 
@@ -121,7 +121,7 @@ it("turns the current footprint and confirmed height when editing height again",
         const selected = session.flow;
         if (selected.kind !== "selected") throw new Error("Expected selected");
         const before = selected.selection.box;
-        session.setFlow(setHeight(adjustHeight(selected), 1));
+        session.setFlow(setHeight(adjustHeight(selected, OVERWORLD_RANGE), 1));
         structures.calls.length = 0;
         expect(rotate.execute(cmd)).toBe("rotated");
         expect(structures.calls).toContainEqual({

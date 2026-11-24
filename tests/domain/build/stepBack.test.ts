@@ -3,12 +3,9 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   adjustHeight,
-  chooseHeighted,
   confirmLiveHeight,
   confirmTappedSpan,
   setHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import {
@@ -23,6 +20,12 @@ import {
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import {
+  chooseHeightedFlow,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -77,9 +80,9 @@ it("does not step back confirmed heights, adjusted heights or operation flows", 
         { kind: "idle" },
         beginPasteAim(),
         selected,
-        confirmTappedSpan(base),
-        adjustHeight(selected),
-        chooseHeighted(selected, "gable"),
+        confirmTappedSpan(base, OVERWORLD_RANGE),
+        adjustHeight(selected, OVERWORLD_RANGE),
+        chooseHeightedFlow(selected, "gable"),
         chooseTerrain(selected, "fillBelow"),
         stairAim,
         fixStairGoal(stairAim, stairs),

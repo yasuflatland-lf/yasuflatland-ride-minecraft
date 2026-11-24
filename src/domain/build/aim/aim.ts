@@ -2,7 +2,7 @@ import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { length3 } from "../../shared/vec";
 import { dominantHorizontalAxis } from "../axis";
-import { BUILD_SPEC } from "../spec";
+import type { HeightRange } from "../heightRange";
 
 const PLANE_PARALLEL_EPSILON = 1e-6;
 const VERTICAL_PARALLEL_EPSILON = 0.999;
@@ -17,6 +17,7 @@ export function virtualEndPoint(
   point1: Cell,
   ray: Ray,
   reach: number,
+  range: HeightRange,
 ): Cell | undefined {
   const { origin, direction } = ray;
   const axis = dominantHorizontalAxis(direction);
@@ -28,8 +29,8 @@ export function virtualEndPoint(
   return {
     x: Math.floor(origin.x + t * direction.x),
     y: Math.max(
-      BUILD_SPEC.worldBottomY,
-      Math.min(BUILD_SPEC.worldTopY, Math.floor(origin.y + t * direction.y)),
+      range.minY,
+      Math.min(range.maxY, Math.floor(origin.y + t * direction.y)),
     ),
     z: Math.floor(origin.z + t * direction.z),
     [axis]: point1[axis],
