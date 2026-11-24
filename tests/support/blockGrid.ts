@@ -1,5 +1,5 @@
 import type { BlockFillOptions } from "@minecraft/server";
-import { type Cell, cellKey } from "../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../src/domain/shared/cells";
 
 const AIR = "minecraft:air";
 
@@ -57,7 +57,7 @@ function makeGrid(options: GridOptions = {}) {
       for (let x = volume.from.x; x <= volume.to.x; x++)
         for (let y = volume.from.y; y <= volume.to.y; y++)
           for (let z = volume.from.z; z <= volume.to.z; z++) {
-            const c = { x, y, z };
+            const c = cellOf({ x, y, z });
             if (!isExcluded(typeAt(c), fillOptions))
               types.set(cellKey(c), block);
           }

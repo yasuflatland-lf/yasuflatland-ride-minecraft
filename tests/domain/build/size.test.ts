@@ -9,17 +9,21 @@ import {
   unionOf,
   volume,
 } from "../../../src/domain/build/box";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -20, max: 20 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const dimension = fc.integer({ min: 1, max: 6 });
 const size = fc.record({ x: dimension, y: dimension, z: dimension });
 const box = fc.tuple(cell, size).map(([min, dimensions]) =>
-  cellBox(min, {
-    x: min.x + dimensions.x - 1,
-    y: min.y + dimensions.y - 1,
-    z: min.z + dimensions.z - 1,
-  }),
+  cellBox(
+    cellOf(min),
+    cellOf({
+      x: min.x + dimensions.x - 1,
+      y: min.y + dimensions.y - 1,
+      z: min.z + dimensions.z - 1,
+    }),
+  ),
 );
 
 it("reconstructs a box from its minimum and size", () => {
@@ -62,7 +66,7 @@ it("contains corners and sampled cells from both boxes in their union", () => {
           ),
           sample,
         ]) {
-          expect(contains(union, corner)).toBe(true);
+          expect(contains(union, cellOf(corner))).toBe(true);
         }
       }
     }),

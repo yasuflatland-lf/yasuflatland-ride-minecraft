@@ -1,7 +1,7 @@
 // Lazy edit plans, so a 100,000-cell edit is never held in memory at once.
 // The edit job rechecks protection when applying each write; terrain scans also
 // treat protected cells as barriers.
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import { AIR, type BlockState } from "../blockState";
 import type { HeightRange } from "../heightRange";
 import { oppositeFacing } from "../rotation/facing";
@@ -80,7 +80,7 @@ export function* planFillBelow(
     const x = index % width;
     const z = Math.floor(index / width) % depth;
     const y = Math.floor(index / plane);
-    const cell = { x: area.minX + x, y: bottomY + y, z: area.minZ + z };
+    const cell = cellOf({ x: area.minX + x, y: bottomY + y, z: area.minZ + z });
     const fillable = isFillable(cell);
     yield SCAN_STEP;
     if (!fillable) continue;

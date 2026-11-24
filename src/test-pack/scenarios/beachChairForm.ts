@@ -6,6 +6,7 @@ import {
   beachChairSupportCells,
 } from "../../domain/resort/beachChair";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
+import { cellOf } from "../../domain/shared/cells";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLDED,
@@ -19,7 +20,7 @@ import type { Outcome } from "../outcome";
 
 async function course(a: Arena, mode: "fold" | "empty"): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
-  const pose = beachChairPose(block, 0);
+  const pose = beachChairPose(cellOf(block), 0);
   const saved = [
     ...beachChairSupportCells(pose),
     ...beachChairClearCells(pose),

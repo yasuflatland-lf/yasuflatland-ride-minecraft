@@ -14,7 +14,7 @@ import { blockStateOf } from "../../../../src/domain/build/blockState";
 import { boxOf } from "../../../../src/domain/build/box";
 import type { BuildFlow } from "../../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../../src/domain/build/selection";
-import type { Cell } from "../../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
 import { tappedSelection } from "../../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "../fakes";
@@ -22,8 +22,8 @@ import { FakeStructureStore } from "./structureStore";
 
 export const playerId = asPlayerId("p");
 export const stone = blockStateOf("minecraft:stone");
-export const from = { x: 0, y: 60, z: 0 };
-export const to = { x: 4, y: 60, z: 6 };
+export const from = cellOf({ x: 0, y: 60, z: 0 });
+export const to = cellOf({ x: 4, y: 60, z: 6 });
 export function selected(
   from: Cell,
   to: Cell,

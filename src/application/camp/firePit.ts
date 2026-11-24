@@ -5,8 +5,8 @@ import {
 } from "../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
 import type { BlockFace } from "../../domain/shared/blockFace";
+import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
 import { TakeBackByHits } from "../shared/takeBackByHits";
 import type { FirePitWorld } from "./ports/firePit";
@@ -27,14 +27,14 @@ export class FirePitActions {
 
   constructor(private readonly world: FirePitWorld) {}
 
-  canUseBlock(dimension: DimensionId, block: Vec3, face: BlockFace): boolean {
+  canUseBlock(dimension: DimensionId, block: Cell, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
   }
 
   place(cmd: {
     player?: PlayerId;
     dimension: DimensionId;
-    block: Vec3;
+    block: Cell;
     yaw: number;
     slot: number;
   }): boolean {

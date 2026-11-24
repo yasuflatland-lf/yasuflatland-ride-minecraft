@@ -10,7 +10,7 @@ import {
   FIRE_PIT_TOP_PX,
 } from "../../domain/camp/spec";
 import type { BlockFace } from "../../domain/shared/blockFace";
-import { cellOf } from "../../domain/shared/cells";
+import { type Cell, cellOf } from "../../domain/shared/cells";
 import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
@@ -85,14 +85,14 @@ export class DutchOvenActions extends HostedOnTopActions {
     return true;
   }
 
-  canUseBlock(dimension: DimensionId, block: Vec3, face: BlockFace): boolean {
+  canUseBlock(dimension: DimensionId, block: Cell, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
   }
 
   place(cmd: {
     player?: PlayerId;
     dimension: DimensionId;
-    block: Vec3;
+    block: Cell;
     yaw: number;
     slot: number;
   }): boolean {

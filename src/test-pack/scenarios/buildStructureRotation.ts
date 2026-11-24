@@ -5,6 +5,7 @@ import {
   rotatedSize,
 } from "../../domain/build/rotation/quarterTurn";
 import type { StructureHandle } from "../../domain/build/structure/handle";
+import { cellOf } from "../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
 import { type Arena, wait } from "../arena";
@@ -36,8 +37,14 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
   const store = new BedrockStructureStore(() => false);
   const dim = asDimensionId(a.dim.id);
   const owner = asPlayerId(`rotation_${a.lane.index}`);
-  const source = cellBox(a.at(20, a.gy, 20), a.at(24, a.gy + 3, 26));
-  const destination = cellBox(a.at(39, a.gy, 19), a.at(47, a.gy + 3, 27));
+  const source = cellBox(
+    cellOf(a.at(20, a.gy, 20)),
+    cellOf(a.at(24, a.gy + 3, 26)),
+  );
+  const destination = cellBox(
+    cellOf(a.at(39, a.gy, 19)),
+    cellOf(a.at(47, a.gy + 3, 27)),
+  );
   const anchor = a.at(40, a.gy, 20);
   const handles: StructureHandle[] = [];
   const spawned = new Set<string>();
@@ -186,7 +193,7 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     store.clearEntities(dim, source);
     for (const turn of [0, 1, 2, 3] as const) {
       clear(destination);
-      const placed = store.place(handle, dim, anchor, turn);
+      const placed = store.place(handle, dim, cellOf(anchor), turn);
       if (!placed) throw new Error(`place refused at turn ${turn}`);
       const size = rotatedSize(SIZE, turn);
       const mismatches = fixtures.flatMap(({ at, type }) => {
@@ -360,7 +367,7 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     }
     clear(destination);
     a.dim.runCommand(`fill ${a.box(40, a.gy, 20, 46, a.gy + 3, 26)} stone`);
-    const airPlaced = store.place(handle, dim, anchor, 1);
+    const airPlaced = store.place(handle, dim, cellOf(anchor), 1);
     const airCells = fixtures.filter((f) => f.type === "minecraft:air");
     const airTypes = airCells.map(
       ({ at }) => block(target(at.x, at.y, at.z, 1)).typeId,
@@ -379,7 +386,10 @@ export async function buildStructureRotation(a: Arena): Promise<Outcome> {
     );
     clear(source);
     clear(destination);
-    const large = cellBox(a.at(8, a.gy, 8), a.at(71, a.gy + 63, 71));
+    const large = cellBox(
+      cellOf(a.at(8, a.gy, 8)),
+      cellOf(a.at(71, a.gy + 63, 71)),
+    );
     const startCapture = Date.now();
     const largeHandle = store.capture(dim, large, owner, "exact");
     const captureMs = Date.now() - startCapture;

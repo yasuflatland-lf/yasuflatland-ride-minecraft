@@ -15,7 +15,7 @@ import {
 import type { BuildSession } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import { cellKey } from "../../domain/shared/cells";
+import { cellKey, cellOf } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { attempt } from "../shared/isolated";
 import type { Logger } from "../shared/ports/logger";
@@ -117,7 +117,7 @@ export class EditJobs {
     const feet =
       occupant?.dimensionId === job.dimensionId ? occupant.feet : undefined;
     const occupiedCells = feet
-      ? [cellKey(feet), cellKey({ ...feet, y: feet.y + 1 })]
+      ? [cellKey(feet), cellKey(cellOf({ ...feet, y: feet.y + 1 }))]
       : [];
     let used = 0;
     while (used < limit) {

@@ -1,5 +1,5 @@
 // An axis-aligned box of block cells, both corners inclusive (unlike dock WorldBox, whose max is exclusive).
-import type { Cell } from "../shared/cells";
+import { type Cell, cellOf } from "../shared/cells";
 
 declare const cellBoxBrand: unique symbol;
 
@@ -27,31 +27,37 @@ export function boxFromSize(min: Cell, size: Size): CellBox {
   assertPositiveInteger(size.x);
   assertPositiveInteger(size.y);
   assertPositiveInteger(size.z);
-  return cellBox(min, {
-    x: min.x + (size.x - 1),
-    y: min.y + (size.y - 1),
-    z: min.z + (size.z - 1),
-  });
+  return cellBox(
+    min,
+    cellOf({
+      x: min.x + (size.x - 1),
+      y: min.y + (size.y - 1),
+      z: min.z + (size.z - 1),
+    }),
+  );
 }
 
 export function unionOf(a: CellBox, b: CellBox): CellBox {
   return cellBox(
-    {
+    cellOf({
       x: Math.min(a.min.x, b.min.x),
       y: Math.min(a.min.y, b.min.y),
       z: Math.min(a.min.z, b.min.z),
-    },
-    {
+    }),
+    cellOf({
       x: Math.max(a.max.x, b.max.x),
       y: Math.max(a.max.y, b.max.y),
       z: Math.max(a.max.z, b.max.z),
-    },
+    }),
   );
 }
 
 export function boxWithHeight(base: CellBox, height: number): CellBox {
   assertPositiveInteger(height);
-  return cellBox(base.min, { ...base.max, y: base.min.y + (height - 1) });
+  return cellBox(
+    base.min,
+    cellOf({ ...base.max, y: base.min.y + (height - 1) }),
+  );
 }
 
 function assertPositiveInteger(extent: number): void {
@@ -75,8 +81,8 @@ export function cellBox(a: Cell, b: Cell): CellBox {
   if (![min.x, min.y, min.z, max.x, max.y, max.z].every(Number.isFinite))
     throw new RangeError("Cell box corners must be finite");
   return Object.freeze({
-    min: Object.freeze(min),
-    max: Object.freeze(max),
+    min: Object.freeze(cellOf(min)),
+    max: Object.freeze(cellOf(max)),
   }) as CellBox;
 }
 
@@ -116,7 +122,7 @@ export function* cellsOf(box: Pick<CellBox, "min" | "max">): Generator<Cell> {
   for (let y = box.min.y; y <= box.max.y; y++) {
     for (let z = box.min.z; z <= box.max.z; z++) {
       for (let x = box.min.x; x <= box.max.x; x++) {
-        yield { x, y, z };
+        yield cellOf({ x, y, z });
       }
     }
   }
@@ -146,28 +152,28 @@ export function edgePoints(box: CellBox, maxPoints: number): Cell[] {
   const cellAt = (index: number): Cell => {
     if (index < alongX) {
       const rest = Math.floor(index / size.x);
-      return {
+      return cellOf({
         x: min.x + (index % size.x),
         y: ys[rest % ys.length] as number,
         z: zs[Math.floor(rest / ys.length)] as number,
-      };
+      });
     }
     const j = index - alongX;
     if (j < alongY) {
       const rest = Math.floor(j / interiorY);
-      return {
+      return cellOf({
         x: xs[rest % xs.length] as number,
         y: min.y + 1 + (j % interiorY),
         z: zs[Math.floor(rest / xs.length)] as number,
-      };
+      });
     }
     const k = j - alongY;
     const rest = Math.floor(k / interiorZ);
-    return {
+    return cellOf({
       x: xs[rest % xs.length] as number,
       y: ys[Math.floor(rest / xs.length)] as number,
       z: min.z + 1 + (k % interiorZ),
-    };
+    });
   };
 
   const count = Math.min(total, maxPoints);

@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import { relayCells } from "../../../../src/domain/shared/laidCells";
 import {
   type DockCell,
@@ -72,15 +73,11 @@ const block: fc.Arbitrary<CamperRoomBlock> = fc.oneof(
 );
 it("changes only the door when its open state changes", () => {
   const floor: DockCell<CamperRoomBlock> = {
-    x: 0,
-    y: 0,
-    z: 0,
+    ...cellOf({ x: 0, y: 0, z: 0 }),
     block: { type: "floor" },
   };
   const door: DockCell<CamperRoomBlock> = {
-    x: 1,
-    y: 0,
-    z: 0,
+    ...cellOf({ x: 1, y: 0, z: 0 }),
     block: { type: "door", face: 1, open: true },
   };
   const closed: DockCell<CamperRoomBlock> = {

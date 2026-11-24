@@ -1,4 +1,4 @@
-import type { Cell } from "./cells";
+import { type Cell, cellOf } from "./cells";
 import { dot, forward, localOffset, type Vec2, type Vec3 } from "./vec";
 
 const footprintBrand: unique symbol = Symbol("Footprint");
@@ -101,7 +101,7 @@ export function footprintColumns(
           return distance >= min - squareReach && distance <= max + squareReach;
         })
       )
-        cells.push({ x, y, z });
+        cells.push(cellOf({ x, y, z }));
     }
   }
   return cells;

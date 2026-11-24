@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-
 import {
   openBuildMenu,
   pasteMenu,
@@ -22,6 +21,7 @@ import {
 } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -48,7 +48,7 @@ it("offers ordered paste entries independent of history and never paste or endPa
       fc.boolean(),
       (at, confirmed, clipboard, history) => {
         const session = new BuildSession(asPlayerId("p"));
-        const box = boxOf(at, at);
+        const box = boxOf(cellOf(at), cellOf(at));
         if (confirmed) session.confirmBox(selectionOf(dimensionId, box, stone));
         if (clipboard)
           holdClipboard(
@@ -59,14 +59,14 @@ it("offers ordered paste entries independent of history and never paste or endPa
           session.finishEdit(
             {
               dimensionId,
-              changes: [{ cell: at, before: stone, after: stone }],
+              changes: [{ cell: cellOf(at), before: stone, after: stone }],
             },
             "undoable",
           );
         const idle: BuildFlow = { kind: "idle" };
-        const first = tapBlock(idle, dimensionId, at, stone);
+        const first = tapBlock(idle, dimensionId, cellOf(at), stone);
         const endpoint = confirmEndpointHeight(
-          tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+          tapAir(first, cellOf({ ...at, x: at.x + 2, z: at.z + 2 })),
         );
         const height = chooseHeightedFlow(endpoint, "gable");
         for (const flow of [
@@ -108,7 +108,7 @@ it("derives the session turn from copy and paste facings, and ignores following 
         session.setFlowForTest(beginPasteAim());
         session.followPasteFacing(currentFacing);
         expect(session.pasteTurn).toBe(0);
-        const box = boxOf(at, at);
+        const box = boxOf(cellOf(at), cellOf(at));
         session.completeCopy(selectionOf(dimensionId, box, stone), {
           ...structureClipboard(box),
           facing: copiedFacing,
@@ -173,7 +173,7 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
       fc.constantFrom(...FACINGS),
       (at, turns, copied, gaze) => {
         const session = new BuildSession(asPlayerId("p"));
-        const box = boxOf(at, at);
+        const box = boxOf(cellOf(at), cellOf(at));
         const clipboard = { ...structureClipboard(box), facing: copied };
         for (const exit of [
           () => session.startNewCopy(),
@@ -196,9 +196,14 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
           expect(session.flow).toEqual(beginPasteAim());
         }
-        const first = tapBlock({ kind: "idle" }, dimensionId, at, stone);
+        const first = tapBlock(
+          { kind: "idle" },
+          dimensionId,
+          cellOf(at),
+          stone,
+        );
         const endpoint = confirmEndpointHeight(
-          tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+          tapAir(first, cellOf({ ...at, x: at.x + 2, z: at.z + 2 })),
         );
         for (const flow of [
           { kind: "idle" } as const,

@@ -2,13 +2,14 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { RegisterWarpPoint } from "../../../src/application/warp/registerWarpPoint";
 import { RemoveWarpPoint } from "../../../src/application/warp/removeWarpPoint";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { WARP_SPEC } from "../../../src/domain/warp/spec";
 import { named, overworld, player, point, setup } from "./fakes";
 
 const command = {
   playerId: player,
   dimension: overworld,
-  cell: { x: -4, y: 70, z: 5 },
+  cell: cellOf({ x: -4, y: 70, z: 5 }),
 };
 function register(e: ReturnType<typeof setup>) {
   return new RegisterWarpPoint(
@@ -77,7 +78,10 @@ it("never grows a full registry or asks for a name", async () => {
       );
       const e = setup({ points });
       expect(
-        await register(e).run({ ...command, cell: { ...command.cell, x } }),
+        await register(e).run({
+          ...command,
+          cell: cellOf({ ...command.cell, x }),
+        }),
       ).toBe("full");
       expect(e.store.registry?.points).toEqual(points);
       expect(e.store.writes).toEqual([]);
@@ -97,7 +101,10 @@ it("does not overwrite concurrent registration when applying a name", async () =
   let second: Promise<string> | undefined;
   e.menus.beforeNameAnswer = () => {
     e.menus.beforeNameAnswer = () => {};
-    second = useCase.run({ ...command, cell: { ...command.cell, x: 100 } });
+    second = useCase.run({
+      ...command,
+      cell: cellOf({ ...command.cell, x: 100 }),
+    });
   };
   await useCase.run(command);
   await second;

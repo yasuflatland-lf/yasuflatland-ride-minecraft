@@ -4,7 +4,7 @@ import type { WarpPlayers } from "../../../src/application/warp/ports/players";
 import type { WarpRegistryStore } from "../../../src/application/warp/ports/registryStore";
 import type { WarpTicks } from "../../../src/application/warp/ports/ticks";
 import type { WarpWorld } from "../../../src/application/warp/ports/world";
-import type { Cell } from "../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -39,7 +39,7 @@ export function point(index = 0): WarpPoint {
     name: named(`Warp ${index + 1}`),
     owner: "Owner",
     dimension: overworld,
-    cell: { x: index * 4, y: 64, z: 0 },
+    cell: cellOf({ x: index * 4, y: 64, z: 0 }),
   };
 }
 

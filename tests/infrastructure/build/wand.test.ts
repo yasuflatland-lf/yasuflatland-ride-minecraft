@@ -4,6 +4,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { chooseStairs } from "../../../src/domain/build/flow/stairFlow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerWand } from "../../../src/infrastructure/build/bedrock/handlers/wand";
@@ -54,8 +55,8 @@ vi.mock("@minecraft/server", () => ({
 
 const id = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
-const start = { x: 0, y: 5, z: 0 };
-const end = { ...start, x: 4, z: 4 };
+const start = cellOf({ x: 0, y: 5, z: 0 });
+const end = cellOf({ ...start, x: 4, z: 4 });
 const ray = { origin: start, direction: { x: 1, y: 0, z: 0 } };
 
 function setup() {
@@ -117,7 +118,7 @@ it("cancels wand interactions and defers only the first block event", () => {
       fc.boolean(),
       (x, y, z, holding) => {
         const f = setup();
-        const cell = { x, y, z };
+        const cell = cellOf({ x, y, z });
         f.world.put(cell, stone);
         if (!holding) f.player.held = "minecraft:stick";
         const breaking = { player: f.player, cancel: false };
@@ -247,7 +248,7 @@ it.each(["stairs", "terrace"] as const)(
     f.aim.target = {
       input: "pointer",
       ray,
-      block: { cell: { ...end, y: start.y + 2 }, face: "up" },
+      block: { cell: cellOf({ ...end, y: start.y + 2 }), face: "up" },
     };
     const read = vi.spyOn(f.aim, "aim");
     f.interact(end);

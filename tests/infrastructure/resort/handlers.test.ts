@@ -1,3 +1,5 @@
+import { cellOf } from "../../../src/domain/shared/cells";
+
 vi.mock("../../../src/infrastructure/shared/choiceForm", () => ({
   chooseFromFormResult: vi.fn(),
 }));
@@ -313,12 +315,12 @@ it("wires the scan interval, shared block guard and both space checks", () => {
   expect(ev.cancel).toBe(true);
   expect(owner).toHaveBeenCalled();
   const adapter = owner.mock.instances[0] as BedrockParasolWorld | undefined;
-  expect(adapter?.isVehicleSpace("overworld" as never, ev.block.location)).toBe(
-    true,
-  );
-  expect(adapter?.isCampSpace("overworld" as never, ev.block.location)).toBe(
-    false,
-  );
+  expect(
+    adapter?.isVehicleSpace("overworld" as never, cellOf(ev.block.location)),
+  ).toBe(true);
+  expect(
+    adapter?.isCampSpace("overworld" as never, cellOf(ev.block.location)),
+  ).toBe(false);
   expect(deps.isCampSpace).toHaveBeenCalled();
 });
 it("clears confirmed removals but preserves unloaded chunks and still-loaded entities", () => {

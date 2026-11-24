@@ -13,6 +13,7 @@ import {
   withSpawnSetter,
 } from "../../../../src/domain/camp/roofTent/occupancy";
 import { ROOF_TENT_SPEC } from "../../../../src/domain/camp/spec";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
 
 const players = fc.string().map(asPlayerId);
@@ -93,7 +94,9 @@ it("makes own reentry idempotent, always refuses others, and always admits into 
   );
 });
 
-const cells = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
+const cells = fc
+  .record({ x: fc.integer(), y: fc.integer(), z: fc.integer() })
+  .map(cellOf);
 
 it("adds each setter once in first-seen order and leaves earlier states frozen", () => {
   fc.assert(
@@ -157,7 +160,9 @@ it("prefers the host exit, then the saved exit, then the fallback", () => {
 
 it("floors the fallback at the configured distance in the yaw direction", () => {
   const coordinate = fc.integer({ min: -4000, max: 4000 }).map((n) => n / 4);
-  const locations = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+  const locations = fc
+    .record({ x: coordinate, y: coordinate, z: coordinate })
+    .map(cellOf);
   fc.assert(
     fc.property(
       locations,

@@ -8,10 +8,10 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -84,7 +84,7 @@ function setup(
     new ResolvePasteTarget(repo, ground),
   );
   const clipboard = structureClipboard(
-    boxOf(block, { ...block, x: block.x + 1 }),
+    boxOf(cellOf(block), cellOf({ ...block, x: block.x + 1 })),
     () => stone,
     structures,
   );
@@ -94,7 +94,7 @@ function setup(
   aim.target = {
     input: "pointer",
     ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
-    block: { cell: block, face },
+    block: { cell: cellOf(block), face },
   };
   const target = aimedPasteTarget(
     clipboard,
@@ -167,18 +167,18 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       const first = tapBlock(
         { kind: "idle" },
         nether,
-        block,
+        cellOf(block),
         stone,
         NETHER_RANGE,
       );
       const endpoint = confirmEndpointHeight(
         tapAir(
           first,
-          {
+          cellOf({
             ...block,
             x: block.x + 2,
             z: block.z + 2,
-          },
+          }),
           NETHER_RANGE,
         ),
       );
@@ -341,7 +341,7 @@ it("reports a missing target for a sneak press", () => {
 });
 
 it("resumes a selected clipboard on the first Place and pastes on the next press", () => {
-  const block = { x: 3, y: 60, z: 1 };
+  const block = cellOf({ x: 3, y: 60, z: 1 });
   const e = setup(block, "up", 0);
   e.session.setFlowForTest(selectionFlows(block, nether, stone).selected);
   expect(e.execute(false, "place")).toBe("aiming");
@@ -360,7 +360,11 @@ it("place hints without starting a paste during selection work or without a clip
       fc.boolean(),
       (block, face, tick, sneaking) => {
         const e = setup(block, face, tick);
-        const { selected, inProgress } = selectionFlows(block, nether, stone);
+        const { selected, inProgress } = selectionFlows(
+          cellOf(block),
+          nether,
+          stone,
+        );
         for (const flow of inProgress) {
           e.session.setFlowForTest(flow);
           expect(e.execute(sneaking, "place")).toBe("ignored");

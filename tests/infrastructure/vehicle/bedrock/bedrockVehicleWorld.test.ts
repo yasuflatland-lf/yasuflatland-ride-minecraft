@@ -2,6 +2,7 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
+import { cellOf } from "../../../../src/domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -406,7 +407,7 @@ describe("BedrockVehicleWorld snapshots", () => {
     const { dimension, car, world } = fixture();
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const cell = { x: 0, y: 65, z: 4, level: 15 };
+    const cell = { ...cellOf({ ...cellOf({ x: 0, y: 65, z: 4 }) }), level: 15 };
     world.loadedVehicles();
     world.shineHeadlights(asVehicleId(car.id), [cell]);
     world.loadedVehicles();
@@ -674,9 +675,7 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
     const cell = {
-      x: 0,
-      y: 64,
-      z: 3,
+      ...cellOf({ ...cellOf({ x: 0, y: 64, z: 3 }) }),
       block: { type: "deck" as const, height: 9 },
     };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
@@ -698,12 +697,13 @@ describe("BedrockVehicleWorld holds (ADR 0063)", () => {
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
     const deck = {
-      x: 0,
-      y: 64,
-      z: 3,
+      ...cellOf({ ...cellOf({ x: 0, y: 64, z: 3 }) }),
       block: { type: "deck" as const, height: 9 },
     };
-    const light = { x: 0, y: 65, z: 4, level: 15 };
+    const light = {
+      ...cellOf({ ...cellOf({ x: 0, y: 65, z: 4 }) }),
+      level: 15,
+    };
     const pose = { x: 1, y: 64.5, z: -2, yaw: 30 };
     world.loadedVehicles();
     world.holdAt(asVehicleId(car.id), pose);
@@ -822,9 +822,7 @@ describe("BedrockVehicleWorld dock ports", () => {
         throw new Error("unloaded");
       });
     const cells = Array.from({ length: 4 }, (_, x) => ({
-      x,
-      y: 64,
-      z: 0,
+      ...cellOf({ x, y: 64, z: 0 }),
       typeId: "minecraft:short_grass",
     }));
     world.clearBlocks(asVehicleId("missing"), cells);
@@ -1039,7 +1037,7 @@ it("restores dock values and decor lazily from saved dynamic properties instead 
     [DECK_CELLS_PROPERTY],
     [DECOR_PROPERTY],
   ]);
-  const door = { x: 0, y: 64, z: 0 };
+  const door = cellOf({ x: 0, y: 64, z: 0 });
   expect(
     world.ownsLaidBlock(asVehicleId(car.id), door, CAMPER_DOOR_BLOCK),
   ).toBe(true);
@@ -1151,8 +1149,8 @@ describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
     Object.assign(dimension, { id: "overworld" });
     const grid = blockGrid();
     dimension.getBlock.mockImplementation(grid.getBlock);
-    const floor = { x: 0, y: 64, z: 0 };
-    const door = { x: 1, y: 64, z: 0 };
+    const floor = cellOf({ x: 0, y: 64, z: 0 });
+    const door = cellOf({ x: 1, y: 64, z: 0 });
     world.loadedVehicles();
     const cells: DockCell<CamperRoomBlock>[] = [
       { ...floor, block: { type: "floor" } },

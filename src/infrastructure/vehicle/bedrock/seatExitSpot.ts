@@ -48,7 +48,7 @@ function columns(at: Vec3): { x: number; z: number }[] {
 function bodyOpen(dimension: Dimension, at: Vec3, feet: number): boolean {
   return columns(at).every(({ x, z }) =>
     [feet, feet + 1].every((y) => {
-      const block = safeBlockAt(dimension, { x, y, z });
+      const block = safeBlockAt(dimension, cellOf({ x, y, z }));
       return block !== undefined && passable(block);
     }),
   );
@@ -65,9 +65,9 @@ function bodyOpen(dimension: Dimension, at: Vec3, feet: number): boolean {
 export function seatExitSpot(dimension: Dimension, at: Vec3): Vec3 | undefined {
   const cell = cellOf(at);
   const row = cell.y;
-  const below = safeBlockAt(dimension, { ...cell, y: row - 1 });
+  const below = safeBlockAt(dimension, cellOf({ ...cell, y: row - 1 }));
   if (below && ground(below) && bodyOpen(dimension, at, row)) return at;
-  const floor = safeBlockAt(dimension, { ...cell, y: row });
+  const floor = safeBlockAt(dimension, cellOf({ ...cell, y: row }));
   if (
     at.y - row >= RAISED_FLOOR &&
     floor &&

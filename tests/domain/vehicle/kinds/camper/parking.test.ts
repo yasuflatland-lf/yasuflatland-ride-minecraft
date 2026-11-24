@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type {
@@ -94,7 +94,7 @@ function fixture(dockDecor?: string, yaw = 37) {
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
     (cells: readonly { x: number; y: number; z: number }[]) =>
-      cells.map((c) => blocks.get(cellKey(c)) ?? AIR),
+      cells.map((c) => blocks.get(cellKey(cellOf(c))) ?? AIR),
   );
   const ctx: TickContext = {
     tick: 0,

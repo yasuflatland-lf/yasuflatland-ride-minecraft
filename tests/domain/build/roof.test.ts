@@ -17,17 +17,17 @@ import {
 } from "../../../src/domain/build/roof/roof";
 import type { Facing } from "../../../src/domain/build/rotation/facing";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 
 const coord = fc.integer({ min: -10, max: 10 });
 const origin = fc.record({ x: coord, y: coord, z: coord });
 const side = fc.integer({ min: 1, max: 9 });
 const kind = fc.constantFrom<RoofKind>("gable", "hip");
 const baseOf = (min: Cell, sx: number, sz: number): CellBox =>
-  cellBox(min, { x: min.x + sx - 1, y: min.y, z: min.z + sz - 1 });
+  cellBox(min, cellOf({ x: min.x + sx - 1, y: min.y, z: min.z + sz - 1 }));
 const base = fc
   .tuple(origin, side, side)
-  .map(([min, sx, sz]) => baseOf(min, sx, sz));
+  .map(([min, sx, sz]) => baseOf(cellOf(min), sx, sz));
 const spec = fc.record({
   base,
   kind,
@@ -43,12 +43,12 @@ const stairSpec = fc.record({ base, kind }).map(
   }),
 );
 const directions: readonly Cell[] = [
-  { x: -1, y: 0, z: 0 },
-  { x: 1, y: 0, z: 0 },
-  { x: 0, y: -1, z: 0 },
-  { x: 0, y: 1, z: 0 },
-  { x: 0, y: 0, z: -1 },
-  { x: 0, y: 0, z: 1 },
+  cellOf({ x: -1, y: 0, z: 0 }),
+  cellOf({ x: 1, y: 0, z: 0 }),
+  cellOf({ x: 0, y: -1, z: 0 }),
+  cellOf({ x: 0, y: 1, z: 0 }),
+  cellOf({ x: 0, y: 0, z: -1 }),
+  cellOf({ x: 0, y: 0, z: 1 }),
 ];
 
 describe("roof", () => {
@@ -79,8 +79,8 @@ describe("roof", () => {
         const dz = roof.kind === "hip" || sx >= sz ? inset : 0;
         const y = roof.base.min.y + roof.height - 1;
         const expected = cellsOf({
-          min: { x: roof.base.min.x + dx, y, z: roof.base.min.z + dz },
-          max: { x: roof.base.max.x - dx, y, z: roof.base.max.z - dz },
+          min: cellOf({ x: roof.base.min.x + dx, y, z: roof.base.min.z + dz }),
+          max: cellOf({ x: roof.base.max.x - dx, y, z: roof.base.max.z - dz }),
         });
         expect([...roofCells(roof, false)].filter((c) => c.y === y)).toEqual([
           ...expected,
@@ -121,7 +121,7 @@ describe("roof", () => {
           directions.some(
             (d) =>
               !solidKeys.has(
-                cellKey({ x: c.x + d.x, y: c.y + d.y, z: c.z + d.z }),
+                cellKey(cellOf({ x: c.x + d.x, y: c.y + d.y, z: c.z + d.z })),
               ),
           ),
         );
@@ -138,7 +138,7 @@ describe("roof", () => {
         fc.integer({ min: 2, max: 12 }),
         (min, radius, height) => {
           const roof: RoofSpec = {
-            base: baseOf(min, 2 * radius + 1, 2 * radius + 1),
+            base: baseOf(cellOf(min), 2 * radius + 1, 2 * radius + 1),
             kind: "hip",
             height,
             style: "stepped",
@@ -163,7 +163,7 @@ describe("roof", () => {
         fc.integer({ min: 2, max: 12 }),
         (min, half, height) => {
           const roof: RoofSpec = {
-            base: baseOf(min, 2 * half, 2 * half),
+            base: baseOf(cellOf(min), 2 * half, 2 * half),
             kind: "hip",
             height,
             style: "stepped",
@@ -172,7 +172,7 @@ describe("roof", () => {
           const expected = [half - 1, half]
             .flatMap((x) =>
               [half - 1, half].map((z) =>
-                cellKey({ x: min.x + x, y, z: min.z + z }),
+                cellKey(cellOf({ x: min.x + x, y, z: min.z + z })),
               ),
             )
             .sort();
@@ -222,7 +222,7 @@ describe("roof", () => {
   });
   it("walks a 5x3 gable of height two", () => {
     const roof: RoofSpec = {
-      base: baseOf({ x: 0, y: 0, z: 0 }, 5, 3),
+      base: baseOf(cellOf({ x: 0, y: 0, z: 0 }), 5, 3),
       kind: "gable",
       height: 2,
       style: "stepped",
@@ -254,7 +254,7 @@ describe("roof", () => {
   });
   it("removes only the enclosed middle cell of a 5x5 hip of height three", () => {
     const roof: RoofSpec = {
-      base: baseOf({ x: 0, y: 0, z: 0 }, 5, 5),
+      base: baseOf(cellOf({ x: 0, y: 0, z: 0 }), 5, 5),
       kind: "hip",
       height: 3,
       style: "stepped",
@@ -317,8 +317,8 @@ describe("stair roof", () => {
           const dx = roof.kind === "gable" && sx >= sz ? 0 : layer;
           const dz = roof.kind === "gable" && sz > sx ? 0 : layer;
           const expected = cellsOf({
-            min: { x: min.x + dx, y, z: min.z + dz },
-            max: { x: max.x - dx, y, z: max.z - dz },
+            min: cellOf({ x: min.x + dx, y, z: min.z + dz }),
+            max: cellOf({ x: max.x - dx, y, z: max.z - dz }),
           });
           expect(solid.filter((cell) => cell.y === y)).toEqual([...expected]);
         }

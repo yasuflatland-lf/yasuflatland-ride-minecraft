@@ -8,6 +8,7 @@ import {
   shapeChoiceOf,
 } from "../../../src/domain/build/flow/menu";
 import { shapeOf } from "../../../src/domain/build/shape/shape";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const coord = fc.integer({ min: -1000, max: 1000 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -49,11 +50,13 @@ describe("menu entry groups", () => {
     fc.assert(
       fc.property(cell, offset, fc.boolean(), (from, distance, reverse) => {
         for (const axis of axes) {
-          const to = {
+          const to = cellOf({
             ...from,
             [axis]: from[axis] + (reverse ? -distance : distance),
-          };
-          expect(buildEntries(shapeOf(from, to))).toEqual([{ id: "place" }]);
+          });
+          expect(buildEntries(shapeOf(cellOf(from), to))).toEqual([
+            { id: "place" },
+          ]);
         }
       }),
     );
@@ -63,12 +66,12 @@ describe("menu entry groups", () => {
     fc.assert(
       fc.property(cell, offset, offset, (from, height, width) => {
         for (const axis of ["x", "z"] as const) {
-          const to = {
+          const to = cellOf({
             ...from,
             y: from.y + height,
             [axis]: from[axis] - width,
-          };
-          expect(buildEntries(shapeOf(from, to))).toEqual([
+          });
+          expect(buildEntries(shapeOf(cellOf(from), to))).toEqual([
             { id: "fill" },
             { id: "frame" },
           ]);
@@ -80,8 +83,8 @@ describe("menu entry groups", () => {
   it("adds roofs and solids after horizontal rectangle styles", () => {
     fc.assert(
       fc.property(cell, offset, offset, (from, width, depth) => {
-        const to = { ...from, x: from.x - width, z: from.z + depth };
-        expect(buildEntries(shapeOf(from, to))).toEqual(
+        const to = cellOf({ ...from, x: from.x - width, z: from.z + depth });
+        expect(buildEntries(shapeOf(cellOf(from), to))).toEqual(
           [
             "fill",
             "frame",
@@ -105,12 +108,12 @@ describe("menu entry groups", () => {
         offset,
         offset,
         (from, width, height, depth) => {
-          const to = {
+          const to = cellOf({
             x: from.x + width,
             y: from.y - height,
             z: from.z + depth,
-          };
-          expect(buildEntries(shapeOf(from, to))).toEqual(
+          });
+          expect(buildEntries(shapeOf(cellOf(from), to))).toEqual(
             [
               "fill",
               "faces",

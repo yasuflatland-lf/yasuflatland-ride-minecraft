@@ -23,6 +23,7 @@ import {
   PARASOL_SPEC,
 } from "../../../src/domain/resort/spec";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -30,11 +31,13 @@ import type { Vec3 } from "../../../src/domain/shared/vec";
 const dimension = asDimensionId("overworld");
 const player = asPlayerId("player");
 const cellKey = (at: Vec3) => `${at.x},${at.y},${at.z}`;
-const position = fc.record({
-  x: fc.integer({ min: -1000, max: 1000 }),
-  y: fc.integer({ min: -64, max: 320 }),
-  z: fc.integer({ min: -1000, max: 1000 }),
-});
+const position = fc
+  .record({
+    x: fc.integer({ min: -1000, max: 1000 }),
+    y: fc.integer({ min: -64, max: 320 }),
+    z: fc.integer({ min: -1000, max: 1000 }),
+  })
+  .map(cellOf);
 const specArbitrary = fc.record({
   clearance: fc.integer({ min: 1, max: 3 }),
   refuses: fc.shuffledSubarray(["vehicle", "camp"] as const),
@@ -117,15 +120,19 @@ it("checks support, each clearance cell, and the extra check in order up to the 
       fc.shuffledSubarray(["vehicle", "camp"] as const),
       fc.option(fc.nat()),
       (base, supportCount, clearCount, refuses, refusal) => {
-        const support = Array.from({ length: supportCount }, (_, x) => ({
-          ...base,
-          x: base.x + x,
-        }));
-        const clear = Array.from({ length: clearCount }, (_, x) => ({
-          ...base,
-          x: base.x + x,
-          y: base.y + 1,
-        }));
+        const support = Array.from({ length: supportCount }, (_, x) =>
+          cellOf({
+            ...base,
+            x: base.x + x,
+          }),
+        );
+        const clear = Array.from({ length: clearCount }, (_, x) =>
+          cellOf({
+            ...base,
+            x: base.x + x,
+            y: base.y + 1,
+          }),
+        );
         const protectedChecks = (["vehicle", "camp"] as const).filter((space) =>
           refuses.includes(space),
         );

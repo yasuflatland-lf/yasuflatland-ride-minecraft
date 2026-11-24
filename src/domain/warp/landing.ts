@@ -1,11 +1,11 @@
-import type { Cell } from "../shared/cells";
+import { type Cell, cellOf } from "../shared/cells";
 import type { StandPolicy } from "../shared/standing";
-import { add3 } from "../shared/vec";
+import { add3, type Vec3 } from "../shared/vec";
 import { WARP_SPEC } from "./spec";
 
-function landingOffsets(): readonly Cell[] {
+function landingOffsets(): readonly Vec3[] {
   const { landingRadius, landingRises } = WARP_SPEC;
-  const offsets: Cell[] = [];
+  const offsets: Vec3[] = [];
   for (let x = -landingRadius; x <= landingRadius; x++) {
     for (let z = -landingRadius; z <= landingRadius; z++) {
       for (const y of landingRises) {
@@ -13,8 +13,8 @@ function landingOffsets(): readonly Cell[] {
       }
     }
   }
-  const distanceSquared = ({ x, y, z }: Cell) => x * x + y * y + z * z;
-  const ownColumn = ({ x, z }: Cell) => Number(x === 0 && z === 0);
+  const distanceSquared = ({ x, y, z }: Vec3) => x * x + y * y + z * z;
+  const ownColumn = ({ x, z }: Vec3) => Number(x === 0 && z === 0);
   return offsets.sort(
     (a, b) =>
       distanceSquared(a) - distanceSquared(b) ||
@@ -28,7 +28,7 @@ function landingOffsets(): readonly Cell[] {
 const LANDING_OFFSETS = landingOffsets();
 
 export function landingCandidates(cell: Cell): readonly Cell[] {
-  return LANDING_OFFSETS.map((offset) => add3(cell, offset));
+  return LANDING_OFFSETS.map((offset) => cellOf(add3(cell, offset)));
 }
 
 export function chooseLanding(
@@ -36,10 +36,11 @@ export function chooseLanding(
   isStandable: (feet: Cell) => boolean,
 ): Cell {
   return (
-    landingCandidates(cell).find((feet) => isStandable(feet)) ?? {
+    landingCandidates(cell).find((feet) => isStandable(feet)) ??
+    cellOf({
       ...cell,
       y: cell.y + 1,
-    }
+    })
   );
 }
 

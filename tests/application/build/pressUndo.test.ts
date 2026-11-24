@@ -18,6 +18,7 @@ import {
 } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -41,25 +42,31 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
         const point = tapBlock(
           { kind: "idle" },
           nether,
-          cell,
+          cellOf(cell),
           blockStateOf("minecraft:stone"),
           NETHER_RANGE,
         );
-        const base = tapAir(point, {
-          ...cell,
-          x: cell.x + size,
-          z: cell.z + size,
-        });
+        const base = tapAir(
+          point,
+          cellOf({
+            ...cell,
+            x: cell.x + size,
+            z: cell.z + size,
+          }),
+        );
         if (base.kind !== "baseHeight") throw new Error("Expected base height");
         const selected = confirmLiveHeight(base);
-        const line = tapAir(point, { ...cell, x: cell.x + size });
+        const line = tapAir(point, cellOf({ ...cell, x: cell.x + size }));
         const stairAim = chooseStairs(line, "stairs");
         if (stairAim.kind !== "stairAim") throw new Error("Expected stair aim");
-        const stairs = staircaseToward(stairAim.row, {
-          ...cell,
-          y: cell.y + 2,
-          z: cell.z + 3,
-        });
+        const stairs = staircaseToward(
+          stairAim.row,
+          cellOf({
+            ...cell,
+            y: cell.y + 2,
+            z: cell.z + 3,
+          }),
+        );
         if (!stairs) throw new Error("Expected staircase");
         const undo = { execute: vi.fn(() => ({})) };
         const press = new PressUndo(
@@ -70,7 +77,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
         const pasted = session.flow;
         // Built and pasted boxes both use confirmBox, which ends endpoint freshness.
         session.confirmBox(selected.selection, "selected", {
-          from: cell,
+          from: cellOf(cell),
           to: base.taps.to,
         });
         const built = session.flow;

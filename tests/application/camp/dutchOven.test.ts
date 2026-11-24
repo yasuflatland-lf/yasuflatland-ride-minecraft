@@ -15,6 +15,7 @@ import {
   FIRE_PIT_TOP_PX,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
@@ -24,7 +25,7 @@ import { DUTCH_OVEN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topH
 const oven = asDutchOvenId("oven");
 const player = asPlayerId("player");
 const dimension = asDimensionId("overworld");
-const block = { x: 4, y: 60, z: 5 };
+const block = cellOf({ x: 4, y: 60, z: 5 });
 const command = { player, dimension, block, yaw: 47, slot: 1 };
 
 function fixture(

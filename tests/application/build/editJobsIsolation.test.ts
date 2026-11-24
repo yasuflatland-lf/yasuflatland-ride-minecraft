@@ -8,6 +8,7 @@ import {
   undoPlan,
 } from "../../../src/domain/build/edit/change";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { undoRecord } from "../../support/undoRecord";
 import {
@@ -24,7 +25,7 @@ const stone = blockStateOf("minecraft:stone");
 
 function plan(length: number, z = 0): PlannedChange[] {
   return Array.from({ length }, (_, x) => ({
-    cell: { x, y: 64, z },
+    cell: cellOf({ x, y: 64, z }),
     after: stone,
   }));
 }
@@ -55,7 +56,7 @@ describe("EditJobs undo expectations", () => {
     ["a different stair direction", "minecraft:oak_stairs", 1, false],
   ] as const)("checks %s", (_label, typeId, direction, restored) => {
     const e = setup();
-    const cell = { x: 0, y: 64, z: 0 };
+    const cell = cellOf({ x: 0, y: 64, z: 0 });
     const after = blockStateOf("minecraft:oak_stairs", {
       "minecraft:corner": "none",
       weirdo_direction: 0,
@@ -125,7 +126,11 @@ describe("EditJobs failure isolation", () => {
           const earlier = {
             dimensionId: overworld,
             changes: [
-              { cell: { x: 0, y: 60, z: 0 }, before: AIR, after: stone },
+              {
+                cell: cellOf({ x: 0, y: 60, z: 0 }),
+                before: AIR,
+                after: stone,
+              },
             ],
           };
           if (hasHistory) session.finishEdit(earlier, "undoable");

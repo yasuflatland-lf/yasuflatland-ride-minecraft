@@ -11,7 +11,7 @@ import {
   terrainSides,
 } from "../../../src/domain/build/terrain/area";
 import { isFillable } from "../../../src/domain/build/terrain/fillable";
-import type { Cell } from "../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 
 import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
@@ -32,7 +32,7 @@ describe("terrainAreaOf", () => {
         fc.integer({ min: -500, max: 500 }),
         (point, a, b, hitY) => {
           const end = virtualEndPoint(
-            point,
+            cellOf(point),
             {
               origin: { x: point.x - 0.5, y: hitY - 1, z: point.z },
               direction: { x: 1, y: 1, z: 0 },
@@ -42,7 +42,11 @@ describe("terrainAreaOf", () => {
           );
           expect(end).toBeDefined();
           if (!end) return;
-          const area = terrainAreaOf(boxOf(a, b), point, end);
+          const area = terrainAreaOf(
+            boxOf(cellOf(a), cellOf(b)),
+            cellOf(point),
+            end,
+          );
           expect(area.higherY).toBeLessThanOrEqual(OVERWORLD_RANGE.maxY);
           expect(area.lowerY).toBeGreaterThanOrEqual(OVERWORLD_RANGE.minY);
         },
@@ -53,7 +57,9 @@ describe("terrainAreaOf", () => {
   it("does not depend on the order of the two points", () => {
     fc.assert(
       fc.property(cell, cell, (a, b) => {
-        expect(areaOf(a, b)).toEqual(areaOf(b, a));
+        expect(areaOf(cellOf(a), cellOf(b))).toEqual(
+          areaOf(cellOf(b), cellOf(a)),
+        );
       }),
     );
   });
@@ -61,7 +67,7 @@ describe("terrainAreaOf", () => {
   it("spans the x and z extents and orders the two heights", () => {
     fc.assert(
       fc.property(cell, cell, (a, b) => {
-        const area = areaOf(a, b);
+        const area = areaOf(cellOf(a), cellOf(b));
         expect(area.minX).toBeLessThanOrEqual(area.maxX);
         expect(area.minZ).toBeLessThanOrEqual(area.maxZ);
         expect(area.lowerY).toBe(Math.min(a.y, b.y));
@@ -76,8 +82,8 @@ describe("terrainAreaOf", () => {
   it("takes the footprint from the box and the heights from the tapped points", () => {
     fc.assert(
       fc.property(cell, cell, cell, cell, (a, b, c, d) => {
-        const box = boxOf(c, d);
-        expect(terrainAreaOf(box, a, b)).toEqual({
+        const box = boxOf(cellOf(c), cellOf(d));
+        expect(terrainAreaOf(box, cellOf(a), cellOf(b))).toEqual({
           minX: box.min.x,
           maxX: box.max.x,
           minZ: box.min.z,
@@ -98,7 +104,7 @@ describe("removeAboveBox", () => {
         cell,
         fc.constantFrom(OVERWORLD_RANGE, NETHER_RANGE),
         (a, b, range) => {
-          const area = areaOf(a, b);
+          const area = areaOf(cellOf(a), cellOf(b));
           const box = removeAboveBox(area, range);
           if (area.lowerY >= range.maxY) {
             expect(box).toBeUndefined();
@@ -109,8 +115,12 @@ describe("removeAboveBox", () => {
             max: { x: area.maxX, y: range.maxY, z: area.maxZ },
           });
           if (!box) return;
-          expect(contains(box, { x: a.x, y: area.lowerY, z: a.z })).toBe(false);
-          expect(contains(box, { x: b.x, y: range.maxY, z: b.z })).toBe(true);
+          expect(
+            contains(box, cellOf({ x: a.x, y: area.lowerY, z: a.z })),
+          ).toBe(false);
+          expect(contains(box, cellOf({ x: b.x, y: range.maxY, z: b.z }))).toBe(
+            true,
+          );
         },
       ),
     );
@@ -119,7 +129,7 @@ describe("removeAboveBox", () => {
   it("leaves nothing to remove only when the floor is the top layer", () => {
     const at = (y: number) =>
       removeAboveBox(
-        areaOf({ x: 0, y, z: 0 }, { x: 1, y, z: 1 }),
+        areaOf(cellOf({ x: 0, y, z: 0 }), cellOf({ x: 1, y, z: 1 })),
         OVERWORLD_RANGE,
       );
     expect(at(OVERWORLD_RANGE.maxY)).toBeUndefined();
@@ -139,12 +149,12 @@ describe("fitsTerrainLimit", () => {
     );
     fc.assert(
       fc.property(side, side, cell, (sx, sz, origin) => {
-        const to = {
+        const to = cellOf({
           x: origin.x + sx - 1,
           y: OVERWORLD_RANGE.maxY,
           z: origin.z + sz - 1,
-        };
-        expect(fitsTerrainLimit(areaOf(origin, to))).toBe(
+        });
+        expect(fitsTerrainLimit(areaOf(cellOf(origin), to))).toBe(
           sx <= BUILD_SPEC.maxTerrainSide && sz <= BUILD_SPEC.maxTerrainSide,
         );
       }),
@@ -155,8 +165,8 @@ describe("fitsTerrainLimit", () => {
 it("spans the selected footprint from the given bottom through the higher tap", () => {
   fc.assert(
     fc.property(cell, cell, cell, cell, cell, (a, b, from, to, bottom) => {
-      const footprint = boxOf(a, b);
-      const area = terrainAreaOf(footprint, from, to);
+      const footprint = boxOf(cellOf(a), cellOf(b));
+      const area = terrainAreaOf(footprint, cellOf(from), cellOf(to));
       const topY = Math.max(from.y, to.y);
       const bottomY = Math.min(bottom.y, topY);
       expect(

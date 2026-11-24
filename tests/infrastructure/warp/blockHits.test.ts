@@ -1,5 +1,6 @@
 import { Player } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockWarpBlockTaps } from "../../../src/infrastructure/warp/bedrock/bedrockWarpBlockTaps";
 import { registerWarpBlockHits } from "../../../src/infrastructure/warp/handlers/blockHits";
@@ -135,7 +136,7 @@ it("returns one item including creative, removes the block and translates messag
   const effects = new BedrockWarpBlockTaps().at(
     asPlayerId("player"),
     asDimensionId(f.dimension.id),
-    f.block.location,
+    cellOf(f.block.location),
   );
   expect(effects).toBeDefined();
   effects?.showRemaining(4);
@@ -160,7 +161,7 @@ it("ignores missing blocks, unloaded cells, lookup errors and departed players",
     adapter.at(
       asPlayerId("player"),
       asDimensionId(f.dimension.id),
-      f.block.location,
+      cellOf(f.block.location),
     );
   for (const block of [undefined, { ...f.block, typeId: "minecraft:air" }]) {
     f.dimension.getBlock.mockReturnValue(block);

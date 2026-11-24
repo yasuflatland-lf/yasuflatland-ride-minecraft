@@ -1,8 +1,7 @@
 import { type BlockFace, isTopFace } from "../shared/blockFace";
+import type { Cell } from "../shared/cells";
 import { facePlayer } from "../shared/facing";
 import type { Brand } from "../shared/ids";
-// Where a chair goes when its item is used on a block, and which way it faces (ADR 0122).
-import type { Vec3 } from "../shared/vec";
 import { CHAIR_SPEC } from "./spec";
 
 export type ChairKindId = "low_chair" | "noga_chair";
@@ -16,7 +15,7 @@ export function asChairId(raw: string): ChairId {
 }
 
 /** The block the chair stands on: the clicked one, but only from its top face. */
-export function chairCell(clicked: Vec3, face: BlockFace): Vec3 | undefined {
+export function chairCell(clicked: Cell, face: BlockFace): Cell | undefined {
   return isTopFace(face) ? clicked : undefined;
 }
 

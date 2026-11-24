@@ -1,5 +1,6 @@
 // How one vehicle kind moves each tick, under the shared core in vehicle.ts (ADR 0050, 0055).
 
+import type { Cell } from "../shared/cells";
 import type { Vec2, Vec3 } from "../shared/vec";
 import type { CapabilityKey } from "./capability";
 import type { CutColumn } from "./cut";
@@ -31,7 +32,7 @@ export interface TickContext {
    */
   blockTypes(cells: readonly Vec3[]): readonly (string | undefined)[];
   /** Checks the observed block type against this vehicle's recorded dock cell (ADR 0096). */
-  ownsLaidBlock?(cell: Vec3, typeId: string): boolean;
+  ownsLaidBlock?(cell: Cell, typeId: string): boolean;
   /**
    * True while the core waits for a passenger to move into seat 0 after the
    * driver left (ADR 0078). The drive then has no input but stays controlled.

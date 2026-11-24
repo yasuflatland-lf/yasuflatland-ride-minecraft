@@ -24,7 +24,8 @@ export function registerItemUse(
     const cell = cellOf(feet);
     const dimension = asDimensionId(player.dimension.id);
     const vehicleId =
-      owner(dimension, cell) ?? owner(dimension, { ...cell, y: cell.y - 1 });
+      owner(dimension, cell) ??
+      owner(dimension, cellOf({ ...cell, y: cell.y - 1 }));
     if (vehicleId === undefined) return;
     const action = room.prepare({
       source: "itemUse",

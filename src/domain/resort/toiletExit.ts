@@ -1,4 +1,4 @@
-import type { Cell } from "../shared/cells";
+import { type Cell, cellOf } from "../shared/cells";
 import { searchExitCell } from "../shared/exitSearch";
 import type { Facing4 } from "../shared/facing";
 import { forward } from "../shared/vec";
@@ -16,7 +16,7 @@ export function toiletExit(
     z: origin.z + Math.round(front.z * TOILET_SPEC.exitFrontOffset),
   };
   return searchExitCell(
-    start,
+    cellOf(start),
     (feet) => feet.x === origin.x && feet.z === origin.z,
     {
       radius: TOILET_SPEC.exitSearchRadius,

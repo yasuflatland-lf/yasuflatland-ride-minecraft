@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockPaidGroundCells } from "../../../src/infrastructure/shared/groundCells";
 import { isOwnTypeId } from "../../../src/infrastructure/shared/identifiers";
@@ -8,7 +9,7 @@ const game = vi.hoisted(() => ({ getDimension: vi.fn(), getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({ world: game }));
 
 const dimension = asDimensionId("overworld");
-const cell = { x: -2, y: 64, z: 8 };
+const cell = cellOf({ x: -2, y: 64, z: 8 });
 const player = asPlayerId("player");
 const item = "yasu_ride:test_item";
 const adapter = new BedrockPaidGroundCells(() => false, item);

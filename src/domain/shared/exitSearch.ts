@@ -1,4 +1,4 @@
-import type { Cell } from "./cells";
+import { type Cell, cellOf } from "./cells";
 
 export function searchExitCell(
   start: Cell,
@@ -11,7 +11,11 @@ export function searchExitCell(
       for (let dz = -radius; dz <= radius; dz++) {
         if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) continue;
         for (let dy = ring.up; dy >= -ring.down; dy--) {
-          const feet = { x: start.x + dx, y: start.y + dy, z: start.z + dz };
+          const feet = cellOf({
+            x: start.x + dx,
+            y: start.y + dy,
+            z: start.z + dz,
+          });
           if (excluded(feet)) continue;
           if (isSafe(feet)) return feet;
         }

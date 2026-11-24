@@ -4,6 +4,7 @@ import {
   FURNITURE_TOP_SYNC_TICKS,
 } from "../../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../../domain/resort/ids";
+import { cellOf } from "../../../../domain/shared/cells";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import { safeBlockAt } from "../../../shared/blocks";
 import { allDimensions } from "../../../shared/dimensions";
@@ -29,7 +30,7 @@ export function registerFurnitureTopLifecycle(
         continue;
       }
       // entityRemove also fires on unload; wait until the origin can be inspected.
-      if (!safeBlockAt(record.dimension, record.location)) continue;
+      if (!safeBlockAt(record.dimension, cellOf(record.location))) continue;
       if (adapter.clearTop(id)) removed.delete(id);
     }
   };

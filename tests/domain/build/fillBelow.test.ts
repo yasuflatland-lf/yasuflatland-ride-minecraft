@@ -10,7 +10,7 @@ import {
 } from "../../../src/domain/build/edit/guard";
 import { planFillBelow } from "../../../src/domain/build/edit/plan";
 import { terrainAreaOf } from "../../../src/domain/build/terrain/area";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 
 const areaOf = (a: Cell, b: Cell) => terrainAreaOf(boxOf(a, b), a, b);
 const stone = blockStateOf("minecraft:stone");
@@ -33,11 +33,11 @@ it("fills exactly the top-connected open cells, reads once, and budgets every re
         for (let y = 0; y < h; y++)
           for (let z = 0; z < d; z++)
             for (let x = 0; x < w; x++) {
-              const cell = {
+              const cell = cellOf({
                 x: origin.x + x,
                 y: origin.y + y,
                 z: origin.z + z,
-              };
+              });
               if (flags[cells.length]) open.add(cellKey(cell));
               cells.push(cell);
             }
@@ -67,11 +67,14 @@ it("fills exactly the top-connected open cells, reads once, and budgets every re
         const reads = new Set<string>();
         const written = new Set<string>();
         let scans = 0;
-        const area = areaOf(origin, {
-          x: origin.x + w - 1,
-          y: origin.y + h - 1,
-          z: origin.z + d - 1,
-        });
+        const area = areaOf(
+          cellOf(origin),
+          cellOf({
+            x: origin.x + w - 1,
+            y: origin.y + h - 1,
+            z: origin.z + d - 1,
+          }),
+        );
         for (const step of planFillBelow(
           area,
           stone,
@@ -124,7 +127,10 @@ it.each([
     23,
   ],
 ] as const)("fills a %s", (_name, w, h, open, count) => {
-  const area = areaOf({ x: 0, y: 0, z: 0 }, { x: w - 1, y: h - 1, z: 0 });
+  const area = areaOf(
+    cellOf({ x: 0, y: 0, z: 0 }),
+    cellOf({ x: w - 1, y: h - 1, z: 0 }),
+  );
   const writes = [
     ...planFillBelow(area, stone, (c) => open(c.x, c.y), 0),
   ].filter((s) => s !== SCAN_STEP);

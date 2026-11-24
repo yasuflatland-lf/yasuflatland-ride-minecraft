@@ -1,5 +1,5 @@
 import type { BlockFace } from "../../shared/blockFace";
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { boxOf, type CellBox, type Size } from "../box";
 import {
@@ -26,9 +26,12 @@ export function placedPasteBox(
   const vertical = face === "up" || face === "down";
   const { forward, right } = DIRECTIONS[vertical ? facing : opposite(face)];
   const forwardSign = vertical ? 1 : -1;
-  return boxOf(anchor, {
-    x: anchor.x + (right.x + forwardSign * forward.x) * (size.x - 1),
-    y: anchor.y + size.y - 1,
-    z: anchor.z + (right.z + forwardSign * forward.z) * (size.z - 1),
-  });
+  return boxOf(
+    anchor,
+    cellOf({
+      x: anchor.x + (right.x + forwardSign * forward.x) * (size.x - 1),
+      y: anchor.y + size.y - 1,
+      z: anchor.z + (right.z + forwardSign * forward.z) * (size.z - 1),
+    }),
+  );
 }

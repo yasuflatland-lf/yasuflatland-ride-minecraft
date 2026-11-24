@@ -3,7 +3,6 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-
 import {
   buildMenu,
   contentsMenu,
@@ -17,6 +16,7 @@ import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
@@ -108,11 +108,13 @@ beforeEach(() => {
   ui.forms.length = 0;
 });
 
-const cell = fc.record({
-  x: fc.integer({ min: -20, max: 20 }),
-  y: fc.integer({ min: 0, max: 319 }),
-  z: fc.integer({ min: -20, max: 20 }),
-});
+const cell = fc
+  .record({
+    x: fc.integer({ min: -20, max: 20 }),
+    y: fc.integer({ min: 0, max: 319 }),
+    z: fc.integer({ min: -20, max: 20 }),
+  })
+  .map(cellOf);
 function setup(fallback?: boolean) {
   const { repo, world, session, cases, choices, refresh } = setupMenuChoices();
   const submitHeight = vi.spyOn(choices, "submitHeight");
@@ -145,7 +147,7 @@ const labels = (entries: { id: string }[]) =>
 it("accepts a line menu response after opening clears the undo target", async () => {
   const { session, menus, player, cases } = setup();
   const point = tapBlock({ kind: "idle" }, overworld, from, stone);
-  const line = tapAir(point, { ...from, x: 4 });
+  const line = tapAir(point, cellOf({ ...from, x: 4 }));
   session.setFlowForTest(line);
   ui.answers.push({
     selection: shapeMenu(line).findIndex((entry) => entry.id === "cancel"),
@@ -216,7 +218,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
     fc.asyncProperty(cell, cell, async (a, b) => {
       const { session, menus, player } = setup();
       const end: BuildFlow = selected(a, b);
-      const roofBase = selected(a, { ...a, x: a.x + 1, z: a.z + 1 });
+      const roofBase = selected(a, cellOf({ ...a, x: a.x + 1, z: a.z + 1 }));
       for (const flow of [
         { kind: "idle" } as const,
         {
@@ -270,7 +272,11 @@ it("shows exactly the applicable utility entries", async () => {
         if (aiming)
           session.setFlowForTest({
             kind: "point1",
-            start: { dimensionId: overworld, cell: from, material: stone },
+            start: {
+              dimensionId: overworld,
+              cell: from,
+              material: stone,
+            },
           });
         ui.forms.length = 0;
         await menus.showUtilityMenu(player);
@@ -372,7 +378,10 @@ it("bounds the fallback slider, starts at the initial roof height and applies it
         const { session, menus, player, cases, world, submitHeight } =
           setup(true);
         world.heightRanges.set(overworld, NETHER_RANGE);
-        const selection = selected({ ...from, y }, { ...to, y });
+        const selection = selected(
+          cellOf({ ...from, y }),
+          cellOf({ ...to, y }),
+        );
         session.setFlowForTest(selection);
         const flow = chooseHeightedFlow(selection, kind);
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
@@ -564,7 +573,7 @@ it.each([
   "opens locked $kind contents directly at y=$y with fallback=$fallback",
   async ({ kind, y, fallback }) => {
     const { session, menus, player, cases, submitHeight } = setup(fallback);
-    session.setFlowForTest(selected(from, { ...to, y }));
+    session.setFlowForTest(selected(from, cellOf({ ...to, y })));
     ui.answers.push(...shapeAnswers(session.flow, kind), {
       selection: 2,
     });
@@ -593,7 +602,7 @@ it.each([from.y, 71])(
   "opens locked sphere contents directly with top y=%s",
   async (y) => {
     const { session, menus, player, cases, submitHeight } = setup(true);
-    session.setFlowForTest(selected(from, { ...to, y }));
+    session.setFlowForTest(selected(from, cellOf({ ...to, y })));
     ui.answers.push(...shapeAnswers(session.flow, "sphere"), { selection: 1 });
     await menus.showShapeMenu(player);
     expect(cases.chooseHeighted.execute).toHaveBeenCalledExactlyOnceWith({
@@ -648,8 +657,8 @@ it.each([320, 128, 256, 512])(
     const { menus, player, cases, session, world } = setup();
     world.heightRanges.set(overworld, { minY: 0, maxY: ceiling - 1 });
     const area: BuildFlow = selected(
-      { x: 0, y: 64, z: 0 },
-      { x: 4, y: 60, z: 6 },
+      cellOf({ x: 0, y: 64, z: 0 }),
+      cellOf({ x: 4, y: 60, z: 6 }),
     );
     session.setFlowForTest(area);
     ui.answers.push(
@@ -694,7 +703,7 @@ it.each([
     const { menus, player, cases, session, world } = setup();
     world.heightRanges.set(overworld, { minY: 0, maxY: ceiling - 1 });
     session.setFlowForTest(
-      selected({ ...from, y: floor }, { ...to, y: floor }),
+      selected(cellOf({ ...from, y: floor }), cellOf({ ...to, y: floor })),
     );
     ui.answers.push(removeAboveAnswer());
     await menus.showShapeMenu(player);
@@ -725,7 +734,7 @@ it.each([
 
 it("opens no confirmation when the area is too large", async () => {
   const { menus, player, cases, session } = setup();
-  const area: BuildFlow = selected(from, { x: 32, y: 60, z: 0 });
+  const area: BuildFlow = selected(from, cellOf({ x: 32, y: 60, z: 0 }));
   session.setFlowForTest(area);
   ui.answers.push({
     selection: shapeMenu(area).findIndex((e) => e.id === "removeAbove"),
@@ -782,7 +791,10 @@ it.each([
   async (bottom, ceiling, y) => {
     const { menus, player, cases, session, world } = setup();
     world.heightRanges.set(overworld, { minY: bottom, maxY: ceiling - 1 });
-    const area: BuildFlow = selected({ x: 0, y, z: 0 }, { x: 4, y: 60, z: 6 });
+    const area: BuildFlow = selected(
+      cellOf({ x: 0, y, z: 0 }),
+      cellOf({ x: 4, y: 60, z: 6 }),
+    );
     session.setFlowForTest(area);
     ui.answers.push(
       { selection: shapeMenu(area).findIndex((e) => e.id === "fillBelow") },
@@ -811,7 +823,7 @@ it.each([false, true])(
   "routes a sideways box directly to contents with fallback=%s",
   async (fallback) => {
     const { session, menus, player, cases, submitHeight } = setup(fallback);
-    session.setFlowForTest(selected(from, { ...to, y: 64 }));
+    session.setFlowForTest(selected(from, cellOf({ ...to, y: 64 })));
     ui.answers.push(...shapeAnswers(session.flow, "sideCylinder"), {
       selection: 2,
     });
@@ -890,7 +902,7 @@ it.each([
   "returns from the build submenu to the same root selection (%s)",
   async (answer) => {
     const { session, menus, player, cases, refresh } = setup();
-    session.setFlowForTest(selected(from, { x: 4, y: 64, z: 0 }));
+    session.setFlowForTest(selected(from, cellOf({ x: 4, y: 64, z: 0 })));
     const initial = session.flow;
     ui.answers.push(
       {
@@ -996,11 +1008,14 @@ it.each([
     });
     const flow = session.flow;
     if (flow.kind !== "stairAim") throw new Error("Expected stair aim");
-    const staircase = staircaseToward(flow.row, {
-      ...from,
-      y: from.y + 2,
-      z: from.z + 4,
-    });
+    const staircase = staircaseToward(
+      flow.row,
+      cellOf({
+        ...from,
+        y: from.y + 2,
+        z: from.z + 4,
+      }),
+    );
     if (!staircase) throw new Error("Expected staircase");
     session.setFlowForTest(fixStairGoal(flow, staircase));
     if (contents)
@@ -1043,11 +1058,14 @@ it.each([{ selection: 0 }, { selection: 1 }, { canceled: true }])(
     await menus.showShapeMenu(player);
     const flow = session.flow;
     if (flow.kind !== "stairAim") throw new Error("Expected terrace aim");
-    const staircase = staircaseToward(flow.row, {
-      ...from,
-      y: from.y + 2,
-      z: 4,
-    });
+    const staircase = staircaseToward(
+      flow.row,
+      cellOf({
+        ...from,
+        y: from.y + 2,
+        z: 4,
+      }),
+    );
     if (!staircase) throw new Error("Expected terrace profile");
     session.setFlowForTest(fixStairGoal(flow, staircase));
     cases.confirmTerrace.execute.mockImplementation(() =>

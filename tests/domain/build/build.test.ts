@@ -14,18 +14,20 @@ import {
   volume,
 } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 
 const coord = fc.integer({ min: -50, max: 50 });
-const cell = fc.record({ x: coord, y: coord, z: coord });
-const smallCell = fc.record({
-  x: fc.integer({ min: 0, max: 7 }),
-  y: fc.integer({ min: 0, max: 7 }),
-  z: fc.integer({ min: 0, max: 7 }),
-});
+const cell = fc.record({ x: coord, y: coord, z: coord }).map(cellOf);
+const smallCell = fc
+  .record({
+    x: fc.integer({ min: 0, max: 7 }),
+    y: fc.integer({ min: 0, max: 7 }),
+    z: fc.integer({ min: 0, max: 7 }),
+  })
+  .map(cellOf);
 const smallBox = fc.tuple(smallCell, smallCell).map(([a, b]) => boxOf(a, b));
 const keys = (cells: Iterable<{ x: number; y: number; z: number }>) =>
-  [...cells].map(cellKey).sort();
+  [...cells].map((cell) => cellKey(cellOf(cell))).sort();
 
 describe("Box", () => {
   it("is built the same from either corner, with min <= max", () => {
@@ -52,7 +54,9 @@ describe("Box", () => {
 
   it("walks y outermost, then z, then x", () => {
     const cells = [
-      ...cellsOf(boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 })),
+      ...cellsOf(
+        boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 1, y: 1, z: 1 })),
+      ),
     ];
     expect(cells[1]).toEqual({ x: 1, y: 0, z: 0 });
     expect(cells[2]).toEqual({ x: 0, y: 0, z: 1 });
@@ -65,7 +69,7 @@ describe("Box", () => {
         Number(c.x === box.min.x || c.x === box.max.x) +
         Number(c.y === box.min.y || c.y === box.max.y) +
         Number(c.z === box.min.z || c.z === box.max.z);
-      return contains(box, c) && extremes >= 2;
+      return contains(box, cellOf(c)) && extremes >= 2;
     };
     fc.assert(
       fc.property(
@@ -73,7 +77,9 @@ describe("Box", () => {
         fc.integer({ min: 0, max: 40 }),
         (box, maxPoints) => {
           const points = edgePoints(box, maxPoints);
-          expect(new Set(points.map(cellKey)).size).toBe(points.length);
+          expect(new Set(points.map((cell) => cellKey(cell))).size).toBe(
+            points.length,
+          );
           expect(points.length).toBeLessThanOrEqual(maxPoints);
           expect(points.every((p) => onEdge(box, p))).toBe(true);
         },
@@ -99,7 +105,10 @@ describe("edgePoints coverage", () => {
   });
 
   it("samples a huge box without walking its edges", () => {
-    const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 1_000_000_000, y: 5, z: 5 });
+    const box = boxOf(
+      cellOf({ x: 0, y: 0, z: 0 }),
+      cellOf({ x: 1_000_000_000, y: 5, z: 5 }),
+    );
     expect(edgePoints(box, 512).length).toBe(512);
   });
 });

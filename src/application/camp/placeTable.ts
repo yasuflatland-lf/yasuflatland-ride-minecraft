@@ -5,15 +5,15 @@ import {
   tableYaw,
 } from "../../domain/camp/table";
 import type { BlockFace } from "../../domain/shared/blockFace";
+import { type Cell, cellOf } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnCells } from "../shared/groundPlacement";
 import type { TableWorld } from "./ports/table";
 
 interface PlaceTableCommand {
   playerId?: PlayerId;
   dimensionId: DimensionId;
-  blockLocation: Vec3;
+  blockLocation: Cell;
   yaw: number;
   slot: number;
 }
@@ -21,7 +21,7 @@ interface PlaceTableCommand {
 export class PlaceTable {
   constructor(private readonly world: TableWorld) {}
 
-  canUseBlock(dimensionId: DimensionId, block: Vec3, face: BlockFace): boolean {
+  canUseBlock(dimensionId: DimensionId, block: Cell, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimensionId, block, face);
   }
 
@@ -38,7 +38,7 @@ export class PlaceTable {
           // The own-block check precedes the air check in each column.
           isAir: (d, cell) =>
             (cell.y !== at.y ||
-              !world.isOwnBlock(d, { ...cell, y: block.y })) &&
+              !world.isOwnBlock(d, cellOf({ ...cell, y: block.y }))) &&
             world.isAir(d, cell),
           isCampSpace: world.isCampSpace?.bind(world),
           isVehicleSpace: (d, cell) => world.isVehicleSpace(d, cell),

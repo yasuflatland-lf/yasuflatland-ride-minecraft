@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { type CellBox, sizeOf } from "../box";
 import { ellipse, line, outlinePoints } from "../wireframe";
@@ -27,7 +27,7 @@ export const cylinderPlacement: HeightedPlacement = {
       for (let layer = 0; layer < height; layer++) {
         if (fill === "hollow" && !wall && layer > 0 && layer < height - 1)
           continue;
-        yield { x, y: base.min.y + layer, z };
+        yield cellOf({ x, y: base.min.y + layer, z });
       }
     }
   },

@@ -9,6 +9,7 @@ import {
   sizeOf,
   unionOf,
 } from "../../../src/domain/build/box";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const axes = ["x", "y", "z"] as const;
 const coordinate = fc.integer({ min: -30_000_000, max: 30_000_000 });
@@ -37,7 +38,7 @@ function expectOrderedAndFrozen(box: CellBox): void {
 it("normalizes each pair of corner coordinates and freezes the box", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {
-      const box = cellBox(a, b);
+      const box = cellBox(cellOf(a), cellOf(b));
       expectOrderedAndFrozen(box);
       for (const axis of axes) {
         expect([box.min[axis], box.max[axis]]).toEqual(
@@ -56,7 +57,9 @@ it("rejects non-finite corner coordinates", () => {
       fc.constantFrom(...axes),
       nonFinite,
       (a, b, axis, value) => {
-        expect(() => cellBox(a, { ...b, [axis]: value })).toThrow(RangeError);
+        expect(() =>
+          cellBox(cellOf(a), cellOf({ ...b, [axis]: value })),
+        ).toThrow(RangeError);
       },
     ),
   );
@@ -65,7 +68,7 @@ it("rejects non-finite corner coordinates", () => {
 it("builds a frozen box from the minimum corner and inclusive size", () => {
   fc.assert(
     fc.property(cell, size, (min, dimensions) => {
-      const box = boxFromSize(min, dimensions);
+      const box = boxFromSize(cellOf(min), dimensions);
       expectOrderedAndFrozen(box);
       expect(box.min).toEqual(min);
       expect(sizeOf(box)).toEqual(dimensions);
@@ -83,7 +86,7 @@ it("rejects a size with any dimension that is not a positive integer", () => {
       invalidExtent,
       (min, dimensions, axis, value) => {
         expect(() =>
-          boxFromSize(min, { ...dimensions, [axis]: value }),
+          boxFromSize(cellOf(min), { ...dimensions, [axis]: value }),
         ).toThrow(RangeError);
       },
     ),
@@ -93,7 +96,7 @@ it("rejects a size with any dimension that is not a positive integer", () => {
 it("sets the inclusive height of a frozen box while preserving its base", () => {
   fc.assert(
     fc.property(cell, cell, extent, (a, b, height) => {
-      const base = cellBox(a, b);
+      const base = cellBox(cellOf(a), cellOf(b));
       const box = boxWithHeight(base, height);
       expectOrderedAndFrozen(box);
       expect(box.min).toEqual(base.min);
@@ -105,7 +108,9 @@ it("sets the inclusive height of a frozen box while preserving its base", () => 
 it("rejects heights that are not positive integers", () => {
   fc.assert(
     fc.property(cell, cell, invalidExtent, (a, b, height) => {
-      expect(() => boxWithHeight(cellBox(a, b), height)).toThrow(RangeError);
+      expect(() =>
+        boxWithHeight(cellBox(cellOf(a), cellOf(b)), height),
+      ).toThrow(RangeError);
     }),
   );
 });
@@ -113,10 +118,13 @@ it("rejects heights that are not positive integers", () => {
 it("returns a frozen union containing both boxes", () => {
   fc.assert(
     fc.property(cell, cell, cell, cell, (a, b, c, d) => {
-      const box = unionOf(cellBox(a, b), cellBox(c, d));
+      const box = unionOf(
+        cellBox(cellOf(a), cellOf(b)),
+        cellBox(cellOf(c), cellOf(d)),
+      );
       expectOrderedAndFrozen(box);
       for (const corner of [a, b, c, d])
-        expect(contains(box, corner)).toBe(true);
+        expect(contains(box, cellOf(corner))).toBe(true);
     }),
   );
 });

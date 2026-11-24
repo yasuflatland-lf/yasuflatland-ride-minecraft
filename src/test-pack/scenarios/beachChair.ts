@@ -6,6 +6,7 @@ import {
   beachChairSupportCells,
 } from "../../domain/resort/beachChair";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
+import { cellOf } from "../../domain/shared/cells";
 import { snapYaw4 } from "../../domain/shared/facing";
 import {
   BEACH_CHAIR,
@@ -22,7 +23,7 @@ export async function beachChairPlace(a: Arena): Promise<Outcome> {
   const block = a.at(110, a.gy - 1, 15);
   const failures: string[] = [];
   for (const yaw of [0, 90, 180, 270]) {
-    const pose = beachChairPose(block, yaw);
+    const pose = beachChairPose(cellOf(block), yaw);
     const near = () =>
       a.dim.getEntities({
         type: BEACH_CHAIR,
@@ -87,7 +88,7 @@ export async function beachChairPlace(a: Arena): Promise<Outcome> {
 
 export async function beachChairTakeBack(a: Arena): Promise<Outcome> {
   const block = a.at(110, a.gy - 1, 15);
-  const pose = beachChairPose(block, 0);
+  const pose = beachChairPose(cellOf(block), 0);
   const near = (type: string) =>
     a.dim.getEntities({
       type,

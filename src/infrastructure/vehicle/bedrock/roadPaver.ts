@@ -1,5 +1,6 @@
 import { BlockPermutation, type Dimension } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
+import { cellOf } from "../../../domain/shared/cells";
 import { asDimensionId } from "../../../domain/shared/ids";
 import { PLACE_KEPT_BLOCKS } from "../../../domain/shared/keptBlocks";
 import type { Pave } from "../../../domain/vehicle/pave";
@@ -28,7 +29,7 @@ export class RoadPaver {
           block.typeId === pave.block ||
           block.hasTag(LAID_BLOCK_TAG) ||
           KEPT.has(block.typeId) ||
-          this.skip(dimensionId, cell)
+          this.skip(dimensionId, cellOf(cell))
         )
           continue;
         block.setPermutation(permutation);

@@ -6,6 +6,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { contentsMenu } from "../../../src/domain/build/flow/menu";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { tappedSelection } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
@@ -28,11 +29,14 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
           ...tappedSelection(
             selectionOf(
               overworld,
-              boxOf({ x: 0, y: 60, z: 0 }, { x: 6, y: box ? 64 : 60, z: 8 }),
+              boxOf(
+                cellOf({ x: 0, y: 60, z: 0 }),
+                cellOf({ x: 6, y: box ? 64 : 60, z: 8 }),
+              ),
               material,
             ),
-            { x: 0, y: 60, z: 0 },
-            { x: 6, y: box ? 64 : 60, z: 8 },
+            cellOf({ x: 0, y: 60, z: 0 }),
+            cellOf({ x: 6, y: box ? 64 : 60, z: 8 }),
           ),
         });
         let currentDirection = direction;
@@ -87,11 +91,11 @@ it("falls back to x when aim is unavailable", () => {
     ...tappedSelection(
       selectionOf(
         overworld,
-        boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
+        boxOf(cellOf({ x: 0, y: 60, z: 0 }), cellOf({ x: 4, y: 64, z: 4 })),
         material,
       ),
-      { x: 0, y: 60, z: 0 },
-      { x: 4, y: 64, z: 4 },
+      cellOf({ x: 0, y: 60, z: 0 }),
+      cellOf({ x: 4, y: 64, z: 4 }),
     ),
   });
   const delegate = { execute: vi.fn() };
@@ -128,9 +132,13 @@ it("does not read aim or delegate for missing selections, unsupported shapes or 
       kind: "selected",
       menuLevel,
       ...tappedSelection(
-        selectionOf(overworld, boxOf({ x: 0, y: 60, z: 0 }, to), material),
-        { x: 0, y: 60, z: 0 },
-        to,
+        selectionOf(
+          overworld,
+          boxOf(cellOf({ x: 0, y: 60, z: 0 }), cellOf(to)),
+          material,
+        ),
+        cellOf({ x: 0, y: 60, z: 0 }),
+        cellOf(to),
       ),
     });
     choose.execute({ playerId });
@@ -150,11 +158,11 @@ it.each([
     ...tappedSelection(
       selectionOf(
         overworld,
-        boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
+        boxOf(cellOf({ x: 0, y: 60, z: 0 }), cellOf({ x: 4, y: 64, z: 4 })),
         material,
       ),
-      { x: 0, y: 60, z: 0 },
-      { x: 4, y: 64, z: 4 },
+      cellOf({ x: 0, y: 60, z: 0 }),
+      cellOf({ x: 4, y: 64, z: 4 }),
     ),
   });
   const delegate = { execute: vi.fn() };

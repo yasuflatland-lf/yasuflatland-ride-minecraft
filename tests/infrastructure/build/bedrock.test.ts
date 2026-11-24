@@ -6,6 +6,7 @@ import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
 import { boxOutline } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBlockWorld } from "../../../src/infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockFeedback } from "../../../src/infrastructure/build/bedrock/bedrockFeedback";
@@ -190,15 +191,17 @@ it("preserves permutation states and refuses protected or laid cells", () => {
         engine.resolve.mockReturnValue(permutation);
         const isProtected = vi.fn(() => protectedCell);
         const blocks = new BedrockBlockWorld({ isProtected });
-        expect(blocks.stateAt(dimension, at)).toEqual(state);
-        expect(blocks.materialOf(dimension, at)).toEqual(state);
-        expect(blocks.setState(dimension, at, state)).toBe(true);
+        expect(blocks.stateAt(dimension, cellOf(at))).toEqual(state);
+        expect(blocks.materialOf(dimension, cellOf(at))).toEqual(state);
+        expect(blocks.setState(dimension, cellOf(at), state)).toBe(true);
         expect(engine.resolve).toHaveBeenLastCalledWith(
           state.typeId,
           state.states,
         );
         expect(setPermutation).toHaveBeenCalledWith(permutation);
-        expect(blocks.mayEdit(dimension, at)).toBe(!protectedCell && !laid);
+        expect(blocks.mayEdit(dimension, cellOf(at))).toBe(
+          !protectedCell && !laid,
+        );
         expect(isProtected).toHaveBeenCalledWith(dimension, at);
         if (!protectedCell) expect(hasTag).toHaveBeenCalledWith(LAID_BLOCK_TAG);
       },
@@ -211,7 +214,7 @@ it("checks only space protection for snapshot restoration without reading blocks
     fc.property(cell, fc.boolean(), (at, protectedCell) => {
       const isProtected = vi.fn(() => protectedCell);
       const blocks = new BedrockBlockWorld({ isProtected });
-      expect(blocks.mayRestore(dimension, at)).toBe(!protectedCell);
+      expect(blocks.mayRestore(dimension, cellOf(at))).toBe(!protectedCell);
       expect(isProtected).toHaveBeenCalledExactlyOnceWith(dimension, at);
       expect(engine.getDimension).not.toHaveBeenCalled();
       expect(engine.getBlock).not.toHaveBeenCalled();
@@ -221,7 +224,7 @@ it("checks only space protection for snapshot restoration without reading blocks
 
 it("reports air only when the engine can read an air block", () => {
   const blocks = new BedrockBlockWorld({ isProtected: () => false });
-  const at = { x: 0, y: 0, z: 0 };
+  const at = cellOf({ x: 0, y: 0, z: 0 });
   engine.getBlock.mockReturnValue({ isAir: true });
   expect(blocks.isAir(dimension, at)).toBe(true);
   engine.getBlock.mockReturnValue({ isAir: false });
@@ -230,7 +233,7 @@ it("reports air only when the engine can read an air block", () => {
 
 it("fails closed for unreadable blocks and rejected permutations", () => {
   const blocks = new BedrockBlockWorld({ isProtected: () => false });
-  const at = { x: 0, y: 0, z: 0 };
+  const at = cellOf({ x: 0, y: 0, z: 0 });
   for (const get of [
     () => undefined,
     () => {
@@ -352,7 +355,7 @@ it("sends translated counts and bounded player-only particles at block centers",
               : line,
           );
         }
-        const box = boxOf(a, b);
+        const box = boxOf(cellOf(a), cellOf(b));
         const centered = boxOutline(box);
         const set = preview(
           style === "selection" ? { shape: centered } : { paste: centered },
@@ -403,36 +406,39 @@ it("draws the marker particles on the corner boundary for the owner only", () =>
       feedback.drawPreview(
         playerId,
         dimension,
-        preview({ startMarker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
       );
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
       expect(spawnParticle).toHaveBeenCalledTimes(
-        cornerMarkerPoints(at).length,
+        cornerMarkerPoints(cellOf(at)).length,
       );
       expect(
         spawnParticle.mock.calls.map(([particle, point]) => [particle, point]),
       ).toEqual(
-        cornerMarkerPoints(at).map((point) => ["yasu_build:marker", point]),
+        cornerMarkerPoints(cellOf(at)).map((point) => [
+          "yasu_build:marker",
+          point,
+        ]),
       );
       spawnParticle.mockClear();
       feedback.drawPreview(
         playerId,
         asDimensionId("minecraft:nether"),
-        preview({ startMarker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
       );
       expect(spawnParticle).not.toHaveBeenCalled();
       player.isValid = false;
       feedback.drawPreview(
         playerId,
         dimension,
-        preview({ startMarker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
       );
       expect(spawnParticle).not.toHaveBeenCalled();
       engine.getEntity.mockReturnValue(undefined);
       feedback.drawPreview(
         playerId,
         dimension,
-        preview({ startMarker: cornerMarkerPoints(at) }),
+        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
       );
       expect(spawnParticle).not.toHaveBeenCalled();
     }),
@@ -461,9 +467,9 @@ it("stops a corner marker at the first rejected particle without throwing", () =
             playerId,
             dimension,
             preview({
-              startMarker: cornerMarkerPoints(at),
+              startMarker: cornerMarkerPoints(cellOf(at)),
               shape: [{ x: 0, y: 0, z: 0 }],
-              endMarker: cornerMarkerPoints(at),
+              endMarker: cornerMarkerPoints(cellOf(at)),
             }),
           ),
         ).not.toThrow();
@@ -484,7 +490,9 @@ it("refuses air, liquids and data-holding blocks as material", () => {
     engine.getBlock.mockReturnValue({
       permutation: { type: { id: typeId }, getAllStates: () => ({}) },
     });
-    expect(blocks.materialOf(dimension, { x: 0, y: 64, z: 0 })).toBe("refused");
+    expect(blocks.materialOf(dimension, cellOf({ x: 0, y: 64, z: 0 }))).toBe(
+      "refused",
+    );
   }
 });
 

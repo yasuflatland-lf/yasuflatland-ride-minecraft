@@ -2,10 +2,10 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const coord = fc.integer({ min: -1000, max: 1000 });
-const cell = fc.record({ x: coord, y: coord, z: coord });
+const cell = fc.record({ x: coord, y: coord, z: coord }).map(cellOf);
 
 describe("cornerMarkerPoints", () => {
   it("returns distinct points on the cube edges", () => {
@@ -15,7 +15,9 @@ describe("cornerMarkerPoints", () => {
         expect(points).toHaveLength(
           8 + 8 * (BUILD_SPEC.markerHorizontalEdgeSteps - 1) + 4,
         );
-        expect(new Set(points.map(cellKey)).size).toBe(points.length);
+        expect(new Set(points.map((point) => JSON.stringify(point))).size).toBe(
+          points.length,
+        );
         const out = BUILD_SPEC.markerOutset;
         for (const point of points) {
           let boundaries = 0;
@@ -38,11 +40,13 @@ describe("cornerMarkerPoints", () => {
     fc.assert(
       fc.property(cell, cell, (c, offset) => {
         expect(
-          cornerMarkerPoints({
-            x: c.x + offset.x,
-            y: c.y + offset.y,
-            z: c.z + offset.z,
-          }),
+          cornerMarkerPoints(
+            cellOf({
+              x: c.x + offset.x,
+              y: c.y + offset.y,
+              z: c.z + offset.z,
+            }),
+          ),
         ).toEqual(
           cornerMarkerPoints(c).map((p) => ({
             x: p.x + offset.x,
@@ -58,7 +62,7 @@ describe("cornerMarkerPoints", () => {
     const out = BUILD_SPEC.markerOutset;
     const lo = -out;
     const hi = 1 + out;
-    const points = cornerMarkerPoints({ x: 0, y: 0, z: 0 });
+    const points = cornerMarkerPoints(cellOf({ x: 0, y: 0, z: 0 }));
     expect(points.slice(0, 8)).toEqual([
       { x: lo, y: lo, z: lo },
       { x: lo, y: lo, z: hi },

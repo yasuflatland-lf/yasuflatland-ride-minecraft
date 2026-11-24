@@ -19,6 +19,7 @@ import {
   unfold,
 } from "../../../src/domain/resort/beachChair";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import type { Facing4 } from "../../../src/domain/shared/facing";
 import {
   placeOnTop,
@@ -40,7 +41,9 @@ const stateArb: fc.Arbitrary<ChairState> = fc.record({
 });
 const poseArb = fc
   .tuple(cellArb, yawArb)
-  .map(([pressed, yaw]): BeachChairPose => beachChairPose(pressed, yaw));
+  .map(
+    ([pressed, yaw]): BeachChairPose => beachChairPose(cellOf(pressed), yaw),
+  );
 
 const facingArb = fc.constantFrom<Facing4>(0, 90, 180, 270);
 
@@ -48,7 +51,7 @@ describe("beachChairPose", () => {
   it("lays three cells in a line above the pressed block, the head farthest from the player", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = beachChairPose(pressed, yaw);
+        const pose = beachChairPose(cellOf(pressed), yaw);
         const [foot, middle, head] = beachChairCells(pose);
         expect(foot).toEqual({ x: pressed.x, y: pressed.y + 1, z: pressed.z });
         expect(middle.y).toBe(foot.y);
@@ -79,7 +82,7 @@ describe("beachChairPose", () => {
     };
     fc.assert(
       fc.property(cellArb, facingArb, (pressed, facing) => {
-        const pose = beachChairPose(pressed, facing);
+        const pose = beachChairPose(cellOf(pressed), facing);
         const step = along[facing];
         const foot = { x: pressed.x, y: pressed.y + 1, z: pressed.z };
         expect(beachChairCells(pose)).toEqual(

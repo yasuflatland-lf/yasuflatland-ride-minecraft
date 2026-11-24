@@ -1,5 +1,6 @@
 import { BlockTypes, system, world } from "@minecraft/server";
 import { anchorCell } from "../../../../domain/shared/blockFace";
+import { cellOf } from "../../../../domain/shared/cells";
 import { asDimensionId } from "../../../../domain/shared/ids";
 import { blockFaceOf } from "../../../shared/faces";
 import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
@@ -15,7 +16,7 @@ export function registerFurnitureTopInteraction(
     if (ev.isFirstEvent && ev.block.typeId === DINING_TABLE_TOP) {
       const owner = adapter.ownerAt(
         asDimensionId(ev.block.dimension.id),
-        ev.block.location,
+        cellOf(ev.block.location),
       );
       const table = owner && adapter.entity(owner);
       if (table && placeHostedOnTop(ev.player, table)) {
@@ -25,7 +26,7 @@ export function registerFurnitureTopInteraction(
     }
     if (!ev.itemStack || !BlockTypes.get(ev.itemStack.typeId)) return;
     const destination = anchorCell(
-      ev.block.location,
+      cellOf(ev.block.location),
       blockFaceOf(ev.blockFace),
     );
     if (!adapter.hostedAbove(asDimensionId(ev.block.dimension.id), destination))

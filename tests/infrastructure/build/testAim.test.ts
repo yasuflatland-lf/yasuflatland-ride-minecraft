@@ -4,6 +4,7 @@ import {
   FACINGS,
   facingVector,
 } from "../../../src/domain/build/rotation/facing";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import {
   type AimOverride,
@@ -66,7 +67,7 @@ it("overrides the hit with an upward face until the test aim is cleared", () => 
   const { reader, aim, ray } = setup("North");
   const player = asPlayerId("player");
   const base = reader.aim(player);
-  const cell = { x: -10, y: 9, z: 7 };
+  const cell = cellOf({ x: -10, y: 9, z: 7 });
   aim.setHit(player, cell);
   expect(reader.aim(player)).toEqual({
     input: "pointer",

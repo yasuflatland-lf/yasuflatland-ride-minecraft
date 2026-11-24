@@ -1,4 +1,4 @@
-import type { Vec3 } from "../../../shared/vec";
+import type { Cell } from "../../../shared/cells";
 import type { ClearCell } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand, TickContext } from "../../drive";
@@ -19,7 +19,7 @@ import { cargoCells, holdsCargo, storagePlateChecks } from "./storagePlates";
 
 function obstruction(
   ctx: TickContext,
-  cell: Vec3,
+  cell: Cell,
   typeId: string | undefined,
 ): string | undefined {
   return typeId !== undefined &&

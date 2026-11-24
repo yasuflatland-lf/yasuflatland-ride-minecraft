@@ -11,7 +11,7 @@ import { RemoveWarpPoint } from "../../application/warp/removeWarpPoint";
 import { RenameWarpPoint } from "../../application/warp/renameWarpPoint";
 import { TapWarpBlock } from "../../application/warp/tapWarpBlock";
 import { WarpTo } from "../../application/warp/warpTo";
-import { cellCenter } from "../../domain/shared/cells";
+import { cellCenter, cellOf } from "../../domain/shared/cells";
 import { asPlayerId } from "../../domain/shared/ids";
 import { WARP_SPEC } from "../../domain/warp/spec";
 import { parseWarpName } from "../../domain/warp/warpName";
@@ -155,7 +155,7 @@ export async function warpFlow(a: Arena): Promise<Outcome> {
           "player facing changed",
         );
         a.dim
-          .getBlock({ ...point.cell, y: point.cell.y + 1 })
+          .getBlock(cellOf({ ...point.cell, y: point.cell.y + 1 }))
           ?.setType("minecraft:stone");
         player.teleport(a.at(20.5, a.gy, 20.5), { dimension: a.dim, rotation });
         await list.run(command.playerId);

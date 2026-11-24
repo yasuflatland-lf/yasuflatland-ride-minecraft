@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { freeCellAbove } from "../../../src/domain/build/freeCell";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 it("returns the first pair of air cells, preserving the column and treating above the top as air", () => {
   fc.assert(
@@ -15,7 +16,7 @@ it("returns the first pair of air cells, preserving the column and treating abov
           (cell: { x: number; y: number; z: number }) =>
             air[cell.y - y] === true,
         );
-        const result = freeCellAbove({ x, y, z }, isAir, topY);
+        const result = freeCellAbove(cellOf({ x, y, z }), isAir, topY);
         expect(result).toBeDefined();
         if (!result) return;
         const open = (at: number) => at > topY || air[at - y] === true;
@@ -32,7 +33,7 @@ it("returns the first pair of air cells, preserving the column and treating abov
 
 it("starts at the given cell even when already above the world", () => {
   const isAir = vi.fn(() => false);
-  expect(freeCellAbove({ x: 2, y: 400, z: -3 }, isAir, 319)).toEqual({
+  expect(freeCellAbove(cellOf({ x: 2, y: 400, z: -3 }), isAir, 319)).toEqual({
     x: 2,
     y: 400,
     z: -3,

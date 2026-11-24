@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import {
   type LaidCell,
   relayCells,
@@ -13,12 +13,14 @@ const block = fc.record({
 });
 type Block = { kind: "a" | "b" | "c"; n: number };
 const same = (a: Block, b: Block) => a.kind === b.kind && a.n === b.n;
-const cell = fc.record({
-  x: fc.integer({ min: -3, max: 3 }),
-  y: fc.integer({ min: -3, max: 3 }),
-  z: fc.integer({ min: -3, max: 3 }),
-  block,
-});
+const cell = fc
+  .record({
+    x: fc.integer({ min: -3, max: 3 }),
+    y: fc.integer({ min: -3, max: 3 }),
+    z: fc.integer({ min: -3, max: 3 }),
+    block,
+  })
+  .map((c) => ({ ...c, ...cellOf(c) }));
 const cells = fc.uniqueArray(cell, { selector: cellKey });
 describe("relayCells (ADR 0063)", () => {
   it("clears only unwanted cells and places exactly new or changed cells", () => {

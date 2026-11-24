@@ -3,11 +3,11 @@ import { expect, it, vi } from "vitest";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { nextQuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -33,7 +33,7 @@ it("hints and preserves every inactive flow, including a missing session or clip
       expect(repo.get(playerId)).toBeUndefined();
       const session = repo.getOrCreate(playerId);
       const create = vi.spyOn(repo, "getOrCreate");
-      const box = boxOf(at, at);
+      const box = boxOf(cellOf(at), cellOf(at));
       if (hasClipboard)
         session.completeCopy(
           selectionOf(nether, box, AIR),
@@ -43,12 +43,12 @@ it("hints and preserves every inactive flow, including a missing session or clip
       const first = tapBlock(
         { kind: "idle" },
         nether,
-        at,
+        cellOf(at),
         blockStateOf("minecraft:stone"),
         NETHER_RANGE,
       );
       const endpoint = confirmEndpointHeight(
-        tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
+        tapAir(first, cellOf({ ...at, x: at.x + 2, z: at.z + 2 })),
       );
       const flows = [
         { kind: "idle" } as const,
@@ -86,7 +86,7 @@ it("advances the effective turn for any copy and gaze facing without editing", (
         const repo = new FakeSessions();
         const feedback = new FakeFeedback();
         const session = repo.getOrCreate(playerId);
-        const box = boxOf(at, at);
+        const box = boxOf(cellOf(at), cellOf(at));
         const clipboard = { ...structureClipboard(box), facing: copied };
         session.completeCopy(selectionOf(nether, box, AIR), clipboard);
         session.followPasteFacing(gaze);

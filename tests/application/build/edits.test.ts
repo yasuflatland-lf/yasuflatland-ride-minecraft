@@ -9,10 +9,10 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
 import { confirmEndpointHeight, tapBlock } from "../../support/buildSelection";
@@ -74,10 +74,17 @@ type Env = ReturnType<typeof setup>;
 
 function select(env: Env, player: typeof alex, size: number, y = 64) {
   const s = env.repo.getOrCreate(player);
-  s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
+  s.setFlowForTest(
+    tapBlock(s.flow, overworld, cellOf({ x: 0, y, z: 0 }), stone),
+  );
   s.setFlowForTest(
     confirmEndpointHeight(
-      tapBlock(s.flow, overworld, { x: size - 1, y, z: size - 1 }, stone),
+      tapBlock(
+        s.flow,
+        overworld,
+        cellOf({ x: size - 1, y, z: size - 1 }),
+        stone,
+      ),
     ),
   );
 }
@@ -108,7 +115,7 @@ function snapshot(world: FakeWorld, size: number, y = 64) {
   const out: string[] = [];
   for (let x = 0; x < size; x++)
     for (let z = 0; z < size; z++)
-      out.push(JSON.stringify(world.stateAt(overworld, { x, y, z })));
+      out.push(JSON.stringify(world.stateAt(overworld, cellOf({ x, y, z }))));
   return out;
 }
 
@@ -125,7 +132,7 @@ describe("EditJobs properties", () => {
         const expectedHints: (typeof alex)[] = [];
         for (const [i, { playerId, action }] of steps.entries()) {
           const y = 64 + i;
-          const cell = { x: 0, y, z: 0 };
+          const cell = cellOf({ x: 0, y, z: 0 });
           if (action === "remove") {
             env.repo.remove(playerId);
             hinted.delete(playerId);
@@ -165,14 +172,14 @@ describe("EditJobs properties", () => {
   });
 
   it("promises the gesture only when the flow at completion offers Undo", () => {
-    const cell = { x: 0, y: 64, z: 0 };
+    const cell = cellOf({ x: 0, y: 64, z: 0 });
     const flows = {
       point1: tapBlock({ kind: "idle" }, overworld, cell, stone),
       endpoint: confirmEndpointHeight(
         tapBlock(
           tapBlock({ kind: "idle" }, overworld, cell, stone),
           overworld,
-          { x: 1, y: 64, z: 1 },
+          cellOf({ x: 1, y: 64, z: 1 }),
           stone,
         ),
       ),
@@ -216,7 +223,8 @@ describe("EditJobs properties", () => {
         fc.array(fc.tuple(fc.nat(11), fc.nat(11)), { maxLength: 20 }),
         (size, dirtCells) => {
           const env = setup();
-          for (const [x, z] of dirtCells) env.world.put({ x, y: 64, z }, dirt);
+          for (const [x, z] of dirtCells)
+            env.world.put(cellOf({ x, y: 64, z }), dirt);
           const before = snapshot(env.world, 12);
           select(env, alex, size);
           env.fill.execute({ playerId: alex, style: "fill" });
@@ -237,17 +245,17 @@ describe("EditJobs properties", () => {
         (keptIdx, protectedIdx) => {
           const env = setup();
           const at = (i: number) => ({ x: i % 5, y: 64, z: Math.floor(i / 5) });
-          for (const i of keptIdx) env.world.put(at(i), sign);
+          for (const i of keptIdx) env.world.put(cellOf(at(i)), sign);
           for (const i of protectedIdx)
-            env.world.protectedCells.add(cellKey(at(i)));
+            env.world.protectedCells.add(cellKey(cellOf(at(i))));
           select(env, alex, 5);
           env.fill.execute({ playerId: alex, style: "fill" });
           runAll(env);
           for (const i of keptIdx) {
-            expect(env.world.stateAt(overworld, at(i))).toEqual(sign);
+            expect(env.world.stateAt(overworld, cellOf(at(i)))).toEqual(sign);
           }
           for (const i of protectedIdx) {
-            const s = env.world.stateAt(overworld, at(i));
+            const s = env.world.stateAt(overworld, cellOf(at(i)));
             expect(s).not.toEqual(stone);
           }
         },
@@ -261,7 +269,7 @@ describe("EditJobs properties", () => {
         const env = setup();
         const at = (i: number) => ({ x: i % 5, y: 64, z: Math.floor(i / 5) });
         for (const i of unreadableIdx)
-          env.world.unreadableCells.add(cellKey(at(i)));
+          env.world.unreadableCells.add(cellKey(cellOf(at(i))));
         select(env, alex, 5);
         env.fill.execute({ playerId: alex, style: "fill" });
         runAll(env);
@@ -278,10 +286,12 @@ describe("EditJobs properties", () => {
   it("applies at most blocksPerTick changes per step", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
-    s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
+    s.setFlowForTest(
+      tapBlock(s.flow, overworld, cellOf({ x: 0, y: 0, z: 0 }), stone),
+    );
     s.setFlowForTest(
       confirmEndpointHeight(
-        tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
+        tapBlock(s.flow, overworld, cellOf({ x: 63, y: 3, z: 63 }), stone),
       ),
     );
     env.fill.execute({ playerId: alex, style: "fill" });
@@ -301,18 +311,29 @@ describe("EditJobs properties", () => {
     for (const p of [alex, blake]) {
       const s = env.repo.getOrCreate(p);
       const y = p === alex ? 0 : 100;
-      s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
+      s.setFlowForTest(
+        tapBlock(s.flow, overworld, cellOf({ x: 0, y, z: 0 }), stone),
+      );
       s.setFlowForTest(
         confirmEndpointHeight(
-          tapBlock(s.flow, overworld, { x: 63, y: y + 3, z: 63 }, stone),
+          tapBlock(
+            s.flow,
+            overworld,
+            cellOf({ x: 63, y: y + 3, z: 63 }),
+            stone,
+          ),
         ),
       );
       env.fill.execute({ playerId: p, style: "fill" });
     }
     env.jobs.step();
     env.jobs.step();
-    expect(env.world.stateAt(overworld, { x: 0, y: 0, z: 0 })).toEqual(stone);
-    expect(env.world.stateAt(overworld, { x: 0, y: 100, z: 0 })).toEqual(stone);
+    expect(env.world.stateAt(overworld, cellOf({ x: 0, y: 0, z: 0 }))).toEqual(
+      stone,
+    );
+    expect(
+      env.world.stateAt(overworld, cellOf({ x: 0, y: 100, z: 0 })),
+    ).toEqual(stone);
   });
 });
 
@@ -328,16 +349,16 @@ describe("edit use cases", () => {
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
           structureClipboard(
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 0, y: 0, z: 0 })),
             () => stone,
           ),
-        { x: 0, y: 63, z: 0 },
+        cellOf({ x: 0, y: 63, z: 0 }),
         "up",
         turnBetween(
           (
             env.repo.get(alex)?.clipboard ??
             structureClipboard(
-              boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+              boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 0, y: 0, z: 0 })),
               () => stone,
             )
           ).facing,
@@ -370,10 +391,12 @@ describe("edit use cases", () => {
   it("refuses a selection larger than the edit limit", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
-    s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
+    s.setFlowForTest(
+      tapBlock(s.flow, overworld, cellOf({ x: 0, y: 0, z: 0 }), stone),
+    );
     s.setFlowForTest(
       confirmEndpointHeight(
-        tapBlock(s.flow, overworld, { x: 99, y: 99, z: 99 }, stone),
+        tapBlock(s.flow, overworld, cellOf({ x: 99, y: 99, z: 99 }), stone),
       ),
     );
     env.fill.execute({ playerId: alex, style: "fill" });
@@ -382,8 +405,8 @@ describe("edit use cases", () => {
 
   it("captures the full confirmed box without reading cells", () => {
     const env = setup();
-    env.world.put({ x: 0, y: 64, z: 0 }, dirt);
-    env.world.unreadableCells.add(cellKey({ x: 1, y: 64, z: 0 }));
+    env.world.put(cellOf({ x: 0, y: 64, z: 0 }), dirt);
+    env.world.unreadableCells.add(cellKey(cellOf({ x: 1, y: 64, z: 0 })));
     select(env, alex, 2);
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
@@ -393,12 +416,12 @@ describe("edit use cases", () => {
 
   it("refuses a paste as a whole when one cell is protected", () => {
     const env = setup();
-    env.world.put({ x: 0, y: 64, z: 0 }, dirt);
+    env.world.put(cellOf({ x: 0, y: 64, z: 0 }), dirt);
     select(env, alex, 2);
     confirmForCopy(env);
     env.copy.execute({ playerId: alex });
     expect(env.feedback.messages.at(-1)?.message).toBe("copied");
-    env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
+    env.world.protectedCells.add(cellKey(cellOf({ x: 1, y: 64, z: 1 })));
     env.repo.getOrCreate(alex).setFlowForTest(beginPasteAim());
     env.paste.execute({
       playerId: alex,
@@ -406,16 +429,16 @@ describe("edit use cases", () => {
       target: pasteTarget(
         env.repo.get(alex)?.clipboard ??
           structureClipboard(
-            boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+            boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 0, y: 0, z: 0 })),
             () => stone,
           ),
-        { x: 0, y: 63, z: 0 },
+        cellOf({ x: 0, y: 63, z: 0 }),
         "up",
         turnBetween(
           (
             env.repo.get(alex)?.clipboard ??
             structureClipboard(
-              boxOf({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }),
+              boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 0, y: 0, z: 0 })),
               () => stone,
             )
           ).facing,
@@ -432,10 +455,12 @@ describe("edit use cases", () => {
   it("drops a job whose session was removed", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
-    s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
+    s.setFlowForTest(
+      tapBlock(s.flow, overworld, cellOf({ x: 0, y: 0, z: 0 }), stone),
+    );
     s.setFlowForTest(
       confirmEndpointHeight(
-        tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
+        tapBlock(s.flow, overworld, cellOf({ x: 63, y: 3, z: 63 }), stone),
       ),
     );
     env.fill.execute({ playerId: alex, style: "fill" });
@@ -449,7 +474,7 @@ describe("edit use cases", () => {
 
   it("undoes only what was written when the engine refused some cells", () => {
     const env = setup();
-    env.world.refusedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
+    env.world.refusedCells.add(cellKey(cellOf({ x: 1, y: 64, z: 1 })));
     select(env, alex, 3);
     env.fill.execute({ playerId: alex, style: "fill" });
     runAll(env);
@@ -476,7 +501,10 @@ it.each([false, true])(
   (fail) => {
     const e = setup();
     const session = e.repo.getOrCreate(alex);
-    const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 0, y: 64, z: 0 });
+    const box = boxOf(
+      cellOf({ x: 0, y: 64, z: 0 }),
+      cellOf({ x: 0, y: 64, z: 0 }),
+    );
     const handle = e.structures.capture(overworld, box, alex, "exact");
     if (handle === "tooLarge" || handle === "unreadable")
       throw new Error(handle);
@@ -486,7 +514,7 @@ it.each([false, true])(
         {
           dimensionId: overworld,
           changes: [
-            { cell: { x: i, y: 64, z: 0 }, before: dirt, after: stone },
+            { cell: cellOf({ x: i, y: 64, z: 0 }), before: dirt, after: stone },
           ],
         },
         "undoable",
@@ -514,7 +542,10 @@ it.each([false, true])(
 it("finishes a cell job once with feedback when discarding an evicted snapshot throws", () => {
   const e = setup();
   const session = e.repo.getOrCreate(alex);
-  const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 0, y: 64, z: 0 });
+  const box = boxOf(
+    cellOf({ x: 0, y: 64, z: 0 }),
+    cellOf({ x: 0, y: 64, z: 0 }),
+  );
   const handle = e.structures.capture(overworld, box, alex, "exact");
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   session.recordSnapshot({ dimensionId: overworld, box, handle });
@@ -522,7 +553,9 @@ it("finishes a cell job once with feedback when discarding an evicted snapshot t
     session.finishEdit(
       {
         dimensionId: overworld,
-        changes: [{ cell: { x: i, y: 64, z: 0 }, before: dirt, after: stone }],
+        changes: [
+          { cell: cellOf({ x: i, y: 64, z: 0 }), before: dirt, after: stone },
+        ],
       },
       "undoable",
     );

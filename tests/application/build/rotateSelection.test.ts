@@ -10,6 +10,7 @@ import {
   setHeight,
 } from "../../../src/domain/build/flow/heightFlow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -28,8 +29,8 @@ import {
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
-const from = { x: 4, y: 64, z: 0 };
-const to = { x: 0, y: 65, z: 2 };
+const from = cellOf({ x: 4, y: 64, z: 0 });
+const to = cellOf({ x: 0, y: 65, z: 2 });
 const span = boxOf(from, to);
 const material = blockStateOf("minecraft:stone");
 

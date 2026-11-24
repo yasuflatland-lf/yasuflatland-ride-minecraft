@@ -1,4 +1,4 @@
-import { offsetToCellCenter } from "../../../shared/cells";
+import { cellOf, offsetToCellCenter } from "../../../shared/cells";
 import { clamp, normalizeYaw, type Vec3 } from "../../../shared/vec";
 import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
@@ -278,7 +278,7 @@ export class BulldozerDrive extends TransformingDrive {
 
   /** Solid first: waterAt is also true for waterlogged blocks. */
   private classAt(ctx: TickContext, cell: Vec3): CellClass {
-    const offset = offsetToCellCenter(ctx.location, cell);
+    const offset = offsetToCellCenter(ctx.location, cellOf(cell));
     if (ctx.solidAt(offset)) return "solid";
     if (ctx.waterAt(offset) || ctx.lavaAt?.(offset)) return "liquid";
     return "open";
@@ -324,11 +324,14 @@ export class BulldozerDrive extends TransformingDrive {
     for (let dy = 0; dy < (c.height ?? 0); dy++)
       if (
         ctx.solidAt(
-          offsetToCellCenter(ctx.location, {
-            x: c.x,
-            y: c.bottom + dy,
-            z: c.z,
-          }),
+          offsetToCellCenter(
+            ctx.location,
+            cellOf({
+              x: c.x,
+              y: c.bottom + dy,
+              z: c.z,
+            }),
+          ),
         )
       )
         return true;

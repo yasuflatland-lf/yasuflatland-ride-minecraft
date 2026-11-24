@@ -2,6 +2,7 @@ import { type BlockFace, isTopFace } from "../../domain/shared/blockFace";
 import {
   type Cell,
   cellCenter,
+  cellOf,
   type ProtectedSpace,
   VEHICLE_SPACE_ONLY,
 } from "../../domain/shared/cells";
@@ -56,7 +57,7 @@ export function placeOnCells<Id>(
 export function canUseBlockTop(
   world: Pick<GroundCellsWorld, "isOwnBlock">,
   dimension: DimensionId,
-  block: Vec3,
+  block: Cell,
   face: BlockFace,
 ): boolean {
   return isTopFace(face) && !world.isOwnBlock(dimension, block);
@@ -65,7 +66,7 @@ export function canUseBlockTop(
 export function clearanceCells(base: Cell, clearance: number): Cell[] {
   const cells: Cell[] = [];
   for (let dy = 0; dy < clearance; dy++)
-    cells.push({ ...base, y: base.y + dy });
+    cells.push(cellOf({ ...base, y: base.y + dy }));
   return cells;
 }
 
@@ -98,7 +99,7 @@ export function isSpaceRefused(
 export function hasClearance(
   world: GroundCellsWorld,
   dimension: DimensionId,
-  base: Vec3,
+  base: Cell,
   clearance: number,
   refuses: readonly ProtectedSpace[] = VEHICLE_SPACE_ONLY,
 ): boolean {
@@ -116,7 +117,7 @@ export function placeOnGround(
   cmd: {
     player?: PlayerId;
     dimension: DimensionId;
-    block: Vec3;
+    block: Cell;
     yaw: number;
     slot: number;
   },
@@ -131,7 +132,10 @@ export function placeOnGround(
     { dimension, cells: world, payment: world },
     {
       support: [],
-      clear: clearanceCells({ ...block, y: block.y + 1 }, spec.clearance),
+      clear: clearanceCells(
+        cellOf({ ...block, y: block.y + 1 }),
+        spec.clearance,
+      ),
       refuses: spec.refuses,
       extraCheck: () => !item.isNear(dimension, at),
     },

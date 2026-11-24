@@ -4,12 +4,12 @@ import {
 } from "../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../domain/camp/spec";
 import type { BlockFace } from "../../domain/shared/blockFace";
+import type { Cell } from "../../domain/shared/cells";
 import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
 } from "../../domain/shared/debounce";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
 import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
@@ -54,14 +54,14 @@ export class GasLanternActions extends HostedOnTopActions {
     super(world, onTop);
   }
 
-  canUseBlock(dimension: DimensionId, block: Vec3, face: BlockFace): boolean {
+  canUseBlock(dimension: DimensionId, block: Cell, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
   }
 
   place(cmd: {
     player?: PlayerId;
     dimension: DimensionId;
-    block: Vec3;
+    block: Cell;
     yaw: number;
     slot: number;
   }): boolean {

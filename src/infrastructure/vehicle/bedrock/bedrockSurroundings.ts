@@ -1,5 +1,7 @@
 // Reads the blocks and targets surrounding a vehicle (ADR 0012).
+
 import type { SurroundingsWorld } from "../../../application/vehicle/ports/drive";
+import type { Cell } from "../../../domain/shared/cells";
 import { asDimensionId, type VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { add3, sub3 } from "../../../domain/shared/vec";
@@ -19,7 +21,7 @@ export class BedrockSurroundings implements SurroundingsWorld {
     private readonly docks: DockLayer,
   ) {}
 
-  ownsLaidBlock(vehicleId: VehicleId, cell: Vec3, typeId: string): boolean {
+  ownsLaidBlock(vehicleId: VehicleId, cell: Cell, typeId: string): boolean {
     const vehicle = this.index.entity(vehicleId);
     return (
       vehicle !== undefined &&

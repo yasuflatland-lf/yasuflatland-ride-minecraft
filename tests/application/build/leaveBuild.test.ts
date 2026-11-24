@@ -6,6 +6,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { tappedSelection } from "../../support/buildSelection";
 import { FakeSessions, FakeTapTargets, overworld } from "./fakes";
@@ -16,7 +17,7 @@ it("clears the selection on an item switch while retaining history", () => {
       const repo = new FakeSessions();
       const id = asPlayerId("builder");
       const session = repo.getOrCreate(id);
-      const cell = { x, y: 60, z: 0 };
+      const cell = cellOf({ x, y: 60, z: 0 });
       const stone = blockStateOf("minecraft:stone");
       const history = {
         dimensionId: overworld,
@@ -52,7 +53,7 @@ it("hides on mode exit when the flow reached idle before the next preview", () =
   for (let tick = 0; tick < BUILD_SPEC.modeEnterTicks; tick++)
     modes.execute([{ playerId, held: "wand" }]);
   const session = repo.getOrCreate(playerId);
-  const cell = { x: 0, y: 60, z: 0 };
+  const cell = cellOf({ x: 0, y: 60, z: 0 });
   session.setFlowForTest({
     kind: "point1",
     start: {

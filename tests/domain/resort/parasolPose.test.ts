@@ -24,7 +24,7 @@ describe("parasolPose", () => {
   it("puts the canopy centre in the middle of the pressed top face", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = parasolPose(pressed, yaw);
+        const pose = parasolPose(cellOf(pressed), yaw);
         expect(pose.canopyCenter).toEqual({
           x: pressed.x + 0.5,
           y: pressed.y + 1,
@@ -38,7 +38,7 @@ describe("parasolPose", () => {
   it("puts the base baseOffset blocks away from the player along an axis", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = parasolPose(pressed, yaw);
+        const pose = parasolPose(cellOf(pressed), yaw);
         const dx = Math.abs(pose.base.x - pressed.x);
         const dz = Math.abs(pose.base.z - pressed.z);
         expect(Math.max(dx, dz)).toBe(PARASOL_SPEC.baseOffset);
@@ -50,7 +50,7 @@ describe("parasolPose", () => {
   it("faces the entity back toward the player", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        expect(parasolPose(pressed, yaw).yaw).toBe(snapYaw4(yaw + 180));
+        expect(parasolPose(cellOf(pressed), yaw).yaw).toBe(snapYaw4(yaw + 180));
       }),
     );
   });
@@ -61,8 +61,8 @@ describe("parasolPose", () => {
         cellArb,
         fc.integer({ min: -4, max: 4 }),
         (pressed, turns) => {
-          const a = parasolPose(pressed, turns * 90);
-          const b = parasolPose(pressed, turns * 90 + 90);
+          const a = parasolPose(cellOf(pressed), turns * 90);
+          const b = parasolPose(cellOf(pressed), turns * 90 + 90);
           const rel = (p: ParasolPose) => ({
             x: p.base.x - pressed.x,
             z: p.base.z - pressed.z,
@@ -79,7 +79,7 @@ describe("parasolPose", () => {
   it("returns unique integer clearance cells around the fractional base", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = parasolPose(pressed, yaw);
+        const pose = parasolPose(cellOf(pressed), yaw);
         const cells = parasolFootCells(pose);
         expect(cells.length).toBeGreaterThan(PARASOL_SPEC.footCells.length);
         expect(new Set(cells.map((c) => JSON.stringify(c))).size).toBe(
@@ -110,12 +110,14 @@ describe("parasolPose", () => {
     [270, { x: 13, y: 63, z: 20 }],
   ])("checks the block below the base centre at yaw %i", (yaw, support) => {
     expect(
-      parasolSupportCell(parasolPose({ x: 10, y: 63, z: 20 }, yaw)),
+      parasolSupportCell(parasolPose(cellOf({ x: 10, y: 63, z: 20 }), yaw)),
     ).toEqual(support);
   });
 
   it("checks both columns overlapped by the shifted base and bent pole", () => {
-    const cells = parasolFootCells(parasolPose({ x: 10, y: 63, z: 20 }, 0));
+    const cells = parasolFootCells(
+      parasolPose(cellOf({ x: 10, y: 63, z: 20 }), 0),
+    );
     expect(cells).toContainEqual({ x: 10, y: 64, z: 22 });
     expect(cells).toContainEqual({ x: 10, y: 64, z: 25 });
     expect(cells).toContainEqual({ x: 10, y: 66, z: 24 });
@@ -129,7 +131,7 @@ describe("parasolPose", () => {
     (yaw) => {
       fc.assert(
         fc.property(cellArb, (pressed) => {
-          const pose = parasolPose(pressed, yaw);
+          const pose = parasolPose(cellOf(pressed), yaw);
           const keys = new Set(
             parasolCeilingCells(pose).map((c) => `${c.x},${c.z}`),
           );
@@ -151,7 +153,7 @@ describe("parasolPose", () => {
   it("lays every ceiling cell at one height above the canopy top", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const pose = parasolPose(pressed, yaw);
+        const pose = parasolPose(cellOf(pressed), yaw);
         const cells = parasolCeilingCells(pose);
         expect(cells.length).toBeGreaterThan(0);
         const y = cells[0]?.y ?? Number.NaN;
@@ -197,7 +199,7 @@ describe("parasolPoseAt", () => {
   it("rebuilds the placed pose from its base and facing", () => {
     fc.assert(
       fc.property(cellArb, yawArb, (pressed, yaw) => {
-        const placed = parasolPose(pressed, yaw);
+        const placed = parasolPose(cellOf(pressed), yaw);
         expect(parasolPoseAt(placed.base, placed.yaw)).toEqual(placed);
       }),
     );

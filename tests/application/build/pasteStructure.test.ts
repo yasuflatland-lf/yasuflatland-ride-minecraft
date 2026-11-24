@@ -16,6 +16,7 @@ import { rotatedSize } from "../../../src/domain/build/rotation/quarterTurn";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { tappedSelection } from "../../support/buildSelection";
 import {
@@ -32,12 +33,14 @@ import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("paste");
 const handle = structureHandle("clipboard");
-const origin = fc.record({
-  x: fc.integer({ min: -50, max: 50 }),
-  y: fc.integer({ min: 0, max: 50 }),
-  z: fc.integer({ min: -50, max: 50 }),
-});
-function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
+const origin = fc
+  .record({
+    x: fc.integer({ min: -50, max: 50 }),
+    y: fc.integer({ min: 0, max: 50 }),
+    z: fc.integer({ min: -50, max: 50 }),
+  })
+  .map(cellOf);
+function setup(anchor = cellOf({ x: 0, y: 1, z: 0 }), blockCount = 8) {
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const feedback = new FakeFeedback();
@@ -45,11 +48,14 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
   const repo = new FakeSessions(store);
   const session = repo.getOrCreate(playerId);
   store.live.add(handle);
-  const box = boxOf(anchor, {
-    x: anchor.x + 1,
-    y: anchor.y + 1,
-    z: anchor.z + 1,
-  });
+  const box = boxOf(
+    anchor,
+    cellOf({
+      x: anchor.x + 1,
+      y: anchor.y + 1,
+      z: anchor.z + 1,
+    }),
+  );
   session.completeCopy(selectionOf(overworld, box, AIR), {
     material: AIR,
     size: { x: 2, y: 2, z: 2 },
@@ -75,11 +81,13 @@ it("selects the pasted box at the root and keeps the clipboard", () => {
       origin,
       fc.constantFrom(overworld, nether),
       fc.constantFrom("minecraft:stone", "minecraft:oak_planks"),
-      fc.record({
-        x: fc.integer({ min: 1, max: 4 }),
-        y: fc.integer({ min: 1, max: 4 }),
-        z: fc.integer({ min: 1, max: 4 }),
-      }),
+      fc
+        .record({
+          x: fc.integer({ min: 1, max: 4 }),
+          y: fc.integer({ min: 1, max: 4 }),
+          z: fc.integer({ min: 1, max: 4 }),
+        })
+        .map(cellOf),
       fc.constantFrom(...FACINGS),
       fc.constantFrom(0, 1, 2, 3),
       (source, anchor, dimensionId, materialId, size, facing, turn) => {
@@ -273,9 +281,9 @@ it("lifts only an occupant buried by a non-open cell inside the pasted box", () 
         const e = setup(anchor);
         const feet =
           situation === "head"
-            ? { ...anchor, y: anchor.y - 1 }
+            ? cellOf({ ...anchor, y: anchor.y - 1 })
             : situation === "outside"
-              ? { ...anchor, x: anchor.x - 3 }
+              ? cellOf({ ...anchor, x: anchor.x - 3 })
               : anchor;
         if (situation !== "absent")
           e.players.occupants.set(playerId, {

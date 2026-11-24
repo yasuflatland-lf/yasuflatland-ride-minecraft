@@ -4,6 +4,7 @@ import type { PlaceRoofTent } from "../../../application/camp/placeRoofTent";
 import type { RoofTentHostGuard } from "../../../application/camp/roofTentHostGuard";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
 import { asRoofTentId } from "../../../domain/camp/ids";
+import { cellOf } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
@@ -48,7 +49,7 @@ export function registerTestRoofTent(
         ) {
           place.execute({
             dimensionId: asDimensionId("minecraft:overworld"),
-            target: { clicked: { x, y, z } },
+            target: { clicked: cellOf({ x, y, z }) },
             yaw,
             slot: 0,
           });

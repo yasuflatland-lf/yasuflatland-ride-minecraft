@@ -12,22 +12,27 @@ import {
   sphereVolume,
 } from "../../../src/domain/build/volume/sphere";
 import type { HeightedSpec } from "../../../src/domain/build/volume/types";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
-const origin = fc.record({ x: coordinate, y: coordinate, z: coordinate });
+const origin = fc
+  .record({ x: coordinate, y: coordinate, z: coordinate })
+  .map(cellOf);
 const specOf = (
   min: Cell,
   width: number,
   height: number,
   depth: number,
 ): HeightedSpec => ({
-  base: boxOf(min, {
-    x: min.x + width - 1,
-    y: min.y,
-    z: min.z + depth - 1,
-  }),
+  base: boxOf(
+    min,
+    cellOf({
+      x: min.x + width - 1,
+      y: min.y,
+      z: min.z + depth - 1,
+    }),
+  ),
   kind: "sphere",
   height,
 });
@@ -39,12 +44,12 @@ const spec = fc
 const boundsOf = ({ base, height }: HeightedSpec): CellBox =>
   cellBox(base.min, { ...base.max, y: base.min.y + height - 1 });
 const neighbours = ({ x, y, z }: Cell): Cell[] => [
-  { x: x - 1, y, z },
-  { x: x + 1, y, z },
-  { x, y: y - 1, z },
-  { x, y: y + 1, z },
-  { x, y, z: z - 1 },
-  { x, y, z: z + 1 },
+  cellOf({ x: x - 1, y, z }),
+  cellOf({ x: x + 1, y, z }),
+  cellOf({ x, y: y - 1, z }),
+  cellOf({ x, y: y + 1, z }),
+  cellOf({ x, y, z: z - 1 }),
+  cellOf({ x, y, z: z + 1 }),
 ];
 const cellsOf = (spec: HeightedSpec, fill: "fill" | "hollow") => [
   ...spherePlacement.cells(spec, fill),
@@ -71,7 +76,7 @@ function everyCellOf({ min, max }: CellBox): Cell[] {
   const cells: Cell[] = [];
   for (let x = min.x; x <= max.x; x++)
     for (let y = min.y; y <= max.y; y++)
-      for (let z = min.z; z <= max.z; z++) cells.push({ x, y, z });
+      for (let z = min.z; z <= max.z; z++) cells.push(cellOf({ x, y, z }));
   return cells;
 }
 
@@ -135,7 +140,7 @@ describe("sphere geometry", () => {
   });
 
   it("leaves both x end layers empty in a 4x2x2 box", () => {
-    const spec = specOf({ x: 0, y: 0, z: 0 }, 4, 2, 2);
+    const spec = specOf(cellOf({ x: 0, y: 0, z: 0 }), 4, 2, 2);
     const cells = cellsOf(spec, "fill");
     expect(cells).toHaveLength(8);
     expect(cells.some((cell) => cell.x === spec.base.min.x)).toBe(false);
@@ -176,8 +181,8 @@ describe("sphere geometry", () => {
         const shell = new Set(cellsOf(spec, "hollow").map(cellKey));
         const inside = new Set(cellsOf(spec, "fill").map(cellKey));
         const margin = cellBox(
-          { x: min.x - 1, y: min.y - 1, z: min.z - 1 },
-          { x: max.x + 1, y: max.y + 1, z: max.z + 1 },
+          cellOf({ x: min.x - 1, y: min.y - 1, z: min.z - 1 }),
+          cellOf({ x: max.x + 1, y: max.y + 1, z: max.z + 1 }),
         );
         const seen = new Set([cellKey(margin.min)]);
         const frontier = [margin.min];
@@ -196,14 +201,14 @@ describe("sphere geometry", () => {
   });
 
   it("counts a box too large to build close to the ellipsoid volume", () => {
-    const huge = specOf({ x: 0, y: -64, z: 0 }, 300, 384, 300);
+    const huge = specOf(cellOf({ x: 0, y: -64, z: 0 }), 300, 384, 300);
     const placed = spherePlacement.count(huge, "fill");
     expect(placed).toBeGreaterThan(BUILD_SPEC.maxVolume);
     expect(placed / ((Math.PI / 6) * 300 * 384 * 300)).toBeCloseTo(1, 1);
   });
 
   it("rejects tube fill", () => {
-    const sphere = specOf({ x: 0, y: 0, z: 0 }, 3, 3, 3);
+    const sphere = specOf(cellOf({ x: 0, y: 0, z: 0 }), 3, 3, 3);
     expect(() => spherePlacement.cells(sphere, "tube")).toThrow(Error);
     expect(() => spherePlacement.count(sphere, "tube")).toThrow(Error);
   });
@@ -240,7 +245,7 @@ describe("sphere outline", () => {
   });
 
   it("adds both vertical ellipses to reach the top and bottom", () => {
-    const sphere = specOf({ x: 0, y: 0, z: 0 }, 8, 8, 8);
+    const sphere = specOf(cellOf({ x: 0, y: 0, z: 0 }), 8, 8, 8);
     const points = sphereVolume.wireframe(sphere, BUILD_SPEC.outlineMaxPoints);
     const ys = points.map((point) => point.y);
     expect(Math.min(...ys)).toBeCloseTo(0, 0);
@@ -293,27 +298,30 @@ describe("sphere outline", () => {
       ),
       {
         examples: [
-          [{ x: 0, y: 0, z: 0 }, [1, 326], 8],
-          [{ x: 0, y: 0, z: 0 }, [326, 1], 8],
-          [{ x: 0, y: 0, z: 0 }, [1, 479], 12],
-          [{ x: 0, y: 0, z: 0 }, [479, 1], 12],
-          [{ x: 0, y: 0, z: 0 }, [2, 355], 2],
-          [{ x: 0, y: 0, z: 0 }, [512, 2], 2],
-          [{ x: 0, y: 0, z: 0 }, [1, 254], 2],
-          [{ x: 0, y: 0, z: 0 }, [2, 406], 3],
-          [{ x: 0, y: 0, z: 0 }, [406, 3], 2],
-          [{ x: 0, y: 0, z: 0 }, [4, 508], 2],
+          [cellOf({ x: 0, y: 0, z: 0 }), [1, 326], 8],
+          [cellOf({ x: 0, y: 0, z: 0 }), [326, 1], 8],
+          [cellOf({ x: 0, y: 0, z: 0 }), [1, 479], 12],
+          [cellOf({ x: 0, y: 0, z: 0 }), [479, 1], 12],
+          [cellOf({ x: 0, y: 0, z: 0 }), [2, 355], 2],
+          [cellOf({ x: 0, y: 0, z: 0 }), [512, 2], 2],
+          [cellOf({ x: 0, y: 0, z: 0 }), [1, 254], 2],
+          [cellOf({ x: 0, y: 0, z: 0 }), [2, 406], 3],
+          [cellOf({ x: 0, y: 0, z: 0 }), [406, 3], 2],
+          [cellOf({ x: 0, y: 0, z: 0 }), [4, 508], 2],
         ],
       },
     );
   });
 
   it("offers the same height range as the other solids", () => {
-    const base = boxOf({ x: 0, y: 300, z: 0 }, { x: 3, y: 300, z: 3 });
+    const base = boxOf(
+      cellOf({ x: 0, y: 300, z: 0 }),
+      cellOf({ x: 3, y: 300, z: 3 }),
+    );
     expect(sphereVolume.maxHeight(base, OVERWORLD_RANGE)).toBe(20);
     expect(
       sphereVolume.maxHeight(
-        boxOf({ x: 0, y: 330, z: 0 }, { x: 3, y: 330, z: 3 }),
+        boxOf(cellOf({ x: 0, y: 330, z: 0 }), cellOf({ x: 3, y: 330, z: 3 })),
         OVERWORLD_RANGE,
       ),
     ).toBe(1);

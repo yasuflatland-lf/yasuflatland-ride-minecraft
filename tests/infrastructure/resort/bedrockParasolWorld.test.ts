@@ -4,6 +4,7 @@ import {
   parasolCeilingCells,
   parasolPose,
 } from "../../../src/domain/resort/parasolPose";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockParasolWorld } from "../../../src/infrastructure/resort/bedrock/bedrockParasolWorld";
 import {
@@ -31,7 +32,7 @@ beforeEach(() => vi.clearAllMocks());
 const id = asParasolId("parasol");
 const dimensionId = asDimensionId("overworld");
 function fixture(yaw = 0) {
-  const pose = parasolPose({ x: 10, y: 63, z: 20 }, yaw);
+  const pose = parasolPose(cellOf({ x: 10, y: 63, z: 20 }), yaw);
   const wanted = parasolCeilingCells(pose);
   const blocks = new Map<
     string,
@@ -106,11 +107,13 @@ it.each([0, 90, 180, 270])(
     expect(JSON.parse(String(f.saved.get(PARASOL_CEILING_PROPERTY)))).toEqual(
       f.wanted,
     );
-    expect(f.adapter.baseCellsNear(dimensionId, f.pose.base, 2)).toEqual([]);
+    expect(
+      f.adapter.baseCellsNear(dimensionId, cellOf(f.pose.base), 2),
+    ).toEqual([]);
     f.dimension.getEntities.mockReturnValue([f.entity]);
-    expect(f.adapter.baseCellsNear(dimensionId, f.pose.base, 2)).toEqual([
-      f.pose.base,
-    ]);
+    expect(
+      f.adapter.baseCellsNear(dimensionId, cellOf(f.pose.base), 2),
+    ).toEqual([f.pose.base]);
   },
 );
 
@@ -222,7 +225,7 @@ it("clears stale saved cells outside the current footprint after restoration", (
 
 it("delegates the support check to the shared solid-top read", () => {
   const { adapter } = fixture();
-  const at = { x: 1, y: 2, z: 3 };
+  const at = cellOf({ x: 1, y: 2, z: 3 });
   const support = vi.spyOn(blocks, "isSolidTop").mockReturnValueOnce(true);
   expect(adapter.isSolidTop(dimensionId, at)).toBe(true);
   expect(support).toHaveBeenCalledExactlyOnceWith(dimensionId, at);

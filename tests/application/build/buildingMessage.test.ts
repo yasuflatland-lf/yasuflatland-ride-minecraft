@@ -8,6 +8,7 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { tappedSelection } from "../../support/buildSelection";
 import {
@@ -21,8 +22,8 @@ import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("p");
 const material = blockStateOf("minecraft:oak_planks", { example: true });
-const from = { x: 0, y: 60, z: 0 };
-const flat = { x: 4, y: 60, z: 4 };
+const from = cellOf({ x: 0, y: 60, z: 0 });
+const flat = cellOf({ x: 4, y: 60, z: 4 });
 const box = { x: 4, y: 64, z: 4 };
 
 function setup(to = flat) {
@@ -51,7 +52,7 @@ it.each([
   ["faces", box, "faces"],
   ["walls", box, "walls"],
 ] as const)("shows the material for %s", (_name, to, style) => {
-  const e = setup(to);
+  const e = setup(cellOf(to));
   new ConfirmShape(
     e.repo,
     e.feedback,

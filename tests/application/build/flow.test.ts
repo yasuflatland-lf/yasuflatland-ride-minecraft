@@ -9,11 +9,11 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-
 import { cancel } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -37,8 +37,8 @@ import {
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
-const from = { x: 0, y: 64, z: 0 };
-const to = { x: 2, y: 64, z: 2 };
+const from = cellOf({ x: 0, y: 64, z: 0 });
+const to = cellOf({ x: 2, y: 64, z: 2 });
 const stone = blockStateOf("minecraft:stone", { variant: "granite" });
 const dirt = blockStateOf("minecraft:dirt");
 function setup() {
@@ -159,7 +159,7 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   e.session.confirmLiveHeight();
   expect(e.feedback.messages.at(-1)).toEqual({ message: "heightAim" });
   const selected = e.session.flow;
-  e.air.execute({ playerId, end: { ...to, x: 3 } });
+  e.air.execute({ playerId, end: cellOf({ ...to, x: 3 }) });
   expect(e.session.flow).toBe(selected);
   expect(e.feedback.messages).toHaveLength(1);
 });
@@ -170,7 +170,7 @@ it.each(["block", "air"] as const)(
     const e = setup();
     e.world.put(from, stone);
     e.point.execute({ playerId, dimensionId: overworld, cell: from });
-    const end = { ...from, x: 2 };
+    const end = cellOf({ ...from, x: 2 });
     if (route === "air") e.air.execute({ playerId, end });
     else e.point.execute({ playerId, dimensionId: overworld, cell: end });
     expect(e.session.flow.kind).toBe("selected");
@@ -195,9 +195,9 @@ it("confirms the chosen shape with the captured material, keeping its box select
   e.jobs.step();
   expect(e.world.writes).toBe(8);
   expect(e.world.stateAt(overworld, from)).toEqual(stone);
-  expect(e.world.stateAt(overworld, { x: 1, y: 64, z: 1 })?.typeId).toBe(
-    "minecraft:air",
-  );
+  expect(
+    e.world.stateAt(overworld, cellOf({ x: 1, y: 64, z: 1 }))?.typeId,
+  ).toBe("minecraft:air");
   e.copy.execute({ playerId });
   expect(e.session.clipboard?.blockCount).toBe(9);
   expect(e.session.clipboard?.contents.kind).toBe("structure");
@@ -205,7 +205,7 @@ it("confirms the chosen shape with the captured material, keeping its box select
 
 it("refuses oversized shapes with their count, unsupported styles, and busy jobs without changing the flow", () => {
   const e = setup();
-  const end = { x: 100, y: 164, z: 100 };
+  const end = cellOf({ x: 100, y: 164, z: 100 });
   e.session.setFlowForTest(
     confirmEndpointHeight(
       tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
@@ -233,7 +233,7 @@ it("refuses oversized shapes with their count, unsupported styles, and busy jobs
 
 it("applies the limit to the chosen style rather than the bounding volume", () => {
   const e = setup();
-  const end = { x: 49, y: 113, z: 49 };
+  const end = cellOf({ x: 49, y: 113, z: 49 });
   e.session.setFlowForTest(
     confirmEndpointHeight(
       tapAir(tapBlock(e.session.flow, overworld, from, stone), end),

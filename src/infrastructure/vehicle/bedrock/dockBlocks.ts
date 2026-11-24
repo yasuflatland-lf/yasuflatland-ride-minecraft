@@ -1,6 +1,6 @@
 import type { Entity } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import { cellKey } from "../../../domain/shared/cells";
+import { cellKey, cellOf, parseCell } from "../../../domain/shared/cells";
 import {
   asDimensionId,
   asVehicleId,
@@ -97,11 +97,7 @@ export function composeDockCodec(
     upgrade: (saved) =>
       upgrades.reduce((value, upgrade) => upgrade(value), saved),
     isCell(value): value is DockCell {
-      if (
-        !isRecord(value) ||
-        ![value.x, value.y, value.z].every(Number.isInteger)
-      )
-        return false;
+      if (!isRecord(value) || parseCell(value) === undefined) return false;
       const block = value.block;
       return (
         isRecord(block) &&
@@ -133,14 +129,14 @@ export class DockBlocks implements DockLayer {
   doorOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
     return this.layer.ownerOf(
       dimensionId,
-      cell,
+      cellOf(cell),
       (block) => block.type === "door",
     );
   }
 
   /** The vehicle that laid any dock block at this cell, if any (ADR 0093). */
   cellOwner(dimensionId: DimensionId, cell: Vec3): VehicleId | undefined {
-    return this.layer.ownerOf(dimensionId, cell);
+    return this.layer.ownerOf(dimensionId, cellOf(cell));
   }
 
   /** The vehicle that laid this cell, while the world still holds the block it laid there (ADR 0096). */
@@ -149,7 +145,7 @@ export class DockBlocks implements DockLayer {
     cell: Vec3,
     typeId: string,
   ): VehicleId | undefined {
-    return this.layer.laidBlockOwner(dimensionId, cell, typeId);
+    return this.layer.laidBlockOwner(dimensionId, cellOf(cell), typeId);
   }
 
   lay(

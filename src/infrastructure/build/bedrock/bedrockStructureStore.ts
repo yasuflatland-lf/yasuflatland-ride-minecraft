@@ -23,7 +23,7 @@ import {
   type StructureHandle,
   structureHandle,
 } from "../../../domain/build/structure/handle";
-import type { Cell } from "../../../domain/shared/cells";
+import { type Cell, cellOf } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import { blockHeightRange } from "./bedrockBlockWorld";
 import {
@@ -111,7 +111,7 @@ export class BedrockStructureStore implements BuildStructureStore {
       });
       const air = BlockPermutation.resolve("minecraft:air");
       for (const cell of found.getBlockLocationIterator())
-        structure.setBlockPermutation(structureOffset(box, cell), air);
+        structure.setBlockPermutation(structureOffset(box, cellOf(cell)), air);
       return true;
     } catch {
       return false;

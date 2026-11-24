@@ -2,7 +2,11 @@ import type { Entity } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import type { SpaceCheck } from "../../../../src/application/shared/ports/space";
-import { type Cell, cellKey } from "../../../../src/domain/shared/cells";
+import {
+  type Cell,
+  cellKey,
+  cellOf,
+} from "../../../../src/domain/shared/cells";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { savedLaidCells } from "../../../../src/infrastructure/shared/laidCells";
 import {
@@ -24,12 +28,14 @@ vi.mock("@minecraft/server", () => ({
 
 const noCampSpace: SpaceCheck = () => false;
 
-const cell = fc.record({
-  level: fc.integer({ min: 0, max: 15 }),
-  x: fc.integer({ min: -3, max: 3 }),
-  y: fc.integer({ min: -3, max: 3 }),
-  z: fc.integer({ min: -3, max: 3 }),
-});
+const cell = fc
+  .record({
+    level: fc.integer({ min: 0, max: 15 }),
+    x: fc.integer({ min: -3, max: 3 }),
+    y: fc.integer({ min: -3, max: 3 }),
+    z: fc.integer({ min: -3, max: 3 }),
+  })
+  .map((c) => ({ ...c, ...cellOf(c) }));
 const cells = fc.uniqueArray(cell, {
   selector: cellKey,
   minLength: 1,
@@ -139,7 +145,10 @@ describe("HeadlightBlocks (ADR 0020)", () => {
     const car = vehicleIn(overworld);
     const vehicleId = asVehicleId(car.id);
     const lights = new HeadlightBlocks(noCampSpace);
-    const wanted = { x: 0, y: 65, z: 0, level: 8 };
+    const wanted = {
+      ...cellOf({ ...cellOf({ x: 0, y: 65, z: 0 }) }),
+      level: 8,
+    };
     lights.shine(vehicleId, car, [wanted]);
     expect(overworld.typeAt(wanted)).toBe("minecraft:light_block_8");
     loaded = false;
@@ -159,7 +168,7 @@ describe("HeadlightBlocks (ADR 0020)", () => {
   it("lays into an existing light block and leaves solid blocks alone", () => {
     const grid = blockGrid();
     const car = vehicleIn(grid);
-    const light = { x: 0, y: 65, z: 0, level: 8 };
+    const light = { ...cellOf({ x: 0, y: 65, z: 0 }), level: 8 };
     const stone = { ...light, x: 1 };
     grid.getBlock(light).setType(LIGHT_BLOCK);
     grid.getBlock(stone).setType("minecraft:stone");
@@ -178,7 +187,10 @@ describe("HeadlightBlocks (ADR 0020)", () => {
     const car = vehicleIn(grid);
     const vehicleId = asVehicleId(car.id);
     const lights = new HeadlightBlocks(noCampSpace);
-    const wanted = { x: 0, y: 65, z: 0, level: 8 };
+    const wanted = {
+      ...cellOf({ ...cellOf({ x: 0, y: 65, z: 0 }) }),
+      level: 8,
+    };
     lights.shine(vehicleId, car, [wanted]);
     grid.getBlock(wanted).setType(LIGHT_BLOCK);
 
@@ -195,7 +207,10 @@ describe("HeadlightBlocks (ADR 0020)", () => {
       const car = vehicleIn(grid);
       const vehicleId = asVehicleId(car.id);
       const lights = new HeadlightBlocks(noCampSpace);
-      const wanted = { x: 0, y: 65, z: 0, level: 8 };
+      const wanted = {
+        ...cellOf({ ...cellOf({ x: 0, y: 65, z: 0 }) }),
+        level: 8,
+      };
       lights.shine(vehicleId, car, [wanted]);
       grid.getBlock(wanted).setType(replacement);
 
@@ -254,7 +269,7 @@ describe("HeadlightBlocks (ADR 0020)", () => {
   it("reads a cell saved without a level as a level 15 light", () => {
     const grid = blockGrid();
     const car = vehicleIn(grid);
-    const cell = { x: 0, y: 65, z: 0 };
+    const cell = cellOf({ x: 0, y: 65, z: 0 });
     grid.getBlock(cell).setType(LIGHT_BLOCK);
     const saved = JSON.stringify([cell]);
     car.setDynamicProperty(LIT_CELLS_PROPERTY, saved);
@@ -276,23 +291,27 @@ describe("HeadlightBlocks (ADR 0020)", () => {
       { x: 0, y: 65, z: 0, level: 16 },
       { x: 1, y: 65, z: 0, level: 2.5 },
     ];
-    for (const c of invalid) grid.getBlock(c).setType(LIGHT_BLOCK);
+    for (const c of invalid) grid.getBlock(cellOf(c)).setType(LIGHT_BLOCK);
     car.setDynamicProperty(LIT_CELLS_PROPERTY, JSON.stringify(invalid));
     new HeadlightBlocks(noCampSpace).shine(asVehicleId(car.id), car, []);
-    expect(invalid.map(grid.typeAt)).toEqual(invalid.map(() => LIGHT_BLOCK));
+    expect(invalid.map((c) => grid.typeAt(cellOf(c)))).toEqual(
+      invalid.map(() => LIGHT_BLOCK),
+    );
   });
 
   it("drops saved entries that are not cells and clears the valid ones", () => {
     const grid = blockGrid();
     const car = vehicleIn(grid);
-    const valid = { x: 0, y: 65, z: 0, level: 9 };
+    const valid = { ...cellOf({ x: 0, y: 65, z: 0 }), level: 9 };
     const notCells = [
       { x: 1, y: 65.5, z: 0, level: 9 },
       { x: 2, y: 65, z: "0", level: 9 },
     ];
     grid.getBlock(valid).setType("minecraft:light_block_9");
     for (const c of notCells) {
-      grid.getBlock({ x: c.x, y: Math.floor(c.y), z: 0 }).setType(LIGHT_BLOCK);
+      grid
+        .getBlock(cellOf({ x: c.x, y: Math.floor(c.y), z: 0 }))
+        .setType(LIGHT_BLOCK);
     }
     car.setDynamicProperty(
       LIT_CELLS_PROPERTY,
@@ -300,13 +319,13 @@ describe("HeadlightBlocks (ADR 0020)", () => {
     );
     new HeadlightBlocks(noCampSpace).shine(asVehicleId(car.id), car, []);
     expect(grid.typeAt(valid)).toBe("minecraft:air");
-    expect(grid.typeAt({ x: 1, y: 65, z: 0 })).toBe(LIGHT_BLOCK);
-    expect(grid.typeAt({ x: 2, y: 65, z: 0 })).toBe(LIGHT_BLOCK);
+    expect(grid.typeAt(cellOf({ x: 1, y: 65, z: 0 }))).toBe(LIGHT_BLOCK);
+    expect(grid.typeAt(cellOf({ x: 2, y: 65, z: 0 }))).toBe(LIGHT_BLOCK);
     expect(car.getDynamicProperty(LIT_CELLS_PROPERTY)).toBeUndefined();
   });
 
   it("ignores a saved value that is not a list of cells", () => {
-    const lit = { x: 0, y: 65, z: 0, level: 15 };
+    const lit = { ...cellOf({ x: 0, y: 65, z: 0 }), level: 15 };
     for (const saved of [JSON.stringify(lit), "not json"]) {
       const grid = blockGrid();
       const car = vehicleIn(grid);
@@ -329,8 +348,8 @@ it("skips a wanted camp cell and lights the others (ADR 0129)", () => {
   const grid = blockGrid();
   const car = vehicleIn(grid);
   const wanted = [
-    { x: 0, y: 65, z: 0, level: 15 },
-    { x: 1, y: 65, z: 0, level: 15 },
+    { ...cellOf({ x: 0, y: 65, z: 0 }), level: 15 },
+    { ...cellOf({ x: 1, y: 65, z: 0 }), level: 15 },
   ];
   new HeadlightBlocks((_, at) => at.x === 0).shine(
     asVehicleId(car.id),

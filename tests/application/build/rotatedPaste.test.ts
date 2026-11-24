@@ -16,6 +16,7 @@ import {
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
 import { structureClipboard } from "../../support/buildClipboard";
@@ -34,21 +35,26 @@ const playerId = asPlayerId("rotated");
 const stone = blockStateOf("minecraft:stone");
 const marker = blockStateOf("minecraft:gold_block");
 const dirt = blockStateOf("minecraft:dirt");
-const origin = fc.record({
-  x: fc.integer({ min: -50, max: 50 }),
-  y: fc.integer({ min: 0, max: 50 }),
-  z: fc.integer({ min: -50, max: 50 }),
-});
+const origin = fc
+  .record({
+    x: fc.integer({ min: -50, max: 50 }),
+    y: fc.integer({ min: 0, max: 50 }),
+    z: fc.integer({ min: -50, max: 50 }),
+  })
+  .map(cellOf);
 const turn = fc.constantFrom<QuarterTurn>(0, 1, 2, 3);
 
-function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
+function setup(block: Cell, turn: QuarterTurn) {
   const world = new FakeWorld();
   const store = new FakeStructureStore(world);
   const repo = new FakeSessions(store);
   const session = repo.getOrCreate(playerId);
   const feedback = new FakeFeedback();
   const players = new FakeBuildPlayers();
-  const source = boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 3 });
+  const source = boxOf(
+    cellOf({ x: 0, y: 0, z: 0 }),
+    cellOf({ x: 1, y: 1, z: 3 }),
+  );
   const clipboard = structureClipboard(
     source,
     (cell) => (cell.x === 0 && cell.y === 0 && cell.z === 0 ? marker : stone),
@@ -136,11 +142,11 @@ it("uses the live turn for a paste and restores the entire rotated box on Undo",
           [0, 1],
         ] as const
       )[turn];
-      const markerCell = {
+      const markerCell = cellOf({
         x: e.target.anchor.x + dx,
         y: e.target.anchor.y,
         z: e.target.anchor.z + dz,
-      };
+      });
       for (const cell of cellsOf(e.target.box)) {
         expect(e.world.stateAt(overworld, cell)).toEqual(
           cellKey(cell) === cellKey(markerCell) ? marker : stone,

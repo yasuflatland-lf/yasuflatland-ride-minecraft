@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { boxOf } from "../../../src/domain/build/box";
 import { cubePlacement } from "../../../src/domain/build/volume/cube";
 import { volumeSize } from "../../../src/domain/build/volume/size";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 it("reports positive dimensions whose product counts every filled cuboid cell", () => {
   const coordinate = fc.integer({ min: -10, max: 10 });
@@ -13,7 +14,7 @@ it("reports positive dimensions whose product counts every filled cuboid cell", 
       corner,
       fc.integer({ min: 1, max: 20 }),
       (a, b, height) => {
-        const base = boxOf(a, { ...b, y: a.y });
+        const base = boxOf(cellOf(a), cellOf({ ...b, y: a.y }));
         const size = volumeSize(base, height);
         expect(size.x).toBeGreaterThanOrEqual(1);
         expect(size.y).toBeGreaterThanOrEqual(1);

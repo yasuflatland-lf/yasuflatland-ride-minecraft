@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
-import type { Cell } from "../../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { ticks } from "../../../src/domain/shared/ticks";
 import { asWarpPointId } from "../../../src/domain/warp/ids";
@@ -23,7 +23,7 @@ vi.mock("@minecraft/server", () => ({
 beforeEach(() => vi.resetAllMocks());
 const dimensionId = asDimensionId("minecraft:overworld");
 const playerId = asPlayerId("player");
-const feet = { x: -10, y: 64, z: 20 };
+const feet = cellOf({ x: -10, y: 64, z: 20 });
 const point = {
   id: asWarpPointId("point"),
   name: "Warp 1" as WarpName,
@@ -183,7 +183,7 @@ it("does not use a solid block outside the floor cell as support", () => {
   const f = fixture();
   f.dimension.getBlockAbove.mockReturnValue({
     ...stone,
-    location: { ...feet, y: 64 },
+    location: cellOf({ ...feet, y: 64 }),
   });
   expect(f.world.isStandable(dimensionId, feet)).toBe(false);
 });
@@ -211,7 +211,9 @@ it("centers teleport destinations and preserves facing across dimensions", () =>
       (cell) => {
         const f = fixture();
         const destination = asDimensionId("minecraft:nether");
-        expect(f.world.teleport(playerId, destination, cell)).toBe(true);
+        expect(f.world.teleport(playerId, destination, cellOf(cell))).toBe(
+          true,
+        );
         expect(game.getDimension).toHaveBeenCalledWith(destination);
         expect(f.player.teleport).toHaveBeenCalledExactlyOnceWith(
           { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 },

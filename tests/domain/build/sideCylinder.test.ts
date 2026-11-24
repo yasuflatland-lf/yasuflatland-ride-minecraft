@@ -8,14 +8,14 @@ import {
 } from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import type { HeightedSpec } from "../../../src/domain/build/volume/types";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const coordinate = fc.integer({ min: -30, max: 30 });
 const size = fc.integer({ min: 1, max: 12 });
 const spec = fc
   .tuple(
-    fc.record({ x: coordinate, y: coordinate, z: coordinate }),
+    fc.record({ x: coordinate, y: coordinate, z: coordinate }).map(cellOf),
     size,
     size,
     size,
@@ -23,11 +23,14 @@ const spec = fc
   .map(
     ([min, width, depth, height]): HeightedSpec => ({
       kind: "sideCylinderX",
-      base: cellBox(min, {
-        x: min.x + width - 1,
-        y: min.y,
-        z: min.z + depth - 1,
-      }),
+      base: cellBox(
+        min,
+        cellOf({
+          x: min.x + width - 1,
+          y: min.y,
+          z: min.z + depth - 1,
+        }),
+      ),
       height,
     }),
   );
@@ -43,7 +46,7 @@ it("counts unique bounded cells symmetric across all three axes, including thin 
         const kind = kindOf(axis);
         for (const fill of fillStylesFor(kind)) {
           const cells = [...placementOf(kind).cells({ ...spec, kind }, fill)];
-          const keys = new Set(cells.map(cellKey));
+          const keys = new Set(cells.map((cell) => cellKey(cell)));
           expect(keys.size).toBe(cells.length);
           expect(placementOf(kind).count(spec, fill)).toBe(cells.length);
           expect(cells.every((c) => contains(bounds, c))).toBe(true);
@@ -72,18 +75,20 @@ it("exchanges x and z without changing the cylinder", () => {
       const swapped = {
         ...spec,
         kind: "sideCylinderZ" as const,
-        base: cellBox(swap(spec.base.min), swap(spec.base.max)),
+        base: cellBox(cellOf(swap(spec.base.min)), cellOf(swap(spec.base.max))),
       };
       for (const fill of fillStylesFor(spec.kind)) {
         expect(
           new Set(
             [...placementOf("sideCylinderX").cells(spec, fill)]
               .map(swap)
-              .map(cellKey),
+              .map((cell) => cellKey(cellOf(cell))),
           ),
         ).toEqual(
           new Set(
-            [...placementOf("sideCylinderZ").cells(swapped, fill)].map(cellKey),
+            [...placementOf("sideCylinderZ").cells(swapped, fill)].map((cell) =>
+              cellKey(cell),
+            ),
           ),
         );
       }
@@ -97,11 +102,13 @@ it("closes Hollow ends and leaves Tube ends open wherever the section has an int
       for (const axis of ["x", "z"] as const) {
         const placement = placementOf(kindOf(axis));
         const inside = [...placement.cells(spec, "fill")];
-        const filled = new Set(inside.map(cellKey));
+        const filled = new Set(inside.map((cell) => cellKey(cell)));
         const hollow = new Set(
-          [...placement.cells(spec, "hollow")].map(cellKey),
+          [...placement.cells(spec, "hollow")].map((cell) => cellKey(cell)),
         );
-        const tube = new Set([...placement.cells(spec, "tube")].map(cellKey));
+        const tube = new Set(
+          [...placement.cells(spec, "tube")].map((cell) => cellKey(cell)),
+        );
         const across = axis === "x" ? "z" : "x";
         for (const cell of inside) {
           const wall = [across, "y"].some((a) =>
@@ -126,7 +133,10 @@ it("closes Hollow ends and leaves Tube ends open wherever the section has an int
 it("counts a very long axis from one cross-section scan", () => {
   const long = {
     kind: "sideCylinderX" as const,
-    base: cellBox({ x: 0, y: 0, z: 0 }, { x: 999999999, y: 0, z: 4 }),
+    base: cellBox(
+      cellOf({ x: 0, y: 0, z: 0 }),
+      cellOf({ x: 999999999, y: 0, z: 4 }),
+    ),
     height: 5,
   };
   expect(placementOf(long.kind).count(long, "fill")).toBe(21e9);
@@ -171,7 +181,7 @@ it("bounds the preview budget and samples the end ellipses or the top and bottom
 it("prioritizes the top and bottom axis lines under a tight outline budget", () => {
   const s = {
     kind: "sideCylinderX" as const,
-    base: cellBox({ x: 0, y: 0, z: 0 }, { x: 30, y: 0, z: 4 }),
+    base: cellBox(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 30, y: 0, z: 4 })),
     height: 5,
   };
   const points = volumeOf(s.kind).wireframe(s, 30);

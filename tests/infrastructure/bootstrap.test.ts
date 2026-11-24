@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { PlaceChair } from "../../src/application/camp/placeChair";
 import type { SpaceCheck } from "../../src/application/shared/ports/space";
+import { cellOf } from "../../src/domain/shared/cells";
 import { asDimensionId } from "../../src/domain/shared/ids";
 import { bootstrap } from "../../src/infrastructure/bootstrap";
 import { installBuild } from "../../src/infrastructure/build/install";
@@ -99,7 +100,7 @@ afterEach(() => vi.restoreAllMocks());
 it("wires space both ways through a late-bound camp reference (ADR 0129)", () => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const dim = asDimensionId("overworld");
-  const at = { x: 1, y: 65, z: 3 };
+  const at = cellOf({ x: 1, y: 65, z: 3 });
   const isVehicleSpace: SpaceCheck = () => true;
   const isCampSpace = vi.fn<SpaceCheck>();
   vi.mocked(installVehicles).mockImplementation((deps) => {
@@ -158,8 +159,8 @@ it("lets the vehicles see a registered tent, and the chair stand on its floor bu
   const isCampSpace = vi
     .mocked(installVehicles)
     .mock.calls.at(-1)?.[0].isCampSpace;
-  expect(isCampSpace?.(dim, { x: 110, y: -60, z: 50 })).toBe(true);
-  expect(isCampSpace?.(dim, { x: 110, y: -60, z: 60 })).toBe(false);
+  expect(isCampSpace?.(dim, cellOf({ x: 110, y: -60, z: 50 }))).toBe(true);
+  expect(isCampSpace?.(dim, cellOf({ x: 110, y: -60, z: 60 }))).toBe(false);
   const chairPress = game.handlers.get("playerInteractWithBlock")?.[0];
   const press = (y: number, z: number, typeId: string) => {
     game.getBlock.mockReturnValue({ typeId });
@@ -260,7 +261,7 @@ it("installs build last and passes both space checks", () => {
   );
   const protectedAt = vi.mocked(installBuild).mock.lastCall?.[0].isProtected;
   const dimension = asDimensionId("minecraft:overworld");
-  const cell = { x: 1, y: 2, z: 3 };
+  const cell = cellOf({ x: 1, y: 2, z: 3 });
   for (const vehicle of [true, false])
     for (const camp of [true, false]) {
       isVehicleSpace.mockReturnValue(vehicle);

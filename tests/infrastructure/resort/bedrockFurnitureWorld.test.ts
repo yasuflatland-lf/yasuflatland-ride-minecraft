@@ -5,6 +5,7 @@ import {
   furniturePose,
 } from "../../../src/domain/resort/furniture";
 import { asFurnitureId } from "../../../src/domain/resort/ids";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockFurnitureWorld } from "../../../src/infrastructure/resort/bedrock/bedrockFurnitureWorld";
 import {
@@ -133,7 +134,7 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
   const player = asPlayerId("player");
   it("spawns the selected kind at its footprint centre and rolls back a failed rotation", () => {
     const f = fixture();
-    const pose = furniturePose({ x: 0, y: 63, z: 0 }, 90, kind);
+    const pose = furniturePose(cellOf({ x: 0, y: 63, z: 0 }), 90, kind);
     expect(f.adapter.spawn(asDimensionId("overworld"), pose)).toBe(id);
     expect(f.dimension.spawnEntity).toHaveBeenCalledExactlyOnceWith(
       FURNITURE_IDS[kind].entity,
@@ -222,7 +223,7 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
 describe("furniture top blocks", () => {
   const id = asFurnitureId("table");
   const dimensionId = asDimensionId("overworld");
-  const cell = { x: -2, y: 64, z: 3 };
+  const cell = cellOf({ x: -2, y: 64, z: 3 });
   function fixture() {
     const blocks = new Map<string, string>();
     const unavailable = new Set<string>();
@@ -290,7 +291,7 @@ describe("furniture top blocks", () => {
   }
   it("delegates the support check to the shared solid-top read", () => {
     const { adapter } = fixture();
-    const at = { x: 1, y: 2, z: 3 };
+    const at = cellOf({ x: 1, y: 2, z: 3 });
     const support = vi.spyOn(blocks, "isSolidTop").mockReturnValueOnce(true);
     expect(adapter.isSolidTop(dimensionId, at)).toBe(true);
     expect(support).toHaveBeenCalledExactlyOnceWith(dimensionId, at);
@@ -299,16 +300,16 @@ describe("furniture top blocks", () => {
   it("blocks only owned destination cells overlapping hosted gear", () => {
     const f = fixture();
     f.adapter.layTop(id);
-    const above = { ...cell, y: cell.y + 1 };
+    const above = cellOf({ ...cell, y: cell.y + 1 });
     const footprint = { halfX: 2, halfZ: 3 };
     expect(f.adapter.hostedAbove(dimensionId, above)).toBe(false);
     f.itemsOnTop.mockReturnValue([{ at: { x: 0, z: 0 }, footprint }]);
     expect(f.adapter.hostedAbove(dimensionId, above)).toBe(true);
     expect(
-      f.adapter.hostedAbove(dimensionId, { ...above, x: above.x + 1 }),
+      f.adapter.hostedAbove(dimensionId, cellOf({ ...above, x: above.x + 1 })),
     ).toBe(false);
     expect(
-      f.adapter.hostedAbove(dimensionId, { ...above, y: above.y + 1 }),
+      f.adapter.hostedAbove(dimensionId, cellOf({ ...above, y: above.y + 1 })),
     ).toBe(false);
     f.itemsOnTop.mockReturnValue([{ at: { x: 20, z: 0 }, footprint }]);
     expect(f.adapter.hostedAbove(dimensionId, above)).toBe(false);
@@ -418,7 +419,7 @@ describe("furniture top blocks", () => {
     f.unavailable.add(f.key(cell));
     f.entity.location.x++;
     f.adapter.layTop(id);
-    const moved = { ...cell, x: cell.x + 1 };
+    const moved = cellOf({ ...cell, x: cell.x + 1 });
     expect(JSON.parse(String(f.properties.get(FURNITURE_TOP_CELLS)))).toEqual([
       cell,
       moved,

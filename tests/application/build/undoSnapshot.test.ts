@@ -14,6 +14,7 @@ import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
@@ -30,7 +31,9 @@ import { FakeStructureStore } from "./fakes/structureStore";
 const playerId = asPlayerId("alex");
 const coordinate = fc.integer({ min: -4, max: 4 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-const boxArb = fc.tuple(cell, cell).map(([a, b]) => boxOf(a, b));
+const boxArb = fc
+  .tuple(cell, cell)
+  .map(([a, b]) => boxOf(cellOf(a), cellOf(b)));
 
 function setup(box: CellBox) {
   const world = new FakeWorld();
@@ -98,7 +101,10 @@ it.each([
   "wrong dimension",
   "no clipboard",
 ] as const)("undoes with a %s selection or session", (situation) => {
-  const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 64, z: 0 });
+  const box = boxOf(
+    cellOf({ x: 0, y: 64, z: 0 }),
+    cellOf({ x: 2, y: 64, z: 0 }),
+  );
   const e = setup(box);
   e.session.takeUndo();
   const material = blockStateOf("minecraft:stone");
@@ -211,7 +217,10 @@ it("restores snapshots containing laid cells while retaining space protection", 
 });
 
 it("discards a failed placement, consumes history and warns once without changing the flow", () => {
-  const box = boxOf({ x: 0, y: 64, z: 0 }, { x: 2, y: 66, z: 2 });
+  const box = boxOf(
+    cellOf({ x: 0, y: 64, z: 0 }),
+    cellOf({ x: 2, y: 66, z: 2 }),
+  );
   const e = setup(box);
   const flow = e.session.flow;
   e.structures.placeSucceeds = false;
@@ -235,7 +244,7 @@ it("discards a failed placement, consumes history and warns once without changin
 });
 
 it("still sends cell records through edit jobs and keeps busy and empty refusals", () => {
-  const cell = { x: 0, y: 64, z: 0 };
+  const cell = cellOf({ x: 0, y: 64, z: 0 });
   const e = setup(boxOf(cell, cell));
   e.session.takeUndo();
   e.structures.discard(e.handle);
@@ -263,7 +272,7 @@ it("still sends cell records through edit jobs and keeps busy and empty refusals
 });
 
 it("retries a blocked newest snapshot before older snapshot and cell entries", () => {
-  const cell = { x: 0, y: 64, z: 0 };
+  const cell = cellOf({ x: 0, y: 64, z: 0 });
   const box = boxOf(cell, cell);
   const e = setup(box);
   const older = e.session.takeUndo();

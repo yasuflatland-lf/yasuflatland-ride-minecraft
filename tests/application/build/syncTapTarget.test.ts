@@ -8,6 +8,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { tapTargetCell } from "../../../src/domain/build/tapTarget";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import { tappedSelection } from "../../support/buildSelection";
@@ -21,17 +22,17 @@ const material = blockStateOf("minecraft:stone");
 it("shows only a touch player's air endpoint in build mode and a known dimension", () => {
   fc.assert(
     fc.property(cell, cell, fc.boolean(), (from, to, hitBlock) => {
-      const baseBox = boxOf(from, to);
+      const baseBox = boxOf(cellOf(from), cellOf(to));
       const fixed = tappedSelection(
         selectionOf(overworld, baseBox, material),
-        from,
-        to,
+        cellOf(from),
+        cellOf(to),
       );
       const flows: BuildFlow[] = [
         { kind: "idle" },
         {
           kind: "point1",
-          start: { dimensionId: overworld, cell: from, material },
+          start: { dimensionId: overworld, cell: cellOf(from), material },
         },
         { kind: "baseHeight", ...fixed, baseBox, liveHeight: 1 },
         { kind: "selected", ...fixed, menuLevel: "root" },
@@ -45,7 +46,7 @@ it("shows only a touch player's air endpoint in build mode and a known dimension
           origin: { x: from.x - 1, y: to.y + 0.5, z: to.z + 0.5 },
           direction: { x: 1, y: 0, z: 0 },
         },
-        block: hitBlock ? { cell: to, face: "up" } : undefined,
+        block: hitBlock ? { cell: cellOf(to), face: "up" } : undefined,
       };
       for (const flow of flows) {
         for (const aim of [
@@ -102,7 +103,7 @@ it("shows only a touch player's air endpoint in build mode and a known dimension
 });
 
 it("hides a point-one target when the aim plane is behind the player", () => {
-  const from = { x: 0, y: 64, z: 0 };
+  const from = cellOf({ x: 0, y: 64, z: 0 });
   const targets = { show: vi.fn(), hide: vi.fn() };
   new SyncTapTarget(new FakeWorld(), targets).execute({
     playerId,

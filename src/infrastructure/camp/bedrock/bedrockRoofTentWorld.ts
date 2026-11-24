@@ -7,6 +7,7 @@ import type {
   RoofTentRefusal,
 } from "../../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
+import type { Cell } from "../../../domain/shared/cells";
 import { decodeHost, encodeHost } from "../../../domain/shared/hosted";
 import {
   asPlayerId,
@@ -136,10 +137,10 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     if (target) giveBack(target, ROOF_TENT_ITEM, receiver);
   }
   blockAt = blockIn;
-  isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean {
+  isVehicleSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isVehicleSpace(dimension, cell);
   }
-  isCampSpace(dimension: DimensionId, cell: Vec3): boolean {
+  isCampSpace(dimension: DimensionId, cell: Cell): boolean {
     return this.deps.isCampSpace(dimension, cell);
   }
   hasRoofTentNear(dimension: DimensionId, at: Vec3): boolean {

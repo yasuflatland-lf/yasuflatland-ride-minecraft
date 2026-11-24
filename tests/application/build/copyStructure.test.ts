@@ -18,6 +18,7 @@ import {
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { StructureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
 import {
@@ -42,7 +43,10 @@ const side = fc.integer({ min: 1, max: 16 });
 const boxArb = fc
   .tuple(cell, side, side, side)
   .map(([min, x, y, z]) =>
-    boxOf(min, { x: min.x + x - 1, y: min.y + y - 1, z: min.z + z - 1 }),
+    boxOf(
+      cellOf(min),
+      cellOf({ x: min.x + x - 1, y: min.y + y - 1, z: min.z + z - 1 }),
+    ),
   );
 function setup() {
   const structures = new FakeStructureStore();
@@ -386,7 +390,7 @@ function setupNewCopy(from: { x: number; y: number; z: number }) {
   const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
-  const box = boxOf(from, from);
+  const box = boxOf(cellOf(from), cellOf(from));
   const old = structureClipboard(box, () => stone);
   session.completeCopy(selectionOf(overworld, box, stone), old);
   session.setFlowForTest({
@@ -421,11 +425,11 @@ it("starts a normal selection with the old clipboard, then replaces it on Copy",
       expect(e.session.flow).toEqual({ kind: "idle" });
       expect(e.session.confirmedBox).toBeUndefined();
       expect(e.session.clipboard).toBe(e.old);
-      const to = { ...from, x: from.x + length };
-      e.world.put(from, stone);
+      const to = cellOf({ ...from, x: from.x + length });
+      e.world.put(cellOf(from), stone);
       const points = new SetPoint(e.repo, e.world, e.feedback);
-      points.execute({ playerId, dimensionId: overworld, cell: from });
-      const first = tapBlock({ kind: "idle" }, overworld, from, stone);
+      points.execute({ playerId, dimensionId: overworld, cell: cellOf(from) });
+      const first = tapBlock({ kind: "idle" }, overworld, cellOf(from), stone);
       expect(e.session.flow).toEqual(first);
       expect(e.session.clipboard).toBe(e.old);
       points.execute({ playerId, dimensionId: overworld, cell: to });
@@ -449,10 +453,13 @@ it("keeps the old clipboard and selection on an oversized new copy, and keeps it
       const e = setupNewCopy(from);
       expect(e.choices.choosePaste(playerId, "newCopy")).toBe(true);
       const selected = confirmEndpointHeight(
-        tapAir(tapBlock(e.session.flow, overworld, from, stone), {
-          ...from,
-          x: from.x + BUILD_SPEC.maxCopyVolume + extra,
-        }),
+        tapAir(
+          tapBlock(e.session.flow, overworld, cellOf(from), stone),
+          cellOf({
+            ...from,
+            x: from.x + BUILD_SPEC.maxCopyVolume + extra,
+          }),
+        ),
       );
       e.session.setFlowForTest(selected);
       e.chooseBoxStep.execute({ playerId, kind: "copy" });

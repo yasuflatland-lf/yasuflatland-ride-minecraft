@@ -1,5 +1,5 @@
 import { type Entity, type Vector3, world } from "@minecraft/server";
-import { cellCenter } from "../../domain/shared/cells";
+import { cellCenter, cellOf } from "../../domain/shared/cells";
 import { asDimensionId } from "../../domain/shared/ids";
 import { asWarpPointId } from "../../domain/warp/ids";
 import { chooseLanding, landingCandidates } from "../../domain/warp/landing";
@@ -29,7 +29,7 @@ export function warpPoint(a: Arena): WarpPoint {
     name,
     owner: "Warp probe",
     dimension: asDimensionId(a.dim.id),
-    cell: a.at(24, a.gy, 24),
+    cell: cellOf(a.at(24, a.gy, 24)),
   };
 }
 
@@ -76,7 +76,7 @@ export async function warpRegistryStore(a: Arena): Promise<Outcome> {
         id: asWarpPointId(`warp-round-trip-${i}`),
         name,
         owner: "Registry round trip owner",
-        cell: a.at(20 + i, a.gy, 20),
+        cell: cellOf(a.at(20 + i, a.gy, 20)),
       })),
     };
     const length = JSON.stringify(toSnapshot(large)).length;
@@ -145,7 +145,7 @@ function summon(a: Arena): Entity {
 function farPoint(a: Arena): WarpPoint {
   return {
     ...warpPoint(a),
-    cell: { x: 1_000_000 + a.lane.index * 1024, y: a.gy, z: 1_000_000 },
+    cell: cellOf({ x: 1_000_000 + a.lane.index * 1024, y: a.gy, z: 1_000_000 }),
   };
 }
 
@@ -170,7 +170,7 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
         chooseLanding(point.cell, (cell) =>
           adapter.isStandable(point.dimension, cell),
         );
-      const top = { ...point.cell, y: point.cell.y + 1 };
+      const top = cellOf({ ...point.cell, y: point.cell.y + 1 });
       checkWarp(
         adapter.isStandable(point.dimension, top) &&
           sameWarpPosition(pick(), top),
@@ -178,14 +178,17 @@ export async function warpWorld(a: Arena): Promise<Outcome> {
       );
       a.dim.getBlock(top)?.setType("minecraft:stone");
       checkWarp(
-        sameWarpPosition(pick(), { ...point.cell, x: point.cell.x - 1 }),
+        sameWarpPosition(
+          pick(),
+          cellOf({ ...point.cell, x: point.cell.x - 1 }),
+        ),
         "blocked top must choose west side",
       );
       a.dim.runCommand(
         `fill ${a.box(22, a.gy + 1, 22, 26, a.gy + 1, 26)} stone`,
       );
-      const outer = { ...point.cell, x: point.cell.x + 2 };
-      const outerHead = a.dim.getBlock({ ...outer, y: outer.y + 1 });
+      const outer = cellOf({ ...point.cell, x: point.cell.x + 2 });
+      const outerHead = a.dim.getBlock(cellOf({ ...outer, y: outer.y + 1 }));
       outerHead?.setType("minecraft:air");
       checkWarp(sameWarpPosition(pick(), outer), "must land two blocks away");
       outerHead?.setType("minecraft:stone");

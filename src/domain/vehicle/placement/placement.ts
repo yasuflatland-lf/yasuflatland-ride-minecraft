@@ -1,3 +1,4 @@
+import { cellOf } from "../../shared/cells";
 // Where a vehicle goes when its item is used on a block (ADR 0008, ADR 0051),
 // and whether there is room for it there.
 
@@ -116,7 +117,7 @@ function liquidSurfaceCell(
   isWaterAt: (at: Vec3) => boolean,
   maxClimb: number,
 ): Vec3 | undefined {
-  const next = anchorCell(clicked, face);
+  const next = anchorCell(cellOf(clicked), face);
   for (const cell of [clicked, next]) {
     if (!isWaterAt(cell)) continue;
     const { x, z } = cell;

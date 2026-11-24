@@ -1,4 +1,4 @@
-import { cellKey, sameCell } from "../../../shared/cells";
+import { type Cell, cellKey, parseCell, sameCell } from "../../../shared/cells";
 import { quarterOf } from "../../../shared/facing";
 import type { Vec2, Vec3 } from "../../../shared/vec";
 import type { DockCell, HoldPose } from "../../dock/floor";
@@ -139,7 +139,7 @@ export function storagePlateCells(
 export function storagePlateChecks<Id extends string>(
   pose: HoldPose,
   doors: readonly StorageDoor<Id>[],
-): { door: StorageDoor<Id>; cell: Vec3 }[] {
+): { door: StorageDoor<Id>; cell: Cell }[] {
   return insidePlateDoors(doors).map((door) => ({
     door,
     cell: localCellAt(pose, door.opening.plate),
@@ -156,9 +156,10 @@ export function storagePressTarget<Id extends string>(
   doors: readonly StorageDoor<Id>[],
   point?: Vec3,
 ): { door: StorageDoor<Id>; onCompartment: boolean } | undefined {
+  const pressed = parseCell(cell);
   const at = (local: LocalCell) => {
     const c = localCellAt(pose, local);
-    return sameCell(c, cell);
+    return pressed !== undefined && sameCell(c, pressed);
   };
   const door = doors.find(
     (d) =>
@@ -178,7 +179,7 @@ export function storagePressTarget<Id extends string>(
 export function cargoCells(
   pose: HoldPose,
   doors: readonly StorageDoor[] = STORAGE_DOORS,
-): Vec3[] {
+): Cell[] {
   const read = new Set(
     [
       ...slotCells(pose),

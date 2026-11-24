@@ -1,4 +1,4 @@
-import type { Cell } from "../shared/cells";
+import { type Cell, cellOf } from "../shared/cells";
 import { facePlayer } from "../shared/facing";
 import {
   footprintClearCells,
@@ -30,7 +30,9 @@ function tableOffsets(yaw: number) {
 
 /** The clicked ground cell and its neighbor under the other end. */
 export function tableCells(clicked: Cell, yaw: number): Cell[] {
-  return tableOffsets(yaw).map((offset) => add3(clicked, { ...offset, y: 0 }));
+  return tableOffsets(yaw).map((offset) =>
+    cellOf(add3(clicked, { ...offset, y: 0 })),
+  );
 }
 
 export function tableOrigin(clicked: Cell, yaw: number): Vec3 {
@@ -38,9 +40,11 @@ export function tableOrigin(clicked: Cell, yaw: number): Vec3 {
 }
 
 export function tableClearCells(clicked: Cell, yaw: number): Cell[] {
-  const floor = tableCells(clicked, yaw).map((cell) => ({
-    ...cell,
-    y: cell.y + 1,
-  }));
+  const floor = tableCells(clicked, yaw).map((cell) =>
+    cellOf({
+      ...cell,
+      y: cell.y + 1,
+    }),
+  );
   return footprintClearCells(floor, TABLE_SPEC.clearance, "column");
 }

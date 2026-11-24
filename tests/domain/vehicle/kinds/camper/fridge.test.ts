@@ -6,7 +6,7 @@ import { camperRoom } from "../../../../support/camperRoom";
 
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../../src/domain/shared/cells";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
 import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
@@ -59,7 +59,7 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
     ownsLaidBlock: (cell, typeId) =>
       laid.has(cellKey(cell)) && typeId === PLATE_BLOCK,
     blockTypes: vi.fn((cells: readonly Vec3[]) =>
-      cells.map((c) => blocks.get(cellKey(c)) ?? AIR),
+      cells.map((c) => blocks.get(cellKey(cellOf(c))) ?? AIR),
     ),
   };
   const drive = new CamperDrive(yaw, restored);
@@ -112,7 +112,7 @@ function fixture(yaw = 37, restored: Record<string, unknown> = {}) {
 }
 
 const blockAt = (cells: readonly DockCell[] | undefined, at: Vec3) =>
-  cells?.find((c) => cellKey(c) === cellKey(at))?.block;
+  cells?.find((c) => cellKey(c) === cellKey(cellOf(at)))?.block;
 const propertyValues = (out: DriveStep, name: string) =>
   out.commands
     .filter((c) => c.type === "setProperty" && c.name === name)

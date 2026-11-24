@@ -6,6 +6,7 @@ import {
 } from "../../../src/domain/resort/beachChair";
 import { asBeachChairId } from "../../../src/domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../src/domain/resort/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBeachChairWorld } from "../../../src/infrastructure/resort/bedrock/bedrockBeachChairWorld";
 import {
@@ -37,7 +38,7 @@ beforeEach(() => vi.clearAllMocks());
 const id = asBeachChairId("chair");
 const dimensionId = asDimensionId("overworld");
 function fixture(yaw = 0) {
-  const pose = beachChairPose({ x: 10, y: 63, z: 20 }, yaw);
+  const pose = beachChairPose(cellOf({ x: 10, y: 63, z: 20 }), yaw);
   let folded = true;
   const dimension = {
     id: dimensionId,
@@ -317,7 +318,7 @@ it.each([
 
 it("delegates the support check to the shared solid-top read", () => {
   const { adapter } = fixture();
-  const at = { x: 1, y: 2, z: 3 };
+  const at = cellOf({ x: 1, y: 2, z: 3 });
   const support = vi.spyOn(blocks, "isSolidTop").mockReturnValueOnce(true);
   expect(adapter.isSolidTop(dimensionId, at)).toBe(true);
   expect(support).toHaveBeenCalledExactlyOnceWith(dimensionId, at);

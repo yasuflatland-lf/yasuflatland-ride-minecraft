@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockTapTargets } from "../../../src/infrastructure/build/bedrock/bedrockTapTargets";
 import { TAP_TARGET_TYPE } from "../../../src/infrastructure/build/identifiers";
@@ -12,7 +13,7 @@ vi.mock("@minecraft/server", () => ({ world: engine }));
 const playerId = asPlayerId("builder");
 const overworld = asDimensionId("minecraft:overworld");
 const nether = asDimensionId("minecraft:nether");
-const cell = { x: -4, y: 64, z: 2 };
+const cell = cellOf({ x: -4, y: 64, z: 2 });
 const at = { dimensionId: overworld, cell };
 
 function entity(id: string) {
@@ -74,7 +75,7 @@ beforeEach(() => {
 it("spawns once for repeated placements in the same cell", () => {
   const targets = new BedrockTapTargets();
   targets.show(playerId, at);
-  targets.show(playerId, { ...at, cell: { ...cell } });
+  targets.show(playerId, { ...at, cell: cellOf({ ...cell }) });
   expect(dimensions.overworld.spawnEntity).toHaveBeenCalledExactlyOnceWith(
     TAP_TARGET_TYPE,
     { x: -3.5, y: 64, z: 2.5 },
@@ -87,7 +88,7 @@ it("spawns once for repeated placements in the same cell", () => {
 it("teleports an existing target to the new cell in its dimension", () => {
   const targets = new BedrockTapTargets();
   targets.show(playerId, at);
-  const next = { ...cell, y: 66 };
+  const next = cellOf({ ...cell, y: 66 });
   targets.show(playerId, { dimensionId: overworld, cell: next });
   const target = spawned("overworld");
   expect(dimensions.overworld.spawnEntity).toHaveBeenCalledTimes(1);

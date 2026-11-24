@@ -13,6 +13,7 @@ import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
 import { registerPasteControls } from "../../../src/infrastructure/build/bedrock/handlers/pasteControls";
@@ -82,7 +83,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const repo = new FakeSessions(structures);
   const id = asPlayerId("p");
   const session = repo.getOrCreate(id);
-  const cell = { x: 0, y: 60, z: 0 };
+  const cell = cellOf({ x: 0, y: 60, z: 0 });
   if (active)
     session.completeCopy(
       selectionOf(nether, boxOf(cell, cell), AIR),
@@ -205,7 +206,10 @@ function flush() {
 
 it("debounces Paste Rotate across block and item events for the selected box", () => {
   const e = setup();
-  const box = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 1 });
+  const box = boxOf(
+    cellOf({ x: 0, y: 60, z: 0 }),
+    cellOf({ x: 4, y: 60, z: 1 }),
+  );
   e.session.setFlowForTest({
     kind: "selected",
     menuLevel: "root",
@@ -588,11 +592,11 @@ it.each([false, true])(
     const point = tapBlock(
       { kind: "idle" },
       nether,
-      { x: 0, y: 60, z: 0 },
+      cellOf({ x: 0, y: 60, z: 0 }),
       AIR,
       NETHER_RANGE,
     );
-    e.session.setFlowForTest(tapAir(point, { x: 4, y: 60, z: 4 }));
+    e.session.setFlowForTest(tapAir(point, cellOf({ x: 4, y: 60, z: 4 })));
     if (blockFirst) e.interact();
     e.use();
     if (!blockFirst) e.interact();

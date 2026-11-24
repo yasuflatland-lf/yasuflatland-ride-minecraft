@@ -13,6 +13,7 @@ import { sizeOf } from "../../../domain/build/box";
 import { confirmLiveHeight } from "../../../domain/build/flow/heightFlow";
 import { routePress } from "../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
+import { cellOf } from "../../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../domain/shared/ids";
 import type { BedrockFeedback } from "../bedrock/bedrockFeedback";
 import {
@@ -70,7 +71,7 @@ export function registerTestTap(
       if (!player?.isValid) return;
       const playerId = asPlayerId(player.id);
       const dimensionId = asDimensionId(player.dimension.id);
-      const cell = { x, y, z };
+      const cell = cellOf({ x, y, z });
       let message: BuildMessage | undefined;
       let count: number | undefined;
       const session = repo.get(playerId);

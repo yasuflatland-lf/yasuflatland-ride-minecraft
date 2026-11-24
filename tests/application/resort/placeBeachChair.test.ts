@@ -8,18 +8,20 @@ import {
   beachChairSupportCells,
 } from "../../../src/domain/resort/beachChair";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { fakeBeachChairWorld } from "./fakeBeachChairWorld";
 
 const command = fc.record({
   player: fc.constant(asPlayerId("p")),
   dimension: fc.constant(asDimensionId("overworld")),
-  block: fc.record({
-    x: fc.integer({ min: -1000, max: 1000 }),
-    y: fc.integer({ min: 0, max: 200 }),
-    z: fc.integer({ min: -1000, max: 1000 }),
-  }),
+  block: fc
+    .record({
+      x: fc.integer({ min: -1000, max: 1000 }),
+      y: fc.integer({ min: 0, max: 200 }),
+      z: fc.integer({ min: -1000, max: 1000 }),
+    })
+    .map(cellOf),
   face: fc.constant<BlockFace>("up"),
   yaw: fc.integer({ min: -360, max: 360 }),
   slot: fc.integer({ min: 0, max: 8 }),
@@ -100,7 +102,7 @@ it("spawns the chair at the supported pose", () => {
     new PlaceBeachChair(world).execute({
       player,
       dimension,
-      block: { x: 10, y: 20, z: 30 },
+      block: cellOf({ x: 10, y: 20, z: 30 }),
       face: "up",
       yaw: 0,
       slot,

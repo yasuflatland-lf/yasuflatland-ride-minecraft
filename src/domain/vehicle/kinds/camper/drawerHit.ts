@@ -1,6 +1,5 @@
-import { sameCell } from "../../../shared/cells";
-import type { Vec3 } from "../../../shared/vec";
-import { add3, sub3 } from "../../../shared/vec";
+import { type Cell, parseCell, sameCell } from "../../../shared/cells";
+import { add3, distanceSq, sub3, type Vec3 } from "../../../shared/vec";
 import type { HoldPose } from "../../dock/floor";
 import type { DecorPlacement } from "./decorData";
 import {
@@ -180,7 +179,7 @@ export function drawerHit(
     if (
       !pressCell ||
       !drawerPressCell(pose, pressCell) ||
-      sameCell(pressCell, cell) ||
+      distanceSq(pressCell, cell) === 0 ||
       end[0] < half - margin ||
       end[0] > HIT.frontLeftMax + DRAWER_SLIDE_PX + margin ||
       end[2] < HIT.frontAheadMin - margin ||
@@ -208,7 +207,9 @@ export function drawerHit(
 }
 
 /** Only the counter and its adjacent aisle cells may forward a block press. */
-export function drawerPressCell(pose: HoldPose, cell: Vec3): Vec3 | undefined {
+export function drawerPressCell(pose: HoldPose, at: Vec3): Cell | undefined {
+  const cell = parseCell(at);
+  if (!cell) return undefined;
   const counter = localCellAt(pose, DRAWER_COMPARTMENT);
   const cells = [
     counter,

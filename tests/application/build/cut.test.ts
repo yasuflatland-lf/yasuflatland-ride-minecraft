@@ -5,9 +5,9 @@ import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
 import {
@@ -26,7 +26,7 @@ import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone", { stone_type: "granite" });
-const origin = { x: 0, y: 64, z: 0 };
+const origin = cellOf({ x: 0, y: 64, z: 0 });
 function setup() {
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
@@ -62,7 +62,7 @@ it("captures the whole box twice before removing anything and records a snapshot
       (x, y, z) => {
         const e = setup();
         const capture = vi.spyOn(e.structures, "capture");
-        const box = boxOf(origin, { x: x - 1, y: 63 + y, z: z - 1 });
+        const box = boxOf(origin, cellOf({ x: x - 1, y: 63 + y, z: z - 1 }));
         for (const cell of cellsOf(box))
           e.world.put(cell, blockStateOf("minecraft:chest"));
         expect(
@@ -197,7 +197,7 @@ it("refuses the entire box when any cell is protected", () => {
   fc.assert(
     fc.property(fc.integer({ min: 0, max: 26 }), (index) => {
       const e = setup();
-      const box = boxOf(origin, { x: 2, y: 66, z: 2 });
+      const box = boxOf(origin, cellOf({ x: 2, y: 66, z: 2 }));
       const cell = [...cellsOf(box)][index];
       if (!cell) throw new Error("missing cell");
       e.world.protectedCells.add(cellKey(cell));
@@ -221,7 +221,7 @@ it("refuses a laid cell anywhere in the box before capturing or clearing", () =>
   fc.assert(
     fc.property(fc.integer({ min: 0, max: 26 }), (index) => {
       const e = setup();
-      const box = boxOf(origin, { x: 2, y: 66, z: 2 });
+      const box = boxOf(origin, cellOf({ x: 2, y: 66, z: 2 }));
       const cell = [...cellsOf(box)][index];
       if (!cell) throw new Error("Missing source cell");
       const clipboard = structureClipboard(box, () => stone);
@@ -276,11 +276,14 @@ it("restores failed cuts without changing the session or discarding prior handle
         const clipboard = e.session.clipboard;
         const confirmed = e.session.confirmedBox;
         const flow = confirmEndpointHeight(
-          tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), {
-            x,
-            y: 65,
-            z: 1,
-          }),
+          tapAir(
+            tapBlock({ kind: "idle" }, overworld, origin, stone),
+            cellOf({
+              x,
+              y: 65,
+              z: 1,
+            }),
+          ),
         );
         e.session.setFlowForTest(flow);
         const before = structuredClone(e.session);
@@ -288,7 +291,10 @@ it("restores failed cuts without changing the session or discarding prior handle
         e.feedback.messages.length = 0;
         e.feedback.undoHints.length = 0;
         e.structures.clearBlocksSucceeds = false;
-        const box = boxOf({ x, y: 65, z: 1 }, { x: x + 1, y: 66, z: 2 });
+        const box = boxOf(
+          cellOf({ x, y: 65, z: 1 }),
+          cellOf({ x: x + 1, y: 66, z: 2 }),
+        );
         expect(
           e.cut.execute({
             playerId,
@@ -396,11 +402,11 @@ it.each(["tooLarge", "busy"] as const)(
   "preserves the selection and old clipboard when Cut reports %s",
   (refusal) => {
     const e = setup();
-    const end = {
+    const end = cellOf({
       ...origin,
       x: refusal === "tooLarge" ? BUILD_SPEC.maxCopyVolume : 1,
       z: 1,
-    };
+    });
     const flow = confirmEndpointHeight(
       tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
     );
@@ -428,11 +434,11 @@ it("cuts every selected shape directly", () => {
       }),
       (delta) => {
         const e = setup();
-        const end = {
+        const end = cellOf({
           x: origin.x + delta.x,
           y: origin.y + delta.y,
           z: origin.z + delta.z,
-        };
+        });
         const box = boxOf(origin, end);
         e.world.put(origin, stone);
         e.session.setFlowForTest(
@@ -458,7 +464,7 @@ it("cuts every selected shape directly", () => {
 
 it("accepts the copy-volume boundary even when the entire box is air", () => {
   const e = setup();
-  const box = boxOf(origin, { x: 31, y: 95, z: 31 });
+  const box = boxOf(origin, cellOf({ x: 31, y: 95, z: 31 }));
   expect(
     e.cut.execute({
       playerId,

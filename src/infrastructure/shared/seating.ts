@@ -1,6 +1,6 @@
 import type { Dimension, Entity, Player } from "@minecraft/server";
 import type { SpaceCheck } from "../../application/shared/ports/space";
-import { type Cell, cellCenter } from "../../domain/shared/cells";
+import { type Cell, cellCenter, cellOf } from "../../domain/shared/cells";
 import { seatWorldPoint } from "../../domain/shared/frame";
 import {
   asDimensionId,
@@ -48,10 +48,10 @@ export function makeSafeStand(
   const dimensionId = asDimensionId(dimension.id);
   const sampleOptions = { probeSolidity: false };
   return (feetCell) => {
-    const headCell = { ...feetCell, y: feetCell.y + 1 };
+    const headCell = cellOf({ ...feetCell, y: feetCell.y + 1 });
     const floor = sampleBlock(
       dimension,
-      { ...feetCell, y: feetCell.y - 1 },
+      cellOf({ ...feetCell, y: feetCell.y - 1 }),
       sampleOptions,
     );
     const feet = sampleBlock(dimension, feetCell, sampleOptions);

@@ -13,6 +13,7 @@ import {
 } from "../../../domain/camp/roofTent/occupancy";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
+import { cellOf } from "../../../domain/shared/cells";
 import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import { decodeHost } from "../../../domain/shared/hosted";
@@ -62,7 +63,7 @@ export class RoofTentOccupants {
     const exit = chooseExit({
       host:
         vehicle?.status === "present" && vehicle.mount
-          ? exitCell(vehicle.mount, vehicle, snapYaw4(yaw))
+          ? cellOf(exitCell(vehicle.mount, vehicle, snapYaw4(yaw)))
           : undefined,
       saved: decodeExit(entity.getDynamicProperty(ROOF_TENT_EXIT_PROPERTY)),
       fallback: fallbackExit(location, yaw),

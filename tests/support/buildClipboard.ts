@@ -9,13 +9,13 @@ import {
 import type { Clipboard } from "../../src/domain/build/clipboard/clipboard";
 import { selectionOf } from "../../src/domain/build/selection";
 import type { BuildSession } from "../../src/domain/build/session";
-import type { Cell } from "../../src/domain/shared/cells";
+import { type Cell, cellOf } from "../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../src/domain/shared/ids";
 import { FakeWorld } from "../application/build/fakes";
 import { FakeStructureStore } from "../application/build/fakes/structureStore";
 
 const COPY_DIMENSION = asDimensionId("minecraft:overworld");
-const ORIGIN = { x: 0, y: 0, z: 0 };
+const ORIGIN = cellOf({ x: 0, y: 0, z: 0 });
 
 /**
  * Gives the session a clipboard the way a copy does (`completeCopy`), then puts

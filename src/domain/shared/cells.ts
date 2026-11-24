@@ -1,8 +1,9 @@
 // Integer block cells and their saved coordinate keys.
+import type { Brand } from "./ids";
 import type { Vec3 } from "./vec";
 
 /** Block cell, as integer coordinates. */
-export type Cell = Vec3;
+export type Cell = Brand<Vec3, "Cell">;
 
 export type ProtectedSpace = "vehicle" | "camp";
 export const VEHICLE_SPACE_ONLY: readonly ProtectedSpace[] = Object.freeze([
@@ -11,23 +12,23 @@ export const VEHICLE_SPACE_ONLY: readonly ProtectedSpace[] = Object.freeze([
 
 export function parseCell(raw: unknown): Cell | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
-  const { x, y, z } = raw as Cell;
+  const { x, y, z } = raw as Vec3;
   if (
     !Number.isSafeInteger(x) ||
     !Number.isSafeInteger(y) ||
     !Number.isSafeInteger(z)
   )
     return undefined;
-  return { x, y, z };
+  return { x, y, z } as Cell;
 }
 
 export function cellOf(v: Vec3): Cell {
-  return { x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z) };
+  return { x: Math.floor(v.x), y: Math.floor(v.y), z: Math.floor(v.z) } as Cell;
 }
 
 export const cellKey = (c: Cell): string => `${c.x},${c.y},${c.z}`;
 
-export function sameCell(a: Vec3, b: Vec3): boolean {
+export function sameCell(a: Cell, b: Cell): boolean {
   return a.x === b.x && a.y === b.y && a.z === b.z;
 }
 

@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { searchExitCell } from "../../../src/domain/shared/exitSearch";
 
 const search = fc.record({
@@ -30,9 +30,15 @@ function orderedCells(
   const radius = (c: Cell) => Math.max(Math.abs(c.x), Math.abs(c.z));
   return offsets
     .sort(
-      (a, b) => radius(a) - radius(b) || a.x - b.x || a.z - b.z || b.y - a.y,
+      (a, b) =>
+        radius(cellOf(a)) - radius(cellOf(b)) ||
+        a.x - b.x ||
+        a.z - b.z ||
+        b.y - a.y,
     )
-    .map((c) => ({ x: start.x + c.x, y: start.y + c.y, z: start.z + c.z }));
+    .map((c) =>
+      cellOf({ x: start.x + c.x, y: start.y + c.y, z: start.z + c.z }),
+    );
 }
 
 it("returns the first safe, non-excluded cell in ring order", () => {
@@ -42,10 +48,10 @@ it("returns the first safe, non-excluded cell in ring order", () => {
       fc.func(fc.boolean()),
       fc.func(fc.boolean()),
       ({ start, ring }, excluded, isSafe) => {
-        const candidates = orderedCells(start, ring);
+        const candidates = orderedCells(cellOf(start), ring);
         const expected = candidates.find((c) => !excluded(c) && isSafe(c));
         const visited: Cell[] = [];
-        const result = searchExitCell(start, excluded, ring, (c) => {
+        const result = searchExitCell(cellOf(start), excluded, ring, (c) => {
           expect(excluded(c)).toBe(false);
           visited.push(c);
           return isSafe(c);
@@ -69,12 +75,12 @@ it("returns the first safe, non-excluded cell in ring order", () => {
 it("can reach any candidate in the search volume", () => {
   fc.assert(
     fc.property(search, fc.nat(), ({ start, ring }, index) => {
-      const candidates = orderedCells(start, ring);
+      const candidates = orderedCells(cellOf(start), ring);
       const target = candidates[index % candidates.length];
       if (!target) throw Error("missing candidate");
       expect(
         searchExitCell(
-          start,
+          cellOf(start),
           () => false,
           ring,
           (c) => cellKey(c) === cellKey(target),
@@ -90,7 +96,7 @@ it("returns undefined after visiting every cell in ring order when none is safe"
       const visited: Cell[] = [];
       expect(
         searchExitCell(
-          start,
+          cellOf(start),
           () => false,
           ring,
           (c) => {
@@ -99,10 +105,10 @@ it("returns undefined after visiting every cell in ring order when none is safe"
           },
         ),
       ).toBeUndefined();
-      expect(visited).toEqual(orderedCells(start, ring));
+      expect(visited).toEqual(orderedCells(cellOf(start), ring));
       expect(
         searchExitCell(
-          start,
+          cellOf(start),
           () => true,
           ring,
           () => true,

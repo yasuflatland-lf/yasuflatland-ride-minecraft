@@ -20,7 +20,7 @@ import {
   levelAt,
   staircaseToward,
 } from "../../../../src/domain/build/stairs/staircase";
-import { cellKey } from "../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../src/domain/shared/cells";
 import {
   NETHER_RANGE,
   OVERWORLD_RANGE,
@@ -38,8 +38,8 @@ const level = fc.oneof(
 const rows = fc
   .tuple(axis, coord, level, coord, positive)
   .map(([along, x, y, z, span]) => {
-    const to = { x, y, z };
-    const from = { ...to, [along]: to[along] + span };
+    const to = cellOf({ x, y, z });
+    const from = cellOf({ ...to, [along]: to[along] + span });
     const row = stairRowOf({ from, to });
     if (!row?.along) throw new Error("Expected a horizontal line");
     return { ...row, along: row.along };
@@ -103,12 +103,16 @@ it("projects a single-cell row onto the dominant horizontal offset, preferring x
       coord,
       coord,
       (cell, dx, dz, dy) => {
-        const row = stairRowOf({ from: cell, to: cell });
+        const row = stairRowOf({ from: cellOf(cell), to: cellOf(cell) });
         if (!row) throw new Error("Expected a single-cell row");
         expect(row.along).toBeUndefined();
         expect([...rowCells(row)]).toEqual([cell]);
         for (const zOffset of [dz, dx, -dx]) {
-          const hit = { x: cell.x + dx, y: cell.y + dy, z: cell.z + zOffset };
+          const hit = cellOf({
+            x: cell.x + dx,
+            y: cell.y + dy,
+            z: cell.z + zOffset,
+          });
           const s = staircaseToward(row, hit);
           const run = Math.max(Math.abs(dx), Math.abs(zOffset));
           if (!run || !dy) {
@@ -204,11 +208,13 @@ it.each([OVERWORLD_RANGE, NETHER_RANGE])(
             for (const rowCell of rowCells(s.row)) {
               expect(
                 byCell.get(
-                  cellKey({
-                    x: rowCell.x + direction.x * k,
-                    z: rowCell.z + direction.z * k,
-                    y,
-                  }),
+                  cellKey(
+                    cellOf({
+                      x: rowCell.x + direction.x * k,
+                      z: rowCell.z + direction.z * k,
+                      y,
+                    }),
+                  ),
                 ),
               ).toBe(role);
               expected++;
@@ -277,10 +283,10 @@ it("plans only tread noses as descending stairs and uses flat tops or uniform bl
 
 it("outlines the tread tops and keeps the goal end under a tight preview budget", () => {
   const row = stairRowOf({
-    from: { x: 0, y: 0, z: 0 },
-    to: { x: 2, y: 0, z: 0 },
+    from: cellOf({ x: 0, y: 0, z: 0 }),
+    to: cellOf({ x: 2, y: 0, z: 0 }),
   });
-  const staircase = row && staircaseToward(row, { x: 1, y: 2, z: 4 });
+  const staircase = row && staircaseToward(row, cellOf({ x: 1, y: 2, z: 4 }));
   if (!staircase) throw new Error("Expected a valid staircase");
   const points = stairPreviewPoints(staircase, BUILD_SPEC.outlineMaxPoints);
   expect(points).toEqual(

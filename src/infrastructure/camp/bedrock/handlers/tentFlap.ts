@@ -2,25 +2,28 @@
 import { system } from "@minecraft/server";
 import type { UseTentFlap } from "../../../../application/camp/useTentFlap";
 import type { FlapId, TentId } from "../../../../domain/camp/tent";
+import { type Cell, cellOf } from "../../../../domain/shared/cells";
 import {
   asDimensionId,
   asPlayerId,
   type DimensionId,
 } from "../../../../domain/shared/ids";
-import type { Vec3 } from "../../../../domain/shared/vec";
 import { TENT_FLAP_COMPONENT } from "../../identifiers";
 
 export function registerTentFlap(
   useFlap: UseTentFlap,
   flapAt: (
     dimensionId: DimensionId,
-    cell: Vec3,
+    cell: Cell,
   ) => { tentId: TentId; flap: FlapId } | undefined,
 ): void {
   system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
     blockComponentRegistry.registerCustomComponent(TENT_FLAP_COMPONENT, {
       onPlayerInteract: (ev) => {
-        const hit = flapAt(asDimensionId(ev.dimension.id), ev.block.location);
+        const hit = flapAt(
+          asDimensionId(ev.dimension.id),
+          cellOf(ev.block.location),
+        );
         if (!hit) return;
         useFlap.execute({
           tentId: hit.tentId,

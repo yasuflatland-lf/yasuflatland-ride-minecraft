@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import { boxFromSize, type CellBox, sizeOf, unionOf } from "../box";
 import { rotatedSize } from "./quarterTurn";
 
@@ -18,11 +18,11 @@ function halfTowardZero(difference: number): number {
 export function planRotationAboutCenter(source: CellBox): RotationPlan {
   const size = sizeOf(source);
   const turned = rotatedSize(size, 1);
-  const min: Cell = {
+  const min: Cell = cellOf({
     x: source.min.x + halfTowardZero(size.x - size.z),
     y: source.min.y,
     z: source.min.z + halfTowardZero(size.z - size.x),
-  };
+  });
   const target = boxFromSize(min, turned);
   const union = unionOf(source, target);
   return Object.freeze({ target, union });

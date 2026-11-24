@@ -1,7 +1,10 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { cellKey } from "../../../../../src/domain/shared/cells";
-import type { Vec3 } from "../../../../../src/domain/shared/vec";
+import {
+  type Cell,
+  cellOf,
+  sameCell,
+} from "../../../../../src/domain/shared/cells";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
 
 import { slotCells } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
@@ -26,11 +29,10 @@ const pose = fc
   .map((q) => parkPose(location, q * 90));
 
 function context(
-  at: Vec3,
+  at: Cell,
   observed: string | undefined,
   owned: boolean,
 ): TickContext {
-  const matches = (cell: Vec3) => cellKey(cell) === cellKey(at);
   return {
     tick: 0,
     location,
@@ -40,9 +42,9 @@ function context(
     solidAt: () => false,
     waterAt: () => false,
     blockTypes: (cells) =>
-      cells.map((cell) => (matches(cell) ? observed : AIR)),
+      cells.map((cell) => (sameCell(cellOf(cell), at) ? observed : AIR)),
     ownsLaidBlock: (cell, typeId) =>
-      matches(cell) && typeId === observed && owned,
+      sameCell(cell, at) && typeId === observed && owned,
   };
 }
 

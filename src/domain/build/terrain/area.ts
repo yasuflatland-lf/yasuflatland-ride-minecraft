@@ -1,5 +1,5 @@
 // The footprint and heights a terrain operation reads from two points (ADR 0233).
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import { type CellBox, cellBox } from "../box";
 import type { HeightRange } from "../heightRange";
 import { BUILD_SPEC } from "../spec";
@@ -49,14 +49,14 @@ export function removeAboveBox(
 ): CellBox | undefined {
   if (area.lowerY >= range.maxY) return undefined;
   return cellBox(
-    { x: area.minX, y: area.lowerY + 1, z: area.minZ },
-    { x: area.maxX, y: range.maxY, z: area.maxZ },
+    cellOf({ x: area.minX, y: area.lowerY + 1, z: area.minZ }),
+    cellOf({ x: area.maxX, y: range.maxY, z: area.maxZ }),
   );
 }
 
 export function fillBelowBox(area: TerrainArea, range: HeightRange): CellBox {
   return cellBox(
-    { x: area.minX, y: range.minY, z: area.minZ },
-    { x: area.maxX, y: area.higherY, z: area.maxZ },
+    cellOf({ x: area.minX, y: range.minY, z: area.minZ }),
+    cellOf({ x: area.maxX, y: area.higherY, z: area.maxZ }),
   );
 }

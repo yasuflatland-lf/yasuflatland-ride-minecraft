@@ -12,7 +12,7 @@ import { blockStateOf } from "../../domain/build/blockState";
 import { cellBox, cellsOf, contains } from "../../domain/build/box";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
-import { sameCell } from "../../domain/shared/cells";
+import { cellOf, sameCell } from "../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
@@ -25,13 +25,16 @@ import { selectionBoxOf } from "./support/buildSelection";
 export async function buildRotateBox(a: Arena): Promise<Outcome> {
   const playerId = asPlayerId(`rotate_box_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
-  const source = cellBox(a.at(20, a.gy, 20), a.at(24, a.gy + 3, 26));
+  const source = cellBox(
+    cellOf(a.at(20, a.gy, 20)),
+    cellOf(a.at(24, a.gy + 3, 26)),
+  );
   const plan = planRotationAboutCenter(source);
-  const neighbor = { ...plan.target.min, y: a.gy + 1 };
+  const neighbor = cellOf({ ...plan.target.min, y: a.gy + 1 });
   let protectedCell: Vector3 | undefined;
   const world = new BedrockBlockWorld({
     isProtected: (_dim, cell) =>
-      protectedCell !== undefined && sameCell(cell, protectedCell),
+      protectedCell !== undefined && sameCell(cell, cellOf(protectedCell)),
   });
   const structures = new BedrockStructureStore(() => false);
   const players = { occupantOf: () => undefined, moveTo: () => {} };

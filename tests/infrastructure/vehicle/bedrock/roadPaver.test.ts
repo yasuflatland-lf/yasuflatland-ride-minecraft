@@ -1,7 +1,7 @@
 import type { Dimension } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { cellKey } from "../../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../../src/domain/shared/cells";
 import { PLACE_KEPT_BLOCKS } from "../../../../src/domain/shared/keptBlocks";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import type { DropSweep } from "../../../../src/infrastructure/vehicle/bedrock/dropSweep";
@@ -32,17 +32,17 @@ function fixture(
   options: { unloaded?: string; throws?: string; protect?: string } = {},
 ) {
   const world = new Map(Object.entries(types));
-  const typeAt = (c: Vec3) => world.get(cellKey(c)) ?? "minecraft:air";
+  const typeAt = (c: Vec3) => world.get(cellKey(cellOf(c))) ?? "minecraft:air";
   const dimension = {
     id: "overworld",
     getBlock: (c: Vec3) => {
-      if (cellKey(c) === options.unloaded) return undefined;
+      if (cellKey(cellOf(c)) === options.unloaded) return undefined;
       return {
         typeId: typeAt(c),
         hasTag: (tag: string) => tag === "yasu_ride:laid" && typeAt(c) === LAID,
         setPermutation: (p: { typeId: string }) => {
-          if (cellKey(c) === options.throws) throw new Error("boom");
-          world.set(cellKey(c), p.typeId);
+          if (cellKey(cellOf(c)) === options.throws) throw new Error("boom");
+          world.set(cellKey(cellOf(c)), p.typeId);
         },
       };
     },
@@ -65,13 +65,13 @@ it("lays a cell if and only if no guard applies", () => {
       fc.option(fc.nat({ max: 7 }), { nil: undefined }),
       (kinds, protectedIndex) => {
         const types = Object.fromEntries(
-          kinds.map((k, i) => [cellKey(cellAt(i)), k]),
+          kinds.map((k, i) => [cellKey(cellOf(cellAt(i))), k]),
         );
         const { typeAt, dimension, paver } = fixture(types, {
           protect:
             protectedIndex === undefined
               ? undefined
-              : cellKey(cellAt(protectedIndex)),
+              : cellKey(cellOf(cellAt(protectedIndex))),
         });
         paver.pave(dimension, {
           block: ROAD,
@@ -93,7 +93,10 @@ it("lays a cell if and only if no guard applies", () => {
 it("skips an unloaded cell and a throwing cell without stopping the rest", () => {
   const { typeAt, dimension, paver } = fixture(
     {},
-    { unloaded: cellKey(cellAt(0)), throws: cellKey(cellAt(1)) },
+    {
+      unloaded: cellKey(cellOf(cellAt(0))),
+      throws: cellKey(cellOf(cellAt(1))),
+    },
   );
   paver.pave(dimension, {
     block: ROAD,
@@ -112,7 +115,7 @@ it("lays nothing for a block that does not resolve", () => {
 
 it("records one box from each placed cell to the cell plus one", () => {
   const { dimension, paver, record } = fixture({
-    [cellKey(cellAt(1))]: "minecraft:chest",
+    [cellKey(cellOf(cellAt(1)))]: "minecraft:chest",
   });
   paver.pave(dimension, { block: ROAD, cells: [cellAt(0), cellAt(1)] });
   expect(record.mock.calls).toEqual([

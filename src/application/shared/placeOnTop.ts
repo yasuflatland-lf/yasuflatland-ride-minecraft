@@ -51,10 +51,10 @@ export function placeOnTop(
   if (!placement.ok) return placement.reason;
   if (host.blockedAt?.(placement.at, kind.footprint)) return "overlap";
   const at = hostSpotPoint(host, placement.at, surface.topPx);
-  const cell = {
-    ...cellOf(at),
+  const cell = cellOf({
+    ...at,
     y: Math.floor(host.at.y) + surface.clearanceBase,
-  };
+  });
   if (!hasClearance(world, host.dimension, cell, kind.clearance, kind.refuses))
     return "refused";
   const result = placePaid(world, { player: cmd.player, slot: cmd.slot }, () =>

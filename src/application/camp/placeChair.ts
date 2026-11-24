@@ -7,9 +7,8 @@ import {
 } from "../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../domain/camp/spec";
 import type { BlockFace } from "../../domain/shared/blockFace";
-import { cellCenter } from "../../domain/shared/cells";
+import { type Cell, cellCenter, cellOf } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
 import { isSpaceRefused, placeOnCells } from "../shared/groundPlacement";
 import type { ChairWorld } from "./ports/chair";
 
@@ -18,18 +17,14 @@ export interface PlaceChairCommand {
   playerId?: PlayerId;
   dimensionId: DimensionId;
   /** The block the chair stands on (integer coordinates); the chair appears one block above it. */
-  blockLocation: Vec3;
+  blockLocation: Cell;
   /** The placing player's yaw; the chair turns to face them. */
   yaw: number;
   /** Hotbar slot that held the item when it was used; the player may switch slots before the placement runs. */
   slot: number;
 }
 
-const above = (at: Vec3, dy: number): Vec3 => ({
-  x: at.x,
-  y: at.y + dy,
-  z: at.z,
-});
+const above = (at: Cell, dy: number): Cell => cellOf({ ...at, y: at.y + dy });
 
 export class PlaceChair {
   constructor(private readonly world: ChairWorld) {}
@@ -42,9 +37,9 @@ export class PlaceChair {
    */
   cellFor(
     dimensionId: DimensionId,
-    clicked: Vec3,
+    clicked: Cell,
     face: BlockFace,
-  ): Vec3 | undefined {
+  ): Cell | undefined {
     const cell = chairCell(clicked, face);
     if (cell === undefined || this.blockedAtSeat(dimensionId, cell))
       return undefined;
@@ -77,7 +72,7 @@ export class PlaceChair {
     ).placed;
   }
 
-  private blockedAtSeat(dimensionId: DimensionId, block: Vec3): boolean {
+  private blockedAtSeat(dimensionId: DimensionId, block: Cell): boolean {
     return (
       this.world.isOwnBlock(dimensionId, block) ||
       isSpaceRefused(

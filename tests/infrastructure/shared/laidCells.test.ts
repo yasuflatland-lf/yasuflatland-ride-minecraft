@@ -1,7 +1,7 @@
 import type { BlockPermutation, Dimension } from "@minecraft/server";
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { LaidCell } from "../../../src/domain/shared/laidCells";
 import { ticks } from "../../../src/domain/shared/ticks";
@@ -43,9 +43,7 @@ const codec: CellCodec<Block> = {
     }) as unknown as BlockPermutation,
 };
 const cell = (x = 0, id: Block["id"] = "a", n = 0): LaidCell<Block> => ({
-  x,
-  y: 64,
-  z: 0,
+  ...cellOf({ x, y: 64, z: 0 }),
   block: { id, n },
 });
 function fakeDimension(id = "overworld") {

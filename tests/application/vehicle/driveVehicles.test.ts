@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
 import { SetDecor } from "../../../src/application/vehicle/room/setDecor";
+import { cellOf } from "../../../src/domain/shared/cells";
 import {
   asPlayerId,
   asVehicleId,
@@ -122,22 +123,26 @@ describe("DriveVehicles", () => {
   it("holds a vehicle and lays its requested floor instead of applying motion", () => {
     fc.assert(
       fc.property(
-        fc.record({
-          x: fc.integer(),
-          y: fc.integer({ min: -64, max: 300 }),
-          z: fc.integer(),
-          yaw: fc.integer({ min: -180, max: 180 }),
-        }),
-        fc.array(
-          fc.record({
+        fc
+          .record({
             x: fc.integer(),
-            y: fc.integer(),
+            y: fc.integer({ min: -64, max: 300 }),
             z: fc.integer(),
-            block: fc.record({
-              type: fc.constant("deck" as const),
-              height: fc.integer({ min: 1, max: 16 }),
-            }),
-          }),
+            yaw: fc.integer({ min: -180, max: 180 }),
+          })
+          .map((c) => ({ ...c, ...cellOf(c) })),
+        fc.array(
+          fc
+            .record({
+              x: fc.integer(),
+              y: fc.integer(),
+              z: fc.integer(),
+              block: fc.record({
+                type: fc.constant("deck" as const),
+                height: fc.integer({ min: 1, max: 16 }),
+              }),
+            })
+            .map((c) => ({ ...c, ...cellOf(c) })),
         ),
         (hold, floor) => {
           const step: DriveStep = {
@@ -953,7 +958,7 @@ describe("DriveVehicles dock ports", () => {
   function fixture(step: Partial<DriveStep>, driver = false, query = false) {
     const world = new FakeWorld();
     const repo = new InMemoryRepo();
-    const at = { x: 8, y: 64, z: 9 };
+    const at = cellOf({ x: 8, y: 64, z: 9 });
     world.typesAt.set("8,64,9", "minecraft:stone");
     let types: readonly (string | undefined)[] = [];
     const drive = driveReturning((_raw, ctx) => {
@@ -986,11 +991,13 @@ describe("DriveVehicles dock ports", () => {
 
   it("dispatches the requested dock and movement ports in step order", () => {
     const coordinate = fc.integer({ min: -32, max: 32 });
-    const position = fc.record({
-      x: coordinate,
-      y: fc.integer({ min: 60, max: 70 }),
-      z: coordinate,
-    });
+    const position = fc
+      .record({
+        x: coordinate,
+        y: fc.integer({ min: 60, max: 70 }),
+        z: coordinate,
+      })
+      .map(cellOf);
     const stone = "minecraft:stone";
     const cells = <T>(cell: fc.Arbitrary<T>) =>
       fc.array(cell, { maxLength: 2 });
@@ -1030,7 +1037,9 @@ describe("DriveVehicles dock ports", () => {
           exit: { ...at, yaw: 90 },
         })),
       ),
-      impulse: fc.record({ x: coordinate, y: fc.constant(0), z: coordinate }),
+      impulse: fc
+        .record({ x: coordinate, y: fc.constant(0), z: coordinate })
+        .map(cellOf),
     });
 
     fc.assert(
@@ -1085,12 +1094,12 @@ describe("DriveVehicles dock ports", () => {
 
   it("clears checked blocks before laying dock cells in the same tick", () => {
     const cell = { x: 8, y: 64, z: 9 };
-    const clear = [{ ...cell, typeId: "minecraft:short_grass" }];
+    const clear = [{ ...cellOf(cell), typeId: "minecraft:short_grass" }];
     const { world, run } = fixture({
       clear,
       dock: {
         hold: { x: 0, y: 64, z: 0, yaw: 0 },
-        cells: [{ ...cell, block: { type: "floor" } }],
+        cells: [{ ...cellOf(cell), block: { type: "floor" } }],
         seats: [],
       },
     });

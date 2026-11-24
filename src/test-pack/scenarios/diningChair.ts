@@ -5,6 +5,7 @@ import {
   furniturePose,
   furnitureSupportCells,
 } from "../../domain/resort/furniture";
+import { cellOf } from "../../domain/shared/cells";
 import {
   FURNITURE_IDS,
   TEST_FURNITURE_HIT,
@@ -15,7 +16,7 @@ import type { Outcome } from "../outcome";
 
 export async function diningChairPlaceTakeBack(a: Arena): Promise<Outcome> {
   const block = a.at(110, a.gy - 1, 15);
-  const pose = furniturePose(block, 0, "dining_chair");
+  const pose = furniturePose(cellOf(block), 0, "dining_chair");
   const ids = FURNITURE_IDS.dining_chair;
   const near = (type: string) =>
     a.dim.getEntities({ type, location: pose.origin, maxDistance: 2 });

@@ -5,6 +5,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { heightStepBox } from "../../../src/domain/build/flow/heightFlow";
 import type { HeightStepFlow } from "../../../src/domain/build/flow/state";
 import type { HeightStepKind } from "../../../src/domain/build/volume/kind";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
@@ -29,15 +30,15 @@ it("grows the inclusive height-step box from its base without changing the flow"
       heightStepKind,
       fc.boolean(),
       (a, b, height, kind, heightLocked) => {
-        const base = boxOf(a, b);
+        const base = boxOf(cellOf(a), cellOf(b));
         const flow: HeightStepFlow = {
           kind: "heightStep",
           base,
           heightedKind: kind,
           liveHeight: height,
           heightLocked,
-          start: { dimensionId, cell: a, material: stone },
-          taps: { from: a, to: b },
+          start: { dimensionId, cell: cellOf(a), material: stone },
+          taps: { from: cellOf(a), to: cellOf(b) },
         };
         const before = structuredClone(flow);
         const box = heightStepBox(flow);

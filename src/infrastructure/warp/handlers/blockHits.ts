@@ -1,5 +1,6 @@
 import { type Block, GameMode, Player, system, world } from "@minecraft/server";
 import type { RenameWarpPoint } from "../../../application/warp/renameWarpPoint";
+import { cellOf } from "../../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../domain/shared/ids";
 import { WARP_BLOCK_TYPE } from "../identifiers";
 import type { WarpFormGuard } from "./formGuard";
@@ -16,7 +17,7 @@ export function registerWarpBlockHits(
     const command = {
       playerId,
       dimension: asDimensionId(block.dimension.id),
-      cell: { ...block.location },
+      cell: cellOf({ ...block.location }),
     };
     // Before-events are read-only; reserve the guard now to coalesce both paths.
     system.run(() => {

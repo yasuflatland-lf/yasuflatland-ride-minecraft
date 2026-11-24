@@ -11,6 +11,7 @@ import { blockStateOf } from "../../domain/build/blockState";
 import { cellBox, cellsOf } from "../../domain/build/box";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
 import { selectionOf } from "../../domain/build/selection";
+import { cellOf } from "../../domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../domain/shared/ids";
 import { BedrockBlockWorld } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import { BedrockStructureStore } from "../../infrastructure/build/bedrock/bedrockStructureStore";
@@ -23,7 +24,10 @@ import type { Outcome } from "../outcome";
 export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
   const playerId = asPlayerId(`warp_guard_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
-  const source = cellBox(a.at(20, a.gy, 20), a.at(22, a.gy, 21));
+  const source = cellBox(
+    cellOf(a.at(20, a.gy, 20)),
+    cellOf(a.at(22, a.gy, 21)),
+  );
   const plan = planRotationAboutCenter(source);
   const world = new BedrockBlockWorld({ isProtected: () => false });
   const structures = new BedrockStructureStore(() => false, [WARP_BLOCK_TYPE]);
@@ -69,7 +73,7 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
   try {
     structures.clearBlocks(dimensionId, plan.union);
     block(source.min).setType(WARP_BLOCK_TYPE);
-    block({ ...source.min, x: source.min.x + 1 }).setType(
+    block(cellOf({ ...source.min, x: source.min.x + 1 })).setType(
       "minecraft:stone_bricks",
     );
     const before = states();

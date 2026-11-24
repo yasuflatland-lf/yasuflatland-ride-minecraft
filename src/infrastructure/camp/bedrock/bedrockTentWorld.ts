@@ -81,7 +81,7 @@ export class BedrockTentWorld
   /** The tent and flap whose tent_flap block is at `cell`; before the first lay after /reload, from the registry. */
   flapAt(
     dimensionId: DimensionId,
-    cell: Vec3,
+    cell: Cell,
   ): { tentId: TentId; flap: FlapId } | undefined {
     return this.flap.flapAt(dimensionId, cell);
   }

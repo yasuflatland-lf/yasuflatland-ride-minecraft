@@ -4,7 +4,9 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { cellBox } from "../../../src/domain/build/box";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import type { Vec3 } from "../../../src/domain/shared/vec";
 import { BedrockStructureStore } from "../../../src/infrastructure/build/bedrock/bedrockStructureStore";
 import { structureIdentifier } from "../../../src/infrastructure/build/bedrock/structureGeometry";
 import {
@@ -51,14 +53,17 @@ const dimension = {
 };
 const dim = asDimensionId("overworld");
 const owner = asPlayerId("-4294967295");
-const box = cellBox({ x: 10, y: 64, z: -5 }, { x: 12, y: 67, z: -1 });
+const box = cellBox(
+  cellOf({ x: 10, y: 64, z: -5 }),
+  cellOf({ x: 12, y: 67, z: -1 }),
+);
 const handle = structureHandle("yasu_build:box_test_1");
 const WARP_BLOCK = "yasu_build:warp_block";
 const store = () => new BedrockStructureStore(isFleetEntityType, [WARP_BLOCK]);
 const listed = (cells: { x: number; y: number; z: number }[]) => ({
   getBlockLocationIterator: () => cells[Symbol.iterator](),
 });
-const entity = (id: string, typeId: string, location = box.min) => ({
+const entity = (id: string, typeId: string, location: Vec3 = box.min) => ({
   id,
   typeId,
   location,
@@ -259,7 +264,10 @@ it("clears ordinary entities but preserves players, fleet entities and outside e
 });
 
 it("fills every chunk with air without destroy and reports command failures", () => {
-  const large = cellBox({ x: 0, y: 0, z: 0 }, { x: 63, y: 255, z: 63 });
+  const large = cellBox(
+    cellOf({ x: 0, y: 0, z: 0 }),
+    cellOf({ x: 63, y: 255, z: 63 }),
+  );
   expect(store().clearBlocks(dim, large)).toBe(true);
   expect(engine.runCommand).toHaveBeenCalledTimes(32);
   expect(engine.runCommand).toHaveBeenNthCalledWith(

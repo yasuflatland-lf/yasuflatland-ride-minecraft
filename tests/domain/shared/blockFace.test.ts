@@ -6,6 +6,7 @@ import {
   isTopFace,
   parseBlockFace,
 } from "../../../src/domain/shared/blockFace";
+import { cellOf } from "../../../src/domain/shared/cells";
 
 const faces: readonly BlockFace[] = [
   "up",
@@ -29,7 +30,7 @@ it("anchorCell moves to the neighboring cell on the selected face", () => {
   const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
   fc.assert(
     fc.property(cell, fc.constantFrom(...faces), (block, face) => {
-      const anchor = anchorCell(block, face);
+      const anchor = anchorCell(cellOf(block), face);
       const delta = [
         anchor.x - block.x,
         anchor.y - block.y,
@@ -77,7 +78,9 @@ it("moving up and then down returns to the original cell", () => {
     fc.property(
       fc.record({ x: coordinate, y: coordinate, z: coordinate }),
       (block) => {
-        expect(anchorCell(anchorCell(block, "up"), "down")).toEqual(block);
+        expect(anchorCell(anchorCell(cellOf(block), "up"), "down")).toEqual(
+          block,
+        );
       },
     ),
   );

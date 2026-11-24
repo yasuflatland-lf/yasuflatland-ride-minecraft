@@ -3,6 +3,7 @@ import {
   groundScanDepth,
   snapToGround,
 } from "../../domain/build/clipboard/ground";
+import { cellOf } from "../../domain/shared/cells";
 import { asDimensionId } from "../../domain/shared/ids";
 import { BedrockGroundProbe } from "../../infrastructure/build/bedrock/bedrockGroundProbe";
 import type { Arena } from "../arena";
@@ -15,7 +16,7 @@ async function checkTerrain(
 ): Promise<Outcome> {
   const probe = new BedrockGroundProbe();
   const dimension = asDimensionId(a.dim.id);
-  const box = boxFromSize(a.at(20, a.gy + 4, 20), { x: 3, y: 2, z: 3 });
+  const box = boxFromSize(cellOf(a.at(20, a.gy + 4, 20)), { x: 3, y: 2, z: 3 });
   const deepest = box.min.y - groundScanDepth(box) + 1;
   const originals = [];
   for (let y = a.gy; y <= a.gy + 6; y++)

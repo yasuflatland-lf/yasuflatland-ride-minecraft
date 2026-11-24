@@ -9,7 +9,7 @@ import {
   type TentPose,
   tentCells,
 } from "../../../src/domain/camp/tent";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import type { LaidCell } from "../../../src/domain/shared/laidCells";
 import {
@@ -330,9 +330,7 @@ describe("tent mattress cells (ADR 0092, 0133)", () => {
         ([face, encoded]) => {
           const f = fixture([]);
           const cell: LaidCell<TentBlock> = {
-            x: 1,
-            y: 2,
-            z: 3,
+            ...cellOf({ x: 1, y: 2, z: 3 }),
             block: { type: "wall", face },
           };
           TENT_CELL_CODEC.permutationOf(cell.block);

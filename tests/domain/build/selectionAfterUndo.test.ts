@@ -6,13 +6,16 @@ import { selectionAfterUndo } from "../../../src/domain/build/flow/selectionAfte
 import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { tappedSelection } from "../../support/buildSelection";
 
 const dim = asDimensionId("overworld");
 const other = asDimensionId("nether");
 const material = blockStateOf("minecraft:stone");
-const cell = fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() });
+const cell = fc
+  .record({ x: fc.integer(), y: fc.integer(), z: fc.integer() })
+  .map(cellOf);
 const handle = structureHandle("undo");
 
 it("restores cell selections only for the active confirmed box and recorded bounds", () => {
@@ -72,7 +75,7 @@ it("restores cell selections only for the active confirmed box and recorded boun
 });
 
 it("restarts paste aim only with a clipboard and a matching selected box and dimension", () => {
-  const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 2 });
+  const box = boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 2, y: 2, z: 2 }));
   const selection = selectionOf(dim, box, material);
   const flow = {
     kind: "selected",
@@ -106,8 +109,14 @@ it("restarts paste aim only with a clipboard and a matching selected box and dim
 });
 
 it("restores a rotation's selection during height aiming in the recorded dimension", () => {
-  const before = boxOf({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 4 });
-  const after = boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 2, z: 2 });
+  const before = boxOf(
+    cellOf({ x: 0, y: 0, z: 0 }),
+    cellOf({ x: 2, y: 2, z: 4 }),
+  );
+  const after = boxOf(
+    cellOf({ x: 0, y: 0, z: 0 }),
+    cellOf({ x: 4, y: 2, z: 2 }),
+  );
   const selection = selectionOf(dim, after, material);
   const flow = {
     kind: "baseHeight",

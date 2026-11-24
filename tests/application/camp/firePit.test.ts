@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import { FirePitActions } from "../../../src/application/camp/firePit";
 import type { FirePitWorld } from "../../../src/application/camp/ports/firePit";
 import { asFirePitId } from "../../../src/domain/camp/firePit";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 
 const pit = asFirePitId("pit");
@@ -49,7 +50,7 @@ it("requires ordinary flint and steel to light an unlit pit, then extinguishes o
 
 it("places on clear ground outside vehicle space and folds back after three hits", () => {
   const { actions, world } = fixture();
-  const block = { x: 4, y: 60, z: 5 };
+  const block = cellOf({ x: 4, y: 60, z: 5 });
   expect(actions.place({ player, dimension, block, yaw: 47, slot: 1 })).toBe(
     true,
   );

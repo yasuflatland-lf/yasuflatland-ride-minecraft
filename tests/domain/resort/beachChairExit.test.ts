@@ -5,7 +5,7 @@ import {
   beachChairPose,
 } from "../../../src/domain/resort/beachChair";
 import { beachChairExit } from "../../../src/domain/resort/beachChairExit";
-import { cellKey } from "../../../src/domain/shared/cells";
+import { cellKey, cellOf } from "../../../src/domain/shared/cells";
 
 it("returns only a safe cell outside the bed at every heading", () => {
   fc.assert(
@@ -14,7 +14,7 @@ it("returns only a safe cell outside the bed at every heading", () => {
       fc.integer({ min: -100, max: 100 }),
       fc.constantFrom(0, 90, 180, 270),
       (x, z, yaw) => {
-        const pose = beachChairPose({ x, y: 63, z }, yaw);
+        const pose = beachChairPose(cellOf({ x, y: 63, z }), yaw);
         const cells = new Set(beachChairCells(pose).map(cellKey));
         const exit = beachChairExit(pose, (feet) => feet.y === 64);
         expect(exit).toBeDefined();
@@ -38,7 +38,7 @@ it.each([
 ] as const)(
   "starts in the adjacent side cell for player yaw %i",
   (yaw, expected) => {
-    const pose = beachChairPose({ x: 10, y: 63, z: 20 }, yaw);
+    const pose = beachChairPose(cellOf({ x: 10, y: 63, z: 20 }), yaw);
     expect(beachChairExit(pose, (feet) => feet.y === 64)).toEqual(expected);
   },
 );
@@ -53,7 +53,7 @@ it("exits beside the middle cell perpendicular to the three-cell bed on a safe f
       }),
       (pressed) => {
         for (const yaw of [0, 90, 180, 270]) {
-          const pose = beachChairPose(pressed, yaw);
+          const pose = beachChairPose(cellOf(pressed), yaw);
           const exit = beachChairExit(pose, (feet) => feet.y === pose.middle.y);
           expect(exit).toBeDefined();
           if (!exit) throw Error("missing exit");

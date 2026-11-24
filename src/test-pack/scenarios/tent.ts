@@ -20,7 +20,7 @@ import {
   tentPose,
 } from "../../domain/camp/tent";
 import { TRAPEZOID_LAYOUT } from "../../domain/camp/tentLayout";
-import type { Cell } from "../../domain/shared/cells";
+import { type Cell, cellOf } from "../../domain/shared/cells";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../domain/shared/debounce";
 import { PAINTS } from "../../domain/shared/paint";
 import {
@@ -436,10 +436,10 @@ export async function tentMattresses(a: Arena): Promise<Outcome> {
     const typeAt = (c: { x: number; y: number; z: number }) =>
       a.dim.getBlock(c)?.typeId;
     const laid = cells.map(typeAt);
-    const above = cells.map((c) => typeAt({ ...c, y: c.y + 1 }));
+    const above = cells.map((c) => typeAt(cellOf({ ...c, y: c.y + 1 })));
     const mattress = cells[0];
     if (!mattress) throw new Error("test tent has no mattress cells");
-    const stone = { ...mattress, y: mattress.y + 1 };
+    const stone = cellOf({ ...mattress, y: mattress.y + 1 });
     a.dim.runCommand(`setblock ${stone.x} ${stone.y} ${stone.z} stone`);
     await takeDownTestTent(tent.id);
     const after = cells.map(typeAt);

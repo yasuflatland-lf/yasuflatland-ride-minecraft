@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { PlaceTable } from "../../../src/application/camp/placeTable";
 import { TABLE_SPEC } from "../../../src/domain/camp/spec";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { facePlayer } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { fakeTableWorld as fakeWorld } from "./fakeTableWorld";
@@ -17,7 +18,7 @@ describe("placing a camp table", () => {
       place.execute({
         playerId,
         dimensionId,
-        blockLocation: { x: 4, y: 7, z: 2 },
+        blockLocation: cellOf({ x: 4, y: 7, z: 2 }),
         yaw: 180,
         slot: 1,
       }),
@@ -32,7 +33,7 @@ describe("placing a camp table", () => {
   const cmd = {
     playerId,
     dimensionId,
-    blockLocation: { x: 4, y: 7, z: 2 },
+    blockLocation: cellOf({ x: 4, y: 7, z: 2 }),
     yaw: 180,
     slot: 1,
   };
@@ -80,11 +81,13 @@ describe("placing a camp table", () => {
   it("checks both table cells and centers the table for any yaw", () => {
     fc.assert(
       fc.property(
-        fc.record({
-          x: fc.integer({ min: -100, max: 100 }),
-          y: fc.integer({ min: -60, max: 300 }),
-          z: fc.integer({ min: -100, max: 100 }),
-        }),
+        fc
+          .record({
+            x: fc.integer({ min: -100, max: 100 }),
+            y: fc.integer({ min: -60, max: 300 }),
+            z: fc.integer({ min: -100, max: 100 }),
+          })
+          .map(cellOf),
         fc.integer({ min: -360, max: 360 }),
         fc.constantFrom("none", "own", "air", "vehicle", "camp", "near"),
         fc.integer({ min: 0, max: 1 }),
@@ -142,7 +145,7 @@ describe("placing a camp table", () => {
   it("accepts a block's top face only, and never one of our own blocks", () => {
     const world = fakeWorld();
     const place = new PlaceTable(world);
-    const block = { x: 1, y: 2, z: 3 };
+    const block = cellOf({ x: 1, y: 2, z: 3 });
     expect(place.canUseBlock(dimensionId, block, "up")).toBe(true);
     expect(place.canUseBlock(dimensionId, block, "north")).toBe(false);
     vi.mocked(world.isOwnBlock).mockReturnValue(true);

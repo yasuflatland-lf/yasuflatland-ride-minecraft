@@ -1,4 +1,4 @@
-import type { Cell } from "../../shared/cells";
+import { type Cell, cellOf } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import { sizeOf } from "../box";
 import { type Curve, ellipse, ellipseOn, outlinePoints } from "../wireframe";
@@ -101,7 +101,7 @@ function* columns(spec: HeightStepSpec, fill: FillStyle) {
 function* sphereCells(spec: HeightedSpec, fill: FillStyle): Generator<Cell> {
   for (const { x, z, range, hidden } of columns(spec, fill)) {
     for (let y = range.bottom; y <= range.top; y++) {
-      if (y < hidden.bottom || y > hidden.top) yield { x, y, z };
+      if (y < hidden.bottom || y > hidden.top) yield cellOf({ x, y, z });
     }
   }
 }

@@ -1,6 +1,6 @@
-import { cellKey } from "../../../shared/cells";
+import { type Cell, cellKey } from "../../../shared/cells";
 import { quarterOf } from "../../../shared/facing";
-import type { Vec2, Vec3 } from "../../../shared/vec";
+import type { Vec2 } from "../../../shared/vec";
 import type { DockCell, HoldPose } from "../../dock/floor";
 import { DECOR_CELLS, DECOR_SLOTS, decorInCell, decorSlot } from "./decor";
 import type { DecorItemId, DecorPlacement } from "./decorData";
@@ -21,7 +21,7 @@ const PX_PER_BLOCK = 16;
 const HANGING_FURNITURE_HEIGHT = 0;
 
 /** The world cell of a decor slot at a parked pose (ADR 0093). */
-export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Vec3 {
+export function decorSlotCell(pose: HoldPose, slot: DecorSlot): Cell {
   return localCellAt(pose, slot.cell);
 }
 
@@ -135,7 +135,7 @@ export function furnitureCells(
 }
 
 /** Every slot cell once, in DECOR_CELLS order (ADR 0097, 0105). */
-export function slotCells(pose: HoldPose): Vec3[] {
+export function slotCells(pose: HoldPose): Cell[] {
   return DECOR_CELLS.map(({ cell }) =>
     cellAt(pose, cell.x, cell.z, cell.layer),
   );

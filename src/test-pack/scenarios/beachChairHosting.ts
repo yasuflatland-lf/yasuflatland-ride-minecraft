@@ -8,6 +8,7 @@ import {
   beachChairSupportCells,
 } from "../../domain/resort/beachChair";
 import { BEACH_CHAIR_SPEC } from "../../domain/resort/spec";
+import { cellOf } from "../../domain/shared/cells";
 import {
   BEACH_CHAIR,
   BEACH_CHAIR_FOLDED,
@@ -24,12 +25,12 @@ async function course(
   kind: "gas_lantern" | "dutch_oven",
 ): Promise<Outcome> {
   const block = a.at(100, a.gy - 1, 30);
-  const pose = beachChairPose(block, 0);
+  const pose = beachChairPose(cellOf(block), 0);
   const origin = beachChairOrigin(pose);
   const saved = [
     ...beachChairSupportCells(pose),
     ...beachChairClearCells(pose),
-    ...beachChairClearCells(pose).map((c) => ({ ...c, y: c.y + 1 })),
+    ...beachChairClearCells(pose).map((c) => cellOf({ ...c, y: c.y + 1 })),
   ].map((cell) => ({ cell, permutation: a.dim.getBlock(cell)?.permutation }));
   const near = (type: string) =>
     a.dim.getEntities({ type, location: origin, maxDistance: 3 });

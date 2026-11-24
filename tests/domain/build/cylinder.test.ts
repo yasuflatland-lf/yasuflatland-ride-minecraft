@@ -7,28 +7,31 @@ import {
 } from "../../../src/domain/build/volume/cylinder";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import type { HeightedSpec } from "../../../src/domain/build/volume/types";
-import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const size = fc.integer({ min: 1, max: 20 });
 const origin = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const spec = fc.tuple(origin, size, size, fc.integer({ min: 1, max: 12 })).map(
   ([min, width, depth, height]): HeightedSpec => ({
-    base: boxOf(min, {
-      x: min.x + width - 1,
-      y: min.y,
-      z: min.z + depth - 1,
-    }),
+    base: boxOf(
+      cellOf(min),
+      cellOf({
+        x: min.x + width - 1,
+        y: min.y,
+        z: min.z + depth - 1,
+      }),
+    ),
     kind: "cylinder",
     height,
   }),
 );
 const columnKey = ({ x, z }: Cell): string => `${x},${z}`;
 const neighbours = ({ x, y, z }: Cell): Cell[] => [
-  { x: x - 1, y, z },
-  { x: x + 1, y, z },
-  { x, y, z: z - 1 },
-  { x, y, z: z + 1 },
+  cellOf({ x: x - 1, y, z }),
+  cellOf({ x: x + 1, y, z }),
+  cellOf({ x, y, z: z - 1 }),
+  cellOf({ x, y, z: z + 1 }),
 ];
 
 describe("cylinder geometry", () => {
@@ -142,7 +145,7 @@ describe("cylinder geometry", () => {
     fc.assert(
       fc.property(origin, size, (min, height) => {
         const spec: HeightedSpec = {
-          base: boxOf(min, min),
+          base: boxOf(cellOf(min), cellOf(min)),
           kind: "cylinder",
           height,
         };
@@ -162,11 +165,14 @@ describe("cylinder geometry", () => {
     fc.assert(
       fc.property(origin, size, (min, width) => {
         const square = (width: number): HeightedSpec => ({
-          base: boxOf(min, {
-            x: min.x + width - 1,
-            y: min.y,
-            z: min.z + width - 1,
-          }),
+          base: boxOf(
+            cellOf(min),
+            cellOf({
+              x: min.x + width - 1,
+              y: min.y,
+              z: min.z + width - 1,
+            }),
+          ),
           kind: "cylinder",
           height: 1,
         });
@@ -181,7 +187,7 @@ describe("cylinder geometry", () => {
 
   it("counts arbitrarily tall solids by columns", () => {
     const spec: HeightedSpec = {
-      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }),
+      base: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 4, y: 0, z: 4 })),
       kind: "cylinder",
       height: 1_000_000_000,
     };
@@ -215,7 +221,10 @@ describe("cylinder geometry", () => {
     },
   ])("matches literal $width x $width column maps", ({ width, fill, wall }) => {
     const spec: HeightedSpec = {
-      base: boxOf({ x: 0, y: 0, z: 0 }, { x: width - 1, y: 0, z: width - 1 }),
+      base: boxOf(
+        cellOf({ x: 0, y: 0, z: 0 }),
+        cellOf({ x: width - 1, y: 0, z: width - 1 }),
+      ),
       kind: "cylinder",
       height: 1,
     };
@@ -260,7 +269,10 @@ describe("cylinder geometry", () => {
 
   it("previews both ellipses and all four vertical extreme lines", () => {
     const spec: HeightedSpec = {
-      base: boxOf({ x: -2, y: 7, z: 10 }, { x: 1, y: 7, z: 14 }),
+      base: boxOf(
+        cellOf({ x: -2, y: 7, z: 10 }),
+        cellOf({ x: 1, y: 7, z: 14 }),
+      ),
       kind: "cylinder",
       height: 5,
     };
@@ -290,7 +302,7 @@ describe("cylinder geometry", () => {
 
   it("keeps both ellipses dense and drops the vertical lines first under a tight budget", () => {
     const spec: HeightedSpec = {
-      base: boxOf({ x: 0, y: 0, z: 0 }, { x: 15, y: 0, z: 15 }),
+      base: boxOf(cellOf({ x: 0, y: 0, z: 0 }), cellOf({ x: 15, y: 0, z: 15 })),
       kind: "cylinder",
       height: 8,
     };

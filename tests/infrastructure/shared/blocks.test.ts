@@ -1,5 +1,6 @@
 import type { Dimension } from "@minecraft/server";
 import { describe, expect, it, vi } from "vitest";
+import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import {
   chunkLoadedAt,
@@ -17,7 +18,7 @@ vi.mock("@minecraft/server", () => ({
 }));
 
 const dimension = asDimensionId("overworld");
-const cell = { x: 1, y: 2, z: 3 };
+const cell = cellOf({ x: 1, y: 2, z: 3 });
 const fullTop = {
   face: "Up",
   faceLocation: { y: 0 },
