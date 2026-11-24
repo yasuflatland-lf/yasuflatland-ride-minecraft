@@ -118,9 +118,11 @@ stand in them, nor the tarp area or the roof); the hitter
 sees "Someone is inside the tent" instead.
 
 `entityHitBlock`, a Creative `playerBreakBlock` (whose break the shared guard of 0096
-cancels), and `entityHitEntity` share one per-player, per-tick set, so one swing counts
-once even when both block events fire. A held press on a phone counts every swing the
-engine reports. Three hits within 100 ticks from outside return the item and take the
+cancels), and `entityHitEntity` share the hit handler. It checks for dye first (0135),
+accepts at most one paint and one take-down per player per tick across all
+three paths, then defers the action with the tick of the swing. This counts a
+Creative break once even when both block events fire. On a phone, holding a
+press can count another non-dye swing when the engine reports it in a later tick. Three hits within 100 ticks from outside return the item and take the
 tent down: its cells that still hold its blocks are cleared, so a block a player put
 in its place stays.
 
