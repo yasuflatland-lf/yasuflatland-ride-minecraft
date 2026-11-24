@@ -35,6 +35,7 @@ import {
 import { BedrockGroundCells, paidItem } from "../../shared/groundCells";
 import { SingleBlockLayer } from "../../shared/laidBlockLayer";
 import { isCreative, playerById } from "../../shared/players";
+import { playerRiderOf } from "../../shared/seating";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DINING_TABLE_TOP,
@@ -85,10 +86,7 @@ export class BedrockFurnitureWorld
     return entity ? furnitureKindOf(entity.typeId, "entity") : undefined;
   }
   isOccupied(id: FurnitureId): boolean {
-    return (
-      (this.entity(id)?.getComponent("minecraft:rideable")?.getRiders()
-        .length ?? 0) > 0
-    );
+    return playerRiderOf(this.entity(id)) !== undefined;
   }
   somethingOnTop(id: FurnitureId): boolean {
     const entity = this.entity(id);

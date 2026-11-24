@@ -154,9 +154,10 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
     const f = fixture();
     expect(f.adapter.kindOf(id)).toBe(kind);
     expect(f.adapter.isOccupied(id)).toBe(false);
-    f.entity.getComponent.mockReturnValue({
-      getRiders: () => [{ id: "rider" }],
-    });
+    const riders = [{ id: "mob", typeId: "minecraft:pig" }];
+    f.entity.getComponent.mockReturnValue({ getRiders: () => riders });
+    expect(f.adapter.isOccupied(id)).toBe(false);
+    riders.push({ id: "rider", typeId: "minecraft:player" });
     expect(f.adapter.isOccupied(id)).toBe(true);
     expect(f.adapter.somethingOnTop(id)).toBe(false);
     f.entity.typeId = "minecraft:pig";
