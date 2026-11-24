@@ -1,6 +1,6 @@
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import { add3, sub3, type Vec3 } from "../../../domain/shared/vec";
-import type { DecorItemId } from "../../../domain/vehicle/dock/decor";
+import type { DecorItemId } from "../../../domain/vehicle/kinds/index";
 import { DRAWER_GEAR_IDS } from "../../../domain/vehicle/kinds/index";
 import type { PlaceDecor, PlaceDecorCommand } from "./placeDecor";
 import type { PressStorage } from "./pressStorage";

@@ -1,9 +1,9 @@
 import { cellKey } from "../../../shared/cells";
 import { quarterOf } from "../../../shared/facing";
 import type { Vec2, Vec3 } from "../../../shared/vec";
-import type { DecorItemId, DecorPlacement } from "../../dock/decor";
-import type { DockBlock, DockCell, HoldPose } from "../../dock/floor";
+import type { DockCell, HoldPose } from "../../dock/floor";
 import { DECOR_CELLS, DECOR_SLOTS, decorInCell, decorSlot } from "./decor";
+import type { DecorItemId, DecorPlacement } from "./decorData";
 import { compartmentDoorAt } from "./dooredStorage";
 import {
   DECOR_SPOTS,
@@ -12,6 +12,7 @@ import {
   STORAGE_DOORS,
 } from "./furniture";
 import { axes, cellAt, localCellAt } from "./parkPose";
+import type { CamperRoomBlock } from "./roomBlocks";
 
 const PX_PER_BLOCK = 16;
 
@@ -37,9 +38,9 @@ export function decorSpotOffset(yaw: number, spot: number): Vec2 {
   };
 }
 
-type DecorCell = DockCell & {
-  readonly block: Extract<DockBlock, { type: "decor" | "decorPair" }>;
-};
+type DecorCell = DockCell<
+  Extract<CamperRoomBlock, { type: "decor" | "decorPair" }>
+>;
 
 /** The item at each end of the pair cell that holds `slot`, by DecorPairEnd.end (ADR 0108). */
 export function pairItems(
@@ -104,9 +105,7 @@ export function decorCells(
   });
 }
 
-type FurnitureCell = DockCell & {
-  readonly block: Extract<DockBlock, { type: "furniture" }>;
-};
+type FurnitureCell = DockCell<Extract<CamperRoomBlock, { type: "furniture" }>>;
 
 /**
  * A furniture block in every slot cell that holds no decor, at the height of the cell's first

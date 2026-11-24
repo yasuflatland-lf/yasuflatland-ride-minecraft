@@ -1,10 +1,8 @@
 import {
+  CAMPING_GEAR_IDS,
+  type CamperRoomBlock,
   type DecorItemId,
   isDecorItem,
-} from "../../../../domain/vehicle/dock/decor";
-import type { DockBlock } from "../../../../domain/vehicle/dock/floor";
-import {
-  CAMPING_GEAR_IDS,
   pairHeights,
   STANDING_GEAR_IDS,
 } from "../../../../domain/vehicle/kinds/index";
@@ -179,7 +177,7 @@ export function campingGearOfDecorBlock(typeId: string): string | undefined {
 
 /** Drawer contents render on the entity; the block carries only counter decor (ADR 0121). */
 export function drawerBlockStates(
-  block: Extract<DockBlock, { type: "drawers" }>,
+  block: Extract<CamperRoomBlock, { type: "drawers" }>,
 ): Record<string, number | boolean> {
   const counter =
     block.counter === undefined

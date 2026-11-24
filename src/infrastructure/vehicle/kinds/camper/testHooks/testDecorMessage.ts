@@ -3,7 +3,7 @@ import { asVehicleId } from "../../../../../domain/shared/ids";
 import {
   isDecorItem,
   parseDecorSlotId,
-} from "../../../../../domain/vehicle/dock/decor";
+} from "../../../../../domain/vehicle/kinds/index";
 
 /** `<vehicleId>,<slot>,<item>` sets a slot and `<vehicleId>,<slot>,clear` empties it. */
 export function parseTestDecorMessage(

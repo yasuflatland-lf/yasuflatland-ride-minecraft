@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward, leftOf } from "../../../../../src/domain/shared/vec";
 import type {
+  DeckBlock,
   DockCell,
   HoldPose,
 } from "../../../../../src/domain/vehicle/dock/floor";
@@ -13,7 +14,7 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
 import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
 
-function deckHeight(cell: DockCell): number {
+function deckHeight(cell: DockCell<DeckBlock>): number {
   if (cell.block.type !== "deck") throw new Error("Expected a deck cell");
   return cell.block.height;
 }

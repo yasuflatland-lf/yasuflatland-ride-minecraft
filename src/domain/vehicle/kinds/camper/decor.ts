@@ -4,7 +4,7 @@ import {
   type DecorSlotId,
   parseDecorSlotId,
   serializeDecor,
-} from "../../dock/decor";
+} from "./decorData";
 import {
   CAMPER_FURNITURE,
   type DecorSlot,

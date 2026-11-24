@@ -1,10 +1,3 @@
-import {
-  type DecorItemId,
-  type DecorPlacement,
-  type DecorSlotId,
-  isDecorItem,
-  parseDecor,
-} from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { currentGearId } from "./campingGear";
 import {
@@ -15,6 +8,13 @@ import {
   savedSlotId,
   sharingSlots,
 } from "./decor";
+import {
+  type DecorItemId,
+  type DecorPlacement,
+  type DecorSlotId,
+  isDecorItem,
+  parseDecor,
+} from "./decorData";
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { drawerBlockHit, drawerPressCell } from "./drawerHit";
 import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";

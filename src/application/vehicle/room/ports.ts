@@ -2,7 +2,7 @@ import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import type {
   DecorItemId,
   DecorPlacement,
-} from "../../../domain/vehicle/dock/decor";
+} from "../../../domain/vehicle/kinds/index";
 // Port for saving a vehicle's decor; implemented in the infrastructure layer (ADR 0012, 0093).
 
 export interface DecorWorld {

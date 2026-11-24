@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import { parseDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import {
   drawerBlockHit,
   drawerHit,

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SLEEP_MESSAGES } from "../../../src/domain/shared/sleep";
-import { DECOR_MESSAGES } from "../../../src/domain/vehicle/dock/decorMessages";
 import { HINTS } from "../../../src/domain/vehicle/hints";
+import { DECOR_MESSAGES } from "../../../src/domain/vehicle/kinds/camper/decorMessages";
 import { CAMPER_DOOR_COMPONENT } from "../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { bones, RP } from "./helpers";
 

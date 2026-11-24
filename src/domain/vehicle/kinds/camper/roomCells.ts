@@ -8,7 +8,7 @@ import {
   inBox,
   type WorldBox,
 } from "../../dock/dock";
-import type { DockBlock, DockCell, HoldPose } from "../../dock/floor";
+import type { DockCell, HoldPose, LightBlock } from "../../dock/floor";
 import { seatWorldPositions } from "../../seats";
 import {
   compartmentDoorAt,
@@ -26,6 +26,7 @@ import {
 } from "./furniture";
 import { axes, cellAt, localCellAt } from "./parkPose";
 import { CAMPER_PARKED_SEATS, CAMPER_PROFILE } from "./profile";
+import type { CamperRoomBlock } from "./roomBlocks";
 import {
   CEILING_LAYER,
   DOOR,
@@ -110,7 +111,7 @@ function laidFurnitureBlock(
   block: FurnitureBlock,
   cell: LocalCell,
   l: Vec2,
-): DockBlock {
+): CamperRoomBlock {
   if (block.type !== "showerToilet") return block;
   return {
     type: "showerToilet",
@@ -128,7 +129,7 @@ function ceilingBlock(
   f: Vec2,
   open: ReadonlySet<StorageDoorId>,
   doors: readonly StorageDoor<StorageDoorId>[],
-): DockBlock | undefined {
+): CamperRoomBlock | undefined {
   if (compartmentDoorAt(cell, doors)) return undefined;
   const door = openPlateAt(cell, open, doors);
   if (!door) return { type: "ceiling" };
@@ -148,13 +149,13 @@ export function roomCells(
   openStorage: ReadonlySet<StorageDoorId> = NO_DOORS,
   showerDoorOpen = false,
   doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
-): DockCell[] {
+): DockCell<CamperRoomBlock>[] {
   const { f, l } = axes(pose.yaw);
   const ceiling = localInterior([CEILING_LAYER]).flatMap((cell) => {
     const block = ceilingBlock(cell, f, openStorage, doors);
     return block ? [{ ...localCellAt(pose, cell), block }] : [];
   });
-  const cells: DockCell[] = [
+  const cells: DockCell<CamperRoomBlock>[] = [
     ...interior(pose, [0]).map((at) => ({
       ...at,
       block: { type: "floor" } as const,
@@ -261,7 +262,7 @@ export function ceilingLightCells(
   pose: HoldPose,
   open: ReadonlySet<StorageDoorId> = NO_DOORS,
   doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
-): DockCell[] {
+): DockCell<LightBlock>[] {
   return CEILING_LIGHTS.filter((cell) => !openPlateAt(cell, open, doors)).map(
     (cell) => ({
       ...localCellAt(pose, cell),

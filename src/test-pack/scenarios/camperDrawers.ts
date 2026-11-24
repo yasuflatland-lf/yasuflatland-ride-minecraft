@@ -1,10 +1,6 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
 import { sameCell } from "../../domain/shared/cells";
-import {
-  type DecorPlacement,
-  isDecorItem,
-  parseDecorSlotId,
-} from "../../domain/vehicle/dock/decor";
+import type { DockCell } from "../../domain/vehicle/dock/floor";
 import type {
   DriveStep,
   RestoredValues,
@@ -28,6 +24,12 @@ import {
   DRAWER_HIT_PROFILE,
 } from "../../domain/vehicle/kinds/camper/spec";
 import { compartmentCells } from "../../domain/vehicle/kinds/camper/storagePlates";
+import {
+  type CamperRoomBlock,
+  type DecorPlacement,
+  isDecorItem,
+  parseDecorSlotId,
+} from "../../domain/vehicle/kinds/index";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { id, NAMESPACE } from "../../infrastructure/shared/identifiers";
 import {
@@ -87,8 +89,11 @@ function fixture(
           carrier.setProperty(id(cmd.name), cmd.value);
       }
     carrier.setDynamicProperty(id("decor"), JSON.stringify(room.decor.decor()));
-    const drawer = out.dock?.cells.find((c) => c.block.type === "drawers");
-    if (drawer?.block.type === "drawers") {
+    const drawer = out.dock?.cells.find(
+      (cell): cell is DockCell<Extract<CamperRoomBlock, { type: "drawers" }>> =>
+        cell.block.type === "drawers",
+    );
+    if (drawer) {
       a.dim
         .getBlock(cell)
         ?.setPermutation(

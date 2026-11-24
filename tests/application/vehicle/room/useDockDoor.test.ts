@@ -30,7 +30,7 @@ it("ignores unknown vehicles and SUVs, and toggles the parked camper's door both
     );
     expect(doors).toHaveLength(3);
     expect(
-      doors?.every((c) => c.block.type === "door" && c.block.open === open),
+      doors?.every((c) => "open" in c.block && c.block.open === open),
     ).toBe(true);
   }
 });

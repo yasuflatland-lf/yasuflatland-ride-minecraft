@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
-import { serializeDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import { serializeDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import { EntityIndex } from "../../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { PLAYER_TYPE } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import {

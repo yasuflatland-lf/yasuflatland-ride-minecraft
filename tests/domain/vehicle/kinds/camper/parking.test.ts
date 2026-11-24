@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
-import type { DecorPlacement } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DriveStep,
   TickContext,
@@ -21,6 +20,7 @@ import {
   furnitureCells,
   slotCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
+import type { DecorPlacement } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import {
   slotPoint,
   slotsFor,
@@ -426,8 +426,7 @@ it("swings the entry, shower, and cabinet doors one step per tick until their ta
           expect(
             entry.every(
               ({ block }) =>
-                block.type === "door" &&
-                block.open === (door === "door" && open),
+                "open" in block && block.open === (door === "door" && open),
             ),
           ).toBe(true);
           if (!cabinet || !other) continue;
@@ -623,7 +622,7 @@ it("restores the saved door target through either direction of a partial swing",
         expect(
           out.dock?.cells
             .filter((c) => c.block.type === "door")
-            .every((c) => c.block.type === "door" && c.block.open === open),
+            .every((c) => "open" in c.block && c.block.open === open),
         ).toBe(true);
       }
       expect(drive.step(undefined, f.ctx).commands).toEqual([]);

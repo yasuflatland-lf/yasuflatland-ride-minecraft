@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { quarterOf } from "../../../../src/domain/shared/facing";
+import { quarterOf } from "../../../../../src/domain/shared/facing";
 import {
   type DecorItemId,
   type DecorSlotId,
@@ -8,8 +8,8 @@ import {
   parseDecor,
   parseDecorSlotId,
   serializeDecor,
-} from "../../../../src/domain/vehicle/dock/decor";
-import { decorItemId, decorSlotId } from "../../../support/decorIds";
+} from "../../../../../src/domain/vehicle/kinds/camper/decorData";
+import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 
 const decorList = (minLength: number) =>
   fc.array(
