@@ -61,7 +61,10 @@ it("samples the final ray before offering the shape or roof contents menu", () =
             ray: { ...ray, direction: { x: 1, y: 0, z: 0 } },
           }),
         ).toBe("contentsMenu");
-        expect(session.flow).toMatchObject({ kind: "heightStep", previous: 5 });
+        expect(session.flow).toMatchObject({
+          kind: "heightStep",
+          liveHeight: 5,
+        });
       },
     ),
   );
@@ -91,8 +94,7 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
         const session = repo.getOrCreate(playerId);
         expect(session.flow).toMatchObject({
           kind: "selected",
-          from: cell,
-          to: { ...cell, z: cell.z + 2 },
+          taps: { from: cell, to: { ...cell, z: cell.z + 2 } },
         });
         expect(press.execute({ playerId, intent: "openUtilityMenu" })).toBe(
           "utilityMenu",

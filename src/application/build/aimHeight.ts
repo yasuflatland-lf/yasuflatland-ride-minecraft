@@ -18,14 +18,10 @@ export class AimHeight {
       (flow.kind !== "heightStep" || flow.heightLocked)
     )
       return;
-    const dimensionId =
-      flow.kind === "baseHeight"
-        ? flow.selection.dimensionId
-        : flow.dimensionId;
     const height = aimedHeight(
       flow,
       cmd.ray,
-      this.blocks.heightRange(dimensionId),
+      this.blocks.heightRange(flow.start.dimensionId),
     );
     session.setFlow(setHeight(flow, height));
   }

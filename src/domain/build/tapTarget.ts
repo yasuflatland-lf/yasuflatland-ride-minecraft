@@ -11,7 +11,7 @@ export function endMarkerCell(
     case "baseHeight":
     case "selected":
     case "terrainConfirm":
-      return flow.to;
+      return flow.taps.to;
     default:
       return undefined;
   }

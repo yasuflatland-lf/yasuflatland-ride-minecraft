@@ -93,7 +93,7 @@ export function registerTestTap(
             session.setFlow(
               confirmLiveHeight({
                 ...flow,
-                previous: sizeOf(flow.selection.box).y,
+                liveHeight: sizeOf(flow.selection.box).y,
               }),
             );
         } else {

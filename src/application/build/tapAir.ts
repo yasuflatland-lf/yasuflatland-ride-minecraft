@@ -20,7 +20,7 @@ export class TapAir {
     const next = tapAir(
       flow,
       cmd.end,
-      this.world.heightRange(flow.dimensionId),
+      this.world.heightRange(flow.start.dimensionId),
     );
     if (next === flow) return;
     session.setFlow(next);

@@ -21,7 +21,11 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
-import { tapAir, tapBlock } from "../../support/buildSelection";
+import {
+  tapAir,
+  tapBlock,
+  tappedSelection,
+} from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -57,9 +61,7 @@ function setup(box: CellBox = wideBox) {
   session.setFlow({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(overworld, box, stone),
-    from: box.min,
-    to: box.max,
+    ...tappedSelection(selectionOf(overworld, box, stone), box.min, box.max),
   });
   const rotate = new RotateBox(repo, world, players, structures, feedback, log);
   const jobs = new EditJobs(repo, world, feedback, log, players);
@@ -169,9 +171,7 @@ it("rotates the selected box once per press, restores the box and taps for each 
     expect(e.rotateSelection.execute(cmd)).toBe("rotated");
     expect(e.session.flow).toMatchObject({
       kind: "selected",
-      selection: selectionOf(overworld, box, stone),
-      from: box.min,
-      to: box.max,
+      ...tappedSelection(selectionOf(overworld, box, stone), box.min, box.max),
     });
     expect(e.structures.live.size).toBe(i + 1);
   }
@@ -179,9 +179,7 @@ it("rotates the selected box once per press, restores the box and taps for each 
     e.undo.execute({ playerId });
     expect(e.session.flow).toMatchObject({
       kind: "selected",
-      selection: selectionOf(overworld, box, stone),
-      from: box.min,
-      to: box.max,
+      ...tappedSelection(selectionOf(overworld, box, stone), box.min, box.max),
     });
   }
   expect(states()).toEqual(original);
@@ -340,13 +338,18 @@ it("checks union size before busy and busy before protection", () => {
 it("ignores idle, incomplete and other-dimension selections", () => {
   const flows: BuildFlow[] = [
     { kind: "idle" },
-    { kind: "point1", dimensionId: overworld, cell: origin, material: stone },
+    {
+      kind: "point1",
+      start: { dimensionId: overworld, cell: origin, material: stone },
+    },
     {
       kind: "selected",
       menuLevel: "root",
-      selection: selectionOf(nether, wideBox, stone),
-      from: wideBox.min,
-      to: wideBox.max,
+      ...tappedSelection(
+        selectionOf(nether, wideBox, stone),
+        wideBox.min,
+        wideBox.max,
+      ),
     },
   ];
   for (const flow of flows) {
@@ -494,10 +497,10 @@ it.each([false, true])(
       e.undo,
     );
     expect(press.execute({ playerId })).toBe(blocked ? "stepped" : "undone");
-    if (blocked) expect(e.session.flow).toBe(point);
+    if (blocked) expect(e.session.flow).toEqual(point);
     else {
       expect(selectionBoxOf(e.session.flow)).toEqual(box);
-      expect(e.session.flow).not.toHaveProperty("stepBackTo");
+      expect(e.session.flow).not.toHaveProperty("freshEnd");
       expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
       expect(
         [...cellsOf(union)].map((cell) => e.world.stateAt(overworld, cell)),

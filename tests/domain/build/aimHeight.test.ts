@@ -46,7 +46,7 @@ it.each([OVERWORLD_RANGE, NETHER_RANGE])(
               Math.floor(BUILD_SPEC.maxCopyVolume / (x * z)),
             ),
           );
-          expect(flow.previous).toBe(Math.min(topY - baseY + 1, cap));
+          expect(flow.liveHeight).toBe(Math.min(topY - baseY + 1, cap));
           const length = Math.hypot(64, rise);
           const height = aimedHeight(
             flow,

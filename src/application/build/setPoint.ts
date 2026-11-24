@@ -3,6 +3,7 @@ import {
   enteredBaseHeight,
   tapBlock,
 } from "../../domain/build/flow/heightFlow";
+import { startOf } from "../../domain/build/flow/state";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -30,11 +31,11 @@ export class SetPoint {
       flow.kind === "terrainConfirm"
     )
       return;
-    const starting =
-      flow.kind === "idle" || flow.dimensionId !== cmd.dimensionId;
+    const start = startOf(flow);
+    const starting = start?.dimensionId !== cmd.dimensionId;
     const material = starting
       ? this.world.materialOf(cmd.dimensionId, cmd.cell)
-      : flow.material;
+      : start.material;
     if (material === "refused") {
       this.feedback.showMessage(cmd.playerId, "materialRefused");
       return;

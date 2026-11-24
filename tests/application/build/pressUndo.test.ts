@@ -71,7 +71,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
         // Built and pasted boxes both use confirmBox, which ends endpoint freshness.
         session.confirmBox(selected.selection, "selected", {
           from: cell,
-          to: base.to,
+          to: base.taps.to,
         });
         const built = session.flow;
         for (const flow of [

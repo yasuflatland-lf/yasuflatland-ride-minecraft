@@ -9,6 +9,7 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tappedSelection } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -32,9 +33,11 @@ function setup(to = flat) {
   session.setFlow({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(overworld, boxOf(from, to), material),
-    from,
-    to,
+    ...tappedSelection(
+      selectionOf(overworld, boxOf(from, to), material),
+      from,
+      to,
+    ),
   });
   return { repo, feedback, world, session };
 }

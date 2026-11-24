@@ -7,6 +7,7 @@ import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { tappedSelection } from "../../support/buildSelection";
 
 const dim = asDimensionId("overworld");
 const other = asDimensionId("nether");
@@ -23,8 +24,7 @@ it("restores cell selections only for the active confirmed box and recorded boun
       const flow = {
         kind: "selected",
         menuLevel: "root",
-        selection,
-        ...cornerTaps(after),
+        ...tappedSelection(selection, after.min, after.max),
       } as const;
       const taps = { from: a, to: b };
       const record = {
@@ -60,10 +60,9 @@ it("restores cell selections only for the active confirmed box and recorded boun
       ).toBeUndefined();
       const aiming = {
         kind: "baseHeight",
-        selection,
-        ...cornerTaps(after),
+        ...tappedSelection(selection, after.min, after.max),
         baseBox: boxWithHeight(after, 1),
-        previous: 1,
+        liveHeight: 1,
       } as const;
       expect(
         selectionAfterUndo(entry, aiming, selection, false),
@@ -78,8 +77,7 @@ it("restarts paste aim only with a clipboard and a matching selected box and dim
   const flow = {
     kind: "selected",
     menuLevel: "root",
-    selection,
-    ...cornerTaps(box),
+    ...tappedSelection(selection, box.min, box.max),
   } as const;
   const entry = {
     kind: "snapshot",
@@ -113,10 +111,9 @@ it("restores a rotation's selection during height aiming in the recorded dimensi
   const selection = selectionOf(dim, after, material);
   const flow = {
     kind: "baseHeight",
-    selection,
-    ...cornerTaps(after),
+    ...tappedSelection(selection, after.min, after.max),
     baseBox: boxWithHeight(after, 1),
-    previous: 2,
+    liveHeight: 2,
   } as const;
   const entry = {
     kind: "snapshot",

@@ -12,7 +12,11 @@ import {
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
-import { tapAir, tapBlock } from "../../support/buildSelection";
+import {
+  tapAir,
+  tapBlock,
+  tappedSelection,
+} from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -29,14 +33,14 @@ const to = { x: 0, y: 65, z: 2 };
 const span = boxOf(from, to);
 const material = blockStateOf("minecraft:stone");
 
-function setup(previous: number) {
+function setup(liveHeight: number) {
   const world = new FakeWorld();
   const structures = new FakeStructureStore(world);
   const repo = new FakeSessions(structures);
   const session = repo.getOrCreate(playerId);
   const flow = tapAir(tapBlock(session.flow, overworld, from, material), to);
   if (flow.kind !== "baseHeight") throw new Error("Expected baseHeight");
-  session.setFlow({ ...flow, previous });
+  session.setFlow({ ...flow, liveHeight });
   const feedback = new FakeFeedback();
   const core = new RotateBox(
     repo,
@@ -56,8 +60,8 @@ function setup(previous: number) {
 
 it("rotates the tapped span for any live height", () => {
   fc.assert(
-    fc.property(fc.integer({ min: 1, max: 256 }), (previous) => {
-      const { rotate, session, structures } = setup(previous);
+    fc.property(fc.integer({ min: 1, max: 256 }), (liveHeight) => {
+      const { rotate, session, structures } = setup(liveHeight);
       expect(rotate.execute({ playerId, dimensionId: overworld })).toBe(
         "rotated",
       );
@@ -71,13 +75,15 @@ it("rotates the tapped span for any live height", () => {
       expect(session.flow).toMatchObject({
         kind: "selected",
         menuLevel: "root",
-        from: planRotationAboutCenter(span).target.min,
-        to: planRotationAboutCenter(span).target.max,
-        selection: {
-          box: planRotationAboutCenter(span).target,
-          material,
-          dimensionId: overworld,
-        },
+        ...tappedSelection(
+          {
+            box: planRotationAboutCenter(span).target,
+            material,
+            dimensionId: overworld,
+          },
+          planRotationAboutCenter(span).target.min,
+          planRotationAboutCenter(span).target.max,
+        ),
       });
     }),
   );
@@ -91,9 +97,8 @@ it("keeps the confirmed span selected when a busy edit refuses rotation", () => 
   expect(session.flow).toMatchObject({
     kind: "selected",
     menuLevel: "root",
-    from,
-    to,
     selection: { box: span },
+    taps: { from: from, to: to },
   });
 });
 
@@ -134,8 +139,10 @@ it("turns the current footprint and confirmed height when editing height again",
         const target = planRotationAboutCenter(before).target;
         expect(session.flow).toMatchObject({
           selection: { box: target },
-          from: { ...target.min, y: from.y },
-          to: { ...target.max, y: to.y },
+          taps: {
+            from: { ...target.min, y: from.y },
+            to: { ...target.max, y: to.y },
+          },
         });
       },
     ),

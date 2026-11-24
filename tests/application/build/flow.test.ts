@@ -25,6 +25,7 @@ import {
   confirmEndpointHeight,
   tapAir,
   tapBlock,
+  tappedSelection,
 } from "../../support/buildSelection";
 import {
   cellKey,
@@ -92,9 +93,7 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   expect(e.session.confirmedBox).toBeUndefined();
   expect(e.session.flow).toEqual({
     kind: "point1",
-    dimensionId: overworld,
-    cell: from,
-    material: stone,
+    start: { dimensionId: overworld, cell: from, material: stone },
   });
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
@@ -104,9 +103,11 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   expect(e.session.flow).toEqual({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(overworld, boxOf(from, to), stone),
-    from,
-    to,
+    ...tappedSelection(
+      selectionOf(overworld, boxOf(from, to), stone),
+      from,
+      to,
+    ),
   });
   expect(e.feedback.messages).toEqual([
     { message: "pointSet", count: undefined },
@@ -117,9 +118,7 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   e.point.execute({ playerId, dimensionId: nether, cell: to });
   expect(e.session.flow).toEqual({
     kind: "point1",
-    dimensionId: nether,
-    cell: to,
-    material: dirt,
+    start: { dimensionId: nether, cell: to, material: dirt },
   });
   expect(material).toHaveBeenCalledTimes(2);
 });
@@ -256,9 +255,7 @@ it("Cancellation and returning to aiming preserve the confirmed box until Clear"
   new BackToAiming(e.repo).backToAiming({ playerId });
   expect(e.session.flow).toEqual({
     kind: "point1",
-    dimensionId: overworld,
-    cell: from,
-    material: stone,
+    start: { dimensionId: overworld, cell: from, material: stone },
   });
   e.session.setFlow(cancel(e.session.flow));
   expect(e.session.flow.kind).toBe("idle");

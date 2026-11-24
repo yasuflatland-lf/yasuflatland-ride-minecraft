@@ -16,7 +16,10 @@ import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
-import { chooseHeightedFlow } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  tappedSelection,
+} from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -10000, max: 10000 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -53,24 +56,24 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
         const box = boxOf(a, b);
         const flows: BuildFlow[] = [
           { kind: "idle" },
-          { kind: "point1", cell: a, dimensionId, material },
+          { kind: "point1", start: { dimensionId, cell: a, material } },
           {
             kind: "selected",
             menuLevel: "root",
-            from: a,
-            to: b,
-            selection: selectionOf(dimensionId, boxOf(a, b), material),
+            ...tappedSelection(
+              selectionOf(dimensionId, boxOf(a, b), material),
+              a,
+              b,
+            ),
           },
           {
             kind: "heightStep",
             heightLocked: false,
-            from: a,
-            to: b,
             base: boxOf(a, { ...b, y: a.y }),
             heightedKind,
-            previous: height,
-            dimensionId,
-            material,
+            liveHeight: height,
+            start: { dimensionId, cell: a, material },
+            taps: { from: a, to: b },
           },
           { kind: "pasteAim", manualTurn: 0 },
         ];
@@ -110,7 +113,7 @@ it("draws the terrain confirmation at the confirmed selection height", () => {
     boxOf(from, { ...to, y: 68 }),
     material,
   );
-  const common = { from, to, selection };
+  const common = tappedSelection(selection, from, to);
   expect(
     previewPoints(
       { ...common, kind: "terrainConfirm", op: "removeAbove" },
@@ -119,11 +122,9 @@ it("draws the terrain confirmation at the confirmed selection height", () => {
   ).toEqual(
     previewPoints(
       {
-        from,
-        to,
-        selection,
         kind: "selected",
         menuLevel: "root",
+        ...tappedSelection(selection, from, to),
       },
       { blink: true },
     ),
@@ -141,7 +142,7 @@ it("blinks the start marker while the end is undefined", () => {
       });
       expect(
         previewPoints(
-          { kind: "point1", cell: start, dimensionId, material },
+          { kind: "point1", start: { dimensionId, cell: start, material } },
           { blink },
         ),
       ).toMatchObject(markers);
@@ -192,12 +193,10 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
   const flow = {
     kind: "heightStep" as const,
     heightLocked: false,
-    from: base.min,
-    to: base.max,
     base,
-    previous: 5,
-    dimensionId,
-    material,
+    liveHeight: 5,
+    start: { dimensionId, cell: base.min, material },
+    taps: { from: base.min, to: base.max },
   };
   const gable = previewPoints(
     { ...flow, heightedKind: "gable" },
@@ -247,13 +246,11 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
           {
             kind: "heightStep",
             heightLocked: false,
-            from: origin,
-            to: base.max,
             base,
             heightedKind,
-            previous: height,
-            dimensionId,
-            material,
+            liveHeight: height,
+            start: { dimensionId, cell: origin, material },
+            taps: { from: origin, to: base.max },
           },
           { blink: true },
         ).roof;
@@ -309,16 +306,18 @@ it.each([
       {
         kind: "selected",
         menuLevel: "build",
-        selection: selectionOf(
-          dimensionId,
-          box,
-          blockStateOf("minecraft:oak_stairs", {
-            weirdo_direction: 0,
-            upside_down_bit: false,
-          }),
+        ...tappedSelection(
+          selectionOf(
+            dimensionId,
+            box,
+            blockStateOf("minecraft:oak_stairs", {
+              weirdo_direction: 0,
+              upside_down_bit: false,
+            }),
+          ),
+          box.min,
+          box.max,
         ),
-        from: box.min,
-        to: box.max,
       },
       kind,
     );
@@ -339,13 +338,18 @@ it("draws a locked cylinder at the box height even when another height is aimed"
           {
             kind: "selected",
             menuLevel: "root",
-            selection: selectionOf(
-              dimensionId,
-              boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 10 + height - 1, z: 5 }),
-              material,
+            ...tappedSelection(
+              selectionOf(
+                dimensionId,
+                boxOf(
+                  { x: 0, y: 10, z: 0 },
+                  { x: 4, y: 10 + height - 1, z: 5 },
+                ),
+                material,
+              ),
+              { x: 0, y: 10, z: 0 },
+              { x: 4, y: 10 + height - 1, z: 5 },
             ),
-            from: { x: 0, y: 10, z: 0 },
-            to: { x: 4, y: 10 + height - 1, z: 5 },
           },
           "cylinder",
         );

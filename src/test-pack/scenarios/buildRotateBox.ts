@@ -82,17 +82,18 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
         "Rotate bungalow"
     );
   };
+  const selection = selectionOf(
+    dimensionId,
+    source,
+    blockStateOf("minecraft:stone"),
+  );
   const select = () =>
     session.setFlow({
       kind: "selected",
       menuLevel: "root",
-      selection: selectionOf(
-        dimensionId,
-        source,
-        blockStateOf("minecraft:stone"),
-      ),
-      from: source.min,
-      to: source.max,
+      selection,
+      start: { dimensionId, cell: source.min, material: selection.material },
+      taps: { from: source.min, to: source.max },
     });
   const turn = () =>
     check("rotate", rotate.execute({ playerId, dimensionId }) === "rotated");
