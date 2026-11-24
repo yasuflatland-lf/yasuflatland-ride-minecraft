@@ -4,13 +4,14 @@ import { FLAP_IDS } from "../../../src/domain/camp/flaps";
 import { flapCells, type TentPose } from "../../../src/domain/camp/tent";
 import { tentFlapExitCells } from "../../../src/domain/camp/tentFlapExit";
 import { cellKey } from "../../../src/domain/shared/cells";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { defined } from "../../support/defined";
 
 const arbPose: fc.Arbitrary<TentPose> = fc.record({
   x: fc.integer({ min: -1000, max: 1000 }),
   y: fc.integer({ min: -60, max: 300 }),
   z: fc.integer({ min: -1000, max: 1000 }),
-  yaw: fc.constantFrom(0 as const, 90 as const, 180 as const, -90 as const),
+  yaw: fc.constantFrom(...[0, 90, 180, -90].map((yaw) => snapYaw(yaw))),
 });
 const fraction = fc.oneof(
   fc.constant(0.5),
@@ -28,7 +29,7 @@ describe("tentFlapExitCells (ADR 0212)", () => {
           90: { x: 1, z: 0 },
           180: { x: 0, z: 1 },
           [-90]: { x: -1, z: 0 },
-        }[pose.yaw];
+        }[pose.yaw as 0 | 90 | 180 | -90];
         const localX = { x: -depth.z, z: depth.x };
         const keys = new Set(
           FLAP_IDS.flatMap((id) => flapCells(pose, id)).map(cellKey),

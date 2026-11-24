@@ -6,6 +6,7 @@ import {
 } from "@minecraft/server";
 import { discardAll } from "../../../application/build/discardAll";
 import type { EndBuildSession } from "../../../application/build/endBuildSession";
+import type { MenuChoices } from "../../../application/build/menuChoices";
 import type { BuildStructureStore } from "../../../application/build/ports/structures";
 import type { PressPasteAim } from "../../../application/build/pressPasteAim";
 import type { PressUndo } from "../../../application/build/pressUndo";
@@ -27,7 +28,6 @@ import {
   asPlayerId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import type { MenuChoices } from "../bedrock/menuChoices";
 import {
   BUILD_NAMESPACE,
   TEST_EDIT_EVENT,
@@ -54,6 +54,15 @@ export function registerTestEdit(
   rotatePasteAim: RotatePasteAim,
   previewAim?: { aim: TestAimReader; preview: ShowPreview },
 ): void {
+  const chooseFromMenu = new Map([
+    ["shape", choices.chooseShape.bind(choices)],
+    ["contents", choices.chooseContents.bind(choices)],
+    ["stairContents", choices.chooseStairContents.bind(choices)],
+    ["terrace", choices.chooseTerrace.bind(choices)],
+    ["terrain", choices.chooseTerrain.bind(choices)],
+    ["utility", choices.chooseUtility.bind(choices)],
+    ["paste", choices.choosePaste.bind(choices)],
+  ]);
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (
@@ -62,6 +71,8 @@ export function registerTestEdit(
       )
         return;
       const [id, command, ...args] = ev.message.trim().split(/\s+/);
+      const [menu, entry] = args;
+      const choose = command === "menu" && menu && chooseFromMenu.get(menu);
       const player = world.getAllPlayers().find((p) => p.id === id);
       if (!player?.isValid) return;
       const playerId = asPlayerId(player.id);
@@ -187,17 +198,10 @@ export function registerTestEdit(
           );
           return;
         } else if (
-          command === "menu" &&
-          (args[0] === "shape" ||
-            args[0] === "contents" ||
-            args[0] === "stairContents" ||
-            args[0] === "terrace" ||
-            args[0] === "terrain" ||
-            args[0] === "utility" ||
-            args[0] === "paste") &&
-          (args.length === 2 || (args.length === 1 && args[0] === "shape"))
+          choose &&
+          (args.length === 2 || (args.length === 1 && menu === "shape"))
         ) {
-          offered = choices.choose(playerId, args[0], args[1]);
+          offered = choose(playerId, entry);
         } else if (
           command === "height" &&
           args.length === 1 &&

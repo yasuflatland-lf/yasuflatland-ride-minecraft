@@ -1,4 +1,4 @@
-import { backToAiming } from "../../domain/build/flow/flow";
+import { backToAiming } from "../../domain/build/flow/stepBack";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 

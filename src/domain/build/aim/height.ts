@@ -1,5 +1,5 @@
 import { sizeOf } from "../box";
-import type { BaseHeightFlow, HeightStepFlow } from "../flow/flow";
+import type { BaseHeightFlow, HeightStepFlow } from "../flow/state";
 import { selectionHeightLimit } from "../selection";
 import { BUILD_SPEC } from "../spec";
 import { volumeOf } from "../volume/geometry";

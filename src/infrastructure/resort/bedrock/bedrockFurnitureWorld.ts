@@ -1,4 +1,4 @@
-import { type Dimension, type Entity, ItemStack } from "@minecraft/server";
+import type { Entity } from "@minecraft/server";
 import type { FurnitureTopBlocksWorld } from "../../../application/resort/ports/furnitureTopBlocks";
 import type {
   FurnitureTakeBackWorld,
@@ -13,12 +13,7 @@ import {
   furniturePoseAt,
 } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
-import {
-  type Cell,
-  cellCenter,
-  cellKey,
-  sameCell,
-} from "../../../domain/shared/cells";
+import { type Cell, cellCenter } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import {
@@ -33,15 +28,12 @@ import {
   gearFeedback,
   gearGroundChecks,
   giveBack,
+  giveBackReceiver,
   spawnIn,
 } from "../../shared/gearEntity";
 import { BedrockGroundCells } from "../../shared/groundCells";
-import {
-  LaidBlockLayer,
-  readSavedCells,
-  writeSavedCells,
-} from "../../shared/laidBlockLayer";
-import { consumeHeld, giveOrDrop, playerById } from "../../shared/players";
+import { SingleBlockLayer } from "../../shared/laidBlockLayer";
+import { consumeHeld, playerById } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DINING_TABLE_TOP,
@@ -70,11 +62,7 @@ export class BedrockFurnitureWorld
   readonly isSolidTop: SpaceCheck;
   readonly isCampSpace: SpaceCheck;
 
-  private readonly layer: LaidBlockLayer;
-  private readonly tops = new Map<
-    FurnitureId,
-    { dimension: Dimension; cells: Cell[] }
-  >();
+  private readonly layer: SingleBlockLayer<FurnitureId>;
   constructor(
     private readonly deps: {
       topHosts: TopHostRegistry;
@@ -86,8 +74,9 @@ export class BedrockFurnitureWorld
     ({ isSolidTop: this.isSolidTop, isCampSpace: this.isCampSpace } =
       gearGroundChecks(deps));
 
-    this.layer = new LaidBlockLayer(
+    this.layer = new SingleBlockLayer(
       DINING_TABLE_TOP,
+      FURNITURE_TOP_CELLS,
       deps.isVehicleSpace,
       "furniture top",
     );
@@ -127,8 +116,7 @@ export class BedrockFurnitureWorld
   }
   refund(player: PlayerId, kind: FurnitureKind, _slot: number): void {
     const entity = playerById(player);
-    if (entity)
-      giveOrDrop(entity, [new ItemStack(FURNITURE_IDS[kind].item, 1)]);
+    if (entity) giveBack(entity, FURNITURE_IDS[kind].item, entity);
   }
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined {
     const entity = spawnIn(
@@ -139,17 +127,8 @@ export class BedrockFurnitureWorld
     );
     return entity && asFurnitureId(entity.id);
   }
-  remember(entity: Entity): { dimension: Dimension; cells: Cell[] } {
-    const id = asFurnitureId(entity.id);
-    let record = this.tops.get(id);
-    if (!record) {
-      record = {
-        dimension: entity.dimension,
-        cells: readSavedCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS)),
-      };
-      this.tops.set(id, record);
-    }
-    return record;
+  remember(entity: Entity): void {
+    this.layer.remember(asFurnitureId(entity.id), entity);
   }
   layTop(id: FurnitureId): void {
     const entity = this.entity(id);
@@ -157,65 +136,22 @@ export class BedrockFurnitureWorld
     const warn = this.layer.warning("lay");
     try {
       const wanted = this.topCells(entity);
-      if (wanted.length === 0) return;
-      const record = this.remember(entity);
-      const keys = new Set(wanted.map(cellKey));
-      const stale = record.cells.filter((cell) => !keys.has(cellKey(cell)));
-      this.layer.clear(record.dimension, stale, warn);
-      record.cells = record.cells.filter(
-        (cell) =>
-          keys.has(cellKey(cell)) ||
-          safeBlockAt(record.dimension, cell) === undefined ||
-          safeBlockAt(record.dimension, cell)?.typeId === DINING_TABLE_TOP,
-      );
-      record.cells = this.layer.lay(
-        record.dimension,
-        wanted,
-        record.cells,
-        warn,
-      );
-      entity.setDynamicProperty(
-        FURNITURE_TOP_CELLS,
-        writeSavedCells(record.cells),
-      );
+      if (wanted.length > 0) this.layer.lay(id, entity, wanted, warn);
     } catch (error) {
       warn(error);
     }
   }
   clearTop(id: FurnitureId): boolean {
-    const entity = this.entity(id);
-    const record =
-      this.tops.get(id) ?? (entity ? this.remember(entity) : undefined);
-    if (!record) return true;
-    const warn = this.layer.warning("clear");
-    this.layer.clear(record.dimension, record.cells, warn);
-    // Keep unloaded cells for later cleanup rather than losing their only record.
-    record.cells = record.cells.filter(
-      (cell) =>
-        safeBlockAt(record.dimension, cell) === undefined ||
-        safeBlockAt(record.dimension, cell)?.typeId === DINING_TABLE_TOP,
-    );
-    try {
-      entity?.setDynamicProperty(
-        FURNITURE_TOP_CELLS,
-        writeSavedCells(record.cells),
-      );
-    } catch (error) {
-      warn(error);
-    }
-    if (record.cells.length === 0) this.tops.delete(id);
-    return record.cells.length === 0;
+    return this.layer.clear(id, this.entity(id)).length === 0;
   }
-  ownerAt(dimension: DimensionId, cell: Cell): FurnitureId | undefined {
-    if (blockIn(dimension, cell)?.typeId !== DINING_TABLE_TOP) return undefined;
-    for (const [id, record] of this.tops) {
-      if (
-        record.dimension.id === dimension &&
-        record.cells.some((at) => sameCell(at, cell))
-      )
-        return id;
-    }
-    return undefined;
+  ownerAt(
+    dimension: DimensionId,
+    cell: Cell,
+    typeId = blockIn(dimension, cell)?.typeId,
+  ): FurnitureId | undefined {
+    return typeId === undefined
+      ? undefined
+      : this.layer.ownerOf(dimension, cell, typeId);
   }
   private topCells(entity: Entity): Cell[] {
     const kind = furnitureKindOf(entity.typeId, "entity");
@@ -267,8 +203,7 @@ export class BedrockFurnitureWorld
     if (!entity) return false;
     const cells = [
       ...this.topCells(entity),
-      ...(this.tops.get(id)?.cells ??
-        readSavedCells(entity.getDynamicProperty(FURNITURE_TOP_CELLS))),
+      ...this.layer.heldCells(id, entity),
     ];
     return cells.some(
       (cell) =>
@@ -279,9 +214,9 @@ export class BedrockFurnitureWorld
   dropItem(id: FurnitureId, player: PlayerId): void {
     const entity = this.entity(id);
     if (!entity) return;
-    const receiver = playerById(player);
     const kind = this.kindOf(id);
     if (kind === undefined) return;
+    const receiver = giveBackReceiver(FURNITURE_SPEC[kind].giveBack, player);
     giveBack(entity, FURNITURE_IDS[kind].item, receiver);
   }
 }

@@ -11,7 +11,7 @@ import { StepBackSelection } from "../../../src/application/build/stepBackSelect
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";

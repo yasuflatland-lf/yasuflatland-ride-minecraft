@@ -1,4 +1,4 @@
-import { acceptsAnyItemUse, type BuildFlow, opensUtilityMenu } from "./flow";
+import type { BuildFlow } from "./state";
 
 export type PressRole = "wand" | "pasteRotate" | "pastePlace" | "undo";
 export type PressRoute = "itemUse" | "blockInteract";
@@ -60,4 +60,17 @@ export function routePress({
   return {
     kind: opensUtilityMenu(flow, sneaking) ? "openUtilityMenu" : "fixEndpoint",
   };
+}
+
+export function acceptsAnyItemUse(flow: BuildFlow): boolean {
+  return flow.kind === "baseHeight" || flow.kind === "selected";
+}
+
+export function opensUtilityMenu(flow: BuildFlow, sneaking: boolean): boolean {
+  return sneaking || flow.kind === "idle" || flow.kind === "selected";
+}
+
+/** True when a plain air press in this flow opens the utility menu, which offers Undo when history exists (ADR 0229). */
+export function airPressOffersUndo(flow: BuildFlow): boolean {
+  return flow.kind === "idle";
 }

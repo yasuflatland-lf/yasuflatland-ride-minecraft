@@ -1,4 +1,4 @@
-import { fixStairGoal } from "../../domain/build/flow/flow";
+import { fixStairGoal } from "../../domain/build/flow/stairFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { staircaseToward } from "../../domain/build/stairs/staircase";
 import type { PlayerId } from "../../domain/shared/ids";
