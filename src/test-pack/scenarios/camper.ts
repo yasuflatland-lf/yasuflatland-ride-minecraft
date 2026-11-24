@@ -29,8 +29,8 @@ import {
 } from "../../domain/vehicle/kinds/camper/storagePlates";
 import {
   type CamperRoomBlock,
+  type CampingGearId,
   type DecorPlacement,
-  isDecorItem,
   parseDecorSlotId,
 } from "../../domain/vehicle/kinds/index";
 import { DOCK } from "../../domain/vehicle/motion/dock";
@@ -1023,9 +1023,9 @@ export function camperParkCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
   });
 }
 
-function decorPlacement(rawSlot: string, item: string): DecorPlacement {
+function decorPlacement(rawSlot: string, item: CampingGearId): DecorPlacement {
   const slot = parseDecorSlotId(rawSlot);
-  if (slot === undefined || !isDecorItem(item))
+  if (slot === undefined)
     throw new Error(`Invalid decor fixture: ${rawSlot},${item}`);
   return { slot, item };
 }

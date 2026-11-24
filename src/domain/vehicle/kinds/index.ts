@@ -24,13 +24,17 @@ import { SuvDrive } from "./suv/drive";
 import { SUV_ENTITY } from "./suv/entity";
 import { SUV_PROFILE } from "./suv/profile";
 
-export { CAMPING_GEAR_IDS, STANDING_GEAR_IDS } from "./camper/campingGear";
+export {
+  asCampingGear,
+  CAMPING_GEAR_IDS,
+  type CampingGearId,
+  STANDING_GEAR_IDS,
+} from "./camper/campingGear";
 export { pairHeights } from "./camper/decor";
 export {
   type DecorItemId,
   type DecorPlacement,
   type DecorSlotId,
-  isDecorItem,
   parseDecorSlotId,
   serializeDecor,
 } from "./camper/decorData";

@@ -2,7 +2,7 @@
 import { sameCell } from "../../../shared/cells";
 import { distanceSq, type Vec3 } from "../../../shared/vec";
 import type { HoldPose } from "../../dock/floor";
-import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
+import { HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
 import { decorSlotCell, decorSpotOffset } from "./decorCells";
 import type { DecorItemId, DecorPlacement } from "./decorData";
@@ -15,7 +15,7 @@ import { storagePressTarget } from "./storagePlates";
 const PX_PER_BLOCK = 16;
 
 /**
- * The slots that accept `item`, in slot order; none for an unknown item. A standing
+ * The slots that accept `item`, in slot order. A standing
  * item fits standing slots subject to their clearance allowlist, and a hanging item only a hanging slot (ADR 0097, 0102).
  * A slot behind a storage door counts only while that door is in `open` (ADR 0114, 0121).
  */
@@ -23,7 +23,6 @@ export function slotsFor(
   item: DecorItemId,
   open: ReadonlySet<StorageDoorId> = NO_DOORS,
 ): DecorSlot[] {
-  if (!CAMPING_GEAR_IDS.includes(item)) return [];
   const hanging = HANGING_GEAR_IDS.has(item);
   return DECOR_SLOTS.filter(
     (slot) =>

@@ -1,9 +1,9 @@
 import type { DockCell } from "../../../../domain/vehicle/dock/floor";
 import {
+  asCampingGear,
   type CamperRoomBlock,
   type DecorItemId,
   type Face,
-  isDecorItem,
   STANDING_GEAR_IDS,
 } from "../../../../domain/vehicle/kinds/index";
 import { type DockBlockCodecs, dockBlock } from "../../bedrock/dockLayer";
@@ -58,10 +58,7 @@ function isDecorSpot(v: unknown): v is number {
 }
 
 function isPairEnd(v: unknown): v is DecorItemId | undefined {
-  return (
-    v === undefined ||
-    (typeof v === "string" && isDecorItem(v) && STANDING_GEAR_IDS.includes(v))
-  );
+  return v === undefined || STANDING_GEAR_IDS.some((gear) => gear === v);
 }
 
 function isFace(v: unknown): v is Face {
@@ -153,7 +150,7 @@ export const CAMPER_ROOM_CODEC = {
     id: (b) => decorBlockId(b.item),
     isBlock: (b) =>
       typeof b.item === "string" &&
-      isDecorItem(b.item) &&
+      asCampingGear(b.item) === b.item &&
       isFace(b.face) &&
       isDecorHeight(b.height) &&
       isDecorSpot(b.spot),
