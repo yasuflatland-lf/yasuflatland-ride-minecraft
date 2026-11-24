@@ -1,13 +1,14 @@
 import type { Dimension, Entity, Player } from "@minecraft/server";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import { type Cell, cellCenter } from "../../domain/shared/cells";
+import { seatWorldPoint } from "../../domain/shared/frame";
 import {
   asDimensionId,
   asPlayerId,
   type PlayerId,
 } from "../../domain/shared/ids";
 import { isStandable, type StandPolicy } from "../../domain/shared/standing";
-import { forward, rightOf, type Vec3 } from "../../domain/shared/vec";
+import type { Vec3 } from "../../domain/shared/vec";
 import { sampleBlock } from "./blocks";
 
 import { NAMESPACE } from "./identifiers";
@@ -21,17 +22,10 @@ export function seatRider(entity: Entity, player: Player, seat: Vec3): boolean {
     player.dimension.id !== entity.dimension.id
   )
     return false;
-  const facing = forward(entity.getRotation().y);
-  const right = rightOf(facing);
+  const yaw = entity.getRotation().y;
+  const point = seatWorldPoint(entity.location, yaw, seat);
   // addRider requires a nearby player in the entity's dimension.
-  player.teleport(
-    {
-      x: entity.location.x + right.x * seat.x - facing.x * seat.z,
-      y: entity.location.y + seat.y,
-      z: entity.location.z + right.z * seat.x - facing.z * seat.z,
-    },
-    { dimension: entity.dimension },
-  );
+  player.teleport(point, { dimension: entity.dimension });
   return entity.getComponent("minecraft:rideable")?.addRider(player) === true;
 }
 
