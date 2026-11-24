@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import {
   openBuildMenu,
   pasteMenu,
@@ -30,6 +30,8 @@ import {
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -100, max: 100 });

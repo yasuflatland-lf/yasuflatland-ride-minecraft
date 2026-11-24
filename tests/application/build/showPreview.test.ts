@@ -14,7 +14,6 @@ import { UpdateBuildModes } from "../../../src/application/build/updateBuildMode
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import { tapAir } from "../../../src/domain/build/flow/heightFlow";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
   FACINGS,
@@ -24,10 +23,12 @@ import {
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { tapAir } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -63,24 +64,38 @@ function setup(active = true) {
       modes.execute([{ playerId: alex, held: "wand" }]);
   const aim = vi.fn<AimReader["aim"]>();
   const targets = new FakeTapTargets();
-  const syncTapTarget = new SyncTapTarget(new FakeWorld(), targets);
+  const blocks = new FakeWorld();
+  const syncTapTarget = new SyncTapTarget(blocks, targets);
   const preview = new ShowPreview(
     repo,
     feedback,
     { aim, dimensionOf: () => nether },
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
     syncTapTarget,
+    blocks,
   );
-  return { repo, feedback, session, aim, preview, targets, syncTapTarget };
+  return {
+    repo,
+    feedback,
+    session,
+    aim,
+    preview,
+    targets,
+    syncTapTarget,
+    blocks,
+  };
 }
 
 it("shares one aim sample between the preview and tap target placement", () => {
-  const { session, preview, feedback, aim, targets, syncTapTarget } = setup();
+  const { session, preview, feedback, aim, targets, syncTapTarget, blocks } =
+    setup();
+  blocks.heightRanges.set(nether, NETHER_RANGE);
+  const clampedEnd = { ...end, y: NETHER_RANGE.maxY };
   const flow = { kind: "point1", dimensionId: nether, cell, material } as const;
   session.setFlow(flow);
   const sample = {
     input: "touch",
-    ray: { ...ray, origin: { ...ray.origin, x: -2 } },
+    ray: { ...ray, origin: { ...ray.origin, x: -2, y: NETHER_RANGE.maxY + 1 } },
   } as const;
   aim.mockReturnValueOnce(sample);
   const sync = vi.spyOn(syncTapTarget, "execute");
@@ -91,10 +106,10 @@ it("shares one aim sample between the preview and tap target placement", () => {
   expect(sync.mock.calls[0]?.[0].aim).toBe(sample);
   expect(targets.placements.get(alex)).toEqual({
     dimensionId: nether,
-    cell: end,
+    cell: clampedEnd,
   });
   expect(feedback.previews[0]?.set).toEqual(
-    previewPoints(flow, { blink: true, end }),
+    previewPoints(flow, { blink: true, end: clampedEnd }),
   );
 });
 
@@ -237,7 +252,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(0);
   expect(session.flow).toBe(flow);
-  new AimHeight(repo).execute({ playerId: alex, ray });
+  new AimHeight(repo, new FakeWorld()).execute({ playerId: alex, ray });
   expect(feedback.previews[0]?.set).toEqual(
     previewPoints(session.flow, { blink: true }),
   );
@@ -868,7 +883,7 @@ it("redraws the rotated outline and tap markers on the next outline tick", () =>
     feedback,
     { warn: vi.fn() },
   );
-  new RotateSelection(repo, core, feedback).execute({
+  new RotateSelection(repo, core, feedback, world).execute({
     playerId: alex,
     dimensionId: nether,
   });

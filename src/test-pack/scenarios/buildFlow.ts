@@ -30,6 +30,7 @@ import {
   cellKey,
   sameCell,
 } from "../../domain/shared/cells";
+import { blockHeightRange } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import {
   BUILD_UNDO_TYPE,
   LAID_BLOCK_TAG,
@@ -909,6 +910,7 @@ function aimedTapTargetCell(f: Fixture): Cell {
       direction: f.player.getViewDirection(),
     },
     BUILD_SPEC.touchTapReach,
+    blockHeightRange(f.player.dimension),
   );
   check(cell !== undefined && f.block(cell).isAir, "no reachable air endpoint");
   return cell;
@@ -2397,14 +2399,22 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
 /** Footprint columns from a layer below the fixture's origin up to the world top. */
 function columnRegion(f: Fixture, sx: number, sz: number, bottom: number) {
   const offset = f.cell(0, bottom, 0);
-  return f.region(sx, BUILD_SPEC.worldTopY - offset.y + 1, sz, offset);
+  return f.region(
+    sx,
+    blockHeightRange(f.player.dimension).maxY - offset.y + 1,
+    sz,
+    offset,
+  );
 }
 
 export function buildRemoveAbove(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = columnRegion(f, 3, 3, -3);
     for (const cell of cells) f.block(cell).setType("minecraft:air");
-    const ceiling = f.block({ ...f.cell(1, 0, 1), y: BUILD_SPEC.worldTopY });
+    const ceiling = f.block({
+      ...f.cell(1, 0, 1),
+      y: blockHeightRange(a.dim).maxY,
+    });
     const floor = f.region(3, 1, 3, f.cell(0, -3, 0));
     for (const cell of floor) f.block(cell).setType("minecraft:stone");
     const below = f.block(f.cell(1, -4, 1));

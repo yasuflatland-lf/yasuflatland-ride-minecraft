@@ -3,6 +3,7 @@
 // treat protected cells as barriers.
 import type { Cell } from "../../shared/cells";
 import { AIR, type BlockState } from "../blockState";
+import type { HeightRange } from "../heightRange";
 import { oppositeFacing } from "../rotation/facing";
 import { cellsOfShape, type Shape, type ShapeStyle } from "../shape/shape";
 import { stairDescending, stairFlatTop, stairMaterialOf } from "../stair";
@@ -37,12 +38,13 @@ export function* planStairs(
   s: Staircase,
   roles: ReadonlySet<StairRole>,
   material: BlockState,
+  range: HeightRange,
 ): Iterable<PlannedChange> {
   const stair = stairMaterialOf(material);
   const lowerEnd = s.rise > 0 ? oppositeFacing(s.toward) : s.toward;
   const noseState = stair ? stairDescending(stair, lowerEnd) : material;
   const flatState = stair ? stairFlatTop(stair) : material;
-  for (const { cell, role, nose } of stairCells(s, roles)) {
+  for (const { cell, role, nose } of stairCells(s, roles, range)) {
     const after =
       role === "step" || role === "below"
         ? nose

@@ -1,6 +1,7 @@
 import type { DimensionId } from "../shared/ids";
 import type { BlockState } from "./blockState";
 import { type CellBox, cellBox, sizeOf } from "./box";
+import type { HeightRange } from "./heightRange";
 import { BUILD_SPEC } from "./spec";
 
 export type Selection = Readonly<{
@@ -25,12 +26,12 @@ export function withBox(selection: Selection, box: CellBox): Selection {
   return selectionOf(selection.dimensionId, box, selection.material);
 }
 
-export function selectionHeightLimit(box: CellBox): number {
+export function selectionHeightLimit(box: CellBox, range: HeightRange): number {
   const { x, z } = sizeOf(box);
   return Math.max(
     1,
     Math.min(
-      BUILD_SPEC.worldTopY - box.min.y + 1,
+      range.maxY - box.min.y + 1,
       Math.floor(BUILD_SPEC.maxCopyVolume / (x * z)),
     ),
   );

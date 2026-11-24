@@ -1,10 +1,10 @@
 import type { BlockState } from "../../src/domain/build/blockState";
 import { sizeOf } from "../../src/domain/build/box";
 import {
+  tapAir as applyAirTap,
+  tapBlock as applyBlockTap,
   chooseHeighted,
   confirmLiveHeight,
-  tapAir,
-  tapBlock,
 } from "../../src/domain/build/flow/heightFlow";
 import {
   chooseStairs,
@@ -19,6 +19,25 @@ import { chooseTerrain } from "../../src/domain/build/flow/terrainFlow";
 import type { HeightStepKind } from "../../src/domain/build/volume/kind";
 import type { Cell } from "../../src/domain/shared/cells";
 import type { DimensionId } from "../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../helpers/buildHeightRange";
+
+export function tapBlock(
+  flow: BuildFlow,
+  dimensionId: DimensionId,
+  cell: Cell,
+  material: BlockState,
+  range = OVERWORLD_RANGE,
+): BuildFlow {
+  return applyBlockTap(flow, dimensionId, cell, material, range);
+}
+
+export function tapAir(
+  flow: BuildFlow,
+  end?: Cell,
+  range = OVERWORLD_RANGE,
+): BuildFlow {
+  return applyAirTap(flow, end, range);
+}
 
 export function selectionFlows(
   from: Cell,
@@ -53,7 +72,7 @@ export function chooseHeightedFlow(
   flow: BuildFlow,
   kind: HeightStepKind,
 ): HeightStepFlow {
-  const result = chooseHeighted(flow, kind);
+  const result = chooseHeighted(flow, kind, OVERWORLD_RANGE);
   if ("refused" in result)
     throw new Error(`Expected height step for ${kind}: ${result.refused}`);
   return result.flow;

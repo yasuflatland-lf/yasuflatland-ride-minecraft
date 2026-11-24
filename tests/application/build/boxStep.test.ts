@@ -6,7 +6,7 @@ import { CopySelection } from "../../../src/application/build/copySelection";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -18,6 +18,8 @@ import {
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 import {
   FakeFeedback,

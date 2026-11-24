@@ -15,6 +15,7 @@ import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -129,6 +130,7 @@ it.each([
     e.session.replaceSelection(
       selectionOf(overworld, target, material),
       cornerTaps(target),
+      OVERWORLD_RANGE,
     );
   }
   if (situation === "another edit")
@@ -143,6 +145,7 @@ it.each([
     e.session.replaceSelection(
       selectionOf(nether, box, material),
       cornerTaps(box),
+      OVERWORLD_RANGE,
     );
   if (situation === "no clipboard") e.session.clearClipboard();
   const flow = e.session.flow;

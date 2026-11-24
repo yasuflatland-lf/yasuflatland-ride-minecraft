@@ -9,6 +9,7 @@ import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
 import type { BuildFlow } from "./flow/state";
 import { cancel } from "./flow/stepBack";
 import type { Taps } from "./flow/taps";
+import type { HeightRange } from "./heightRange";
 import {
   EMPTY_HISTORY,
   type SnapshotRecord,
@@ -77,7 +78,7 @@ export class BuildSession {
     )
       this.currentMode = { active: true, streak: 0 };
   }
-  replaceSelection(selection: Selection, taps: Taps): void {
+  replaceSelection(selection: Selection, taps: Taps, range: HeightRange): void {
     const flow = this.currentFlow;
     if (flow.kind === "baseHeight") {
       this.currentFlow = Object.freeze({
@@ -85,7 +86,11 @@ export class BuildSession {
         selection,
         ...taps,
         baseBox: boxWithHeight(selection.box, 1),
-        previous: clamp(flow.previous, 1, selectionHeightLimit(selection.box)),
+        previous: clamp(
+          flow.previous,
+          1,
+          selectionHeightLimit(selection.box, range),
+        ),
       });
     } else if (flow.kind === "selected") {
       this.currentFlow = Object.freeze({ ...flow, ...taps, selection });
