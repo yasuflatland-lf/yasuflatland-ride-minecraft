@@ -33,7 +33,7 @@ const addedAnimations: Record<string, string> = {
 };
 
 describe("vanilla player override (ADR 0238)", () => {
-  it("preserves vanilla except for the added rider animations and the first-person scooter controller switch", () => {
+  it("preserves vanilla except for the persona engine version, the added rider animations, and the first-person scooter controller switch", () => {
     const renderControllers = vanillaDescription.render_controllers.flatMap(
       (entry: Record<string, string>) => {
         const condition = entry[firstPersonId];
@@ -50,6 +50,8 @@ describe("vanilla player override (ADR 0238)", () => {
         ...vanilla["minecraft:client_entity"],
         description: {
           ...vanillaDescription,
+          // An override without it shows every persona as Steve (MCPE-74493).
+          min_engine_version: "1.8.0",
           render_controllers: renderControllers,
           animations: { ...vanillaDescription.animations, ...addedAnimations },
         },

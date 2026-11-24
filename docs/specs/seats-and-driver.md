@@ -181,7 +181,7 @@
 - Agreement: Proposed
 - Basis: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md) Decision; [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md) Decision.
 - Implementation: `src/test-pack/scooterPoseProbe.ts`; `packs/yasu_ride_rp/entity/yasu_ride/player.ce.json`; `packs/yasu_ride_rp/animations/yasu_ride/player.anim.json`
-- Verification: `tests/packs/playerOverride.test.ts` "preserves vanilla except for the added rider animations and the first-person scooter controller switch", "loops scooter grip with forward arms and legs swung 35 degrees forward, and adds stepped root roll at the SCOOTER_SPEC angles", "loops the pillion set with arms swung back and the driver's legs and root roll" pin the grip bones, looping, ten additive root angles per rider, and absence of waist roll. Third-person grip alignment, roll sign, pose switching, dismount restoration, and the remaining visibility checks await owner verification.
+- Verification: `tests/packs/playerOverride.test.ts` "preserves vanilla except for the persona engine version, the added rider animations, and the first-person scooter controller switch", "loops scooter grip with forward arms and legs swung 35 degrees forward, and adds stepped root roll at the SCOOTER_SPEC angles", "loops the pillion set with arms swung back and the driver's legs and root roll" pin the grip bones, looping, ten additive root angles per rider, and absence of waist roll. Third-person grip alignment, roll sign, pose switching, dismount restoration, and the remaining visibility checks await owner verification.
 
 ### Scooter rider pose
 
