@@ -1,5 +1,4 @@
 import { offsetToCellCenter } from "../../../shared/cells";
-import { SyncedValue } from "../../../shared/syncedValue";
 import { clamp, normalizeYaw, type Vec3 } from "../../../shared/vec";
 import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
@@ -15,6 +14,7 @@ import {
   transformingHorizontalStep,
 } from "../../motion/transformingDrive";
 import type { Pave } from "../../pave";
+import { SyncedCommands } from "../../syncedCommands";
 import { bladeColumns, type CutReach, shaftColumns } from "./blade";
 import {
   type BULLDOZER_ENTITY,
@@ -117,25 +117,21 @@ export class BulldozerDrive extends TransformingDrive {
   private travel: TrackTravel = { r: 0, l: 0 };
   private doorTimer = 0;
   private doorSteps = 0;
-  private readonly doorSync = new SyncedValue<number>();
   /** The blade's target: the saved property or the spawn default, then whatever setToolState last set. The shown height travels toward it (ADR 0138). */
   private bladeTargetRaised: boolean;
   /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
   private bladeSteps: number;
-  private readonly bladeSync = new SyncedValue<number>();
   private wideBlade: boolean;
-  private readonly wideSync = new SyncedValue<boolean>();
   /** Whether the road paver switch is on; while on and driven, step paves (ADR 0181). */
   private roadPaverOn: boolean;
-  private readonly roadPaverSync = new SyncedValue<boolean>();
-  private readonly phaseSync = {
-    r: new SyncedValue<0 | 1 | 2>(),
-    l: new SyncedValue<0 | 1 | 2>(),
-  };
-  private readonly spinSync = {
-    r: new SyncedValue<number>(),
-    l: new SyncedValue<number>(),
-  };
+  private readonly bodySync = new SyncedCommands<BulldozerDrive>()
+    .add((drive) => drive.doorSteps / BULLDOZER_SPEC.doorSteps, doorCommand)
+    .add(
+      (drive) => drive.bladeSteps / BULLDOZER_SPEC.bladeLiftTicks,
+      bladeCommand,
+    )
+    .add((drive) => drive.wideBlade, wideBladeCommand)
+    .add((drive) => drive.roadPaverOn, roadPaverCommand);
   private readonly tools = toolBindings(BULLDOZER_MONITOR, {
     [BLADE_SWITCH_ITEM]: {
       // The monitor shows the target before the blade finishes easing (ADR 0139).
@@ -178,6 +174,19 @@ export class BulldozerDrive extends TransformingDrive {
     this.bladeSteps = this.bladeTargetSteps();
     this.wideBlade = restored.wide_blade === true;
     this.roadPaverOn = restored.road_paver === true;
+    const { phaseStep, radius } = BULLDOZER_SPEC.tracks;
+    for (const side of TRACK_SIDES) {
+      this.bodySync.add(
+        (drive) => trackPhase(drive.travel[side], phaseStep),
+        (phase) => trackPhaseCommand(side, phase),
+      );
+    }
+    for (const side of TRACK_SIDES) {
+      this.bodySync.add(
+        (drive) => trackSpin(drive.travel[side], radius),
+        (spin) => trackSpinCommand(side, spin),
+      );
+    }
     // Unlike the other kinds, a rebuilt bulldozer resends gravity and its restored
     // form on the first step instead of trusting ADR 0127's primed form (ADR 0136).
     this.resync();
@@ -212,14 +221,7 @@ export class BulldozerDrive extends TransformingDrive {
 
   override resync(): void {
     super.resync();
-    this.doorSync.resync();
-    this.bladeSync.resync();
-    this.wideSync.resync();
-    this.roadPaverSync.resync();
-    for (const side of TRACK_SIDES) {
-      this.phaseSync[side].resync();
-      this.spinSync[side].resync();
-    }
+    this.bodySync.resync();
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
@@ -239,7 +241,7 @@ export class BulldozerDrive extends TransformingDrive {
     this.doorTimer = Math.max(0, this.doorTimer - 1);
     const doorTarget = this.doorTimer > 0 ? BULLDOZER_SPEC.doorSteps : 0;
     this.doorSteps += Math.sign(doorTarget - this.doorSteps);
-    const commands = [...out.commands, ...this.bodyCommands()];
+    const commands = [...out.commands, ...this.bodySync.next(this)];
     return {
       ...out,
       ramHalfWidth: this.bladeRule().halfWidth,
@@ -331,33 +333,5 @@ export class BulldozerDrive extends TransformingDrive {
       )
         return true;
     return false;
-  }
-
-  private bodyCommands(): EngineCommand[] {
-    const { phaseStep, radius } = BULLDOZER_SPEC.tracks;
-    const commands: EngineCommand[] = [];
-    const door = this.doorSync.next(this.doorSteps / BULLDOZER_SPEC.doorSteps);
-    if (door !== undefined) commands.push(doorCommand(door));
-    const blade = this.bladeSync.next(
-      this.bladeSteps / BULLDOZER_SPEC.bladeLiftTicks,
-    );
-    if (blade !== undefined) commands.push(bladeCommand(blade));
-    const wide = this.wideSync.next(this.wideBlade);
-    if (wide !== undefined) commands.push(wideBladeCommand(wide));
-    const roadPaver = this.roadPaverSync.next(this.roadPaverOn);
-    if (roadPaver !== undefined) commands.push(roadPaverCommand(roadPaver));
-    for (const side of TRACK_SIDES) {
-      const phase = this.phaseSync[side].next(
-        trackPhase(this.travel[side], phaseStep),
-      );
-      if (phase !== undefined) commands.push(trackPhaseCommand(side, phase));
-    }
-    for (const side of TRACK_SIDES) {
-      const spin = this.spinSync[side].next(
-        trackSpin(this.travel[side], radius),
-      );
-      if (spin !== undefined) commands.push(trackSpinCommand(side, spin));
-    }
-    return commands;
   }
 }

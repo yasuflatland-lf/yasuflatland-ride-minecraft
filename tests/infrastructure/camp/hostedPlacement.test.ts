@@ -8,17 +8,26 @@ import type { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/be
 import { registerDutchOven } from "../../../src/infrastructure/camp/bedrock/handlers/dutchOven";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
 import {
+  DUTCH_OVEN_ON_TOP,
+  GAS_LANTERN_ON_TOP,
+} from "../../../src/infrastructure/camp/bedrock/topHosts";
+import {
   DUTCH_OVEN_ITEM,
   GAS_LANTERN_ITEM,
 } from "../../../src/infrastructure/camp/identifiers";
 import { TopHostRegistry } from "../../../src/infrastructure/shared/tableTop/registry";
 
-const game = vi.hoisted(() => ({ tick: 10, run: vi.fn(), interact: vi.fn() }));
+const game = vi.hoisted(() => ({
+  tick: 10,
+  run: vi.fn(),
+  interact: vi.fn(),
+  block: vi.fn(),
+}));
 vi.mock("@minecraft/server", () => ({
   Direction: { Up: "Up" },
   world: {
     beforeEvents: {
-      playerInteractWithBlock: { subscribe: vi.fn() },
+      playerInteractWithBlock: { subscribe: game.block },
       playerInteractWithEntity: { subscribe: game.interact },
     },
     afterEvents: { entityHitEntity: { subscribe: vi.fn() } },
@@ -80,6 +89,7 @@ it.each(["lantern", "oven"] as const)(
             world as unknown as ConstructorParameters<
               typeof GasLanternActions
             >[0],
+            GAS_LANTERN_ON_TOP,
           ),
           world as unknown as BedrockGasLanternWorld,
           registry,
@@ -89,6 +99,7 @@ it.each(["lantern", "oven"] as const)(
             world as unknown as ConstructorParameters<
               typeof DutchOvenActions
             >[0],
+            DUTCH_OVEN_ON_TOP,
           ),
           new HostedItemsGuard([]),
           registry,
@@ -118,6 +129,19 @@ it.each(["lantern", "oven"] as const)(
     };
     game.interact.mock.calls[0]?.[0](event);
     game.interact.mock.calls[0]?.[0](event);
+    const groundPress = {
+      player,
+      itemStack: event.itemStack,
+      block: {
+        dimension: { id: "overworld" },
+        location: { x: 0, y: 60, z: 0 },
+      },
+      blockFace: "Up",
+      isFirstEvent: true,
+      cancel: false,
+    };
+    game.block.mock.calls[0]?.[0](groundPress);
+    expect(groundPress.cancel).toBe(true);
     expect(event.cancel).toBe(true);
     expect(game.run).toHaveBeenCalledOnce();
     expect(world.spawnHosted).not.toHaveBeenCalled();
