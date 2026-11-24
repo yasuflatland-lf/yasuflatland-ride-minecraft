@@ -1,12 +1,12 @@
 // What a held vehicle keeps around it while it stands still (ADR 0063, 0064, 0068).
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { DockCell, HoldPose } from "./floor";
+import type { DockBlockBase, DockCell, HoldPose } from "./floor";
 
 /** Present only while a drive holds its vehicle; a kind that never holds never returns one. */
-export interface Dock {
+export interface Dock<B extends DockBlockBase = DockBlockBase> {
   readonly hold: HoldPose;
-  readonly cells: readonly DockCell[];
+  readonly cells: readonly DockCell<B>[];
   /**
    * Deck seat i stands at seat i of the vehicle's profile, and the profile's parked
    * seats follow in order; undefined where that vehicle seat has a rider (ADR 0063, 0095).

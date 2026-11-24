@@ -2,8 +2,8 @@ import { expect, it } from "vitest";
 import type { DecorWorld } from "../../../../src/application/vehicle/room/ports";
 import { SetDecor } from "../../../../src/application/vehicle/room/setDecor";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
-import type { DecorPlacement } from "../../../../src/domain/vehicle/dock/decor";
 import { DECOR_SLOTS } from "../../../../src/domain/vehicle/kinds/camper/decor";
+import type { DecorPlacement } from "../../../../src/domain/vehicle/kinds/camper/decorData";
 import {
   CAMPER_ROOM,
   createVehicle,

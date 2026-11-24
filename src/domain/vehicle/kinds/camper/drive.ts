@@ -15,6 +15,7 @@ import { CamperParking } from "./parking";
 import { parkPose } from "./parkPose";
 import { CAMPER_MOTION, CAMPER_PROFILE, CAMPER_TYRES } from "./profile";
 import { CAMPER_ROOM, type CamperRoom } from "./room";
+import type { CamperRoomBlock } from "./roomBlocks";
 import {
   ceilingLightCells,
   deckSeats,
@@ -222,7 +223,7 @@ export class CamperDrive extends TransformingDrive {
     // The doors swing first, so a compartment shows its items on the tick its door starts to
     // open and hides them on the tick it is shut (ADR 0114, 0121).
     const commands = this.propertyCommands();
-    let cells: Dock["cells"] = [];
+    let cells: Dock<CamperRoomBlock>["cells"] = [];
     if (lay) {
       const { doorOpen, showerDoorOpen, ceilingLightsOn } = this.fixtures;
       const decor = this.roomDecor.placed();

@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import { parseDecor } from "../../../../../src/domain/vehicle/dock/decor";
 import type { HoldPose } from "../../../../../src/domain/vehicle/dock/floor";
+import { parseDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import {
   drawerBlockHit as drawerHit,
   drawerHit as rayHit,

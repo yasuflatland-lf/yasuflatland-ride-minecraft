@@ -1,5 +1,5 @@
-// Items a player set out in a held vehicle's room, saved on the vehicle (ADR 0093).
-import type { Brand } from "../../shared/ids";
+// Items set out in the camper's room and saved on the camper (ADR 0093).
+import type { Brand } from "../../../shared/ids";
 
 export type DecorSlotId = Brand<string, "DecorSlotId">;
 export type DecorItemId = Brand<string, "DecorItemId">;

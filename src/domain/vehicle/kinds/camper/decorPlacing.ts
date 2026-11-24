@@ -1,11 +1,11 @@
 // Placing camping gear on the parked camper's furniture (ADR 0093, 0097, 0105, 0110, 0114).
 import { sameCell } from "../../../shared/cells";
 import { distanceSq, type Vec3 } from "../../../shared/vec";
-import type { DecorItemId, DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import { CAMPING_GEAR_IDS, HANGING_GEAR_IDS } from "./campingGear";
 import { cellTaken, DECOR_SLOTS } from "./decor";
 import { decorSlotCell, decorSpotOffset } from "./decorCells";
+import type { DecorItemId, DecorPlacement } from "./decorData";
 import { usableBehindDoor } from "./dooredStorage";
 import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";
 import type { DecorFallback, DecorPress } from "./room";

@@ -1,10 +1,10 @@
 import { cellKey, sameCell } from "../../../shared/cells";
 import { quarterOf } from "../../../shared/facing";
 import type { Vec2, Vec3 } from "../../../shared/vec";
-import type { DecorPlacement } from "../../dock/decor";
-import type { DockCell, Face, HoldPose } from "../../dock/floor";
+import type { DockCell, HoldPose } from "../../dock/floor";
 import { decorSlot } from "./decor";
 import { pairItems, slotCells } from "./decorCells";
+import type { DecorPlacement } from "./decorData";
 import type {
   HingedStorageDoor,
   StorageDoor,
@@ -16,8 +16,10 @@ import {
   STORAGE_DOORS,
   type StorageCompartmentBlock,
   type StorageDoorId,
+  type StoragePlateBlock,
 } from "./furniture";
 import { axes, localCellAt } from "./parkPose";
+import type { Face } from "./roomBlocks";
 import {
   AIR,
   CEILING_LAYER,
@@ -52,7 +54,7 @@ function insidePlateDoors<Id extends string>(
   );
 }
 
-type CompartmentCell = DockCell & { readonly block: StorageCompartmentBlock };
+type CompartmentCell = DockCell<StorageCompartmentBlock>;
 
 /**
  * The block in each storage compartment, with the item at each end, its items drawn while its
@@ -117,7 +119,7 @@ export function storagePlateCells(
   open: ReadonlySet<StorageDoorId>,
   lightsOn: boolean,
   doors: readonly StorageDoor<StorageDoorId>[] = STORAGE_DOORS,
-): DockCell[] {
+): DockCell<StoragePlateBlock>[] {
   const { f } = axes(pose.yaw);
   return insidePlateDoors(doors)
     .filter(({ id }) => open.has(id))

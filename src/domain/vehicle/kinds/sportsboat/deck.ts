@@ -1,6 +1,6 @@
 // Collision floor geometry and water-relative hold height for a stopped sports boat (ADR 0063).
 import { clamp, forward, type Vec2 } from "../../../shared/vec";
-import type { DockCell, HoldPose } from "../../dock/floor";
+import type { DeckBlock, DockCell, HoldPose } from "../../dock/floor";
 import { toLocal } from "../../seats";
 import { SPORTSBOAT_SPEC } from "./spec";
 
@@ -70,11 +70,11 @@ function scanRange(center: number): readonly [number, number] {
   ];
 }
 
-export function floorCells(pose: HoldPose): DockCell[] {
+export function floorCells(pose: HoldPose): DockCell<DeckBlock>[] {
   const f = forward(pose.yaw);
   const [xMin, xMax] = scanRange(pose.x);
   const [zMin, zMax] = scanRange(pose.z);
-  const cells: DockCell[] = [];
+  const cells: DockCell<DeckBlock>[] = [];
   for (let x = xMin; x <= xMax; x++) {
     for (let z = zMin; z <= zMax; z++) {
       const local = toLocal({ x: x + 0.5 - pose.x, z: z + 0.5 - pose.z }, f);

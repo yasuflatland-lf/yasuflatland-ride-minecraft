@@ -261,6 +261,16 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
       ["core-imports-kind"],
     ],
     [
+      "dock importing camper room blocks",
+      {
+        "src/domain/vehicle/dock/floor.ts": importX(
+          "../kinds/camper/roomBlocks",
+        ),
+        "src/domain/vehicle/kinds/camper/roomBlocks.ts": EXPORTS_X,
+      },
+      ["core-imports-kind"],
+    ],
+    [
       "core subfolder importing another subfolder",
       {
         "src/domain/vehicle/dock/floor.ts": importX("../lighting/headlights"),

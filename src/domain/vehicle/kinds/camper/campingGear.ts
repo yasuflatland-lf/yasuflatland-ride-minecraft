@@ -1,6 +1,6 @@
 // The camping gear catalog, copied from tools/camping_gear.json (ADR 0093, 0097);
 // tests/domain/vehicle/kinds/camper/campingGear.test.ts keeps the two equal.
-import { type DecorItemId, isDecorItem } from "../../dock/decor.ts";
+import { type DecorItemId, isDecorItem } from "./decorData.ts";
 
 /** Every camping gear id, in the order of tools/camping_gear.json. */
 const CAMPING_GEAR_CATALOG = Object.freeze([

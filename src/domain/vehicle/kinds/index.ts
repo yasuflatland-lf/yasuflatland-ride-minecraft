@@ -26,6 +26,15 @@ import { SUV_PROFILE } from "./suv/profile";
 
 export { CAMPING_GEAR_IDS, STANDING_GEAR_IDS } from "./camper/campingGear";
 export { pairHeights } from "./camper/decor";
+export {
+  type DecorItemId,
+  type DecorPlacement,
+  type DecorSlotId,
+  isDecorItem,
+  parseDecorSlotId,
+  serializeDecor,
+} from "./camper/decorData";
+export { DECOR_MESSAGES } from "./camper/decorMessages";
 /** @public Room contracts exposed to vehicle use cases. */
 export type {
   CamperRoom,
@@ -33,6 +42,7 @@ export type {
   StoragePressRequest,
 } from "./camper/room";
 export { CAMPER_ROOM, type DrawerTarget } from "./camper/room";
+export type { CamperRoomBlock, Face } from "./camper/roomBlocks";
 export { CAMPER_SAVED } from "./camper/saved";
 export { SeatPresses, seatSlotCell } from "./camper/seatPress";
 export { COUNTER_HEIGHT, DRAWER_GEAR_IDS } from "./camper/spec";

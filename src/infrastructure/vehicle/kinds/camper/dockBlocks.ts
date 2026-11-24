@@ -1,13 +1,11 @@
+import type { DockCell } from "../../../../domain/vehicle/dock/floor";
 import {
+  type CamperRoomBlock,
   type DecorItemId,
+  type Face,
   isDecorItem,
-} from "../../../../domain/vehicle/dock/decor";
-import type {
-  DockBlock,
-  DockCell,
-  Face,
-} from "../../../../domain/vehicle/dock/floor";
-import { STANDING_GEAR_IDS } from "../../../../domain/vehicle/kinds/index";
+  STANDING_GEAR_IDS,
+} from "../../../../domain/vehicle/kinds/index";
 import { type DockBlockCodecs, dockBlock } from "../../bedrock/dockLayer";
 import {
   CAMPER_BED_BLOCK,
@@ -182,10 +180,10 @@ export const CAMPER_ROOM_CODEC = {
       ...pairEndStates(1, b.end1),
     }),
   }),
-} satisfies Partial<DockBlockCodecs>;
+} satisfies Omit<DockBlockCodecs<CamperRoomBlock>, "deck" | "light">;
 
 function facePlate(id: string) {
-  return dockBlock<Extract<DockBlock, { face: Face }>>({
+  return dockBlock<Extract<CamperRoomBlock, { face: Face }>>({
     id,
     isBlock: (b) => isFace(b.face),
     states: (b) => ({ [ROOM_FACE_STATE]: b.face }),
@@ -197,9 +195,12 @@ export function savedDock(cells: readonly DockCell[]): {
   laid: boolean;
   doorOpen: boolean | undefined;
 } {
-  const door = cells.find((c) => c.block.type === "door");
+  const door = cells.find((c) => c.block.type === "door")?.block;
   return {
     laid: cells.length > 0,
-    doorOpen: door?.block.type === "door" ? door.block.open : undefined,
+    doorOpen:
+      door && "open" in door && typeof door.open === "boolean"
+        ? door.open
+        : undefined,
   };
 }

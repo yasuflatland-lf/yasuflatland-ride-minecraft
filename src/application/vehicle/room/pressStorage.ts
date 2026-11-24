@@ -1,5 +1,5 @@
 import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
-import type { DecorItemId } from "../../../domain/vehicle/dock/decor";
+import type { DecorItemId } from "../../../domain/vehicle/kinds/index";
 import {
   CAMPER_ROOM,
   type DrawerTarget,
