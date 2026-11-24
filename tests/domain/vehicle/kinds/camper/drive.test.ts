@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
+import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { CamperDrive } from "../../../../../src/domain/vehicle/kinds/camper/drive";
 import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPose";
 import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
@@ -359,6 +360,24 @@ it("resync resends all room properties with current values while driving or park
             (c) => c.type === "setProperty" || c.type === "triggerEvent",
           ),
         ).toBe(true);
+      },
+    ),
+  );
+});
+
+it("includes every restored decor item in cargo, even when its slot is gone or full", () => {
+  fc.assert(
+    fc.property(
+      fc.array(fc.constantFrom(...CAMPING_GEAR_IDS), { maxLength: 40 }),
+      fc.boolean(),
+      (items, docked) => {
+        const drive = new CamperDrive(0, {
+          docked,
+          [CAMPER_SAVED.decor]: JSON.stringify(
+            items.map((item) => ({ slot: "former_slot", item })),
+          ),
+        });
+        expect([...drive.cargo()].sort()).toEqual([...items].sort());
       },
     ),
   );

@@ -4,20 +4,20 @@ import { HitVehicle } from "../../../src/application/vehicle/hitVehicle";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { DECOR_CELLS } from "../../../src/domain/vehicle/kinds/camper/decor";
 import {
-  CAMPER_ROOM,
   CAMPER_SAVED,
   createVehicle,
   fleetLimitOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
+import { SuvDrive } from "../../../src/domain/vehicle/kinds/suv/drive";
+import { SUV_PROFILE } from "../../../src/domain/vehicle/kinds/suv/profile";
 import { SPEC } from "../../../src/domain/vehicle/spec";
-import { decorItemId, decorSlotId } from "../../support/decorIds";
+import { Vehicle } from "../../../src/domain/vehicle/vehicle";
 import {
   FakeClock,
   FakeFleetRepository,
   FakeWorld,
   InMemoryRepo,
-  parkedCamper,
 } from "./fakes";
 
 describe("HitVehicle (ADR 0008)", () => {
@@ -149,11 +149,13 @@ describe("HitVehicle (ADR 0008)", () => {
     expect(world.calls).toEqual([]);
   });
 
-  it("gives the placed decor to the hitter when the camper breaks (ADR 0093)", () => {
-    const { car, repo } = parkedCamper();
-    car
-      .capability(CAMPER_ROOM)
-      ?.decor.placeDecor(decorSlotId("stove"), decorItemId("percolator"));
+  it("gives the hitter the drive's cargo even when the vehicle has no room", () => {
+    const drive = Object.assign(new SuvDrive(0, {}), {
+      cargo: () => ["percolator", "mug_pair", "percolator"],
+    });
+    const car = new Vehicle(asVehicleId("car"), SUV_PROFILE, drive);
+    const repo = new InMemoryRepo();
+    repo.save(car);
     const world = new FakeWorld();
     const clock = new FakeClock();
     const uc = new HitVehicle(
@@ -174,7 +176,7 @@ describe("HitVehicle (ADR 0008)", () => {
     ).toEqual([false, false, true]);
     expect(world.calls).toEqual([
       "drop:car",
-      "giveDecor:p:percolator",
+      "giveDecor:p:percolator,mug_pair,percolator",
       "remove:car",
     ]);
   });

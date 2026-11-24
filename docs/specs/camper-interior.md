@@ -56,8 +56,8 @@
 
 ### Room capability
 
-- Applies to: Camper room use cases and vehicle pickup.
-- Rule: Room use cases call `Vehicle.capability(CAMPER_ROOM)` for the decor, storage and fixture hosts. The storage host accepts a `StoragePressRequest` with the press location, tick and optional targeting and interaction fields. For unsupported vehicles, room use cases return false or undefined and have no room effects. Pickup uses an empty decor list, and gear placement on a known vehicle without a room shows the no-slot message.
+- Applies to: Camper room use cases.
+- Rule: Room use cases call `Vehicle.capability(CAMPER_ROOM)` for the decor, storage and fixture hosts. The storage host accepts a `StoragePressRequest` with the press location, tick and optional targeting and interaction fields. For unsupported vehicles, room use cases return false or undefined and have no room effects. Gear placement on a known vehicle without a room shows the no-slot message.
 - Agreement: Accepted
 - Basis: [0220](../adr/0220-separate-room-capability-from-drive.md) Decision
 - Implementation: `src/domain/vehicle/kinds/camper/room.ts`; `src/domain/vehicle/kinds/camper/drive.ts`; `src/domain/vehicle/kinds/index.ts`; `src/application/vehicle/room/pressStorage.ts`; `src/application/vehicle/room/ports.ts`; `src/infrastructure/vehicle/kinds/camper/install.ts`
@@ -149,7 +149,7 @@
 ### Taking decor back
 
 - Applies to: Empty-hand decor presses and camper breakage.
-- Rule: The `yasu_ride:camper_decor` component ignores held items and missing owners. `RemoveDecor` takes decor from the pressed cell, saves the remainder and gives the item to the player. For a table pair it chooses the held end nearest reported x/z, without an eye or y correction; absent face location takes the first held end. `BedrockDecorWorld` delegates delivery to `BedrockInventory`, which drops inventory overflow at the player's feet. Breaking the camper gives the hitter all saved decor, including stowed entries. Compartments never give items through `removeDecor`; only the storage press can take them.
+- Rule: The `yasu_ride:camper_decor` component ignores held items and missing owners. `RemoveDecor` takes decor from the pressed cell, saves the remainder and gives the item to the player. For a table pair it chooses the held end nearest reported x/z, without an eye or y correction; absent face location takes the first held end. `BedrockDecorWorld` delegates delivery to `BedrockInventory`, which drops inventory overflow at the player's feet. On hand take-back, `HitVehicle` gives the hitter the items from `vehicle.cargo()`. The camper drive includes one item per placed or stowed decor entry. Compartments never give items through `removeDecor`; only the storage press can take them.
 - Agreement: Accepted
 - Basis: [0093](../adr/0093-decorate-the-parked-camper.md) Decision / Placing and removing, "The item goes straight into the player's inventory, not dropped in the narrow room."
 - Basis: [0107](../adr/0107-stand-stove-gear-on-a-burner.md) Decision / Burner slots, "An empty-hand press on the cell takes back the item of whichever of its slots holds one"
@@ -161,11 +161,11 @@
 ### Decor lost on fleet eviction
 
 - Applies to: Camper decor on fleet eviction.
-- Rule: **2.** When the fleet limit evicts a parked camper, its room decor is lost. Taking the camper back by hand returns its saved decor items to the hitter.
+- Rule: **2.** Fleet eviction discards the camper and all its decor, including stowed items. Only hand take-back returns cargo to the hitter.
 - Agreement: Accepted
 - Basis: `src/application/vehicle/limitVehicles.ts` (`retireVehicle`); `src/application/vehicle/hitVehicle.ts` (`giveDecorItems`); `src/application/vehicle/retireVehicle.ts`. [0093](../adr/0093-decorate-the-parked-camper.md).
 - Implementation: `src/application/vehicle/limitVehicles.ts`; `src/application/vehicle/hitVehicle.ts`; `src/application/vehicle/retireVehicle.ts`
-- Verification: not covered for decor on eviction; `tests/application/vehicle/hitVehicle.test.ts` covers return of stowed decor on hand take-back.
+- Verification: `tests/application/vehicle/limitVehicles.test.ts` "removes an evicted camper with its decor and gives back no items" covers eviction. `tests/application/vehicle/hitVehicle.test.ts` covers return of stowed decor on hand take-back.
 
 ### Saved decor on load
 
