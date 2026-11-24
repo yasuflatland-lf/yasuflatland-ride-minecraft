@@ -1,6 +1,7 @@
-// The engine reports PlayerInteractWithBlockBeforeEvent.faceLocation.y as 1 minus the real
-// height within the block, while x and z are right (measured on the dev BDS, ADR 0111).
-// Every correction of that report lives here, so it can be removed if the engine changes.
+// All camper press coordinates follow ADR 0111. Touch mirrors world-axis x, and every
+// input mode uses the measured height rule until PC measurements are available.
+import type { BlockComponentPlayerInteractEvent } from "@minecraft/server";
+import { add3, type Vec3 } from "../../../../domain/shared/vec";
 import {
   COUNTER_HEIGHT,
   pairHeights,
@@ -17,6 +18,7 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   campingGearOfDecorBlock,
+  DECOR_HEIGHT_STATE,
   pairKindOfBlock,
 } from "./identifiers";
 
@@ -69,7 +71,7 @@ const COMPARTMENT_SHAPES: Partial<
 };
 
 // Selection boxes of the room blocks in packs/yasu_ride_bp/blocks/yasu_ride; the wall
-// has none, so it is never pressed. tests/infrastructure/vehicle/bedrock/faceHeight.test.ts
+// has none, so it is never pressed. tests/infrastructure/vehicle/kinds/camper/faceHeight.test.ts
 // checks these against the block files.
 const ROOM_BOXES: Readonly<Record<string, PressedShape>> = {
   [CAMPER_FLOOR_BLOCK]: FULL,
@@ -135,4 +137,40 @@ export function pressedHeight(
   }
   if (face === "Down" && shape?.kind === "room") return shape.bottom;
   return flipped;
+}
+
+export function pressedPoint(
+  {
+    face,
+    faceLocation,
+    inputMode,
+  }: { face: string; faceLocation: Vec3; inputMode: string | undefined },
+  typeId: string,
+  states: Readonly<Record<string, unknown>>,
+): Vec3 {
+  const height = states[DECOR_HEIGHT_STATE];
+  const shape = pressedShape(
+    typeId,
+    typeof height === "number" ? height : undefined,
+  );
+  return {
+    x: inputMode === "Touch" ? 1 - faceLocation.x : faceLocation.x,
+    y: pressedHeight(face, faceLocation.y, shape),
+    z: faceLocation.z,
+  };
+}
+
+export function componentPressPoint(
+  { block, face, faceLocation }: BlockComponentPlayerInteractEvent,
+  inputMode: string,
+): Vec3 | undefined {
+  if (!faceLocation) return undefined;
+  return add3(
+    block.location,
+    pressedPoint(
+      { face, faceLocation, inputMode },
+      block.typeId,
+      block.permutation.getAllStates(),
+    ),
+  );
 }
