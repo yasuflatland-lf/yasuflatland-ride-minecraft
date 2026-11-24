@@ -126,7 +126,10 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
 it("fixes the endpoint at the player's tap target cell", () => {
   const f = setup();
   f.hit();
-  expect(f.session.flow).toMatchObject({ kind: "baseHeight", to: cell });
+  expect(f.session.flow).toMatchObject({
+    kind: "baseHeight",
+    taps: { to: cell },
+  });
 });
 
 it("confirms live height and opens the shape menu once across repeated hits", () => {
@@ -162,7 +165,10 @@ it.each([true, false])(
       f.hit();
     }
     f.flush();
-    expect(f.session.flow).toMatchObject({ kind: "baseHeight", to: cell });
+    expect(f.session.flow).toMatchObject({
+      kind: "baseHeight",
+      taps: { to: cell },
+    });
   },
 );
 

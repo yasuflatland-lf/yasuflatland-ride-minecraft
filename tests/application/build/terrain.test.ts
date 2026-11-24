@@ -259,7 +259,10 @@ it.each([60, top])(
     expect(e.session.beginEdit()).toBeUndefined();
     e.confirm.execute({ playerId });
     expect(e.feedback.messages.at(-1)?.message).toBe("busy");
-    expect(e.session.flow).toMatchObject({ kind: "point1", cell: from });
+    expect(e.session.flow).toMatchObject({
+      kind: "point1",
+      start: { cell: from },
+    });
     expect(e.session.confirmedBox).toBeUndefined();
     expect(e.session.isEditing).toBe(true);
   },

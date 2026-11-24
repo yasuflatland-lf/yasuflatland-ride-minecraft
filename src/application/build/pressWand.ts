@@ -64,9 +64,9 @@ export class PressWand {
           cell ??
           (itemUse?.aim &&
             virtualAimedEndPoint(
-              flow.cell,
+              flow.start.cell,
               itemUse.aim,
-              this.blocks.heightRange(flow.dimensionId),
+              this.blocks.heightRange(flow.start.dimensionId),
             ));
         this.actions.tapAir.execute({ playerId, end });
         return "none";

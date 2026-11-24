@@ -15,8 +15,8 @@ A root menu entry to re-pick the endpoint would add a menu interaction before co
 
 ## Decision
 
-1. Build Undo reverses the newest step, either a fresh selection step or an edit. An endpoint is fresh only in `baseHeight` entered by the end tap, or in a line's `selected` flow before its root menu first opens. One press returns to the exact original `point1`, preserving its start cell, material and dimension, and reports `endCleared`. In `point1`, one press returns to `idle` and reports `startCleared`.
-2. The fresh flow stores its original `point1` as optional `stepBackTo`; no separate freshness flag exists. Live height updates retain it. Height confirmation, Adjust height, pasted boxes and built boxes do not create it. Opening a line's root menu removes it, including when the player dismisses that menu. A successful rotation removes it before retaining the rotated selection.
+1. Build Undo reverses the newest step, either a fresh selection step or an edit. An endpoint is fresh only in `baseHeight` entered by the end tap, or in a line's `selected` flow before its root menu first opens. One press rebuilds `point1` from its original `BuildStart`, preserving its start cell, material and dimension, and reports `endCleared`. In `point1`, one press returns to `idle` and reports `startCleared`.
+2. The optional `freshEnd` flag marks a flow that can return to `point1`. Live height updates retain the flag. Height confirmation, Adjust height, pasted boxes and built boxes produce flows without the flag. Opening a line's root menu removes it, including when the player dismisses that menu. A successful rotation removes it before retaining the rotated selection.
 3. In every other flow Build Undo calls the existing edit undo unchanged. After paste or build selects its result, Build Undo reverses that edit. The idle utility menu Undo remains edit-only. Selection step-back neither changes edit history nor checks or changes the running edit flag, so an ongoing job does not block correcting selection.
 4. The held-item routes retain their shared per-player debounce. A selection step-back refreshes markers, live outline and tap target on the same tick.
 

@@ -47,6 +47,7 @@ import {
   confirmEndpointHeight,
   tapAir,
   tapBlock,
+  tappedSelection,
 } from "../../support/buildSelection";
 import {
   FakeAimReader,
@@ -124,9 +125,7 @@ function select(e: Env, box: CellBox) {
   e.session.setFlow({
     kind: "selected",
     menuLevel: "build",
-    selection: selectionOf(overworld, box, stone),
-    from: box.min,
-    to: box.max,
+    ...tappedSelection(selectionOf(overworld, box, stone), box.min, box.max),
   });
 }
 
@@ -268,9 +267,7 @@ it.each(builds)(
           expect(e.session.flow).toMatchObject({
             kind: "selected",
             menuLevel: "root",
-            selection: restored,
-            from: before.max,
-            to: before.min,
+            ...tappedSelection(restored, before.max, before.min),
           });
           expect(e.session.confirmedBox).toEqual(restored);
           expect(snapshot(e, region)).toEqual(blocks);
@@ -389,10 +386,12 @@ it.each(["Remove above", "Copy"] as const)(
     if (operation === "Remove above") {
       e.session.setFlow({
         kind: "terrainConfirm",
-        selection: selectionOf(overworld, boxOf(floor, floor), stone),
-        from: floor,
-        to: floor,
         op: "removeAbove",
+        ...tappedSelection(
+          selectionOf(overworld, boxOf(floor, floor), stone),
+          floor,
+          floor,
+        ),
       });
       e.terrain.execute({ playerId });
       e.drain();
@@ -448,11 +447,10 @@ it("Undo while editing height again restores the pre-turn taps and height aim", 
         const restored = e.session.flow;
         expect(restored).toMatchObject({
           kind: "baseHeight",
-          from,
-          to,
-          selection: { box: before },
           baseBox: boxWithHeight(before, 1),
-          previous: height,
+          liveHeight: height,
+          selection: { box: before },
+          taps: { from, to },
         });
         if (restored.kind !== "baseHeight")
           throw new Error("Expected height aim");
@@ -479,9 +477,8 @@ it("Undo of a narrow sphere restores taps spanning the original footprint", () =
       e.drain();
       expect(e.session.flow).toMatchObject({
         kind: "selected",
-        from,
-        to,
         selection: { box: boxOf(from, to) },
+        taps: { from, to },
       });
     }),
   );
@@ -495,11 +492,11 @@ function expectTapFootprint(flow: BuildFlow) {
     case "terrainConfirm":
     case "baseHeight":
       box = flow.selection.box;
-      taps = flow;
+      taps = flow.taps;
       break;
     case "heightStep":
       box = flow.base;
-      taps = flow;
+      taps = flow.taps;
       break;
     case "stairAim":
     case "stairContents":
@@ -590,11 +587,11 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         cancel.backToAiming(cmd);
         expect(e.session.flow).toMatchObject({
           kind: "point1",
-          cell: terrain.from,
+          start: { cell: terrain.taps.from },
         });
         tap.execute({
           ...cmd,
-          cell: { ...terrain.from, x: terrain.from.x + 3 },
+          cell: { ...terrain.taps.from, x: terrain.taps.from.x + 3 },
         });
         check();
         expect(e.rotate.execute(cmd)).toBe("rotated");
@@ -615,7 +612,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         cancel.backToAiming(cmd);
         expect(e.session.flow).toMatchObject({
           kind: "point1",
-          cell: aim.row.min,
+          start: { cell: aim.row.min },
         });
       },
     ),

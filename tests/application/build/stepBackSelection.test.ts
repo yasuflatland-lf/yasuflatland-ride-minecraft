@@ -34,7 +34,7 @@ it.each([
   expect(flow.kind).toBe(kind);
   session.setFlow(flow);
   expect(stepBack.execute({ playerId })).toBe("stepped");
-  expect(session.flow).toBe(point);
+  expect(session.flow).toEqual(point);
   expect(feedback.messages).toEqual([
     { message: "endCleared", count: undefined },
   ]);
@@ -100,7 +100,7 @@ it.each([
     session.beginEdit();
     session.setFlow(tapAir(point, end));
     expect(stepBack.execute({ playerId })).toBe("stepped");
-    expect(session.flow).toBe(point);
+    expect(session.flow).toEqual(point);
     expect(session.isEditing).toBe(true);
     expect(feedback.messages.at(-1)?.message).toBe("endCleared");
     session.finishEdit(record, "undo");

@@ -21,6 +21,7 @@ import type { BuildFlow } from "../../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../../src/domain/build/selection";
 import type { Cell } from "../../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
+import { tappedSelection } from "../../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "../fakes";
 import { FakeStructureStore } from "./structureStore";
 
@@ -36,9 +37,11 @@ export function selected(
   return {
     kind: "selected",
     menuLevel,
-    selection: selectionOf(overworld, boxOf(from, to), stone),
-    from,
-    to,
+    ...tappedSelection(
+      selectionOf(overworld, boxOf(from, to), stone),
+      from,
+      to,
+    ),
   };
 }
 export const endpoint = selected(from, to);

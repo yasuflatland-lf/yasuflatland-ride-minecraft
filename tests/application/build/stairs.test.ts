@@ -174,15 +174,17 @@ it("builds the step cells, selects the goal row, and restores the original row a
   expect(f.session.confirmedBox?.box).toEqual(boxOf(goalFrom, goalTo));
   expect(f.session.flow).toMatchObject({
     kind: "selected",
-    from: goalFrom,
-    to: goalTo,
+    taps: { from: goalFrom, to: goalTo },
   });
   expect(f.world.stateAt(overworld, goalFrom)).toBe(stone);
   expect(f.world.writes).toBe(15);
   f.undo.execute(command);
   f.jobs.step();
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
-  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    taps: { from, to },
+  });
   expect(f.world.stateAt(overworld, goalFrom)).toBe(AIR);
 });
 
@@ -235,7 +237,10 @@ it("can Undo a goal-row advance when the steps already match", () => {
   expect(f.session.hasHistory).toBe(true);
   f.undo.execute(command);
   f.jobs.step();
-  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    taps: { from, to },
+  });
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
   expect(f.world.writes).toBe(0);
 });
@@ -263,14 +268,16 @@ it("terraces with sand selected and restores the stone and original taps on Undo
   for (const cell of cells) expect(f.world.stateAt(overworld, cell)).toBe(AIR);
   expect(f.session.flow).toMatchObject({
     kind: "selected",
-    from: { x: 0, y: 12, z: 4 },
-    to: { x: 2, y: 12, z: 4 },
+    taps: { from: { x: 0, y: 12, z: 4 }, to: { x: 2, y: 12, z: 4 } },
   });
   f.undo.execute(command);
   f.jobs.step();
   for (const cell of cells)
     expect(f.world.stateAt(overworld, cell)).toBe(stone);
-  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    taps: { from, to },
+  });
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
 });
 
