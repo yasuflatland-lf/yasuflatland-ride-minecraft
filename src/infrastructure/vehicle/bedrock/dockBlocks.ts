@@ -10,8 +10,10 @@ import {
 import { ticks } from "../../../domain/shared/ticks";
 import type { Vec3 } from "../../../domain/shared/vec";
 import {
-  type DockBlock,
+  type DeckBlock,
+  type DockBlockBase,
   type DockCell,
+  type LightBlock,
   sameBlock,
 } from "../../../domain/vehicle/dock/floor";
 import { type CellCodec, CellLayer } from "../../shared/laidCells";
@@ -67,18 +69,26 @@ export const DECK_CODEC = {
     states: (b) => ({ [DECK_FLOOR_HEIGHT_STATE]: b.height }),
     upgrade: upgradeHeightOnlyCell,
   }),
-} satisfies Pick<DockBlockCodecs, "deck">;
+} satisfies DockBlockCodecs<DeckBlock>;
 
 export const LIGHT_CODEC = {
   light: dockBlock({ id: LIGHT_BLOCK }),
-} satisfies Pick<DockBlockCodecs, "light">;
+} satisfies DockBlockCodecs<LightBlock>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-export function composeDockCodec(parts: DockBlockCodecs): CellCodec<DockBlock> {
-  const partOf = (block: DockBlock): DockBlockCodecPart => parts[block.type];
+export function composeDockCodec(
+  parts: Readonly<Record<string, DockBlockCodecPart>>,
+): CellCodec<DockBlockBase> {
+  const partOf = (type: string) =>
+    Object.hasOwn(parts, type) ? parts[type] : undefined;
+  const partFor = (block: DockBlockBase): DockBlockCodecPart => {
+    const part = partOf(block.type);
+    if (!part) throw new Error(`No dock block codec for ${block.type}`);
+    return part;
+  };
   const upgrades = Object.values(parts).flatMap((part) =>
     part.upgrade ? [part.upgrade] : [],
   );
@@ -93,26 +103,24 @@ export function composeDockCodec(parts: DockBlockCodecs): CellCodec<DockBlock> {
       )
         return false;
       const block = value.block;
-      if (
-        !isRecord(block) ||
-        typeof block.type !== "string" ||
-        !Object.hasOwn(parts, block.type)
-      )
-        return false;
-      return parts[block.type as DockBlock["type"]].isBlock(block);
+      return (
+        isRecord(block) &&
+        typeof block.type === "string" &&
+        (partOf(block.type)?.isBlock(block) ?? false)
+      );
     },
     same: sameBlock,
-    blockIdOf: (block) => partOf(block).blockIdOf(block),
-    permutationOf: (block) => partOf(block).permutationOf(block),
+    blockIdOf: (block) => partFor(block).blockIdOf(block),
+    permutationOf: (block) => partFor(block).permutationOf(block),
   };
 }
 
 export class DockBlocks implements DockLayer {
-  private readonly layer: CellLayer<VehicleId, DockBlock>;
+  private readonly layer: CellLayer<VehicleId, DockBlockBase>;
 
   constructor(
     private readonly campSpace: SpaceCheck,
-    codec: CellCodec<DockBlock>,
+    codec: CellCodec<DockBlockBase>,
   ) {
     this.layer = new CellLayer(codec, DOCK_RECHECK_TICKS);
   }

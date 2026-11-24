@@ -1,14 +1,14 @@
 import { sameCell } from "../../../shared/cells";
-import {
-  type DecorItemId,
-  parseDecorSlotId,
-  type StoragePress,
-} from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
 import type { EngineCommand } from "../../drive";
 import type { RestoredOf } from "../../entityContract";
 import { SyncedCommands } from "../../syncedCommands";
 import { cellTaken } from "./decor";
+import {
+  type DecorItemId,
+  parseDecorSlotId,
+  type StoragePress,
+} from "./decorData";
 import { slotPoint, slotsFor } from "./decorPlacing";
 import { StorageDoors } from "./dooredStorage";
 import { drawerBlockHit, drawerHit, drawerPressCell } from "./drawerHit";

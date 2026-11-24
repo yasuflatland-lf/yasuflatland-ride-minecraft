@@ -1,10 +1,6 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
 import { sameCell } from "../../domain/shared/cells";
-import {
-  type DecorPlacement,
-  isDecorItem,
-  parseDecorSlotId,
-} from "../../domain/vehicle/dock/decor";
+import type { DockCell } from "../../domain/vehicle/dock/floor";
 import type {
   DriveStep,
   RestoredValues,
@@ -28,6 +24,12 @@ import {
   DRAWER_HIT_PROFILE,
 } from "../../domain/vehicle/kinds/camper/spec";
 import { compartmentCells } from "../../domain/vehicle/kinds/camper/storagePlates";
+import {
+  type CamperRoomBlock,
+  type CampingGearId,
+  type DecorPlacement,
+  parseDecorSlotId,
+} from "../../domain/vehicle/kinds/index";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { id, NAMESPACE } from "../../infrastructure/shared/identifiers";
 import {
@@ -87,8 +89,11 @@ function fixture(
           carrier.setProperty(id(cmd.name), cmd.value);
       }
     carrier.setDynamicProperty(id("decor"), JSON.stringify(room.decor.decor()));
-    const drawer = out.dock?.cells.find((c) => c.block.type === "drawers");
-    if (drawer?.block.type === "drawers") {
+    const drawer = out.dock?.cells.find(
+      (cell): cell is DockCell<Extract<CamperRoomBlock, { type: "drawers" }>> =>
+        cell.block.type === "drawers",
+    );
+    if (drawer) {
       a.dim
         .getBlock(cell)
         ?.setPermutation(
@@ -149,8 +154,7 @@ function fixture(
       openOnly,
     });
   };
-  const place = (which: "top" | "bottom", item: string) => {
-    if (!isDecorItem(item)) throw new Error(`Invalid fixture item ${item}`);
+  const place = (which: "top" | "bottom", item: CampingGearId) => {
     const slot = room.decor.decorSlotFor(
       item,
       { cell, point: point(which) },
@@ -287,8 +291,7 @@ export function camperDrawersInteraction(a: Arena): Promise<Outcome> {
     );
     const counter = DECOR_SLOTS.find((s) => s.id === "counter");
     const counterItem = "potted_plant";
-    if (!counter || !isDecorItem(counterItem))
-      throw new Error("Missing counter fixture");
+    if (!counter) throw new Error("Missing counter fixture");
     requireCheck(
       f.room.decor.placeDecor(counter.id, counterItem),
       "Counter remains usable",
@@ -487,7 +490,7 @@ export function camperDrawersLaid(a: Arena): Promise<Outcome> {
       ] as const
     ).map(([rawSlot, item]) => {
       const slot = parseDecorSlotId(rawSlot);
-      if (slot === undefined || !isDecorItem(item))
+      if (slot === undefined)
         throw new Error(`Invalid drawer fixture: ${rawSlot},${item}`);
       return { slot, item };
     });

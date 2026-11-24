@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../../../src/domain/shared/decorations";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
-import type { DecorPlacement } from "../../../../../src/domain/vehicle/dock/decor";
 import type {
   DriveStep,
   TickContext,
@@ -21,6 +20,7 @@ import {
   furnitureCells,
   slotCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
+import type { DecorPlacement } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
 import {
   slotPoint,
   slotsFor,
@@ -426,8 +426,7 @@ it("swings the entry, shower, and cabinet doors one step per tick until their ta
           expect(
             entry.every(
               ({ block }) =>
-                block.type === "door" &&
-                block.open === (door === "door" && open),
+                "open" in block && block.open === (door === "door" && open),
             ),
           ).toBe(true);
           if (!cabinet || !other) continue;
@@ -623,7 +622,7 @@ it("restores the saved door target through either direction of a partial swing",
         expect(
           out.dock?.cells
             .filter((c) => c.block.type === "door")
-            .every((c) => c.block.type === "door" && c.block.open === open),
+            .every((c) => "open" in c.block && c.block.open === open),
         ).toBe(true);
       }
       expect(drive.step(undefined, f.ctx).commands).toEqual([]);
@@ -661,12 +660,6 @@ it("sets, replaces, and empties only known slots and lists decor in slot order (
       }
       expect(
         f.room.decor.setDecor(decorSlotId("nowhere"), decorItemId("mug_pair")),
-      ).toBe(false);
-      expect(
-        f.room.decor.setDecor(
-          defined(DECOR_SLOTS[0], "slot").id,
-          decorItemId("Bad Item"),
-        ),
       ).toBe(false);
       expect(f.room.decor.decor()).toEqual(sorted);
       for (const { slot } of placements) {
@@ -796,7 +789,7 @@ it("restores saved decor and moves an entry of a removed slot to the first free 
       item: decorItemId("book_stack"),
     },
     { slot: decorSlotId("nowhere"), item: decorItemId("mug_pair") },
-    { slot: decorSlotId("stove"), item: decorItemId("Bad Item") },
+    { slot: decorSlotId("stove"), item: "Bad Item" },
   ]);
   const expected = [
     { slot: decorSlotId("dashboard_center"), item: decorItemId("book_stack") },

@@ -2,7 +2,7 @@ import type { VehicleId } from "../../../domain/shared/ids";
 import type {
   DecorItemId,
   DecorSlotId,
-} from "../../../domain/vehicle/dock/decor";
+} from "../../../domain/vehicle/kinds/index";
 import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
 // Use case: put an item in a vehicle's decor slot or empty it, and save the decor (ADR 0093).
 import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";

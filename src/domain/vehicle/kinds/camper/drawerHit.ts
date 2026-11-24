@@ -1,8 +1,8 @@
 import { sameCell } from "../../../shared/cells";
 import type { Vec3 } from "../../../shared/vec";
 import { add3, sub3 } from "../../../shared/vec";
-import type { DecorPlacement } from "../../dock/decor";
 import type { HoldPose } from "../../dock/floor";
+import type { DecorPlacement } from "./decorData";
 import {
   DRAWER_COMPARTMENT,
   KITCHEN_DRAWERS,

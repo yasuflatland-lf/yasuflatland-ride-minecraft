@@ -20,6 +20,7 @@ import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { STARTER_KINDS } from "../../domain/vehicle/placement/starter";
 import { consoleLogger as log } from "../shared/consoleLogger";
+import { id } from "../shared/identifiers";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
@@ -49,10 +50,7 @@ import {
 import { registerSubscriptions } from "./bedrock/subscriptions";
 import { systemClock } from "./bedrock/systemClock";
 import { CAMPER_ROOM_CODEC } from "./kinds/camper/dockBlocks";
-import {
-  campingGearItem,
-  isStandableRoomBlock,
-} from "./kinds/camper/identifiers";
+import { isStandableRoomBlock } from "./kinds/camper/identifiers";
 import { installCamper } from "./kinds/camper/install";
 import { readCamperRestored } from "./kinds/camper/restored";
 import { DynamicPropertyFleetRepository } from "./persistence/dynamicPropertyFleetRepository";
@@ -101,7 +99,7 @@ export function installVehicles(deps: {
     index,
     bedrock.releaser,
     inventory,
-    campingGearItem,
+    id,
   );
   const fleets = new DynamicPropertyFleetRepository(log, fleetLimitOf);
   const riders = new RiderEffects(bedrock, log);

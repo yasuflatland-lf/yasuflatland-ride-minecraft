@@ -6,7 +6,7 @@ import {
   type DecorItemId,
   type DecorPlacement,
   serializeDecor,
-} from "../../../../domain/vehicle/dock/decor";
+} from "../../../../domain/vehicle/kinds/index";
 import { messageKey } from "../../../shared/identifiers";
 import type { BedrockInventory } from "../../bedrock/bedrockInventory";
 import { isCreativePlayer } from "../../bedrock/bedrockPlacementWorld";

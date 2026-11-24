@@ -1,3 +1,4 @@
+import type { CamperRoomBlock } from "../../../../../src/domain/vehicle/kinds/camper/roomBlocks";
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import { camperRoom } from "../../../../support/camperRoom";
 // The wall cabinet's two doors and the items behind them (ADR 0114).
@@ -7,10 +8,7 @@ import { expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
 import { quarterOf } from "../../../../../src/domain/shared/facing";
 import type { Vec3 } from "../../../../../src/domain/shared/vec";
-import type {
-  DockBlock,
-  DockCell,
-} from "../../../../../src/domain/vehicle/dock/floor";
+import type { DockCell } from "../../../../../src/domain/vehicle/dock/floor";
 import type {
   DriveStep,
   TickContext,
@@ -231,7 +229,7 @@ it("places gear behind an open door only, and never takes a cabinet item through
     face: quarterOf(f.pose.yaw),
     open: true,
     end0: decorItemId("mug_pair"),
-  } satisfies DockBlock);
+  } satisfies CamperRoomBlock);
   // The stove's compartment stays shut, so a press on it sends the item elsewhere.
   const stoveSide = camperRoom(f.drive).decor.decorSlotFor(
     decorItemId("cushion"),

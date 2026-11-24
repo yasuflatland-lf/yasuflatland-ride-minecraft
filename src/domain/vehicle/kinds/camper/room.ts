@@ -5,7 +5,7 @@ import type {
   DecorPlacement,
   DecorSlotId,
   StoragePress,
-} from "../../dock/decor";
+} from "./decorData";
 
 export interface RoomPress {
   readonly cell: Vec3;

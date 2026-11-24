@@ -2,7 +2,7 @@
 
 import { clamp, dot, type Vec2 } from "../../../shared/vec";
 import type { Dock } from "../../dock/dock";
-import type { HoldPose } from "../../dock/floor";
+import type { DeckBlock, HoldPose } from "../../dock/floor";
 import type { Drive, DriveStep, EngineCommand, TickContext } from "../../drive";
 import {
   type ControlInput,
@@ -97,7 +97,7 @@ export function estimateWaterDrag(
   );
 }
 
-function dockAt(pose: HoldPose): Dock {
+function dockAt(pose: HoldPose): Dock<DeckBlock> {
   return {
     hold: pose,
     cells: floorCells(pose),

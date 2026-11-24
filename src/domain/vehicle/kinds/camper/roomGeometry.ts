@@ -1,5 +1,5 @@
 import type { Vec2, Vec3 } from "../../../shared/vec";
-import type { Face, HoldPose } from "../../dock/floor";
+import type { HoldPose } from "../../dock/floor";
 import {
   CAMPER_FURNITURE,
   type FurnitureBlock,
@@ -7,6 +7,7 @@ import {
   type StorageDoorId,
 } from "./furniture";
 import { localCellAt } from "./parkPose";
+import type { Face } from "./roomBlocks";
 
 export { CEILING_LAYER, INSIDE_LAYERS, ROOF_LAYER } from "./localCell";
 

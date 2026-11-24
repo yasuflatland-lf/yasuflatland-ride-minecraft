@@ -9,9 +9,11 @@ import {
 } from "../../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import type { Departure } from "../../../../src/domain/vehicle/dock/dock";
+import type { DockCell } from "../../../../src/domain/vehicle/dock/floor";
 import type { EngineCommand } from "../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
+import type { CamperRoomBlock } from "../../../../src/domain/vehicle/kinds/camper/roomBlocks";
 import {
   entityContractOf,
   profileOf,
@@ -1152,10 +1154,14 @@ describe("BedrockVehicleWorld dock owners (ADR 0068, 0093)", () => {
     const floor = { x: 0, y: 64, z: 0 };
     const door = { x: 1, y: 64, z: 0 };
     world.loadedVehicles();
-    world.layDock(asVehicleId(car.id), [
+    const cells: DockCell<CamperRoomBlock>[] = [
       { ...floor, block: { type: "floor" } },
-      { ...door, block: { type: "door", face: 0, open: false } },
-    ]);
+      {
+        ...door,
+        block: { type: "door", face: 0, open: false },
+      },
+    ];
+    world.layDock(asVehicleId(car.id), cells);
     const here = asDimensionId("overworld");
     expect(world.dockCellOwner(here, floor)).toBe(car.id);
     expect(world.dockBlockOwner(here, floor, CAMPER_FLOOR_BLOCK)).toBe(car.id);

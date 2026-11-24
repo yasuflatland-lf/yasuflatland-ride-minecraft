@@ -1,7 +1,6 @@
 // The camper's furniture in local room cells: what it fills and where decor stands on it (ADR 0093).
-import { type DecorSlotId, parseDecorSlotId } from "../../dock/decor";
-import type { DockBlock } from "../../dock/floor";
 import type { CampingGearId } from "./campingGear";
+import { type DecorSlotId, parseDecorSlotId } from "./decorData";
 import {
   type DooredStorage,
   type StorageDoor,
@@ -10,6 +9,7 @@ import {
   storageFurniture,
 } from "./dooredStorage";
 import { CEILING_LAYER, type LocalCell } from "./localCell";
+import type { CamperRoomBlock } from "./roomBlocks";
 import {
   COUNTER_HEIGHT,
   DRAWER_BOTTOM_Y,
@@ -42,7 +42,7 @@ type FurnitureKind =
  * or a storage compartment, whose own block draws its two (ADR 0114, 0121).
  */
 type DecorPairKind =
-  | Extract<DockBlock, { type: "decorPair" }>["pair"]
+  | Extract<CamperRoomBlock, { type: "decorPair" }>["pair"]
   | StoragePairKind;
 
 /** The pair kind of a storage compartment, whose block compartmentCells lays (ADR 0114, 0121). */
@@ -50,12 +50,12 @@ type StoragePairKind = "cabinet" | "fridge" | "drawers";
 
 /** The blocks a storage compartment lays; a new unit adds its own here (ADR 0121). */
 export type StorageCompartmentBlock = Extract<
-  DockBlock,
+  CamperRoomBlock,
   { type: "cabinet" | "fridge" | "drawers" }
 >;
 /** The blocks an open storage door's plate lays; a new unit adds its own here (ADR 0121). */
 export type StoragePlateBlock = Extract<
-  DockBlock,
+  CamperRoomBlock,
   { type: "cabinetDoor" | "fridgeDoor" }
 >;
 
@@ -90,7 +90,7 @@ export interface DecorSlot {
   /** Items hang from this slot instead of standing on it (ADR 0093, 0102). */
   readonly hanging?: true;
   /** Optional clearance restriction for a shallow furniture surface (ADR 0097). */
-  readonly items?: readonly string[];
+  readonly items?: readonly CampingGearId[];
   /** The index in DECOR_SPOTS of where on its cell the item stands; the cell middle when omitted (ADR 0107). */
   readonly spot?: number;
   /**

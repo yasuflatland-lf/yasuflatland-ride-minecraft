@@ -230,7 +230,9 @@ describe("camper furniture model (ADR 0093)", () => {
           py < top + height,
       );
       for (const item of items.filter(
-        (item) => slot.items === undefined || slot.items.includes(item.id),
+        (item) =>
+          slot.items === undefined ||
+          slot.items.some((gear) => gear === item.id),
       )) {
         const intruding = near.filter(
           ([px = 0, py = 0, pz = 0]) =>

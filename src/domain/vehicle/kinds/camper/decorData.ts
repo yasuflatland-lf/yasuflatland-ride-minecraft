@@ -1,10 +1,10 @@
-// Items a player set out in a held vehicle's room, saved on the vehicle (ADR 0093).
-import type { Brand } from "../../shared/ids";
+// Items set out in the camper's room and saved on the camper (ADR 0093).
+import type { Brand } from "../../../shared/ids";
+
+import { asCampingGear, type CampingGearId } from "./campingGear.ts";
 
 export type DecorSlotId = Brand<string, "DecorSlotId">;
-export type DecorItemId = Brand<string, "DecorItemId">;
-
-const ITEM_ID = /^[a-z][a-z0-9_]*$/;
+export type DecorItemId = CampingGearId;
 
 /** One decor item in one slot; `item` is a gear id without the namespace. */
 export interface DecorPlacement {
@@ -25,10 +25,6 @@ export function parseDecorSlotId(raw: string): DecorSlotId | undefined {
   return typeof raw === "string" ? (raw as DecorSlotId) : undefined;
 }
 
-export function isDecorItem(raw: string): raw is DecorItemId {
-  return ITEM_ID.test(raw);
-}
-
 /**
  * Parses the saved decor. Anything malformed reads as no decor; an entry
  * without a string slot or with an invalid item is dropped.
@@ -45,11 +41,11 @@ export function parseDecor(saved: unknown): DecorPlacement[] {
   const decor: DecorPlacement[] = [];
   for (const entry of parsed) {
     if (typeof entry !== "object" || entry === null) continue;
-    const { slot: rawSlot, item } = entry as Record<string, unknown>;
+    const { slot: rawSlot, item: rawItem } = entry as Record<string, unknown>;
     const slot =
       typeof rawSlot === "string" ? parseDecorSlotId(rawSlot) : undefined;
-    if (slot === undefined || typeof item !== "string" || !isDecorItem(item))
-      continue;
+    const item = asCampingGear(rawItem);
+    if (slot === undefined || item === undefined) continue;
     decor.push({ slot, item });
   }
   return decor;

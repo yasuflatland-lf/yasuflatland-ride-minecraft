@@ -1,16 +1,7 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
 import { cellOf } from "../../domain/shared/cells";
 import { forward, length, type Vec3 } from "../../domain/shared/vec";
-import {
-  type DecorPlacement,
-  isDecorItem,
-  parseDecorSlotId,
-} from "../../domain/vehicle/dock/decor";
-import type {
-  DockBlock,
-  DockCell,
-  HoldPose,
-} from "../../domain/vehicle/dock/floor";
+import type { DockCell, HoldPose } from "../../domain/vehicle/dock/floor";
 import {
   decorCells,
   furnitureCells,
@@ -36,6 +27,12 @@ import {
   cargoCells,
   compartmentCells,
 } from "../../domain/vehicle/kinds/camper/storagePlates";
+import {
+  type CamperRoomBlock,
+  type CampingGearId,
+  type DecorPlacement,
+  parseDecorSlotId,
+} from "../../domain/vehicle/kinds/index";
 import { DOCK } from "../../domain/vehicle/motion/dock";
 import { AIR_BLOCK } from "../../infrastructure/shared/identifiers";
 import { LIGHT_BLOCK } from "../../infrastructure/shared/lightBlocks";
@@ -120,7 +117,7 @@ const ROOM_CELL_COUNT = 107;
 const ROOM_BLOCK: Readonly<
   Record<
     Exclude<
-      DockBlock["type"],
+      CamperRoomBlock["type"],
       "decor" | "decorPair" | "cabinet" | "fridge" | "drawers"
     >,
     string
@@ -141,7 +138,7 @@ const ROOM_BLOCK: Readonly<
   light: LIGHT_BLOCK,
 };
 
-function laidTypeOf(block: DockBlock): string {
+function laidTypeOf(block: CamperRoomBlock): string {
   if (block.type === "drawers") return pairDecorBlockId("drawers");
   if (block.type === "decor") return decorBlockId(block.item);
   if (block.type === "decorPair") return pairDecorBlockId(block.pair);
@@ -164,7 +161,10 @@ function paveParkSpot(a: Arena, block: string): void {
   );
 }
 
-function countLaid(a: Arena, cells: readonly DockCell[]): number {
+function countLaid(
+  a: Arena,
+  cells: readonly DockCell<CamperRoomBlock>[],
+): number {
   return cells.filter((c) => a.dim.getBlock(c)?.typeId === laidTypeOf(c.block))
     .length;
 }
@@ -458,11 +458,13 @@ export function camperDepartCargo(a: Arena): Promise<Outcome> {
   });
 }
 
-type ShowerToiletCell = DockCell & {
-  readonly block: Extract<DockBlock, { type: "showerToilet" }>;
-};
+type ShowerToiletCell = DockCell<
+  Extract<CamperRoomBlock, { type: "showerToilet" }>
+>;
 
-function isShowerToiletCell(c: DockCell): c is ShowerToiletCell {
+function isShowerToiletCell(
+  c: DockCell<CamperRoomBlock>,
+): c is ShowerToiletCell {
   return c.block.type === "showerToilet";
 }
 
@@ -1021,9 +1023,9 @@ export function camperParkCourse(a: Arena, onStep: StepSink): Promise<Outcome> {
   });
 }
 
-function decorPlacement(rawSlot: string, item: string): DecorPlacement {
+function decorPlacement(rawSlot: string, item: CampingGearId): DecorPlacement {
   const slot = parseDecorSlotId(rawSlot);
-  if (slot === undefined || !isDecorItem(item))
+  if (slot === undefined)
     throw new Error(`Invalid decor fixture: ${rawSlot},${item}`);
   return { slot, item };
 }
