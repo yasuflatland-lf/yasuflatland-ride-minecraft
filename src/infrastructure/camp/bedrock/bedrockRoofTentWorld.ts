@@ -14,13 +14,13 @@ import {
   type PlayerId,
 } from "../../../domain/shared/ids";
 import type { Paint } from "../../../domain/shared/paint";
+import type { RoofTentShell } from "../../../domain/shared/roofTent";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { blockIn } from "../../shared/blocks";
 import { paintEvent } from "../../shared/dyes";
 import { entityOfType, hasEntityNear } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { paidItem } from "../../shared/groundCells";
-import { id } from "../../shared/identifiers";
 import {
   playerById,
   showActionBar,
@@ -32,6 +32,8 @@ import {
   ROOF_TENT_ITEM,
   ROOF_TENT_LADDER_PROPERTY,
   ROOF_TENT_OWNER_PROPERTY,
+  ROOF_TENT_SHELL_PROPERTY,
+  ROOF_TENT_SUV_BOUNDS_EVENT,
   ROOF_TENT_TYPE,
   TENT_HITS_LEFT_HINT,
 } from "../identifiers";
@@ -46,6 +48,16 @@ const ROOF_TENT_REFUSAL_MESSAGE: Readonly<Record<RoofTentRefusal, string>> = {
 
 export function roofTentEntity(id: RoofTentId): Entity | undefined {
   return entityOfType(world, id, ROOF_TENT_TYPE);
+}
+
+export function roofTentShell(entity: Entity): RoofTentShell {
+  const stored = entity.getDynamicProperty(ROOF_TENT_SHELL_PROPERTY);
+  if (stored === "raised" || stored === "flat") return stored;
+  // Older saves recorded the shell only through the synced ladder flag.
+  const shell =
+    entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true ? "raised" : "flat";
+  entity.setDynamicProperty(ROOF_TENT_SHELL_PROPERTY, shell);
+  return shell;
 }
 
 export class BedrockRoofTentWorld implements RoofTentWorld {
@@ -73,7 +85,9 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
         .spawnEntity(ROOF_TENT_TYPE, at.location);
       entity.setRotation({ x: 0, y: at.yaw });
       entity.setProperty(ROOF_TENT_LADDER_PROPERTY, plan.ladder);
-      if (plan.ladder) entity.triggerEvent(id("suv_bounds"));
+      entity.setDynamicProperty(ROOF_TENT_SHELL_PROPERTY, plan.shell);
+      if (plan.shell === "raised")
+        entity.triggerEvent(ROOF_TENT_SUV_BOUNDS_EVENT);
       entity.setDynamicProperty(ROOF_TENT_OWNER_PROPERTY, ownerId);
       entity.setDynamicProperty(ROOF_TENT_HOST_PROPERTY, encodeHost(plan.host));
       entity.triggerEvent(paintEvent(paint));

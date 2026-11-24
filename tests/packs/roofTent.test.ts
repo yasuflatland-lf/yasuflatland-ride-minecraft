@@ -122,7 +122,7 @@ describe("roof tent asset contract", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, rideSeatY("ground"), 0] }],
+      seats: [{ position: [0, rideSeatY("flat"), 0] }],
     });
     expect(
       entity.component_groups["yasu_ride:suv_bounds"]["minecraft:rideable"],
@@ -130,7 +130,7 @@ describe("roof tent asset contract", () => {
       seat_count: 1,
       family_types: ["player"],
       crouching_skip_interact: true,
-      seats: [{ position: [0, rideSeatY("ladder"), 0] }],
+      seats: [{ position: [0, rideSeatY("raised"), 0] }],
     });
   });
 
