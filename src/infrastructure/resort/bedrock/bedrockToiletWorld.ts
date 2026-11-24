@@ -3,18 +3,12 @@ import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { FURNITURE_SPEC } from "../../../domain/resort/furniture";
 import { asFurnitureId, type FurnitureId } from "../../../domain/resort/ids";
 import { toiletExit } from "../../../domain/resort/toiletExit";
-import { cellCenter, cellOf } from "../../../domain/shared/cells";
+import { cellOf } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
-import {
-  asDimensionId,
-  asPlayerId,
-  type PlayerId,
-} from "../../../domain/shared/ids";
+import type { PlayerId } from "../../../domain/shared/ids";
 import { allDimensions } from "../../shared/dimensions";
 import { gearEntities, gearFeedback } from "../../shared/gearEntity";
-import { NAMESPACE } from "../../shared/identifiers";
-import { playerById } from "../../shared/players";
-import { makeSafeStand, seatRider } from "../../shared/seating";
+import { playerRiderOf, seatPlayer, standBeside } from "../../shared/seating";
 import {
   FURNITURE_IDS,
   TOILET_FLUSHING,
@@ -35,11 +29,7 @@ export class BedrockToiletWorld implements ToiletWorld {
   ) {}
 
   riderOf(id: FurnitureId): PlayerId | undefined {
-    const rider = this.entity(id)
-      ?.getComponent("minecraft:rideable")
-      ?.getRiders()
-      .find((entity) => entity.typeId === "minecraft:player");
-    return rider ? asPlayerId(rider.id) : undefined;
+    return playerRiderOf(this.entity(id));
   }
 
   loadedToilets(): readonly FurnitureId[] {
@@ -51,17 +41,12 @@ export class BedrockToiletWorld implements ToiletWorld {
   }
 
   seat(id: FurnitureId, playerId: PlayerId): boolean {
-    const toilet = this.entity(id);
-    const player = playerById(playerId);
-    if (!toilet || !player?.isValid || player.getComponent("minecraft:riding"))
-      return false;
-    try {
-      const seat = FURNITURE_SPEC.toilet.seats[0];
-      return seat !== undefined && seatRider(toilet, player, seat);
-    } catch (error) {
-      console.warn(`[${NAMESPACE}] toilet seating failed: ${error}`);
-      return false;
-    }
+    return seatPlayer(
+      this.entity(id),
+      playerId,
+      FURNITURE_SPEC.toilet.seats[0],
+      "toilet",
+    );
   }
 
   setLid(id: FurnitureId, open: boolean): void {
@@ -74,26 +59,18 @@ export class BedrockToiletWorld implements ToiletWorld {
 
   placeBeside(id: FurnitureId, playerId: PlayerId): void {
     const toilet = this.entity(id);
-    const player = playerById(playerId);
-    // Do not pull a player out of a new ride or back after a dimension change.
-    if (
-      !toilet ||
-      !player?.isValid ||
-      player.dimension.id !== toilet.dimension.id ||
-      player.getComponent("minecraft:riding")
-    )
-      return;
-    const dimension = toilet.dimension;
-    const dimensionId = asDimensionId(dimension.id);
-    const isSafe = makeSafeStand({
-      isVehicleSpace: (cell) => this.deps.isVehicleSpace(dimensionId, cell),
-      isCampSpace: (cell) => this.deps.isCampSpace(dimensionId, cell),
-    });
-    const origin = cellOf(toilet.location);
-    const feet = toiletExit(origin, snapYaw4(toilet.getRotation().y), (cell) =>
-      isSafe(dimension, cell),
-    );
-    if (feet) player.teleport(cellCenter(feet), { dimension });
+    if (toilet)
+      standBeside(
+        playerId,
+        toilet,
+        (isSafe) =>
+          toiletExit(
+            cellOf(toilet.location),
+            snapYaw4(toilet.getRotation().y),
+            isSafe,
+          ),
+        this.deps,
+      );
   }
 
   showRefused(playerId: PlayerId, reason: "occupied" | "flushing"): void {
