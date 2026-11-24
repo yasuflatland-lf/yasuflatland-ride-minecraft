@@ -1,9 +1,9 @@
-import { clamp, degToRad, type Vec3 } from "./vec";
+import { LocalFrame } from "./frame";
+import { clamp, type Vec2, type Vec3 } from "./vec";
 
-export interface LocalPoint {
-  readonly x: number;
-  readonly z: number;
-}
+export type LocalPoint = Vec2;
+
+const PIXELS_PER_BLOCK = 16;
 
 export interface TopRect {
   readonly halfX: number;
@@ -71,30 +71,26 @@ interface PlacedHost {
   readonly yaw: number;
 }
 
-/** The world point of a host spot given in model pixels, on a top `topPx` up. */
+/** Host spots are stored in pixels with +x to the left and +z ahead. */
 export function hostSpotPoint(
   host: PlacedHost,
-  spot: { x: number; z: number },
+  spot: LocalPoint,
   topPx: number,
 ): Vec3 {
-  const angle = degToRad(host.yaw);
+  const offset = new LocalFrame(host.at, host.yaw).toWorldOffset({
+    left: spot.x,
+    ahead: spot.z,
+    up: topPx,
+  });
   return {
-    x: host.at.x + (spot.x * Math.cos(angle) - spot.z * Math.sin(angle)) / 16,
-    y: host.at.y + topPx / 16,
-    z: host.at.z + (spot.x * Math.sin(angle) + spot.z * Math.cos(angle)) / 16,
+    x: host.at.x + offset.x / PIXELS_PER_BLOCK,
+    y: host.at.y + offset.y / PIXELS_PER_BLOCK,
+    z: host.at.z + offset.z / PIXELS_PER_BLOCK,
   };
 }
 
 /** The inverse of `hostSpotPoint` on the horizontal plane, in model pixels. */
-export function hostLocalPx(
-  host: PlacedHost,
-  point: Vec3,
-): { x: number; z: number } {
-  const angle = degToRad(host.yaw);
-  const dx = point.x - host.at.x;
-  const dz = point.z - host.at.z;
-  return {
-    x: (dx * Math.cos(angle) + dz * Math.sin(angle)) * 16,
-    z: (-dx * Math.sin(angle) + dz * Math.cos(angle)) * 16,
-  };
+export function hostLocalPx(host: PlacedHost, point: Vec3): LocalPoint {
+  const { left, ahead } = new LocalFrame(host.at, host.yaw).toLocal(point);
+  return { x: left * PIXELS_PER_BLOCK, z: ahead * PIXELS_PER_BLOCK };
 }

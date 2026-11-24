@@ -33,8 +33,10 @@ The tent faces the player who pitches it. `tentPose(clicked, playerYaw)` puts lo
 litter, or a plant covers the ground and takes the click itself, so `tentGround` first
 steps down through passable decorations of the shared list to the block they rest on;
 the decorations then fall in the clear cells and are cleared with the rest. Local cells are `{ x, depth, layer }`:
-`x` toward the tent's left, as `leftOf(forward(yaw))`; `depth` behind the tarp's
+`x` toward the tent's left; `depth` behind the tarp's
 front edge, 0..11 (`depth = 11 - z` in 0130's frame); `layer` 0 resting on the ground.
+The grid `LocalFrame` maps these to left, negative ahead, and up on exact cardinal
+axes.
 The entity stands at the bottom middle of local `(0, 11, 0)`, the rear wall's middle cell.
 
 `tentCells(pose)` lays 137 cells:

@@ -1,7 +1,8 @@
 import { type Cell, cellCenter, cellKey, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
 import { footprintColumns, regularOctagonFootprint } from "../shared/footprint";
-import { forward, leftOf, type Vec3 } from "../shared/vec";
+import { LocalFrame } from "../shared/frame";
+import { forward, type Vec3 } from "../shared/vec";
 import { PARASOL_SPEC } from "./spec";
 
 /** A placed parasol's pose. Immutable. */
@@ -56,17 +57,15 @@ export function parasolPoseAt(base: Vec3, yaw: number): ParasolPose {
 
 /** The cells the base and pole occupy. All must be air and outside vehicle and camp space. */
 export function parasolFootCells(pose: ParasolPose): Cell[] {
-  const ahead = quarterStep(pose.yaw);
-  const left = leftOf(ahead);
+  const frame = LocalFrame.grid(pose.base, pose.yaw);
   const cells = new Map<string, Cell>();
   for (const c of PARASOL_SPEC.footCells) {
-    const x = pose.base.x + ahead.x * c.ahead + left.x * c.left;
-    const z = pose.base.z + ahead.z * c.ahead + left.z * c.left;
+    const { x, y, z } = frame.toWorld(c);
     // Model cells assume a block-centred origin. A fractional translation can
     // overlap two world columns on an axis; both must pass the clearance rules.
     for (let ix = Math.floor(x); ix < Math.ceil(x + 1); ix++)
       for (let iz = Math.floor(z); iz < Math.ceil(z + 1); iz++) {
-        const cell = { x: ix, y: pose.base.y + c.up, z: iz };
+        const cell = { x: ix, y, z: iz };
         cells.set(cellKey(cell), cell);
       }
   }
