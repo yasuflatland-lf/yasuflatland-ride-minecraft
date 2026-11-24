@@ -28,7 +28,7 @@ it("keeps the seated eye at its target between the bed and ridge at any positive
         rideSeatY() -
         ROOF_TENT_PACK_CONTRACT.seatRiderOffset +
         ROOF_TENT_PACK_CONTRACT.standingEyeHeight;
-      expect(eye - offset).toBeCloseTo(seatedEyeHeight("ladder"), 10);
+      expect(eye - offset).toBeCloseTo(seatedEyeHeight("raised"), 10);
       expect(eye).toBeGreaterThan(offset + ROOF_TENT_SPEC.seatLift);
       expect(eye).toBeLessThan(offset + ROOF_TENT_SPEC.shellRidge);
       expect(rideSeatY()).toBeLessThan(
@@ -42,10 +42,10 @@ it("keeps the seated eye the same distance below each variant's ridge", () => {
   fc.assert(
     fc.property(
       coordinate,
-      fc.constantFrom("ladder", "ground" as const),
+      fc.constantFrom("raised", "flat" as const),
       (height, variant) => {
         const ridge =
-          variant === "ladder"
+          variant === "raised"
             ? ROOF_TENT_SPEC.shellRidge
             : ROOF_TENT_PACK_CONTRACT.groundShellRidge;
         const eye =

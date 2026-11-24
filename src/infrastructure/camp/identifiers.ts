@@ -190,6 +190,8 @@ export const ROOF_TENT_ITEM = id("roof_tent_item");
 export const ROOF_TENT_STARTER_RECEIVED_PROPERTY = id(
   "roof_tent_starter_received",
 );
+export const ROOF_TENT_SHELL_PROPERTY = id("roof_tent_shell");
+export const ROOF_TENT_SUV_BOUNDS_EVENT = id("suv_bounds");
 export const ROOF_TENT_LADDER_PROPERTY = id("ladder");
 export const ROOF_TENT_FLAP_OPEN_PROPERTY = id("flap_open");
 export const ROOF_TENT_OCCUPIED_PROPERTY = id("occupied");

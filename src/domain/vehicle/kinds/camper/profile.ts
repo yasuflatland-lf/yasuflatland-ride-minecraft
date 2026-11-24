@@ -31,6 +31,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
       x: CAMPER_SPEC.roofTentAnchorX,
       z: CAMPER_SPEC.roofTentAnchorZ,
     }),
+    shell: CAMPER_SPEC.roofTentShell,
     ladder: CAMPER_SPEC.roofTentLadder,
     entrance: Object.freeze({
       x: CAMPER_SPEC.roofTentEntranceX,
