@@ -131,7 +131,7 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
     [
       "infrastructure same kind",
       {
-        "src/infrastructure/vehicle/kinds/camper/handlers/decor.ts":
+        "src/infrastructure/vehicle/kinds/camper/handlers/blockPress.ts":
           importX("../identifiers"),
         "src/infrastructure/vehicle/kinds/camper/identifiers.ts": EXPORTS_X,
       },
@@ -140,9 +140,8 @@ describe("dependency-cruiser rules (ADR 0065)", () => {
     [
       "infrastructure other kind",
       {
-        "src/infrastructure/vehicle/kinds/camper/handlers/decor.ts": importX(
-          "../../sportsboat/identifiers",
-        ),
+        "src/infrastructure/vehicle/kinds/camper/handlers/blockPress.ts":
+          importX("../../sportsboat/identifiers"),
         "src/infrastructure/vehicle/kinds/sportsboat/identifiers.ts": EXPORTS_X,
       },
       ["infrastructure-kind-imports-other-kind"],
