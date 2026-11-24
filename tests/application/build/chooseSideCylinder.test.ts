@@ -8,7 +8,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { contentsMenu } from "../../../src/domain/build/flow/menu";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { FakeFeedback, FakeSessions, overworld } from "./fakes";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 
 const playerId = asPlayerId("p");
 const material = blockStateOf("minecraft:stone");
@@ -44,7 +44,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
           repo,
           feedback,
           aim,
-          new ChooseHeighted(repo, feedback),
+          new ChooseHeighted(repo, feedback, new FakeWorld()),
         );
         choose.execute({ playerId });
         const kind =
