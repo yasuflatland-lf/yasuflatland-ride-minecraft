@@ -6,6 +6,7 @@ import {
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
+import { GAS_LANTERN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 import {
   CAMP_TABLE_TYPE,
   DUTCH_OVEN_HOST_PROPERTY,
@@ -67,7 +68,7 @@ it("spawns a hosted lantern at the table's yaw, marks its host, and stops its fa
   );
   const at = { x: 1, y: 64.75, z: 2 };
   lanterns.spawnHosted(
-    "gas_lantern",
+    GAS_LANTERN_ON_TOP.id,
     asDimensionId("overworld"),
     at,
     90,

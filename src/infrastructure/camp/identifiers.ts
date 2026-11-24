@@ -94,6 +94,7 @@ export const TEST_DUTCH_OVEN_HIT_EVENT = /* @__PURE__ */ id(
 
 export const FIRE_PIT_TYPE = id("fire_pit");
 export const FIRE_PIT_ITEM = id("fire_pit_item");
+export const FIRE_PIT_IGNITER_ITEM = "minecraft:flint_and_steel";
 export const FIRE_PIT_COVERED_PROPERTY = id("covered");
 export const DUTCH_OVEN_ON_TOP_HINT = "yasu_ride.hint.dutch_oven_on_top";
 export const TEST_FIRE_PIT_HIT_EVENT = /* @__PURE__ */ id("test_fire_pit_hit");
@@ -112,6 +113,12 @@ export const TENT_FLAP_PROPERTY = Object.freeze({
 });
 /** Whether the lantern glows, read by tent.rc.json. */
 export const TENT_LANTERN_PROPERTY = id("lantern");
+
+const TENT_BLOCK_PREFIX = id("tent_");
+
+export function isTentBlockTypeId(typeId: string | undefined): boolean {
+  return typeId?.startsWith(TENT_BLOCK_PREFIX) === true;
+}
 
 export const TENT_WALL_BLOCK = id("tent_wall");
 export const TENT_CEILING_BLOCK = id("tent_ceiling");

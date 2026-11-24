@@ -6,8 +6,8 @@ import {
 } from "../../../src/application/camp/gasLantern";
 import type { GasLanternWorld } from "../../../src/application/camp/ports/gasLantern";
 import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
-import { asFirePitId } from "../../../src/domain/camp/firePit";
 import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
+import { decodeCampHost } from "../../../src/domain/camp/hosted";
 import {
   DUTCH_OVEN_FOOTPRINT_PX,
   GAS_LANTERN_FOOTPRINT_PX,
@@ -17,9 +17,10 @@ import {
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
 import { snapYaw } from "../../../src/domain/shared/facing";
-import { decodeHost, encodeHost } from "../../../src/domain/shared/hosted";
+import { encodeHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
+import { GAS_LANTERN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 
 const player = asPlayerId("player");
 const dimension = asDimensionId("overworld");
@@ -59,7 +60,7 @@ function fixture(failSpawn = false) {
     isHostAreaLoaded: vi.fn<GasLanternWorld["isHostAreaLoaded"]>(() => true),
     hostExists: vi.fn<GasLanternWorld["hostExists"]>(() => false),
   } satisfies GasLanternWorld;
-  return { actions: new GasLanternActions(world), world };
+  return { actions: new GasLanternActions(world, GAS_LANTERN_ON_TOP), world };
 }
 
 it("needs one clear cell above the pressed block, but no second cell", () => {
@@ -157,7 +158,7 @@ it("clears a lit lantern's light before dropping its item and removing it", () =
     [player, 2],
     [player, 1],
   ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith(id);
   expect(world.clearLight).toHaveBeenCalledExactlyOnceWith(id);
   expect(world.clearLight.mock.invocationCallOrder[0]).toBeLessThan(
@@ -178,7 +179,7 @@ it("stands on a table with the lantern's footprint, the table's yaw, and a marke
   );
   const [kind, dim, , yaw, host] = world.spawnHosted.mock.calls[0] ?? [];
   expect([kind, dim, yaw]).toEqual(["gas_lantern", dimension, 90]);
-  expect(decodeHost(String(host))).toEqual({
+  expect(decodeCampHost(String(host))).toEqual({
     kind: "top",
     hostType: "camp_table",
     id: asTableId("table"),
@@ -239,29 +240,13 @@ it("consumes nothing when the lantern would overlap an oven", () => {
 });
 
 const marker = fc.oneof(
-  fc.constant(""),
-  fc.constant("not a marker"),
-  fc.constant(
-    encodeHost({
-      kind: "spot",
-      hostType: "fire_pit",
-      id: asFirePitId("pit"),
-      spot: 0,
-    }),
-  ),
+  fc.constantFrom("", "not a marker", "fire_pit:pit:0", "camp_table:table:0"),
   fc
     .record({
       x: fc.integer({ min: -9, max: 9 }),
       z: fc.integer({ min: -1, max: 1 }),
     })
-    .map((at) =>
-      encodeHost({
-        kind: "top",
-        hostType: "camp_table",
-        id: asTableId("table"),
-        at,
-      }),
-    ),
+    .map(({ x, z }) => `camp_table:table:@${x},${z}`),
 );
 
 it("keeps ground lanterns and removes each hosted one whose host is gone, light first and with no drop", () => {
@@ -278,9 +263,10 @@ it("keeps ground lanterns and removes each hosted one whose host is gone, light 
         world.isHostAreaLoaded.mockImplementation(
           (id) => lanterns[ids.indexOf(id)]?.[1] ?? false,
         );
-        const hosted = ids.filter(
-          (id) => decodeHost(markerOf(id)).kind !== "ground",
-        );
+        const hosted = ids.filter((id) => {
+          const value = markerOf(id);
+          return value !== "" && value !== "not a marker";
+        });
         new HostedItemsGuard([gasLanternHostedKind(world)]).check();
         const gone = hosted.filter((id) => world.isHostAreaLoaded(id));
         expect(world.removeGasLantern.mock.calls.map(([id]) => id)).toEqual(

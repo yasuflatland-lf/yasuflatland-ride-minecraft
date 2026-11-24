@@ -3,10 +3,8 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, edgePoints } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import {
-  type BuildFlow,
-  chooseHeighted,
-} from "../../../src/domain/build/flow/flow";
+import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import {
   boxOutline,
   endpointMarkers,

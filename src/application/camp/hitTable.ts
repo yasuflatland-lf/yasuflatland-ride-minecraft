@@ -21,7 +21,7 @@ export class HitTable {
     }
     let taken = false;
     handleHit(this.hits, cmd.tableId, cmd.tick, {
-      drop: () => this.world.dropItem(cmd.tableId),
+      drop: () => this.world.dropItem(cmd.tableId, cmd.playerId),
       remove: () => {
         this.world.removeTable(cmd.tableId);
         taken = true;

@@ -1,5 +1,5 @@
 import type { GasLanternId } from "../../../domain/camp/gasLantern";
-import type { DimensionId } from "../../../domain/shared/ids";
+import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TopHostWorld } from "../../shared/placeOnTop";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
@@ -15,7 +15,7 @@ export interface GasLanternWorld extends HitsLeftFeedback, TopHostWorld {
   setLit(id: GasLanternId, on: boolean): void;
   relayLight(id: GasLanternId, lit: boolean): void;
   clearLight(id: GasLanternId): void;
-  dropItem(id: GasLanternId): void;
+  dropItem(id: GasLanternId, hitter?: PlayerId): void;
   removeGasLantern(id: GasLanternId): void;
   loadedGasLanterns(): readonly GasLanternId[];
   /** The saved host marker, or "" for a lantern on the ground. */

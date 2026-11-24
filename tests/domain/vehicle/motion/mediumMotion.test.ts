@@ -15,7 +15,10 @@ import {
   SUV_MOTION,
   SUV_TYRES,
 } from "../../../../src/domain/vehicle/kinds/suv/profile";
-import { AIR, SUV_SPEC } from "../../../../src/domain/vehicle/kinds/suv/spec";
+import {
+  SUV_SPEC,
+  SUV_TRANSFORMING,
+} from "../../../../src/domain/vehicle/kinds/suv/spec";
 import { MOTION } from "../../../../src/domain/vehicle/motion/constants";
 import type { MotionLimits } from "../../../../src/domain/vehicle/motion/limits";
 import type { GroundInput } from "../../../../src/domain/vehicle/motion/motion";
@@ -29,6 +32,8 @@ import {
   stepMediumMotion,
   updateSpeed,
 } from "../../../../src/domain/vehicle/motion/motion";
+
+const { air: AIR } = SUV_TRANSFORMING;
 
 const NEUTRAL_GROUND: GroundInput = {
   throttle: 0,

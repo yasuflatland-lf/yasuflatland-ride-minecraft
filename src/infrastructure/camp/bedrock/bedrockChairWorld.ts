@@ -1,20 +1,21 @@
 // Implements ChairWorld with @minecraft/server (ADR 0012, 0122).
 
-import { ItemStack, world } from "@minecraft/server";
+import { world } from "@minecraft/server";
 import type { ChairWorld } from "../../../application/camp/ports/chair";
 import {
   asChairId,
   type ChairId,
   type ChairKindId,
 } from "../../../domain/camp/chair";
+import { CHAIR_SPEC } from "../../../domain/camp/spec";
 import { cellCenter } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockGroundCells } from "../../shared/groundCells";
 import {
   consumeHeld,
-  giveOrDrop,
   playerById,
   showHitsLeftHint,
 } from "../../shared/players";
@@ -75,8 +76,7 @@ export class BedrockChairWorld
 
   refundChairItem(kind: ChairKindId, playerId: PlayerId): void {
     const player = playerById(playerId);
-    if (player)
-      giveOrDrop(player, [new ItemStack(CHAIR_KINDS[kind].itemId, 1)]);
+    if (player) giveBack(player, CHAIR_KINDS[kind].itemId, player);
   }
 
   spawnChair(
@@ -105,14 +105,15 @@ export class BedrockChairWorld
     chairOf(chairId)?.remove();
   }
 
-  dropChairItem(chairId: ChairId): void {
+  dropChairItem(chairId: ChairId, hitter?: PlayerId): void {
     const chair = chairOf(chairId);
     if (chair === undefined) return;
     const kind = CHAIR_KIND_BY_TYPE.get(chair.typeId);
     if (kind === undefined) return;
-    chair.dimension.spawnItem(
-      new ItemStack(CHAIR_KINDS[kind].itemId, 1),
-      chair.location,
+    giveBack(
+      chair,
+      CHAIR_KINDS[kind].itemId,
+      giveBackReceiver(CHAIR_SPEC.giveBack, hitter),
     );
   }
 
