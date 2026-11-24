@@ -1,4 +1,4 @@
-import type { Player } from "@minecraft/server";
+import { type Player, system } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import type { MenuChoices } from "../../../application/build/menuChoices";
 import type { BuildBlockWorld } from "../../../application/build/ports/blocks";
@@ -95,7 +95,7 @@ export class BedrockBuildMenus implements BuildMenus {
         return;
       const entries =
         level === "root"
-          ? this.choices.openShapeMenu(playerId)
+          ? this.choices.openShapeMenu(playerId, system.currentTick)
           : buildMenu(flow);
       const opened = this.repo.get(playerId)?.flow;
       const answer = await chooseFromFormResult(
@@ -115,7 +115,8 @@ export class BedrockBuildMenus implements BuildMenus {
           : level === "build"
             ? "back"
             : undefined;
-      if (!this.choices.chooseShape(playerId, choice)) return;
+      if (!this.choices.chooseShape(playerId, choice, system.currentTick))
+        return;
       if (choice === "buildShape" || choice === "back") {
         level = choice === "buildShape" ? "build" : "root";
         continue;

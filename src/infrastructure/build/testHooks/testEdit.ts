@@ -192,7 +192,7 @@ export function registerTestEdit(
           choose &&
           (args.length === 2 || (args.length === 1 && menu === "shape"))
         ) {
-          offered = choose(playerId, entry);
+          offered = choose(playerId, entry, system.currentTick);
         } else if (
           command === "height" &&
           args.length === 1 &&
