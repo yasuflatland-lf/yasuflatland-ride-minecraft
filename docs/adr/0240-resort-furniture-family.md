@@ -14,7 +14,7 @@ The Dining set design adds a Dining Table, Dining Chair, single sofa, and double
 
 ## Decision
 
-Keep furniture in the resort feature. Store all per-kind tuning in the deeply frozen `FURNITURE_SPEC` table, following 0050. Shared furniture logic reads the table without branching on kind. Each entry defines pressed-cell offsets, clearance, rideable seats, three hits to take back, a 100-tick hit reset window, and an optional `TopSurface`.
+Keep furniture in the resort feature. Store all per-kind tuning in the deeply frozen `FURNITURE_SPEC` table, following 0050. Shared furniture logic reads the table without branching on kind. Each entry defines pressed-cell offsets, clearance, the protected spaces it refuses (`vehicle` and `camp`), rideable seats, three hits to take back, a 100-tick hit reset window, and an optional `TopSurface`.
 
 Place furniture one cell above the pressed block and face the player with `snapYaw4(playerYaw + 180)`. Use the footprint centre at floor height as the entity origin. The initial single-cell pieces need two clearance layers. The double sofa occupies the pressed column and the column to the player's right, with offsets `{ ahead: 0, left: 0 }` and `{ ahead: 0, left: -1 }`. Its origin lies on their shared boundary; seats are at model x = -0.5 and +0.5 blocks.
 

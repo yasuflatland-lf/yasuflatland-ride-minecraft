@@ -25,6 +25,7 @@ const kind: HostedItemKind = {
   id: "test_item" as HostedKindId,
   footprint: { halfX: 4, halfZ: 3 },
   clearance: 2,
+  refuses: ["vehicle"],
 };
 const command = {
   player,
@@ -219,6 +220,28 @@ it("refuses a blocked or vehicle-occupied clearance cell above the item before p
             aim: { x: -x, z: 0 },
           }),
         ).toBe("placed");
+      },
+    ),
+  );
+});
+
+it("uses the placed item's protected spaces on a tabletop", () => {
+  fc.assert(
+    fc.property(
+      fc.shuffledSubarray(["vehicle", "camp"] as const),
+      fc.boolean(),
+      fc.boolean(),
+      (refuses, vehicle, camp) => {
+        const world = fixture({
+          isVehicleSpace: () => vehicle,
+          isCampSpace: () => camp,
+        });
+        const allowed =
+          !(refuses.includes("vehicle") && vehicle) &&
+          !(refuses.includes("camp") && camp);
+        expect(
+          placeOnTop(world, CAMP_TABLE_TOP, { ...kind, refuses }, command),
+        ).toBe(allowed ? "placed" : "refused");
       },
     ),
   );

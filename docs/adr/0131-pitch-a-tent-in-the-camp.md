@@ -132,8 +132,9 @@ in its place stays.
 
 The ceiling block JSON sets `light_emission` to 4. Three layers below it the
 block light is still 1, so no hostile mob spawns inside. The value is tuned in game.
-Camping gear such as the oil lamp cannot be placed in the tent: no tent block has a
-decor slot, and the gear placement path is unchanged.
+Tent blocks have no decor slots for indoor camping gear. Outdoor camp chairs,
+tables, fire pits, ovens, and lanterns may stand in the rooms wherever their
+usual placement checks pass. Their specs refuse only vehicle space.
 
 ## Consequences
 

@@ -1,10 +1,16 @@
-import { type Cell, cellKey, cellOf } from "../shared/cells";
+import {
+  type Cell,
+  cellKey,
+  cellOf,
+  type ProtectedSpace,
+} from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
 import type { GiveBackPolicy } from "../shared/giveBack";
 import { GEAR_RECOVERY, type HitRule } from "../shared/hitCounter";
 import type { TopSurface } from "../shared/tableTop";
 import { ticks } from "../shared/ticks";
 import { forward, localOffset, type Vec2, type Vec3 } from "../shared/vec";
+import { RESORT_REFUSES } from "./spec";
 
 export type FurnitureKind =
   | "dining_table"
@@ -35,6 +41,7 @@ export interface FurnitureSpec {
   readonly seats: readonly SeatOffset[];
   readonly recovery: HitRule;
   readonly giveBack: GiveBackPolicy;
+  readonly refuses: readonly ProtectedSpace[];
   /** Only furniture that hosts lanterns and ovens has a top. */
   readonly top?: TopSurface;
 }
@@ -48,6 +55,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       seats: Object.freeze([]),
       recovery: GEAR_RECOVERY,
       giveBack: "hitter",
+      refuses: RESORT_REFUSES,
       top: Object.freeze({
         half: Object.freeze({ halfX: 6, halfZ: 6 }),
         topPx: 12,
@@ -61,6 +69,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.21, z: -0.00625 })]),
       recovery: GEAR_RECOVERY,
       giveBack: "hitter",
+      refuses: RESORT_REFUSES,
     }),
     sofa_single: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
@@ -68,6 +77,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.2475, z: -0.1 })]),
       recovery: GEAR_RECOVERY,
       giveBack: "hitter",
+      refuses: RESORT_REFUSES,
     }),
     sofa_double: Object.freeze({
       cells: Object.freeze([
@@ -81,6 +91,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       ]),
       recovery: GEAR_RECOVERY,
       giveBack: "hitter",
+      refuses: RESORT_REFUSES,
     }),
     toilet: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
@@ -89,6 +100,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       seats: Object.freeze([Object.freeze({ x: 0, y: 0.264, z: -0.1 })]),
       recovery: GEAR_RECOVERY,
       giveBack: "hitter",
+      refuses: RESORT_REFUSES,
     }),
     washstand: Object.freeze({
       cells: Object.freeze([Object.freeze({ ahead: 0, left: 0 })]),
@@ -96,6 +108,7 @@ export const FURNITURE_SPEC: Readonly<Record<FurnitureKind, FurnitureSpec>> =
       seats: Object.freeze([]),
       recovery: GEAR_RECOVERY,
       giveBack: "hitter",
+      refuses: RESORT_REFUSES,
     }),
   });
 
