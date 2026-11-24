@@ -1,6 +1,7 @@
 import type { Facing4 } from "../../shared/facing";
+import { LocalFrame } from "../../shared/frame";
 import type { RoofTentMount } from "../../shared/roofTent";
-import { distanceXZ, forward, leftOf, type Vec3 } from "../../shared/vec";
+import { distanceXZ, forward, type Vec3 } from "../../shared/vec";
 import { entranceWorld } from "./access";
 
 const EXIT_STEP = 1;
@@ -11,8 +12,6 @@ export function exitCell(
   host: { location: Vec3; yaw: number },
   facing: Facing4,
 ): Vec3 {
-  const f = forward(host.yaw);
-  const l = leftOf(f);
   const entrance = entranceWorld(mount, host);
   const dx = mount.entrance.x - mount.anchor.x;
   const dz = mount.entrance.z - mount.anchor.z;
@@ -20,10 +19,11 @@ export function exitCell(
   const direction =
     length === 0
       ? forward(facing)
-      : {
-          x: l.x * (dx / length) + f.x * (dz / length),
-          z: l.z * (dx / length) + f.z * (dz / length),
-        };
+      : new LocalFrame(host.location, host.yaw).toWorldOffset({
+          left: dx / length,
+          ahead: dz / length,
+          up: 0,
+        });
   const radius = distanceXZ(entrance, host.location);
   const cellAt = (distance: number): Vec3 => ({
     x: Math.floor(entrance.x + direction.x * distance) || 0,
