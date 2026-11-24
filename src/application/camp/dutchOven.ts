@@ -9,6 +9,7 @@ import {
   FIRE_PIT_SPOTS,
   FIRE_PIT_TOP_PX,
 } from "../../domain/camp/spec";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import { cellOf } from "../../domain/shared/cells";
 import {
   Debounces,
@@ -84,7 +85,7 @@ export class DutchOvenActions extends HostedOnTopActions {
     return true;
   }
 
-  canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
+  canUseBlock(dimension: DimensionId, block: Vec3, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
   }
 
