@@ -1,21 +1,6 @@
 import type { Player, RawMessage } from "@minecraft/server";
 import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
-import { BackToAiming } from "../../../src/application/build/backToAiming";
-import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
-import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
-import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
-import { ChooseStairs } from "../../../src/application/build/chooseStairs";
-import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
-import { ClearSelection } from "../../../src/application/build/clearSelection";
-import { CloseBuildMenu } from "../../../src/application/build/closeBuildMenu";
-import { CopyBox } from "../../../src/application/build/copyBox";
-import { CutBox } from "../../../src/application/build/cutBox";
-import { EndPasting } from "../../../src/application/build/endPasting";
-import { NewCopy } from "../../../src/application/build/newCopy";
-import { OpenBuildMenu } from "../../../src/application/build/openBuildMenu";
-import { OpenSelectionMenu } from "../../../src/application/build/openSelectionMenu";
-import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
@@ -29,28 +14,27 @@ import {
   openBuildMenu,
   pasteMenu,
   shapeMenu,
-  terrainMenu,
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import { fixStairGoal } from "../../../src/domain/build/flow/stairFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
-import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
-import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { BedrockBuildMenus } from "../../../src/infrastructure/build/bedrock/buildMenus";
-import { MenuChoices } from "../../../src/infrastructure/build/bedrock/menuChoices";
 import { BUILD_FORM } from "../../../src/infrastructure/build/identifiers";
+import { overworld } from "../../application/build/fakes";
 import {
-  FakeFeedback,
-  FakeSessions,
-  FakeWorld,
-  overworld,
-} from "../../application/build/fakes";
-import { FakeStructureStore } from "../../application/build/fakes/structureStore";
+  endpoint,
+  from,
+  playerId,
+  selected,
+  setupMenuChoices,
+  stone,
+  to,
+} from "../../application/build/fakes/menuChoices";
 import {
   holdClipboard,
   structureClipboard,
@@ -113,132 +97,20 @@ beforeEach(() => {
   ui.forms.length = 0;
 });
 
-const playerId = asPlayerId("p");
-const stone = blockStateOf("minecraft:stone");
-const from = { x: 0, y: 60, z: 0 };
-const to = { x: 4, y: 60, z: 6 };
-function selected(
-  from: Cell,
-  to: Cell,
-  menuLevel: "root" | "build" = "root",
-): BuildFlow {
-  return {
-    kind: "selected",
-    menuLevel,
-    selection: selectionOf(overworld, boxOf(from, to), stone),
-    from,
-    to,
-  };
-}
-const endpoint = selected(from, to);
 const cell = fc.record({
   x: fc.integer({ min: -20, max: 20 }),
   y: fc.integer({ min: 0, max: 319 }),
   z: fc.integer({ min: -20, max: 20 }),
 });
 function setup(fallback?: boolean) {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
-  session.setFlow(endpoint);
-  const preview = { refresh: vi.fn() };
-  const cases = {
-    openSelectionMenu: {
-      execute: vi.fn((cmd) => new OpenSelectionMenu(repo).execute(cmd)),
-    },
-    openBuildMenu: {
-      execute: vi.fn((cmd) => new OpenBuildMenu(repo, preview).execute(cmd)),
-    },
-    closeBuildMenu: {
-      execute: vi.fn((cmd) => new CloseBuildMenu(repo, preview).execute(cmd)),
-    },
-    chooseAdjustHeight: { execute: vi.fn() },
-    chooseBoxStep: {
-      execute: vi.fn((cmd) =>
-        new ChooseBoxStep(
-          repo,
-          {
-            copy: new CopyBox(
-              repo,
-              new FakeStructureStore(),
-              new FakeFeedback(),
-            ),
-            cut: new CutBox(
-              repo,
-              new FakeWorld(),
-              new FakeStructureStore(),
-              new FakeFeedback(),
-              { warn: () => {} },
-            ),
-          },
-          new FakeFeedback(),
-          { facingOf: () => "east" },
-        ).execute(cmd),
-      ),
-    },
-    confirmShape: { execute: vi.fn() },
-    chooseHeighted: {
-      execute: vi.fn((cmd) =>
-        new ChooseHeighted(repo, new FakeFeedback()).execute(cmd),
-      ),
-    },
-    chooseSideCylinder: {
-      execute: vi.fn((cmd) =>
-        new ChooseSideCylinder(
-          repo,
-          new FakeFeedback(),
-          { aim: () => undefined },
-          new ChooseHeighted(repo, new FakeFeedback()),
-        ).execute(cmd),
-      ),
-    },
-    confirmHeighted: { execute: vi.fn() },
-    chooseStairs: {
-      execute: vi.fn((cmd) =>
-        new ChooseStairs(repo, new FakeFeedback()).execute(cmd),
-      ),
-    },
-    confirmTerrace: { execute: vi.fn() },
-    confirmStairs: { execute: vi.fn() },
-    chooseTerrain: {
-      execute: vi.fn((cmd) =>
-        new ChooseTerrain(repo, new FakeFeedback()).execute(cmd),
-      ),
-    },
-    confirmTerrain: { execute: vi.fn() },
-    cancel: {
-      backToAiming: vi.fn((cmd) => new BackToAiming(repo).backToAiming(cmd)),
-    },
-    copy: { execute: vi.fn() },
-    newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
-    endPasting: {
-      execute: vi.fn((cmd) =>
-        new EndPasting(repo, new FakeStructureStore()).execute(cmd),
-      ),
-    },
-    undo: { execute: vi.fn() },
-    clear: {
-      execute: vi.fn((cmd) =>
-        new ClearSelection(repo, new FakeFeedback()).execute(cmd),
-      ),
-    },
-    setHeight: {
-      execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
-    },
-  };
+  const { repo, session, cases, choices } = setupMenuChoices();
   const player = {
     id: playerId,
     isValid: true,
     dimension: { heightRange: { min: -64, max: 320 } },
   } as unknown as Player;
-  const menus = new BedrockBuildMenus(repo, cases, fallback);
-  return {
-    repo,
-    session,
-    cases,
-    player,
-    menus,
-    choices: new MenuChoices(repo, cases),
-  };
+  const menus = new BedrockBuildMenus(repo, choices, fallback);
+  return { repo, session, cases, player, menus };
 }
 function shapeAnswers(flow: BuildFlow, id: string): Answer[] {
   const root = shapeMenu(flow);
@@ -648,144 +520,6 @@ it.each([false, true])(
   },
 );
 
-const command = { playerId };
-const shapeRoutes = {
-  place: ["confirmShape", { playerId, style: "fill" }],
-  fill: ["confirmShape", { playerId, style: "fill" }],
-  frame: ["confirmShape", { playerId, style: "frame" }],
-  faces: ["confirmShape", { playerId, style: "faces" }],
-  walls: ["confirmShape", { playerId, style: "walls" }],
-  gable: ["chooseHeighted", { playerId, kind: "gable" }],
-  hip: ["chooseHeighted", { playerId, kind: "hip" }],
-  cylinder: ["chooseHeighted", { playerId, kind: "cylinder" }],
-  sphere: ["chooseHeighted", { playerId, kind: "sphere" }],
-  cube: ["chooseHeighted", { playerId, kind: "cube" }],
-  sideCylinder: ["chooseSideCylinder", command],
-  stairs: ["chooseStairs", { playerId, op: "stairs" }],
-  terrace: ["chooseStairs", { playerId, op: "terrace" }],
-  copy: ["chooseBoxStep", { playerId, kind: "copy" }],
-  cut: ["chooseBoxStep", { playerId, kind: "cut" }],
-  removeAbove: ["chooseTerrain", { playerId, op: "removeAbove" }],
-  fillBelow: ["chooseTerrain", { playerId, op: "fillBelow" }],
-  buildShape: ["openBuildMenu", command],
-  back: ["closeBuildMenu", command],
-  adjustHeight: ["chooseAdjustHeight", command],
-  cancel: ["clear", command],
-} as const;
-const contentsRoutes = {
-  fill: ["confirmHeighted", { playerId, fill: "fill" }],
-  hollow: ["confirmHeighted", { playerId, fill: "hollow" }],
-  tube: ["confirmHeighted", { playerId, fill: "tube" }],
-  cancel: ["cancel", command],
-} as const;
-
-function expectDispatch(
-  flow: BuildFlow,
-  menu: "shape" | "contents",
-  offered: { id: string }[],
-  routes: Record<
-    string,
-    readonly [keyof ReturnType<typeof setup>["cases"], object]
-  >,
-) {
-  expect(Object.keys(routes)).toEqual(
-    expect.arrayContaining(offered.map(({ id }) => id)),
-  );
-  for (const [id, expected] of Object.entries({
-    ...routes,
-    invalid: undefined,
-  })) {
-    const { session, cases, choices } = setup();
-    session.setFlow(flow);
-    const available = offered.some((entry) => entry.id === id);
-    expect(choices.choose(playerId, menu, id), id).toBe(available);
-    const calls = Object.entries(cases).flatMap(([action, useCase]) => {
-      const spy = "execute" in useCase ? useCase.execute : useCase.backToAiming;
-      return spy.mock.calls.map((args) => [action, ...args]);
-    });
-    expect(calls, id).toEqual(available ? [expected] : []);
-  }
-}
-
-it("dispatches only entries offered by the current flow, including stale choices", () => {
-  const span = fc.integer({ min: -2, max: 2 });
-  fc.assert(
-    fc.property(
-      cell,
-      span,
-      span,
-      span,
-      fc.constantFrom("root", "build"),
-      (start, dx, dy, dz, level) => {
-        const flow = selected(
-          start,
-          { x: start.x + dx, y: start.y + dy, z: start.z + dz },
-          level,
-        );
-        expectDispatch(
-          flow,
-          "shape",
-          [...shapeMenu(flow), ...buildMenu(flow)],
-          shapeRoutes,
-        );
-        expectDispatch(flow, "contents", [], contentsRoutes);
-      },
-    ),
-  );
-  expectDispatch({ kind: "idle" }, "shape", [], shapeRoutes);
-});
-
-it("dispatches only contents offered for the selected shape", () => {
-  for (const kind of ["hip", "cube"] as const) {
-    const flow = chooseHeighted(endpoint, kind);
-    expectDispatch(flow, "contents", contentsMenu(flow), contentsRoutes);
-  }
-});
-
-it("validates utility availability before dispatching", () => {
-  fc.assert(
-    fc.property(
-      fc.boolean(),
-      fc.boolean(),
-      fc.boolean(),
-      (confirmed, clipboard, history) => {
-        const { session, cases, choices } = setup();
-        session.setFlow({ kind: "idle" });
-        const box = boxOf(from, to);
-        if (confirmed) session.confirmBox(selectionOf(overworld, box, stone));
-        if (clipboard)
-          holdClipboard(
-            session,
-            structureClipboard(box, () => stone),
-          );
-        if (history)
-          session.finishEdit(
-            {
-              dimensionId: overworld,
-              changes: [{ cell: from, before: stone, after: stone }],
-            },
-            "undoable",
-          );
-        for (const [id, offered] of [
-          ["copy", confirmed],
-          ["undo", history],
-          ["clear", confirmed],
-        ] as const) {
-          expect(choices.choose(playerId, "utility", id)).toBe(offered);
-          if (offered)
-            expect(cases[id].execute).toHaveBeenCalledExactlyOnceWith({
-              playerId,
-            });
-          else expect(cases[id].execute).not.toHaveBeenCalled();
-        }
-        expect(choices.choose(asPlayerId("absent"), "utility", "paste")).toBe(
-          false,
-        );
-      },
-    ),
-  );
-});
-
 it.each(["gable", "hip"] as const)(
   "opens locked stair %s contents under the roof title",
   async (kind) => {
@@ -874,35 +608,8 @@ it.each([from.y, 71])(
   },
 );
 
-it("accepts EndPasting only in paste aiming and exposes its own label", async () => {
-  const { session, choices, cases, menus, player } = setup();
-  for (const flow of [
-    { kind: "idle" } as const,
-    {
-      kind: "point1",
-      dimensionId: overworld,
-      cell: from,
-      material: stone,
-    } as const,
-    endpoint,
-    chooseHeighted(endpoint, "hip"),
-  ]) {
-    session.setFlow(flow);
-    expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
-  }
-  expect(cases.endPasting.execute).not.toHaveBeenCalled();
-  session.completeCopy(
-    selectionOf(overworld, boxOf(from, to), stone),
-    structureClipboard(boxOf(from, to), () => stone),
-  );
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
-  expect(choices.choose(playerId, "paste", "endPaste")).toBe(true);
-  expect(cases.endPasting.execute).toHaveBeenCalledExactlyOnceWith(playerId);
-  expect(session.flow.kind).toBe("idle");
-  expect(session.clipboard).toBeUndefined();
-  expect(session.confirmedBox).toBeUndefined();
-  expect(choices.choose(playerId, "utility", "paste")).toBe(false);
-  expect(choices.choose(playerId, "paste", "endPaste")).toBe(false);
+it("labels End pasting and applies the form response", async () => {
+  const { session, menus, player } = setup();
   session.setFlow({ kind: "pasteAim", manualTurn: 0 });
   ui.answers.push({
     selection: pasteMenu().findIndex((entry) => entry.id === "endPaste"),
@@ -1024,76 +731,11 @@ it("opens no confirmation when the area is too large", async () => {
   expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
 });
 
-it("offers terrain entries only during the confirmation", () => {
-  const { session, cases, choices } = setup();
-  for (const id of ["confirm", "cancel"]) {
-    expect(choices.choose(playerId, "terrain", id)).toBe(false);
-  }
-  expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
-  session.setFlow(chooseTerrain(endpoint, "removeAbove"));
-  expect(terrainMenu(session.flow)).toHaveLength(2);
-  expect(choices.choose(playerId, "terrain", "invalid")).toBe(false);
-  expect(choices.choose(playerId, "terrain", "confirm")).toBe(true);
-  expect(cases.confirmTerrain.execute).toHaveBeenCalledExactlyOnceWith({
-    playerId,
-  });
-});
-
-it("dispatches each offered paste entry exactly once and ignores all unoffered ids", () => {
-  fc.assert(
-    fc.property(
-      fc.boolean(),
-      fc.boolean(),
-      fc.oneof(
-        fc.constantFrom(
-          "undo",
-          "endPaste",
-          "copy",
-          "paste",
-          "cancel",
-          "endPasting",
-          "newCopy",
-        ),
-        fc.string(),
-      ),
-      (history, aiming, entryId) => {
-        const { session, choices, cases } = setup();
-        session.setFlow(
-          aiming ? { kind: "pasteAim", manualTurn: 0 } : { kind: "idle" },
-        );
-        if (history)
-          session.finishEdit(
-            {
-              dimensionId: overworld,
-              changes: [{ cell: from, before: stone, after: stone }],
-            },
-            "undoable",
-          );
-        const offered =
-          aiming && pasteMenu().some((entry) => entry.id === entryId);
-        expect(choices.choose(playerId, "paste", entryId)).toBe(offered);
-        const routes = new Map([
-          ["newCopy", cases.newCopy.execute],
-          ["endPaste", cases.endPasting.execute],
-        ]);
-        const expected = offered ? routes.get(entryId) : undefined;
-        for (const useCase of Object.values(cases)) {
-          const call =
-            "execute" in useCase ? useCase.execute : useCase.backToAiming;
-          expect(call.mock.calls).toEqual(
-            call === expected ? [[playerId]] : [],
-          );
-        }
-      },
-    ),
-  );
-});
-
 it("labels New copy and dispatches it through the paste menu with or without history", async () => {
   await fc.assert(
     fc.asyncProperty(fc.boolean(), async (history) => {
       ui.forms.length = 0;
-      const { session, menus, player, cases, choices } = setup();
+      const { session, menus, player, cases } = setup();
       session.completeCopy(
         selectionOf(overworld, boxOf(from, from), stone),
         structureClipboard(boxOf(from, from), () => stone),
@@ -1108,7 +750,6 @@ it("labels New copy and dispatches it through the paste menu with or without his
           },
           "undoable",
         );
-      expect(choices.choose(playerId, "paste", "undo")).toBe(false);
       expect(cases.undo.execute).not.toHaveBeenCalled();
       const index = 0;
       ui.answers.push({ selection: index });
