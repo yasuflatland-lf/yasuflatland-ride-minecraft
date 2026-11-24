@@ -1,10 +1,10 @@
 import type { BlockState } from "../../../domain/build/blockState";
+import type { HeightRange } from "../../../domain/build/heightRange";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
 
 export interface BuildBlockWorld {
-  /** The highest block-cell Y in the dimension, inclusive. */
-  topY(dimensionId: DimensionId): number;
+  heightRange(dimensionId: DimensionId): HeightRange;
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused";
   /** False for unreadable cells. */
   isAir(dimensionId: DimensionId, cell: Cell): boolean;

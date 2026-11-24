@@ -1,6 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
 import type { CellBox } from "../box";
+import type { HeightRange } from "../heightRange";
 import type { RoofStyle } from "../roof/roof";
 import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
 
@@ -16,7 +17,7 @@ export interface HeightedSpec extends HeightStepSpec {
 }
 
 export interface HeightedVolume {
-  maxHeight(base: CellBox, worldTopY: number): number;
+  maxHeight(base: CellBox, range: HeightRange): number;
   wireframe(spec: HeightStepSpec, maxPoints: number): Vec3[];
 }
 

@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import {
   buildMenu,
   contentsMenu,
@@ -15,7 +15,6 @@ import {
 import { fixStairGoal } from "../../../src/domain/build/flow/stairFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
-import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -31,11 +30,16 @@ import {
   stone,
   to,
 } from "../../application/build/fakes/menuChoices";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { chooseHeightedFlow } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 
 type Answer = {
   canceled?: boolean;
@@ -100,14 +104,13 @@ const cell = fc.record({
   z: fc.integer({ min: -20, max: 20 }),
 });
 function setup(fallback?: boolean) {
-  const { repo, session, cases, choices } = setupMenuChoices();
+  const { repo, world, session, cases, choices } = setupMenuChoices();
   const player = {
     id: playerId,
     isValid: true,
-    dimension: { heightRange: { min: -64, max: 320 } },
   } as unknown as Player;
-  const menus = new BedrockBuildMenus(repo, choices, fallback);
-  return { repo, session, cases, player, menus };
+  const menus = new BedrockBuildMenus(repo, choices, world, fallback);
+  return { repo, world, session, cases, player, menus };
 }
 function shapeAnswers(flow: BuildFlow, id: string): Answer[] {
   const root = shapeMenu(flow);
@@ -361,15 +364,16 @@ it("keeps the confirmed box after utility dismissal and forgets it on Clear", as
 it("bounds the fallback slider, starts at the initial roof height and applies it before the roof menu", async () => {
   await fc.assert(
     fc.asyncProperty(
-      fc.integer({ min: 0, max: 319 }),
+      fc.integer({ min: 0, max: 127 }),
       fc.constantFrom("gable" as const, "hip" as const),
       async (y, kind) => {
-        const { session, menus, player, cases } = setup(true);
+        const { session, menus, player, cases, world } = setup(true);
+        world.heightRanges.set(overworld, NETHER_RANGE);
         const selection = selected({ ...from, y }, { ...to, y });
         session.setFlow(selection);
         const flow = chooseHeightedFlow(selection, kind);
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
-        const max = volumeOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
+        const max = volumeOf(kind).maxHeight(flow.base, NETHER_RANGE);
         ui.forms.length = 0;
         ui.answers.push(
           ...shapeAnswers(selection, kind),
@@ -638,11 +642,11 @@ function removeAboveAnswer() {
   };
 }
 
-it.each([320, 128, 256])(
+it.each([320, 128, 256, 512])(
   "shows the dimension top for Remove above with exclusive ceiling %i",
   async (ceiling) => {
-    const { menus, player, cases, session } = setup();
-    player.dimension.heightRange.max = ceiling;
+    const { menus, player, cases, session, world } = setup();
+    world.heightRanges.set(overworld, { minY: 0, maxY: ceiling - 1 });
     const area: BuildFlow = selected(
       { x: 0, y: 64, z: 0 },
       { x: 4, y: 60, z: 6 },
@@ -679,8 +683,8 @@ it.each([320, 128, 256])(
 );
 
 it.each([
-  [320, BUILD_SPEC.worldTopY],
-  [512, BUILD_SPEC.worldTopY],
+  [320, OVERWORLD_RANGE.maxY],
+  [512, 511],
   [128, 127],
   [128, 128],
   [256, 255],
@@ -688,8 +692,8 @@ it.each([
 ])(
   "confirms without a form for ceiling %i and floor %i",
   async (ceiling, floor) => {
-    const { menus, player, cases, session } = setup();
-    player.dimension.heightRange.max = ceiling;
+    const { menus, player, cases, session, world } = setup();
+    world.heightRanges.set(overworld, { minY: 0, maxY: ceiling - 1 });
     session.setFlow(selected({ ...from, y: floor }, { ...to, y: floor }));
     ui.answers.push(removeAboveAnswer());
     await menus.showShapeMenu(player);
@@ -767,16 +771,15 @@ it("labels New copy and dispatches it through the paste menu with or without his
 
 it.each([
   [-64, 320, 64],
-  [-64, 320, BUILD_SPEC.worldTopY],
+  [-64, 320, OVERWORLD_RANGE.maxY],
   [0, 128, 64],
   [0, 256, 64],
   [-32, 256, 64],
 ])(
   "shows Fill below's dimension bottom %i, ceiling %i and inclusive top %i",
   async (bottom, ceiling, y) => {
-    const { menus, player, cases, session } = setup();
-    player.dimension.heightRange.min = bottom;
-    player.dimension.heightRange.max = ceiling;
+    const { menus, player, cases, session, world } = setup();
+    world.heightRanges.set(overworld, { minY: bottom, maxY: ceiling - 1 });
     const area: BuildFlow = selected({ x: 0, y, z: 0 }, { x: 4, y: 60, z: 6 });
     session.setFlow(area);
     ui.answers.push(

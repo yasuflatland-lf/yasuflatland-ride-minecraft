@@ -28,7 +28,7 @@ export function unstuck(
   const destination = freeCellAbove(
     feet,
     (cell) => world.stateAt(dimensionId, cell)?.typeId === "minecraft:air",
-    world.topY(dimensionId),
+    world.heightRange(dimensionId).maxY,
   );
   if (destination) players.moveTo(playerId, destination);
 }

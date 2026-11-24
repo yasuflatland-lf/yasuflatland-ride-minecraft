@@ -11,7 +11,6 @@ import { StepBackSelection } from "../../../src/application/build/stepBackSelect
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";
@@ -35,7 +34,9 @@ import {
   nether,
 } from "../../application/build/fakes";
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import { structureClipboard } from "../../support/buildClipboard";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -583,6 +584,7 @@ it.each([false, true])(
       nether,
       { x: 0, y: 60, z: 0 },
       AIR,
+      NETHER_RANGE,
     );
     e.session.setFlow(tapAir(point, { x: 4, y: 60, z: 4 }));
     if (blockFirst) e.interact();

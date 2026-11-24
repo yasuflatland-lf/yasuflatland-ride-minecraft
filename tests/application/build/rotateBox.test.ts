@@ -15,13 +15,13 @@ import {
   sameBox,
   volume,
 } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { selectionBoxOf } from "../../../src/test-pack/scenarios/support/buildSelection";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -73,7 +73,7 @@ function setup(box: CellBox = wideBox) {
     log,
     session,
     rotate,
-    rotateSelection: new RotateSelection(repo, rotate, feedback),
+    rotateSelection: new RotateSelection(repo, rotate, feedback, world),
     undo,
   };
 }

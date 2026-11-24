@@ -8,6 +8,7 @@ import type { AimHeight } from "./aimHeight";
 import type { ConfirmLiveHeight } from "./confirmLiveHeight";
 import type { FixStairGoal } from "./fixStairGoal";
 import type { AimResult } from "./ports/aim";
+import type { BuildBlockWorld } from "./ports/blocks";
 import type { PressPasteAim } from "./pressPasteAim";
 import type { SetPoint } from "./setPoint";
 import type { TapAir } from "./tapAir";
@@ -32,6 +33,7 @@ export class PressWand {
       pressPasteAim: PressPasteAim;
       onPasted(playerId: PlayerId, tick: number): void;
     },
+    private readonly blocks: Pick<BuildBlockWorld, "heightRange">,
   ) {}
 
   execute({
@@ -60,7 +62,12 @@ export class PressWand {
         if (flow?.kind !== "point1") return "none";
         const end =
           cell ??
-          (itemUse?.aim && virtualAimedEndPoint(flow.cell, itemUse.aim));
+          (itemUse?.aim &&
+            virtualAimedEndPoint(
+              flow.cell,
+              itemUse.aim,
+              this.blocks.heightRange(flow.dimensionId),
+            ));
         this.actions.tapAir.execute({ playerId, end });
         return "none";
       }

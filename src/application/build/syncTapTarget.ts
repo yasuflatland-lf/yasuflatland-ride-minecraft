@@ -8,7 +8,7 @@ import type { TapTargets } from "./ports/tapTargets";
 
 export class SyncTapTarget {
   constructor(
-    private readonly blocks: Pick<BuildBlockWorld, "isAir">,
+    private readonly blocks: Pick<BuildBlockWorld, "isAir" | "heightRange">,
     private readonly targets: TapTargets,
   ) {}
 
@@ -27,7 +27,13 @@ export class SyncTapTarget {
   }): void {
     if (inBuildMode && flow && aim?.input === "touch" && dimensionId) {
       const end =
-        flow.kind === "point1" ? aimedEndPoint(flow.cell, aim) : undefined;
+        flow.kind === "point1"
+          ? aimedEndPoint(
+              flow.cell,
+              aim,
+              this.blocks.heightRange(flow.dimensionId),
+            )
+          : undefined;
       const cell = tapTargetCell(flow, end);
       if (cell && this.blocks.isAir(dimensionId, cell)) {
         this.targets.show(playerId, { dimensionId, cell });

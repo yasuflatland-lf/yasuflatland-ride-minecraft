@@ -1,11 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
-import {
-  confirmLiveHeight,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { confirmLiveHeight } from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import {
   type PressIntent,
@@ -22,7 +18,11 @@ import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
-import { chooseHeightedFlow } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 
 const idle: BuildFlow = { kind: "idle" };
 const point1 = tapBlock(

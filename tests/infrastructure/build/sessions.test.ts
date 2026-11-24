@@ -5,7 +5,7 @@ import { EndBuildSession } from "../../../src/application/build/endBuildSession"
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import { selectionOf } from "../../../src/domain/build/selection";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
@@ -21,6 +21,8 @@ import { FakeStructureStore } from "./../../application/build/fakes/structureSto
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 
 const engine = vi.hoisted(() => {
