@@ -221,7 +221,7 @@ it("routes an aisle-floor ray to storage and leaves missed empty-hand presses al
       cell: miss.cell,
       point: miss.point,
       eye: miss.eye,
-      exact: false,
+      fallback: "nearestFree",
     });
     expect(f.press.prepare({ ...miss, held })?.()).toBe(
       expected ? "placed" : "unchanged",
@@ -293,7 +293,7 @@ it("keeps gear outside the drawer allowlist on the ordinary floor placement path
           cell: floor,
           point: tap.point,
           eye,
-          exact: false,
+          fallback: "nearestFree",
         });
         expect(f.press.prepare(tap)?.()).toBe(
           expected ? "placed" : "unchanged",

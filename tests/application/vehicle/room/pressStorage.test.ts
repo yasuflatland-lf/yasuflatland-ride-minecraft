@@ -19,13 +19,14 @@ function setup() {
   const front = decorSlot(decorSlotId("cabinet_sink_front"));
   if (!front) throw new Error("no cabinet_sink_front slot");
   const press = new PressStorage(world, repo, clock);
-  const at = (tick: number) => {
+  const at = (tick: number, openOnly?: boolean) => {
     clock.tick = tick;
     return press.execute({
       playerId: asPlayerId("p"),
       vehicleId: car.id,
       cell: decorSlotCell(pose, front),
       point: slotPoint(pose, front),
+      openOnly,
     });
   };
   return { car, pose, repo, world, clock, press, front, at };
@@ -47,6 +48,8 @@ describe("PressStorage (ADR 0114)", () => {
         decorItemId("mug_pair"),
       );
     expect(at(100)).toBe(true);
+    expect(world.calls).toEqual([]);
+    expect(at(100 + CAMPER_SPEC.doorSwingTicks, true)).toBe(false);
     expect(world.calls).toEqual([]);
     expect(at(100 + CAMPER_SPEC.doorSwingTicks)).toBe(true);
     expect(world.calls).toEqual([

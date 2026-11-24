@@ -1,4 +1,3 @@
-import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorItemId,
   type DecorPlacement,
@@ -19,6 +18,7 @@ import {
 import { nearest, slotForPress, slotsAt, slotsFor } from "./decorPlacing";
 import { drawerBlockHit, drawerPressCell } from "./drawerHit";
 import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";
+import type { DecorFallback, DecorPress, RoomPress } from "./room";
 import { storagePressTarget } from "./storagePlates";
 
 export interface ParkedRoom {
@@ -113,11 +113,10 @@ export class CamperRoomDecor {
   slotFor(
     { pose, open }: ParkedRoom,
     item: DecorItemId,
-    point: Vec3,
-    cell: Vec3,
-    exact: boolean,
-    eye?: Vec3,
+    press: DecorPress,
+    fallback: DecorFallback,
   ): DecorSlotId | undefined {
+    const { cell, point, eye } = press;
     const hit = eye
       ? drawerBlockHit(pose, cell, eye, point, this.placed(), open)
       : undefined;
@@ -127,10 +126,8 @@ export class CamperRoomDecor {
         pose,
         item,
         this.placed(),
-        counter ?? cell,
-        hit.point,
-        true,
-        undefined,
+        { cell: counter ?? cell, point: hit.point },
+        "none",
         open,
         hit.door,
       );
@@ -141,15 +138,12 @@ export class CamperRoomDecor {
       (cell.x !== counter.x || cell.y !== counter.y || cell.z !== counter.z)
     )
       return undefined;
-    point = hit?.point ?? point;
     const slot = slotForPress(
       pose,
       item,
       this.placed(),
-      cell,
-      point,
-      exact,
-      eye,
+      hit ? { ...press, point: hit.point } : press,
+      fallback,
       open,
     );
     return slot && this.canSave(slot, item) ? slot.id : undefined;
@@ -168,9 +162,7 @@ export class CamperRoomDecor {
    */
   remove(
     { pose, open }: ParkedRoom,
-    cell: Vec3,
-    point?: Vec3,
-    eye?: Vec3,
+    { cell, point, eye }: RoomPress,
   ): DecorItemId | undefined {
     const hit =
       point && eye
@@ -197,9 +189,8 @@ export class CamperRoomDecor {
 
   takeBehindDoor(
     pose: HoldPose,
-    cell: Vec3,
+    { cell, point }: RoomPress,
     door: StorageDoorId,
-    point: Vec3 | undefined,
   ): DecorItemId | undefined {
     const ends = slotsAt(pose, cell).filter((s) => s.door === door);
     const end =

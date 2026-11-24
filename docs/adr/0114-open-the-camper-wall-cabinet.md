@@ -53,8 +53,8 @@ The first sliding visuals use the existing `drawer_top` and `drawer_bottom` bone
 ### Slots and presses
 
 - The wall cabinet is a furniture row, listed last, with four slots, two per compartment, each naming its door: `cabinet_sink_rear` and `cabinet_sink_front` behind the sink door, `cabinet_stove_rear` and `cabinet_stove_front` behind the stove door, 3 px high, at spots 5 and 6, as the pair ends `{ kind: "cabinet", end: 0 or 1 }`. The ids differ from 0093's `wall_cabinet_front` and `wall_cabinet_rear`, which stay unknown so their saved items keep moving as 0103 says
-- A slot behind a door takes an item only while that door is open, in the nearest-free-slot rule, the pressed-cell rule, and placing (`slotsFor`, `nearestFreeSlot`, and `slotForPress` take the open doors). Held gear pressed on a shut compartment goes to the free spot nearest the press elsewhere, or shows "No free spot for this item"; an exact press never reaches the cabinet
-- An empty-hand press on either block goes to `PressCabinet`, which asks the vehicle (`pressCabinet`), with the pressed cell and point:
+- A slot behind a door takes an item only while that door is open, in the nearest-free-slot rule, the pressed-cell rule, and placing (`slotsFor`, `nearestFreeSlot`, and `slotForPress` take the open doors). Held gear pressed on a shut wall cabinet uses the `"nearestFree"` fallback to find another accepting slot. If none is free, the player sees "No free spot for this item"
+- For an empty-hand press on either cabinet block, `PressStorage` passes a `StoragePressRequest` to the room's `pressStorage`. The request extends `RoomPress` with the current tick and optional storage flags. The pressed cell and hit point determine the action.
   - On a door's plate in the aisle, the door shuts
   - On a shut compartment, its door opens
   - On an open compartment, the item at the end nearest the pressed x and z is taken back into the player's inventory, as on a pair block (0108). When that end is empty, the door shuts, so a player can shut a compartment from either its door or its empty half
