@@ -5,7 +5,6 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
-import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
@@ -16,6 +15,7 @@ import {
 } from "../../../src/domain/build/flow/heightFlow";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -42,7 +42,7 @@ const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-const face = fc.constantFrom<Face>(
+const face = fc.constantFrom<BlockFace>(
   "up",
   "down",
   "north",
@@ -54,7 +54,7 @@ const tick = fc.integer({ min: 0, max: 10000 });
 
 function setup(
   block: { x: number; y: number; z: number },
-  face: Face,
+  face: BlockFace,
   tick: number,
 ) {
   const world = new FakeWorld();

@@ -8,7 +8,6 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
-import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
@@ -29,6 +28,7 @@ import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { placementOf } from "../../../src/domain/build/volume/geometry";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
@@ -55,7 +55,7 @@ const stairs = blockStateOf("minecraft:oak_stairs", {
 });
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-const face = fc.constantFrom<Face>(
+const face = fc.constantFrom<BlockFace>(
   "up",
   "down",
   "north",

@@ -1,12 +1,15 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { anchorCell, type Face } from "../../../src/domain/build/aim/face";
 import { boxFromSize, contains, sizeOf } from "../../../src/domain/build/box";
 import { placedPasteBox } from "../../../src/domain/build/clipboard/placement";
 import {
   FACINGS,
   facingVector,
 } from "../../../src/domain/build/rotation/facing";
+import {
+  anchorCell,
+  type BlockFace,
+} from "../../../src/domain/shared/blockFace";
 
 const anchor = fc.record({
   x: fc.integer({ min: -100000, max: 100000 }),
@@ -16,7 +19,7 @@ const anchor = fc.record({
 const side = fc.integer({ min: 1, max: 64 });
 const size = fc.record({ x: side, y: side, z: side });
 const facing = fc.constantFrom(...FACINGS);
-const face = fc.constantFrom<Face>("up", "down", ...FACINGS);
+const face = fc.constantFrom<BlockFace>("up", "down", ...FACINGS);
 
 it("contains the anchor and preserves the already-rotated dimensions", () => {
   fc.assert(
@@ -36,7 +39,7 @@ it("grows forward and right from the near-left anchor on vertical faces", () => 
       anchor,
       size,
       facing,
-      fc.constantFrom<Face>("up", "down"),
+      fc.constantFrom<BlockFace>("up", "down"),
       (a, s, f, hit) => {
         const box = placedPasteBox(a, s, f, hit);
         const forward = facingVector(f);

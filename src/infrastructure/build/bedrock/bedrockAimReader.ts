@@ -4,8 +4,8 @@ import type { AimSample, InputKind } from "../../../domain/build/aim/sample";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import { asDimensionId, type PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { blockFaceOf } from "../../shared/faces";
 import { playerById } from "../../shared/players";
-import { FACES } from "./faces";
 
 export function readInputKind(readMode: () => unknown): InputKind {
   try {
@@ -54,7 +54,7 @@ export class BedrockAimReader implements AimReader {
       return {
         ray: { origin, direction },
         block: hit
-          ? { cell: hit.block.location, face: FACES[hit.face] }
+          ? { cell: hit.block.location, face: blockFaceOf(hit.face) }
           : undefined,
         input:
           override?.input ??

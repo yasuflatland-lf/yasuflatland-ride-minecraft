@@ -1,6 +1,7 @@
-import { BlockTypes, Direction, system, world } from "@minecraft/server";
+import { BlockTypes, system, world } from "@minecraft/server";
+import { anchorCell } from "../../../../domain/shared/blockFace";
 import { asDimensionId } from "../../../../domain/shared/ids";
-import { add3 } from "../../../../domain/shared/vec";
+import { blockFaceOf } from "../../../shared/faces";
 import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
 import { DINING_TABLE_TOP } from "../../identifiers";
 import type { BedrockFurnitureWorld } from "../bedrockFurnitureWorld";
@@ -23,17 +24,10 @@ export function registerFurnitureTopInteraction(
       }
     }
     if (!ev.itemStack || !BlockTypes.get(ev.itemStack.typeId)) return;
-    const offsets = {
-      [Direction.Up]: { x: 0, y: 1, z: 0 },
-      [Direction.Down]: { x: 0, y: -1, z: 0 },
-      [Direction.North]: { x: 0, y: 0, z: -1 },
-      [Direction.South]: { x: 0, y: 0, z: 1 },
-      [Direction.East]: { x: 1, y: 0, z: 0 },
-      [Direction.West]: { x: -1, y: 0, z: 0 },
-    };
-    const offset = offsets[ev.blockFace];
-    const at = ev.block.location;
-    const destination = add3(at, offset);
+    const destination = anchorCell(
+      ev.block.location,
+      blockFaceOf(ev.blockFace),
+    );
     if (!adapter.hostedAbove(asDimensionId(ev.block.dimension.id), destination))
       return;
     ev.cancel = true;
