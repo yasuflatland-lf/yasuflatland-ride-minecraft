@@ -9,7 +9,7 @@
 
 Issue #1443 (4/10 of the beach chair work) tests a lounge pose before implementing the chair. Stable Script API has no direct player posture setter. The owner chose a Resource Pack override of the vanilla player client definition, adding an animation played through stable `Entity.playAnimation`.
 
-The unchanged fixture at `tests/packs/fixtures/vanilla-player.ce.json` came from [Mojang bedrock-samples player.entity.json](https://raw.githubusercontent.com/Mojang/bedrock-samples/v1.26.60.5/resource_pack/entity/player.entity.json), tag `v1.26.60.5`, the release line of dev BDS `1.26.62.1`. The file was last changed in commit `5bd2d76b` ("v1.26.0.2"). The downloaded SHA-256 was `7e520d872fc72be266223b3db2883c2818742a9a450330753a6de4d2ad813608`; repository formatting may change whitespace.
+The unchanged fixture at `tests/packs/fixtures/vanilla-player.ce.json` comes from [Mojang bedrock-samples player.entity.json](https://raw.githubusercontent.com/Mojang/bedrock-samples/v1.26.70.26-preview/resource_pack/entity/player.entity.json), tag `v1.26.70.26-preview`. The first fixture came from release tag `v1.26.60.5`, whose `scripts` never set `variable.melee_spear_equipped`. Clients that the dev BDS `1.26.66.1` accepted on 2026-11-24 read that variable in the vanilla `controller.animation.player.root`, so the older copy logged `[Molang][error] ... unknown variable 'variable.melee_spear_equipped'` and players could not change their persona appearance. The preview definition sets the variable in `scripts.pre_animation`; it differs from `v1.26.60.5` only in `scripts.initialize` and `scripts.pre_animation`. The downloaded SHA-256 was `9e870d4fe668f83e58d91d1866311c710dfb55c89b6339170ab5c941feeafeea`; repository formatting may change whitespace.
 
 ## Decision
 
