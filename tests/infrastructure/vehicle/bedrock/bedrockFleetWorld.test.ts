@@ -14,7 +14,10 @@ import {
   OWNER_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import type { VehicleReleaser } from "../../../../src/infrastructure/vehicle/bedrock/vehicleReleaser";
-import { isStandableRoomBlock } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import {
+  campingGearItem,
+  isStandableRoomBlock,
+} from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import {
   fakeVehicleEntities,
@@ -28,7 +31,7 @@ vi.mock("@minecraft/server", async () =>
   (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
 );
 
-function fixture() {
+function fixture(gearItemType = campingGearItem) {
   const { car, dimension, entities } = fakeVehicleEntities();
   const inputs = new VehicleTestStore<RawInput>();
   const index = new EntityIndex();
@@ -50,7 +53,12 @@ function fixture() {
     dimension,
     car,
     world,
-    fleet: new BedrockFleetWorld(index, world.releaser, inventory),
+    fleet: new BedrockFleetWorld(
+      index,
+      world.releaser,
+      inventory,
+      gearItemType,
+    ),
   };
 }
 
@@ -169,16 +177,17 @@ describe("BedrockFleetWorld drop and removal (ADR 0038, 0063)", () => {
         },
       } as unknown as VehicleReleaser,
       { giveItems: vi.fn() },
+      campingGearItem,
     );
     expect(() => fleet.removeVehicle(asVehicleId(car.id))).toThrow("x");
     expect(car.remove).not.toHaveBeenCalled();
   });
 
-  it("gives the decor as camping gear items to the player (ADR 0093)", () => {
-    const { fleet, inventory } = fixture();
+  it("returns decor to the player through the supplied item mapper (ADR 0093)", () => {
+    const { fleet, inventory } = fixture((gear) => `test:${gear}`);
     fleet.giveDecorItems(asPlayerId("p"), [decorItemId("percolator")]);
     expect(inventory.giveItems).toHaveBeenCalledExactlyOnceWith("p", [
-      "yasu_ride:percolator",
+      "test:percolator",
     ]);
   });
 });

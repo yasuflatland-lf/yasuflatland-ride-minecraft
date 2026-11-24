@@ -1,4 +1,3 @@
-import type { DecorPlacingWorld } from "../../../src/application/vehicle/ports/decor";
 import type {
   DriveWorld,
   HintPlayerView,
@@ -18,6 +17,7 @@ import type {
   VehicleSpawnResult,
 } from "../../../src/application/vehicle/ports/placement";
 import type { Clock } from "../../../src/application/vehicle/ports/shared";
+import type { DecorPlacingWorld } from "../../../src/application/vehicle/room/ports";
 import { cellKey } from "../../../src/domain/shared/cells";
 import {
   asPlayerId,

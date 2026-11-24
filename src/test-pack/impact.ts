@@ -189,7 +189,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/infrastructure/camp/identifiers.ts",
   "src/infrastructure/shared/identifiers.ts",
   "src/infrastructure/vehicle/bedrock/identifiers.ts",
-  "src/infrastructure/vehicle/testHooks/identifiers.ts",
+  "src/infrastructure/vehicle/kinds/camper/identifiers.ts",
 ];
 
 export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
@@ -324,8 +324,8 @@ const IMPACT_RULES: readonly ImpactRule[] = [
   },
   { rule: "harness-import", test: exactPaths(HARNESS_IMPORTS), impact: "all" },
   {
-    rule: "camper-identifiers",
-    test: /^src\/infrastructure\/vehicle\/kinds\/camper\/identifiers\.ts$/,
+    rule: "vehicle-test-identifiers",
+    test: /^src\/infrastructure\/vehicle\/testHooks\/identifiers\.ts$/,
     impact: "all",
   },
   {

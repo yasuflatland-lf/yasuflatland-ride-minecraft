@@ -26,7 +26,6 @@ import {
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
-  DECOR_PROPERTY,
   ENTITY_TYPE,
   entityPropertyId,
   HEADLIGHTS_PROPERTY,
@@ -39,6 +38,7 @@ import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPa
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
 import {
   CAMPER_FLOOR_BLOCK,
+  DECOR_PROPERTY,
   isStandableRoomBlock,
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { readCamperRestored } from "../../../../src/infrastructure/vehicle/kinds/camper/restored";
