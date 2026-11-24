@@ -1,6 +1,11 @@
 // Select targets in a rectangle in front of the vehicle (behind it when reversing) and decide the damage and push (ADR 0006).
 import { dot, rightOf, type Vec2, type Vec3 } from "../shared/vec";
-import type { VehicleBody } from "./profile";
+import { RamCooldowns } from "./cooldowns";
+import {
+  ramHalfWidthLimit,
+  type VehicleBody,
+  type VehicleProfile,
+} from "./profile";
 import { SPEC } from "./spec";
 
 /** What a ram target is riding, as far as ram protection cares (ADR 0006). */
@@ -71,4 +76,40 @@ export function selectHits(
     hits.push({ id: t.id, damage, push, pushUp: SPEC.ramPushUp });
   }
   return hits;
+}
+
+export class RamSensor {
+  private readonly cooldowns = new RamCooldowns();
+
+  constructor(private readonly profile: VehicleProfile) {}
+
+  hits(
+    tick: number,
+    speed: number,
+    targets: () => readonly RamTarget[],
+    f: Vec2,
+    halfWidth: number | undefined,
+  ): RamHit[] {
+    this.cooldowns.prune(tick);
+    // selectHits checks the speed too; checking here skips the targets() query.
+    const { body, ramMinReverseSpeed } = this.profile;
+    if (!ramsAt(speed, ramMinReverseSpeed)) return [];
+    const hits = selectHits(
+      f,
+      speed,
+      targets(),
+      this.cooldowns.recent,
+      tick,
+      {
+        front: body.front,
+        halfWidth: Math.min(
+          halfWidth ?? body.halfWidth,
+          ramHalfWidthLimit(this.profile),
+        ),
+      },
+      ramMinReverseSpeed,
+    );
+    this.cooldowns.record(hits, tick);
+    return hits;
+  }
 }
