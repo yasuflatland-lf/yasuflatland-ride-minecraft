@@ -1,7 +1,11 @@
 import { type Entity, world } from "@minecraft/server";
-import type { TopRefusal } from "../../../application/shared/placeOnTop";
+import type {
+  TopHostWorld,
+  TopRefusal,
+} from "../../../application/shared/placeOnTop";
 import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import { decodeHost } from "../../../domain/shared/hosted";
+import { asDimensionId } from "../../../domain/shared/ids";
 import type {
   LocalPoint,
   TopItem,
@@ -96,4 +100,24 @@ export class TopHostRegistry {
   hostedOn(hostType: string, id: string): Entity[] {
     return this.entries(hostType, id).map((entry) => entry.entity);
   }
+}
+
+export function topHostView(
+  registry: TopHostRegistry,
+): Pick<TopHostWorld, "topHost" | "itemsOnTop"> {
+  return {
+    topHost(hostType, id) {
+      const host = registry.host(hostType, id);
+      return host
+        ? {
+            blockedAt: (at, footprint) =>
+              host.type.blockedAt?.(host.entity, at, footprint) ?? false,
+            dimension: asDimensionId(host.entity.dimension.id),
+            at: host.entity.location,
+            yaw: host.entity.getRotation().y,
+          }
+        : undefined;
+    },
+    itemsOnTop: (hostType, id) => registry.itemsOnTop(hostType, id),
+  };
 }

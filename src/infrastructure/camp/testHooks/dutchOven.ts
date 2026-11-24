@@ -1,8 +1,8 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../application/camp/dutchOven";
+import { campTableLegacySpot } from "../../../application/camp/hostedKind";
 import { asDutchOvenId } from "../../../domain/camp/dutchOven";
 import { asFirePitId } from "../../../domain/camp/firePit";
-import { TABLE_SPOTS } from "../../../domain/camp/spec";
 import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { LocalPoint } from "../../../domain/shared/tableTop";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -17,6 +17,7 @@ import {
   TEST_DUTCH_OVEN_ON_TOP_EVENT,
   TEST_DUTCH_OVEN_SIMMER_EVENT,
 } from "../identifiers";
+import { placeTestItemOnTop } from "./hostedOnTop";
 
 /** Reads `<table> <0|1>` as an old spot, or `<table> <x> <z>` as local pixels. */
 function testTableRequest(
@@ -24,7 +25,7 @@ function testTableRequest(
 ): { table: TableId; aim: LocalPoint } | undefined {
   const [table, spot, ...rest] = message.trim().split(/\s+/);
   if (table && rest.length === 0 && /^[01]$/.test(spot ?? "")) {
-    const aim = TABLE_SPOTS[Number(spot)];
+    const aim = campTableLegacySpot(Number(spot));
     return aim ? { table: asTableId(table), aim } : undefined;
   }
   return testTableTopRequest(message);
@@ -37,17 +38,7 @@ export function registerTestDutchOven(
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (ev.sourceType !== ScriptEventSource.Server) return;
     if (ev.id === TEST_DUTCH_OVEN_ON_TOP_EVENT) {
-      const [hostType, ...parts] = ev.message.trim().split(/\s+/);
-      const request = testTableTopRequest(parts.join(" "));
-      if (!hostType || !request) return;
-      const host = registry.host(hostType, request.table);
-      if (host)
-        actions.placeOnTop(host.type.surface, {
-          hostType,
-          host: request.table,
-          aim: request.aim,
-          slot: 0,
-        });
+      placeTestItemOnTop(ev.message, registry, actions);
       return;
     }
     if (ev.id === TEST_DUTCH_OVEN_ON_TABLE_EVENT) {

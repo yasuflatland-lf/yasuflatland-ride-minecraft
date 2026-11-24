@@ -1,4 +1,4 @@
-import { type Entity, type Player, system, world } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
 import type { DutchOvenActions } from "../../../../application/camp/dutchOven";
 import type { HostedItemsGuard } from "../../../../application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../../domain/camp/dutchOven";
@@ -7,9 +7,10 @@ import { DUTCH_OVEN_SPEC } from "../../../../domain/camp/spec";
 import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { allDimensions } from "../../../shared/dimensions";
-import { heldTypeId } from "../../../shared/heldItem";
-import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
-import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
+import {
+  type PlaceHostedOnTop,
+  registerHostedOnTop,
+} from "../../../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_ITEM,
@@ -25,34 +26,12 @@ export function registerDutchOven(
   registry: TopHostRegistry,
 ): PlaceHostedOnTop {
   const placements = new TickScopedSet<PlayerId>();
-  const place = (
-    placer: Player,
-    host: Entity,
-    held: string | undefined,
-  ): boolean => {
-    if (held !== DUTCH_OVEN_ITEM) return false;
-    const type = registry.hostTypeOf(host);
-    if (!type) return false;
-    const player = asPlayerId(placer.id);
-    if (!placements.add(system.currentTick, player)) return true;
-    const slot = placer.selectedSlotIndex;
-    const aim = topAim(placer, host, type.surface);
-    const id = host.id;
-    system.run(() =>
-      showTopRefusal(
-        placer,
-        type,
-        actions.placeOnTop(type.surface, {
-          player,
-          hostType: type.hostType,
-          host: id,
-          slot,
-          aim,
-        }),
-      ),
-    );
-    return true;
-  };
+  const placeOnTop = registerHostedOnTop({
+    itemId: DUTCH_OVEN_ITEM,
+    placeOnTop: (surface, cmd) => actions.placeOnTop(surface, cmd),
+    registry,
+    placements,
+  });
   registerPlaceableEntity({
     itemId: DUTCH_OVEN_ITEM,
     entityTypeIds: new Set([DUTCH_OVEN_TYPE]),
@@ -76,7 +55,7 @@ export function registerDutchOven(
       system.run(() => actions.placeOnFirePit({ player, pit, slot }));
       return;
     }
-    if (place(ev.player, ev.target, ev.itemStack?.typeId)) {
+    if (placeOnTop(ev.player, ev.target, ev)) {
       ev.cancel = true;
       return;
     }
@@ -107,5 +86,5 @@ export function registerDutchOven(
       }
     }
   }, 4);
-  return (player, host) => place(player, host, heldTypeId(player));
+  return placeOnTop;
 }
