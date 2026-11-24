@@ -21,8 +21,13 @@ import {
   staircaseToward,
 } from "../../../../src/domain/build/stairs/staircase";
 import { cellKey } from "../../../../src/domain/shared/cells";
+import {
+  NETHER_RANGE,
+  OVERWORLD_RANGE,
+} from "../../../helpers/buildHeightRange";
 
-const { worldBottomY, worldTopY, stairHeadroom } = BUILD_SPEC;
+const { minY: worldBottomY, maxY: worldTopY } = OVERWORLD_RANGE;
+const { stairHeadroom } = BUILD_SPEC;
 const axis = fc.constantFrom("x" as const, "z" as const);
 const positive = fc.integer({ min: 1, max: 10 });
 const coord = fc.integer({ min: -50, max: 50 });
@@ -130,7 +135,9 @@ it("projects a single-cell row onto the dominant horizontal offset, preferring x
             z: alongX ? cell.z : hit.z,
           };
           expect(goalRowTaps(s)).toEqual({ from: goal, to: goal });
-          expect(stairCellCount(s, new Set(["step"]))).toBe(run + 1);
+          expect(stairCellCount(s, new Set(["step"]), OVERWORLD_RANGE)).toBe(
+            run + 1,
+          );
         }
       },
     ),
@@ -161,59 +168,62 @@ it("reaches every level monotonically with the deeper treads first", () => {
   );
 });
 
-it("enumerates exactly the requested world-clamped role ranges and counts each cell once", () => {
-  fc.assert(
-    fc.property(valid, fc.subarray([...roles]), (s, requested) => {
-      const selected = new Set<StairRole>(requested);
-      const actual = [...stairCells(s, selected)];
-      const byCell = new Map(
-        actual.map(({ cell, role }) => [cellKey(cell), role]),
-      );
-      expect(byCell.size).toBe(actual.length);
-      expect(stairCellCount(s, selected)).toBe(actual.length);
-      const direction = facingVector(s.toward);
-      const low = Math.min(s.row.y, s.row.y + s.rise);
-      const high = Math.max(s.row.y, s.row.y + s.rise);
-      let expected = 0;
-      for (let k = 0; k <= s.run; k++) {
-        const h = levelAt(s, k);
-        for (
-          let y = Math.max(worldBottomY, low);
-          y <= Math.min(worldTopY, high + stairHeadroom);
-          y++
-        ) {
-          const candidates = {
-            step: y === h,
-            below: low < y && y < h,
-            headroom: h < y && y <= h + stairHeadroom,
-            above: h < y,
-          };
-          const role = roles.find(
-            (role) => selected.has(role) && candidates[role],
-          );
-          if (!role) continue;
-          for (const rowCell of rowCells(s.row)) {
-            expect(
-              byCell.get(
-                cellKey({
-                  x: rowCell.x + direction.x * k,
-                  z: rowCell.z + direction.z * k,
-                  y,
-                }),
-              ),
-            ).toBe(role);
-            expected++;
+it.each([OVERWORLD_RANGE, NETHER_RANGE])(
+  "enumerates exactly the requested world-clamped role ranges and counts each cell once in $minY..$maxY",
+  (range) => {
+    fc.assert(
+      fc.property(valid, fc.subarray([...roles]), (s, requested) => {
+        const selected = new Set<StairRole>(requested);
+        const actual = [...stairCells(s, selected, range)];
+        const byCell = new Map(
+          actual.map(({ cell, role }) => [cellKey(cell), role]),
+        );
+        expect(byCell.size).toBe(actual.length);
+        expect(stairCellCount(s, selected, range)).toBe(actual.length);
+        const direction = facingVector(s.toward);
+        const low = Math.min(s.row.y, s.row.y + s.rise);
+        const high = Math.max(s.row.y, s.row.y + s.rise);
+        let expected = 0;
+        for (let k = 0; k <= s.run; k++) {
+          const h = levelAt(s, k);
+          for (
+            let y = Math.max(range.minY, low);
+            y <= Math.min(range.maxY, high + stairHeadroom);
+            y++
+          ) {
+            const candidates = {
+              step: y === h,
+              below: low < y && y < h,
+              headroom: h < y && y <= h + stairHeadroom,
+              above: h < y,
+            };
+            const role = roles.find(
+              (role) => selected.has(role) && candidates[role],
+            );
+            if (!role) continue;
+            for (const rowCell of rowCells(s.row)) {
+              expect(
+                byCell.get(
+                  cellKey({
+                    x: rowCell.x + direction.x * k,
+                    z: rowCell.z + direction.z * k,
+                    y,
+                  }),
+                ),
+              ).toBe(role);
+              expected++;
+            }
           }
         }
-      }
-      expect(actual.length).toBe(expected);
-      for (const { cell } of actual) {
-        expect(cell.y).toBeGreaterThanOrEqual(worldBottomY);
-        expect(cell.y).toBeLessThanOrEqual(worldTopY);
-      }
-    }),
-  );
-});
+        expect(actual.length).toBe(expected);
+        for (const { cell } of actual) {
+          expect(cell.y).toBeGreaterThanOrEqual(range.minY);
+          expect(cell.y).toBeLessThanOrEqual(range.maxY);
+        }
+      }),
+    );
+  },
+);
 
 it("plans only tread noses as descending stairs and uses flat tops or uniform blocks elsewhere", () => {
   const stone = blockStateOf("minecraft:stone");
@@ -231,12 +241,16 @@ it("plans only tread noses as descending stairs and uses flat tops or uniform bl
     fc.property(valid, fc.boolean(), (s, useStairs) => {
       const selected = new Set<StairRole>(roles);
       const changes = new Map(
-        [...planStairs(s, selected, useStairs ? oak : stone)].map(
-          ({ cell, after }) => [cellKey(cell), after],
-        ),
+        [
+          ...planStairs(s, selected, useStairs ? oak : stone, OVERWORLD_RANGE),
+        ].map(({ cell, after }) => [cellKey(cell), after]),
       );
       const levels = Array.from({ length: s.run + 1 }, (_, k) => levelAt(s, k));
-      for (const { cell, role, nose } of stairCells(s, selected)) {
+      for (const { cell, role, nose } of stairCells(
+        s,
+        selected,
+        OVERWORLD_RANGE,
+      )) {
         const across = s.row.along === "x" ? "z" : "x";
         const k = Math.abs(cell[across] - s.row.min[across]);
         const expectedNose =
@@ -286,11 +300,16 @@ it("outlines the tread tops and keeps the goal end under a tight preview budget"
 it("terraces exactly the above cells with air", () => {
   fc.assert(
     fc.property(valid, (s) => {
-      const expected = [...stairCells(s, new Set(["above"]))].map(
-        ({ cell }) => ({ cell, after: AIR }),
-      );
+      const expected = [
+        ...stairCells(s, new Set(["above"]), OVERWORLD_RANGE),
+      ].map(({ cell }) => ({ cell, after: AIR }));
       expect([
-        ...planStairs(s, TERRACE_ROLES, blockStateOf("minecraft:sand")),
+        ...planStairs(
+          s,
+          TERRACE_ROLES,
+          blockStateOf("minecraft:sand"),
+          OVERWORLD_RANGE,
+        ),
       ]).toEqual(expected);
     }),
   );
@@ -308,12 +327,19 @@ it("writes air exactly on Passage headroom cells", () => {
   fc.assert(
     fc.property(valid, (s) => {
       const airCells = [
-        ...planStairs(s, rolesOf("passage"), blockStateOf("minecraft:stone")),
+        ...planStairs(
+          s,
+          rolesOf("passage"),
+          blockStateOf("minecraft:stone"),
+          OVERWORLD_RANGE,
+        ),
       ]
         .filter(({ after }) => after.typeId === AIR.typeId)
         .map(({ cell }) => cell);
       expect(airCells).toEqual(
-        [...stairCells(s, new Set(["headroom"]))].map(({ cell }) => cell),
+        [...stairCells(s, new Set(["headroom"]), OVERWORLD_RANGE)].map(
+          ({ cell }) => cell,
+        ),
       );
     }),
   );
@@ -331,16 +357,19 @@ it("fills below with flat-top stairs for either filled contents choice", () => {
           upside_down_bit: false,
         });
         const plan = new Map(
-          [...planStairs(s, rolesOf(contents), oak)].map(({ cell, after }) => [
-            cellKey(cell),
-            after,
-          ]),
+          [...planStairs(s, rolesOf(contents), oak, OVERWORLD_RANGE)].map(
+            ({ cell, after }) => [cellKey(cell), after],
+          ),
         );
         const flat = blockStateOf(oak.typeId, {
           weirdo_direction: direction,
           upside_down_bit: true,
         });
-        for (const { cell } of stairCells(s, new Set(["below"])))
+        for (const { cell } of stairCells(
+          s,
+          new Set(["below"]),
+          OVERWORLD_RANGE,
+        ))
           expect(plan.get(cellKey(cell))).toEqual(flat);
       },
     ),

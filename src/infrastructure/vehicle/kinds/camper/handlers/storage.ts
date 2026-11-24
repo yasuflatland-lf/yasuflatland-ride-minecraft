@@ -7,8 +7,8 @@ import {
   type VehicleId,
 } from "../../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../../domain/shared/vec";
-import { add3 } from "../../../../../domain/shared/vec";
 import { heldTypeId } from "../../../../shared/heldItem";
+import { componentPressPoint } from "../faceHeight";
 import { CAMPER_CABINET_COMPONENT } from "../identifiers";
 
 export function registerStorage(
@@ -30,14 +30,11 @@ export function registerStorage(
         const at = ev.block.location;
         const vehicleId = dockCellOwner(asDimensionId(ev.dimension.id), at);
         if (vehicleId === undefined) return;
-        // Both items of a compartment stand at one height, so only the pressed x and z
-        // choose between them, as on a pair block (ADR 0108).
-        const face = ev.faceLocation;
         press.execute({
           playerId: asPlayerId(player.id),
           vehicleId,
           cell: at,
-          point: face === undefined ? undefined : add3(at, face),
+          point: componentPressPoint(ev, player.inputInfo.lastInputModeUsed),
         });
       },
     });

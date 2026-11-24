@@ -2,11 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+
 import {
   openBuildMenu,
   pasteMenu,
@@ -31,7 +27,12 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -67,7 +68,7 @@ it("offers ordered paste entries independent of history and never paste or endPa
         const endpoint = confirmEndpointHeight(
           tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
         );
-        const height = chooseHeighted(endpoint, "gable");
+        const height = chooseHeightedFlow(endpoint, "gable");
         for (const flow of [
           idle,
           first,
@@ -203,7 +204,7 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           { kind: "idle" } as const,
           first,
           endpoint,
-          chooseHeighted(endpoint, "hip"),
+          chooseHeightedFlow(endpoint, "hip"),
         ]) {
           session.setFlow(flow);
           expect(session.rotatePaste()).toBe(false);
