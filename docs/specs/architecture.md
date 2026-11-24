@@ -41,7 +41,7 @@
 
 **Glossary**
 
-- **Hold** is the core mechanism represented by `HoldPose`, `heldStep`, and `holdAt`.
+- **Hold** keeps a vehicle at a fixed `HoldPose`. The sports boat and camper use the `Hold` helper in `motion/dock.ts` to track stillness, adopt restored poses on the first step, and produce dock and undock commands. Each kind determines where and when to hold and when to depart. `heldStep` builds the step while held, and the world applies the pose through `holdAt`.
 - **Docked** is the saved entity state, represented by the `docked` property and the dock/undock events; these names remain unchanged for saved worlds.
 - **Parked** is the player-facing term for a held camper.
 
@@ -212,10 +212,10 @@
 ### Docked property and held attitude resend
 
 - Applies to: Sports boat and camper after resync.
-- Rule: Each drive owns its own `DockedResend` and appends the current docked property on the next step after resync, unless that step's dock or departure commands already sent it. A drive is eligible to resend after its first hold or after restoration from a held state, including when it departs on the first tick. A held sports boat also resends its level trim and roll through their latches once; an ordinary held step sends no attitude, and dock/undock events remain one-shot.
+- Rule: Each drive's `Hold` owns a `DockedResend`. The drive appends the current docked property on the next step after resync unless that step's dock or departure commands already sent it. A drive is eligible to resend after its first hold or after restoration from a held state, including when it departs on the first tick. A held sports boat also resends its level trim and roll through their latches once; an ordinary held step sends no attitude, and dock/undock events remain one-shot.
 - Agreement: Proposed
 - Basis: [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md) Decision, "After `resync()`, the next step of a sports boat or camper drive appends the `docked` property with its current held state, once."; [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md) Decision, "A drive that has never held and was not restored held sends nothing, so the entity keeps its default value and no new property is written."; [0156](../adr/0156-resend-the-docked-property-after-a-failed-send.md) Decision, "The dock and undock events stay one-shot, as 0127 decided. Only the property is resent."
-- Implementation: `src/domain/vehicle/kinds/sportsboat/drive.ts` and `src/domain/vehicle/kinds/camper/drive.ts` each register `DockedResend` from `src/domain/vehicle/motion/dockEntity.ts` with `SyncedCommands`.
+- Implementation: `src/domain/vehicle/motion/dock.ts` (`Hold`); `src/domain/vehicle/motion/dockEntity.ts` (`DockedResend`); `src/domain/vehicle/kinds/sportsboat/drive.ts`; `src/domain/vehicle/kinds/camper/drive.ts`.
 - Verification: `tests/domain/vehicle/motion/dockEntity.test.ts` "resends docked false after a failed send on the first step out of a restored hold"; `tests/domain/vehicle/kinds/sportsboat/drive.test.ts` "resends the docked property once after a failed send while held or after departing, and never before the first hold" and "resends level trim and roll once after a failed send while a boat that had tilted is held"; `tests/application/vehicle/driveVehicles.test.ts` `it.each` title "keeps every entity property equal to the drive's last value once the world stops failing, for %s". Not verified: owner acceptance of Proposed 0156 or recovery from lost component-group events in game.
 
 ### Namespace, IDs and vehicle tables
