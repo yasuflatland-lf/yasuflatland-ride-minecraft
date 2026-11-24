@@ -11,9 +11,6 @@ export interface DeckPart {
   readonly height: number;
 }
 
-/** From SPORTSBOAT_SPEC (ADR 0063). */
-export const DECK_DRAFT = SPORTSBOAT_SPEC.deckDraft;
-
 const PIXELS_PER_BLOCK = 16;
 const WATER_OFFSETS = [2, 1, 0, -1] as const;
 
@@ -103,7 +100,8 @@ export function holdHeight(
   waterAt: (dy: number) => boolean,
 ): number | undefined {
   for (const dy of WATER_OFFSETS) {
-    if (waterAt(dy)) return Math.floor(feetY + dy) + 1 - DECK_DRAFT;
+    if (waterAt(dy))
+      return Math.floor(feetY + dy) + 1 - SPORTSBOAT_SPEC.deckDraft;
   }
   return undefined;
 }

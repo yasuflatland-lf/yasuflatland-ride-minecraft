@@ -1,7 +1,5 @@
-import type { PlayerId, VehicleId } from "../../domain/shared/ids";
-import { CAMPER_ROOM } from "../../domain/vehicle/kinds/index";
 // Use case: a player hit a vehicle (ADR 0008).
-
+import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { FleetRepository } from "../../domain/vehicle/fleet/fleetRepository";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { BreakWorld } from "./ports/fleet";
@@ -9,7 +7,7 @@ import type { Clock } from "./ports/shared";
 import { retireVehicle } from "./retireVehicle";
 
 interface HitVehicleCommand {
-  /** The player who hit; placed decor goes to them (ADR 0093). */
+  /** The player who hit receives the cargo (ADR 0093). */
   playerId: PlayerId;
   vehicleId: VehicleId;
   /** The attacker stands on a deck floor block (ADR 0063). */
@@ -29,11 +27,9 @@ export class HitVehicle {
     const vehicle = this.repo.get(cmd.vehicleId);
     if (!vehicle) return false;
     if (!vehicle.receiveHit(cmd.playerId, this.clock.now())) return false;
-    const decor = (vehicle.capability(CAMPER_ROOM)?.decor.decor() ?? []).map(
-      (d) => d.item,
-    );
+    const cargo = vehicle.cargo();
     this.world.dropVehicleItem(cmd.vehicleId);
-    if (decor.length > 0) this.world.giveDecorItems(cmd.playerId, decor);
+    if (cargo.length > 0) this.world.giveDecorItems(cmd.playerId, cargo);
     const fleet = this.fleets.load();
     retireVehicle(this.world, this.repo, fleet, cmd.vehicleId);
     this.fleets.save(fleet);

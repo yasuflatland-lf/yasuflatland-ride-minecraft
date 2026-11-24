@@ -84,6 +84,8 @@ export interface DriveStep {
 
 export interface Drive {
   capability?<T>(key: CapabilityKey<T>): T | undefined;
+  /** Item IDs returned to the player on hand take-back (ADR 0220). */
+  cargo?(): readonly string[];
   /** Forgets which entity values were sent, so the next step sends all of them again; called when a tick's commands may not have reached the entity. */
   resync(): void;
   /** Internal forward/reverse speed in blocks/tick; negative means reverse. */

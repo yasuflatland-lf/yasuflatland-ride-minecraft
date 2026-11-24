@@ -140,7 +140,7 @@ The `ceiling_hook` slot is for hanging items. Its height is 0, and a hanging ite
   5. When no free slot accepts the item, the player's action bar shows the message `yasu_ride.message.decor_no_slot` ("No free spot for this item"), and the player keeps the item.
 - A long-press on a model-only top, such as the table, reaches the floor block under it. The nearest-slot rule then picks the slot on top. Check on a phone that it picks the right one
 - With an empty hand, a long-press on a decor block removes that decor through the `yasu_ride:camper_decor` component. The item goes straight into the player's inventory, not dropped in the narrow room. It is dropped at the player's feet only when the inventory is full
-- When a player hits the camper back into its item (0067), every placed decor item goes into that player's inventory, and what does not fit is dropped at their feet
+- When a player hits the camper back into its item (0067), the camper drive returns every placed and stowed decor item as cargo (0103, 0220). The items go into the hitter's inventory, with overflow dropped at their feet. Fleet eviction discards the decor with the camper (0066).
 
 ### Camping gear box
 

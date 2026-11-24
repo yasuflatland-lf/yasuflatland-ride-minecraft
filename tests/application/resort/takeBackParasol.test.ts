@@ -18,6 +18,7 @@ it("clears the ceiling, returns a plain item to the hitter, removes and announce
         const player = asPlayerId("hitter");
         take.execute({ id, player, tick });
         take.execute({ id, player, tick: tick + gap });
+        expect(world.clearCeiling).not.toHaveBeenCalled();
         expect(world.remove).not.toHaveBeenCalled();
         expect(world.showHitsLeft.mock.calls).toEqual([
           [player, 2],
@@ -25,19 +26,12 @@ it("clears the ceiling, returns a plain item to the hitter, removes and announce
         ]);
         take.execute({ id, player, tick: tick + gap * 2 });
         expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
-        const effects = [
-          world.clearCeiling,
-          world.dropItem,
-          world.remove,
-          world.showTaken,
-        ];
-        expect(effects.map((effect) => effect.mock.calls.length)).toEqual([
-          1, 1, 1, 1,
-        ]);
-        const order = effects.map(
-          (effect) => effect.mock.invocationCallOrder[0],
-        );
-        expect(order).toEqual([...order].sort((a, b) => (a ?? 0) - (b ?? 0)));
+        expect(world.clearCeiling).toHaveBeenCalledExactlyOnceWith(id);
+        expect(world.remove).toHaveBeenCalledExactlyOnceWith(id);
+        expect(world.showTaken).toHaveBeenCalledExactlyOnceWith(player);
+        expect(world.clearCeiling).toHaveBeenCalledBefore(world.dropItem);
+        expect(world.dropItem).toHaveBeenCalledBefore(world.remove);
+        expect(world.remove).toHaveBeenCalledBefore(world.showTaken);
       },
     ),
   );

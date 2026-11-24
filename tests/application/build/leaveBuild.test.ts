@@ -8,7 +8,6 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeSessions, FakeTapTargets, overworld } from "./fakes";
-import { FakeStructureStore } from "./fakes/structureStore";
 
 it("clears the selection on an item switch while retaining history", () => {
   fc.assert(
@@ -34,7 +33,7 @@ it("clears the selection on an item switch while retaining history", () => {
       });
       const targets = new FakeTapTargets();
       targets.show(id, { dimensionId: overworld, cell });
-      new LeaveBuild(repo, new FakeStructureStore(), targets).execute(id);
+      new LeaveBuild(repo, targets).execute(id);
       expect(targets.placements.has(id)).toBe(false);
       expect(session.flow).toEqual({ kind: "idle" });
       expect(session.takeUndo()).toEqual({ kind: "cells", record: history });
@@ -46,10 +45,7 @@ it("hides on mode exit when the flow reached idle before the next preview", () =
   const repo = new FakeSessions();
   const playerId = asPlayerId("builder");
   const targets = new FakeTapTargets();
-  const modes = new UpdateBuildModes(
-    repo,
-    new LeaveBuild(repo, new FakeStructureStore(), targets),
-  );
+  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo, targets));
   for (let tick = 0; tick < BUILD_SPEC.modeEnterTicks; tick++)
     modes.execute([{ playerId, held: "wand" }]);
   const session = repo.getOrCreate(playerId);

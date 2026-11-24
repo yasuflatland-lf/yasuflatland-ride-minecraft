@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { HitChair } from "../../../src/application/camp/hitChair";
 import { asChairId } from "../../../src/domain/camp/chair";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -36,6 +36,8 @@ describe("HitChair (ADR 0122)", () => {
     (kind, playerId) => {
       const world = new FakeChairWorld();
       world.kind = kind;
+      const drop = vi.spyOn(world, "dropChairItem");
+      const remove = vi.spyOn(world, "removeChair");
       const hit = new HitChair(world);
       const results = [0, 10, 20].map((tick) =>
         hit.execute({
@@ -48,6 +50,8 @@ describe("HitChair (ADR 0122)", () => {
       expect(results).toEqual([false, false, true]);
       expect(world.dropped).toEqual([CHAIR]);
       expect(world.removed).toEqual([CHAIR]);
+      expect(drop).toHaveBeenCalledExactlyOnceWith(CHAIR, playerId);
+      expect(drop).toHaveBeenCalledBefore(remove);
       expect(world.hints).toEqual(
         playerId
           ? [

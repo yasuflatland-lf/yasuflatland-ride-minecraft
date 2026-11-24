@@ -33,7 +33,7 @@ export class PlaceParasol {
       {
         support: [parasolSupportCell(pose)],
         clear: parasolFootCells(pose),
-        protect: ["vehicle", "camp"],
+        refuses: PARASOL_SPEC.refuses,
         extraCheck: () =>
           !tooCloseToOtherBase(
             pose.base,

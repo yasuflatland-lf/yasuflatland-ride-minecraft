@@ -23,7 +23,6 @@ import type { Outcome } from "../outcome";
 import { selectionBoxOf } from "./support/buildSelection";
 
 export async function buildRotateBox(a: Arena): Promise<Outcome> {
-  const repo = new InMemorySessionRepository();
   const playerId = asPlayerId(`rotate_box_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
   const source = cellBox(a.at(20, a.gy, 20), a.at(24, a.gy + 3, 26));
@@ -47,12 +46,13 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
     drawPreview: () => {},
   };
   const log = { warn: (value: string) => console.warn(value) };
+  const repo = new InMemorySessionRepository(structures, log);
   const core = new RotateBox(repo, world, players, structures, feedback, log);
   const rotate = new RotateSelection(repo, core, feedback);
   const undo = new UndoEdit(
     repo,
     feedback,
-    new EditJobs(repo, world, feedback, log, players, structures),
+    new EditJobs(repo, world, feedback, log, players),
     world,
     structures,
     log,
@@ -192,9 +192,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   } catch (error) {
     check(String(error), false);
   } finally {
-    new EndBuildSession(repo, structures, new BedrockTapTargets()).execute(
-      playerId,
-    );
+    new EndBuildSession(repo, new BedrockTapTargets()).execute(playerId);
     structures.clearEntities(dimensionId, plan.union);
     check("cleanup", structures.clearBlocks(dimensionId, plan.union));
   }

@@ -3,20 +3,24 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   adjustHeight,
-  type BuildFlow,
   chooseHeighted,
-  chooseStairs,
-  chooseTerrain,
   confirmLiveHeight,
   confirmTappedSpan,
-  fixStairGoal,
   setHeight,
   tapAir,
   tapBlock,
-  withoutStepBack,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
-import { stepBackSelection } from "../../../src/domain/build/flow/stepBack";
+import {
+  chooseStairs,
+  fixStairGoal,
+} from "../../../src/domain/build/flow/stairFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import {
+  stepBackSelection,
+  withoutStepBack,
+} from "../../../src/domain/build/flow/stepBack";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 

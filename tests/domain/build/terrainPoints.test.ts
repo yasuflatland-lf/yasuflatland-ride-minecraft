@@ -3,12 +3,12 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import {
-  chooseTerrain,
   confirmLiveHeight,
   setHeight,
   tapAir,
-  tapsForBox,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
+import { tapsForBox } from "../../../src/domain/build/flow/taps";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { BuildSession } from "../../../src/domain/build/session";
 import { terrainAreaOf } from "../../../src/domain/build/terrain/area";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";

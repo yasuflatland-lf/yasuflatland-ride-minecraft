@@ -1,8 +1,8 @@
 import type { DecorPlacement } from "../../dock/decor";
 import type { ClearCell } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
-import type { TickContext } from "../../drive";
-import { StillTimer } from "../../motion/dock";
+import type { EngineCommand, TickContext } from "../../drive";
+import type { Hold } from "../../motion/dock";
 import { readBlockGroups } from "./blockGroups";
 import { DECOR_CELLS } from "./decor";
 import { decorBlockName, ownSlotBlock, slotCells } from "./decorCells";
@@ -23,36 +23,23 @@ import {
 } from "./storagePlates";
 
 export class CamperParking {
-  private parked: HoldPose | undefined;
-  private restoredDocked: boolean;
   // A newly parked body still collides until the dock event takes effect (ADR 0068).
   private roomLaid = false;
   private pendingClear: readonly ClearCell[] = [];
-  private readonly still = new StillTimer();
   private parkTried = false;
   private stickWasPushed = false;
 
   constructor(
-    restoredDocked: boolean,
+    private readonly hold: Hold,
     private readonly restoredLaid: boolean,
-  ) {
-    this.restoredDocked = restoredDocked;
-  }
-
-  get pose(): HoldPose | undefined {
-    return this.parked;
-  }
-
-  get recovering(): boolean {
-    return this.restoredDocked;
-  }
+  ) {}
 
   /** Returns whether the drive must lay the recovered room before handling input. */
   recover(pose: HoldPose, ctx: TickContext): boolean {
     const clear = this.restoredLaid ? [] : this.clearFor(pose, ctx);
-    this.restoredDocked = false;
     if (clear === undefined) return false;
-    this.park(pose, clear);
+    this.hold.adopt(pose);
+    this.pendingClear = clear;
     // A docked entity already has no collision, so recovery may clear and lay together.
     this.roomLaid = true;
     return !this.restoredLaid;
@@ -65,12 +52,11 @@ export class CamperParking {
     return planPark(cells, blocks.cells, feet, blocks.feet, parkGround(pose));
   }
 
-  park(pose: HoldPose, clear: readonly ClearCell[]): void {
-    this.parked = pose;
+  park(pose: HoldPose, clear: readonly ClearCell[]): EngineCommand[] {
     this.pendingClear = clear;
     this.roomLaid = false;
-    this.still.reset();
     this.parkTried = false;
+    return this.hold.enter(pose);
   }
 
   takeLaying(): {
@@ -86,7 +72,7 @@ export class CamperParking {
 
   observe(still: boolean): boolean {
     if (!still) this.parkTried = false;
-    if (!this.still.tick(still) || this.parkTried) return false;
+    if (!this.hold.observe(still) || this.parkTried) return false;
     this.parkTried = true;
     return true;
   }
@@ -123,8 +109,8 @@ export class CamperParking {
     };
   }
 
-  leave(): void {
-    this.parked = undefined;
+  leave(): EngineCommand[] {
     this.pendingClear = [];
+    return this.hold.leave();
   }
 }

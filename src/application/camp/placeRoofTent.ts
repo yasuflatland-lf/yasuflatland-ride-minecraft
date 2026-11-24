@@ -1,8 +1,10 @@
 import { hostVerdict } from "../../domain/camp/roofTent/hostRule";
 import {
+  groundRoofTentCells,
   planRoofTent,
   type RoofTentRefusal,
   type RoofTentTarget,
+  supportsGroundRoofTent,
 } from "../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
 import { cellCenter } from "../../domain/shared/cells";
@@ -62,6 +64,31 @@ export class PlaceRoofTent {
     return { host, target };
   }
 
+  private groundFree(
+    dimension: DimensionId,
+    clicked: Vec3,
+    origin: Vec3,
+  ): boolean {
+    const { support, clear } = groundRoofTentCells(clicked);
+    try {
+      return (
+        support.every((cell) =>
+          supportsGroundRoofTent(this.world.blockAt(dimension, cell)),
+        ) &&
+        clear.every(
+          (cell) =>
+            this.world.blockAt(dimension, cell)?.isAir === true &&
+            !this.world.isVehicleSpace(dimension, cell) &&
+            !this.world.isCampSpace(dimension, cell),
+        ) &&
+        !this.world.hasRoofTentNear(dimension, origin)
+      );
+    } catch {
+      // A chunk can unload during a block or space check.
+      return false;
+    }
+  }
+
   execute(cmd: PlaceRoofTentCommand): boolean {
     let target: RoofTentTarget;
     let at: { dimensionId: DimensionId; location: Vec3; yaw: number };
@@ -79,13 +106,14 @@ export class PlaceRoofTent {
       };
     } else {
       const { clicked } = cmd.target;
+      const origin = cellCenter(clicked, 1);
       target = {
         type: "ground",
-        clear: this.world.groundFree(cmd.dimensionId, clicked),
+        clear: this.groundFree(cmd.dimensionId, clicked, origin),
       };
       at = {
         dimensionId: cmd.dimensionId,
-        location: cellCenter(clicked, 1),
+        location: origin,
         yaw: cmd.yaw,
       };
     }

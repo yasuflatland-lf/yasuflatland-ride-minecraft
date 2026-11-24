@@ -1,4 +1,4 @@
-import { type Entity, ItemStack, world } from "@minecraft/server";
+import { type Entity, world } from "@minecraft/server";
 import type { DutchOvenWorld } from "../../../application/camp/ports/dutchOven";
 import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import {
@@ -12,16 +12,19 @@ import {
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import type {
-  LocalPoint,
-  TopItem,
-  TopRect,
-} from "../../../domain/shared/tableTop";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import {
+  entityOfType,
+  hasEntityNear,
+  spawnWithRollback,
+} from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showHitsLeftHint } from "../../shared/players";
-import type { TopHostRegistry } from "../../shared/tableTop/registry";
+import {
+  type TopHostRegistry,
+  topHostView,
+} from "../../shared/tableTop/registry";
 import {
   DUTCH_OVEN_GROUND_EVENT,
   DUTCH_OVEN_HITS_LEFT_HINT,
@@ -65,24 +68,26 @@ export class BedrockDutchOvenWorld
   extends BedrockPaidGroundCells
   implements DutchOvenWorld
 {
-  constructor(
-    private readonly vehicles: {
-      topHosts: TopHostRegistry;
-      isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
-    },
-  ) {
+  readonly topHost: DutchOvenWorld["topHost"];
+  readonly itemsOnTop: DutchOvenWorld["itemsOnTop"];
+
+  constructor(vehicles: {
+    topHosts: TopHostRegistry;
+    isVehicleSpace(dimension: DimensionId, cell: Vec3): boolean;
+  }) {
     super(
       (dimension, cell) => vehicles.isVehicleSpace(dimension, cell),
       DUTCH_OVEN_ITEM,
     );
+    const view = topHostView(vehicles.topHosts);
+    this.topHost = view.topHost;
+    this.itemsOnTop = view.itemsOnTop;
   }
 
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean {
     return (
-      world
-        .getDimension(dimension)
-        .getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 0.5 })
-        .length > 0
+      hasEntityNear(dimension, DUTCH_OVEN_TYPE, at, DUTCH_OVEN_SPEC.spacing) ??
+      true
     );
   }
 
@@ -100,23 +105,6 @@ export class BedrockDutchOvenWorld
       setup && ((oven) => setup(asDutchOvenId(oven.id))),
     );
     return entity && asDutchOvenId(entity.id);
-  }
-
-  topHost(hostType: string, id: string) {
-    const host = this.vehicles.topHosts.host(hostType, id);
-    return host
-      ? {
-          blockedAt: (at: LocalPoint, footprint: TopRect) =>
-            host.type.blockedAt?.(host.entity, at, footprint) ?? false,
-          dimension: asDimensionId(host.entity.dimension.id),
-          at: host.entity.location,
-          yaw: host.entity.getRotation().y,
-        }
-      : undefined;
-  }
-
-  itemsOnTop(hostType: string, id: string): readonly TopItem[] {
-    return this.vehicles.topHosts.itemsOnTop(hostType, id);
   }
 
   spawnHosted(
@@ -195,12 +183,14 @@ export class BedrockDutchOvenWorld
     return isHostAreaLoaded(dutchOven(id));
   }
 
-  dropItem(id: DutchOvenId): void {
+  dropItem(id: DutchOvenId, hitter?: PlayerId): void {
     const entity = dutchOven(id);
-    entity?.dimension.spawnItem(
-      new ItemStack(DUTCH_OVEN_ITEM, 1),
-      entity.location,
-    );
+    if (entity)
+      giveBack(
+        entity,
+        DUTCH_OVEN_ITEM,
+        giveBackReceiver(DUTCH_OVEN_SPEC.giveBack, hitter),
+      );
   }
 
   removeDutchOven(id: DutchOvenId): void {

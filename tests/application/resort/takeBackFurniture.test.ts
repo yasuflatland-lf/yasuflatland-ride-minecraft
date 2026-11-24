@@ -11,7 +11,7 @@ import { fakeFurnitureWorld } from "./fakeFurnitureWorld";
 
 describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
   const spec = FURNITURE_SPEC[kind];
-  it("returns a plain item to the hitter, removes and announces on the third hit", () => {
+  it("returns the item before clearing the top, removing the entity and announcing", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 10000 }),
@@ -30,19 +30,12 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
           ]);
           take.hit({ id, player, now: now + gap * 2 });
           expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
-          const effects = [
-            world.dropItem,
-            world.clearTop,
-            world.remove,
-            world.showTaken,
-          ];
-          expect(effects.map((effect) => effect.mock.calls.length)).toEqual([
-            1, 1, 1, 1,
-          ]);
-          const order = effects.map(
-            (effect) => effect.mock.invocationCallOrder[0],
-          );
-          expect(order).toEqual([...order].sort((a, b) => (a ?? 0) - (b ?? 0)));
+          expect(world.clearTop).toHaveBeenCalledExactlyOnceWith(id);
+          expect(world.remove).toHaveBeenCalledExactlyOnceWith(id);
+          expect(world.showTaken).toHaveBeenCalledExactlyOnceWith(player);
+          expect(world.dropItem).toHaveBeenCalledBefore(world.clearTop);
+          expect(world.clearTop).toHaveBeenCalledBefore(world.remove);
+          expect(world.remove).toHaveBeenCalledBefore(world.showTaken);
         },
       ),
     );
@@ -92,7 +85,8 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
       ),
     );
   });
-  it("ignores a chair that no longer exists", () => {
+
+  it("ignores furniture that no longer exists", () => {
     const world = fakeFurnitureWorld(kind);
     world.kindOf.mockReturnValue(undefined);
     new TakeBackFurniture(world).hit({
@@ -101,6 +95,7 @@ describe.each(Object.keys(FURNITURE_SPEC) as FurnitureKind[])("%s", (kind) => {
       now: 0,
     });
     expect(world.showHitsLeft).not.toHaveBeenCalled();
+    expect(world.showRefused).not.toHaveBeenCalled();
     expect(world.dropItem).not.toHaveBeenCalled();
   });
 });

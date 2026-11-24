@@ -32,15 +32,14 @@ import {
 } from "../../../src/domain/build/box";
 import {
   adjustHeight,
-  type BuildFlow,
   chooseHeighted,
   confirmLiveHeight,
-  cornerTaps,
   setHeight,
-  type Taps,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { cornerTaps, type Taps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -62,13 +61,13 @@ const stone = blockStateOf("minecraft:stone");
 const size = fc.integer({ min: 3, max: 6 });
 
 function setup() {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const feedback = new FakeFeedback();
   const players = new FakeBuildPlayers();
   const log = { warn: () => {} };
-  const jobs = new EditJobs(repo, world, feedback, log, players, structures);
+  const jobs = new EditJobs(repo, world, feedback, log, players);
   const rotateBox = new RotateBox(
     repo,
     world,

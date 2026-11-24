@@ -10,8 +10,8 @@ import {
   cellsOf,
   volume,
 } from "../../../src/domain/build/box";
-import { cornerTaps } from "../../../src/domain/build/flow/flow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -32,19 +32,12 @@ const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const boxArb = fc.tuple(cell, cell).map(([a, b]) => boxOf(a, b));
 
 function setup(box: CellBox) {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const log = { warn: vi.fn() };
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    log,
-    new FakeBuildPlayers(),
-    structures,
-  );
+  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const session = repo.getOrCreate(playerId);
   const handle = structures.capture(overworld, box, playerId, "exact");

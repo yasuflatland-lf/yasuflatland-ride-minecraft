@@ -23,7 +23,7 @@ The owner wants to walk inside a stopped camper, open and close its door, and pl
 - The camper's only hitbox, in every form and from spawn, is a 1 x 1 x 1 box centered on the front bumper. Players get in, hit it back into its item, and paint it there. This supersedes the three body-long hitboxes of 0067
 - Free seats get deck seats at the camper's seat heights. Tapping any door cell opens or closes all three; the drive owns the door's state and swings the `door_entry` bone outward over 10 ticks
 - The driver departs by pushing the stick from seat 0; a driver in the driver's deck seat is moved into seat 0 first, as on the boat. If any of the 63 interior and roof cells holds a block, the camper stays parked and shows "Clear the blocks inside first". On departure it seats standing players inside or on the roof, nearest first, moves those left without a seat to the ground outside the door, and clears its room. The 2 exit cells are read in the same batch as the 63 cells; if either holds a block that is not passable, players without a seat are left standing instead of being moved into it. Players count as on the roof inside a box over the whole roof top, the ceiling and wall plates included, plus 0.3 (half a player width) on each side
-- After a reload, a parked camper restored before its room was laid redoes the park check and clear; the door's direction follows the open state of the laid door cells, not the swing position
+- After a reload, the camper adopts its restored pose through the shared `Hold` on the first step. A camper restored before its room was laid redoes the park check and clear before adopting the pose. The door's direction follows the open state of the laid door cells, not the swing position
 
 ## Consequences
 

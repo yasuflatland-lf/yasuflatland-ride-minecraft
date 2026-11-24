@@ -4,15 +4,25 @@ import {
   type FirePitId,
 } from "../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
-import { HitCounters } from "../../domain/shared/hitCounter";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
 import type { FirePitWorld } from "./ports/firePit";
 
 export class FirePitActions {
-  private readonly hits = new HitCounters<FirePitId>(FIRE_PIT_SPEC.recovery);
+  private readonly takeBack = new TakeBackByHits<FirePitId>({
+    rule: FIRE_PIT_SPEC.recovery,
+    refusal: (id) =>
+      canFoldFirePit(this.world.isCovered(id)) ? undefined : "covered",
+    showRefusal: (player) => this.world.showCoveredHint(player),
+    giveBack: (id, player) => this.world.dropItem(id, player),
+    remove: (id) => this.world.removeFirePit(id),
+    feedback: {
+      remaining: (_id, player, left) => this.world.showHitsLeft(player, left),
+    },
+    order: ["giveBack", "remove"],
+  });
 
   constructor(private readonly world: FirePitWorld) {}
 
@@ -36,11 +46,11 @@ export class FirePitActions {
   toggle(
     id: FirePitId,
     player: PlayerId | undefined,
-    heldItem: string | undefined,
+    holdsIgniter: boolean,
     slot: number,
   ): boolean {
     const lit = this.world.isLit(id);
-    if (!canToggleFirePit(lit, heldItem)) return false;
+    if (!canToggleFirePit(lit, holdsIgniter)) return false;
     this.world.setLit(id, !lit);
     if (!lit && player && !this.world.isCreative(player))
       this.world.wearFlintAndSteel(player, slot);
@@ -48,21 +58,6 @@ export class FirePitActions {
   }
 
   hit(id: FirePitId, player: PlayerId | undefined, tick: number): boolean {
-    if (!canFoldFirePit(this.world.isCovered(id))) {
-      if (player !== undefined) this.world.showCoveredHint(player);
-      return false;
-    }
-    let taken = false;
-    handleHit(this.hits, id, tick, {
-      drop: () => this.world.dropItem(id),
-      remove: () => {
-        this.world.removeFirePit(id);
-        taken = true;
-      },
-      showRemaining: (left) => {
-        if (player !== undefined) this.world.showHitsLeft(player, left);
-      },
-    });
-    return taken;
+    return this.takeBack.hit(id, tick, player) === "taken";
   }
 }

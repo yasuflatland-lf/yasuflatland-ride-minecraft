@@ -50,7 +50,9 @@ The entity stands at the bottom middle of local `(0, 11, 0)`, the rear wall's mi
 
 That is 87 `yasu_ride:tent_wall` cells and 50 `yasu_ride:tent_ceiling` cells. The
 flap cells of 0130 are laid as closed walls until 10/13; the mattress cells stay air
-until 11/13. The wall's `yasu_ride:face` state uses the camper's face numbers, and its
+until 11/13. The wall's `yasu_ride:face` state and saved cells encode plate sides as 0 for -z,
+1 for +z, 2 for -x, and 3 for +x. The domain represents these sides as strings,
+and the cell codec converts them at the persistence and block-state boundaries. Its
 2 px plate has equal collision and selection boxes, so hits from outside reach it.
 The ceiling is a 3 px plate at the bottom of its cell, so the headroom is exactly 3
 in the rooms and 2 under the tarp. Both blocks use the hidden cube of 0101 and are
@@ -118,9 +120,11 @@ stand in them, nor the tarp area or the roof); the hitter
 sees "Someone is inside the tent" instead.
 
 `entityHitBlock`, a Creative `playerBreakBlock` (whose break the shared guard of 0096
-cancels), and `entityHitEntity` share one per-player, per-tick set, so one swing counts
-once even when both block events fire. A held press on a phone counts every swing the
-engine reports. Three hits within 100 ticks from outside return the item and take the
+cancels), and `entityHitEntity` share the hit handler. It checks for dye first (0135),
+accepts at most one paint and one take-down per player per tick across all
+three paths, then defers the action with the tick of the swing. This counts a
+Creative break once even when both block events fire. On a phone, holding a
+press can count another non-dye swing when the engine reports it in a later tick. Three hits within 100 ticks from outside return the item and take the
 tent down: its cells that still hold its blocks are cleared, so a block a player put
 in its place stays.
 
@@ -128,8 +132,9 @@ in its place stays.
 
 The ceiling block JSON sets `light_emission` to 4. Three layers below it the
 block light is still 1, so no hostile mob spawns inside. The value is tuned in game.
-Camping gear such as the oil lamp cannot be placed in the tent: no tent block has a
-decor slot, and the gear placement path is unchanged.
+Tent blocks have no decor slots for indoor camping gear. Outdoor camp chairs,
+tables, fire pits, ovens, and lanterns may stand in the rooms wherever their
+usual placement checks pass. Their specs refuse only vehicle space.
 
 ## Consequences
 

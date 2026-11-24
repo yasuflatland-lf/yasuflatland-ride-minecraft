@@ -55,7 +55,7 @@ export function placeOnTop(
     ...cellOf(at),
     y: Math.floor(host.at.y) + surface.clearanceBase,
   };
-  if (!hasClearance(world, host.dimension, cell, kind.clearance))
+  if (!hasClearance(world, host.dimension, cell, kind.clearance, kind.refuses))
     return "refused";
   const result = placePaid(world, { player: cmd.player, slot: cmd.slot }, () =>
     world.spawnHosted(

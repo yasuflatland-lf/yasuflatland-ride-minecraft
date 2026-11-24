@@ -1,6 +1,7 @@
 import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planHeighted } from "../../domain/build/edit/plan";
-import { cornerTaps, heightStepBox } from "../../domain/build/flow/flow";
+import { heightStepBox } from "../../domain/build/flow/heightFlow";
+import { cornerTaps } from "../../domain/build/flow/taps";
 import { isRoofKind } from "../../domain/build/roof/roof";
 import { stairRoofPattern } from "../../domain/build/roof/stairRoof";
 import { type Selection, selectionOf } from "../../domain/build/selection";

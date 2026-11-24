@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -61,7 +61,8 @@ it("clears the start during a running edit and keeps all history entries", () =>
   expect(session.flow).toEqual({ kind: "idle" });
   expect(session.isEditing).toBe(true);
   expect(feedback.messages.at(-1)?.message).toBe("startCleared");
-  expect(session.clearHistory()).toEqual([first, last]);
+  session.clearHistory();
+  expect(session.drainReleased()).toEqual([first, last]);
 });
 
 it("has no selection step for a missing or idle session", () => {

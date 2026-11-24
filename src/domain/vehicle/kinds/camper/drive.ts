@@ -4,12 +4,7 @@ import type { Dock } from "../../dock/dock";
 import type { HoldPose } from "../../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import type { RawInput } from "../../driveInput";
-import { heldStep, pushesStick } from "../../motion/dock";
-import {
-  DockedResend,
-  dockCommands,
-  undockCommands,
-} from "../../motion/dockEntity";
+import { Hold, heldStep, pushesStick } from "../../motion/dock";
 import { TransformingDrive } from "../../motion/transformingDrive";
 import { SPEC } from "../../spec";
 import { type BodyEnds, guardEnds } from "./bodyGuard";
@@ -40,39 +35,39 @@ const CAMPER_ENDS: BodyEnds = Object.freeze({
 });
 
 export class CamperDrive extends TransformingDrive {
+  private readonly hold: Hold;
   private readonly parking: CamperParking;
   private readonly fixtures: CamperFixtures;
   private readonly storage: CamperStorage;
   private readonly roomDecor: CamperRoomDecor;
   private readonly room: CamperRoom;
-  private readonly dockedResend = new DockedResend();
-
   constructor(yaw: number, restored: CamperRestored) {
     super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
       guard: (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
     });
-    const docked = restored.docked === true;
+    const parked = restored.docked === true;
+    this.hold = new Hold(parked);
     this.parking = new CamperParking(
-      docked,
+      this.hold,
       restored[CAMPER_SAVED.laid] === true,
     );
     this.fixtures = CamperFixtures.restore(
       restored,
-      docked,
+      parked,
       restored[CAMPER_SAVED.doorOpen],
     );
-    this.storage = new CamperStorage(restored, docked);
+    this.storage = new CamperStorage(restored, parked);
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     this.roomDecor = CamperRoomDecor.restore(restored[CAMPER_SAVED.decor]);
     const ceilingLightsReachable = (feet: Vec3) =>
-      this.parking.pose !== undefined && insideRoom(this.parking.pose, feet);
+      this.hold.held !== undefined && insideRoom(this.hold.held, feet);
     this.room = Object.freeze<CamperRoom>({
       decor: {
         decor: () => this.roomDecor.all(),
         setDecor: (slot, item) => this.roomDecor.set(slot, item),
         // Decor placed on the parking tick is laid with the room on the next step (ADR 0068, 0093).
         decorSlotFor: (item, point, cell, exact, eye) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           if (!pose) return undefined;
           return this.roomDecor.slotFor(
             { pose, open: this.storage.open() },
@@ -84,7 +79,7 @@ export class CamperDrive extends TransformingDrive {
           );
         },
         placeDecor: (slot, item) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           if (!pose) return false;
           return this.roomDecor.place(
             { pose, open: this.storage.open() },
@@ -93,7 +88,7 @@ export class CamperDrive extends TransformingDrive {
           );
         },
         removeDecor: (cell, point, eye) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           if (!pose) return undefined;
           return this.roomDecor.remove(
             { pose, open: this.storage.open() },
@@ -105,7 +100,7 @@ export class CamperDrive extends TransformingDrive {
       },
       storage: {
         drawerTarget: (eye, direction, cell, item, feet) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           if (!pose) return undefined;
           return this.storage.drawerTarget(
             pose,
@@ -118,7 +113,7 @@ export class CamperDrive extends TransformingDrive {
           );
         },
         pressStorage: (request) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           if (!pose) return undefined;
           return this.storage.press(pose, this.roomDecor, request);
         },
@@ -131,13 +126,13 @@ export class CamperDrive extends TransformingDrive {
             ceilingLightsReachable(feet),
           ),
         useDockDoor: (tick) =>
-          this.parking.pose !== undefined && this.fixtures.useDockDoor(tick),
+          this.hold.held !== undefined && this.fixtures.useDockDoor(tick),
         bedSpawnCell: (cell) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           return pose === undefined ? undefined : roomBedSpawnCell(pose, cell);
         },
         pressShowerToilet: (feet, tick) => {
-          const pose = this.parking.pose;
+          const pose = this.hold.held;
           return (
             pose !== undefined &&
             this.fixtures.pressShowerToilet(pose, feet, tick)
@@ -151,57 +146,56 @@ export class CamperDrive extends TransformingDrive {
     return offer(key, CAMPER_ROOM, this.room);
   }
 
+  cargo(): readonly string[] {
+    return this.roomDecor.all().map(({ item }) => item);
+  }
+
   /** Unit-test snapshot. */
   override inspect(): Readonly<{
     wheelsDown: boolean;
     bank: number;
     parked: boolean;
   }> {
-    return { ...super.inspect(), parked: this.parking.pose !== undefined };
+    return { ...super.inspect(), parked: this.hold.held !== undefined };
   }
 
   protected override alignToDriver(driverYaw: number): void {
     // A parked body keeps its snapped yaw, so its room, seats, and headlights stay put.
-    if (this.parking.pose || this.parking.recovering) return;
+    if (this.hold.held || this.hold.restoring) return;
     super.alignToDriver(driverYaw);
   }
 
   override resync(): void {
     super.resync();
-    this.dockedResend.resync();
+    this.hold.resync();
     this.fixtures.resync();
     this.storage.resync();
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    const wasParked =
-      this.parking.pose !== undefined || this.parking.recovering;
+    this.hold.beginStep();
     const step = this.stepCamper(raw, ctx);
-    const resend = this.dockedResend.next(
-      wasParked,
-      this.parking.pose !== undefined,
-    );
-    return resend === undefined
-      ? step
-      : { ...step, commands: [...step.commands, resend] };
+    const resend = this.hold.resendCommand();
+    return resend ? { ...step, commands: [...step.commands, resend] } : step;
   }
 
   private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    if (this.parking.recovering) {
+    if (this.hold.restoring) {
       const pose = parkPose(ctx.location, this.yaw);
       const layNow = this.parking.recover(pose, ctx);
-      if (!this.parking.pose) {
+      if (!this.hold.held) {
+        const undock = this.parking.leave();
         this.fixtures.shutForDeparture();
         this.storage.shutAll();
         const step = this.withProperties(super.step(raw, ctx));
-        return { ...step, commands: [...undockCommands(), ...step.commands] };
+        return { ...step, commands: [...undock, ...step.commands] };
       }
       this.restartAt(pose.yaw);
       if (layNow) return this.parkedStep(pose, ctx);
     }
     const pushed = pushesStick(raw);
     const pressed = this.parking.pressedStick(pushed);
-    const parked = this.parking.pose;
+    const parked = this.hold.held;
     if (parked) {
       if (!pressed) return this.parkedStep(parked, ctx);
       const { blocked, exitClear } = this.parking.departureCheck(
@@ -230,12 +224,12 @@ export class CamperDrive extends TransformingDrive {
         ...this.withProperties(step),
         message: PARK_MESSAGES.cannotPark,
       };
-    this.parking.park(pose, clear);
+    const dock = this.parking.park(pose, clear);
     this.restartAt(pose.yaw);
     const held = this.parkedStep(pose, ctx);
     return {
       ...held,
-      commands: [...step.commands, ...dockCommands(), ...held.commands],
+      commands: [...step.commands, ...dock, ...held.commands],
     };
   }
 
@@ -268,17 +262,13 @@ export class CamperDrive extends TransformingDrive {
     ctx: TickContext,
     exitClear: boolean,
   ): DriveStep {
-    this.parking.leave();
+    const undock = this.parking.leave();
     this.fixtures.shutForDeparture();
     this.storage.shutAll();
     const step = super.step(raw, ctx);
     return {
       ...step,
-      commands: [
-        ...undockCommands(),
-        ...this.propertyCommands(),
-        ...step.commands,
-      ],
+      commands: [...undock, ...this.propertyCommands(), ...step.commands],
       boardDeckRiders: true,
       depart: departure(pose, exitClear),
     };

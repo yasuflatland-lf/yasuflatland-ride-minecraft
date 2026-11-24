@@ -19,6 +19,6 @@ export interface TableWorld
     at: Vec3,
     yaw: number,
   ): TableId | undefined;
-  dropItem(tableId: TableId): void;
+  dropItem(tableId: TableId, hitter?: PlayerId): void;
   removeTable(tableId: TableId): void;
 }

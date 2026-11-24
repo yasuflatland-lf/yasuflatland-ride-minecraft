@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PlaceRoofTent } from "../../../src/application/camp/placeRoofTent";
 import { asRoofTentId } from "../../../src/domain/camp/ids";
 import { ROOF_TENT_SPEC } from "../../../src/domain/camp/spec";
+import { sameCell } from "../../../src/domain/shared/cells";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 import {
   DIMENSION,
@@ -166,11 +167,41 @@ describe("PlaceRoofTent", () => {
         fc.integer({ min: -100, max: 100 }),
         fc.integer({ min: -100, max: 100 }),
         fc.integer({ min: -100, max: 100 }),
-        fc.boolean(),
-        (x, y, z, clear) => {
+        fc.constantFrom("none", "support", "block", "vehicle", "camp", "near"),
+        fc.record({
+          x: fc.integer({ min: -1, max: 1 }),
+          y: fc.integer({ min: 1, max: 2 }),
+          z: fc.integer({ min: -1, max: 1 }),
+        }),
+        (x, y, z, obstacle, offset) => {
           const world = new FakeRoofTentWorld();
           const lookup = vi.fn(() => PRESENT);
-          world.groundFree.mockReturnValue(clear);
+          const blocked = { x: x + offset.x, y: y + offset.y, z: z + offset.z };
+          world.blockAt.mockImplementation((_dimension, cell) => {
+            if (sameCell(cell, { x, y, z }))
+              return {
+                typeId:
+                  obstacle === "support" ? "minecraft:fern" : "minecraft:stone",
+                isAir: false,
+                isLiquid: false,
+              };
+            const isAir = !(obstacle === "block" && sameCell(cell, blocked));
+            return {
+              typeId: isAir ? "minecraft:air" : "minecraft:stone",
+              isAir,
+              isLiquid: false,
+            };
+          });
+          world.isVehicleSpace.mockImplementation(
+            (_dimension, cell) =>
+              obstacle === "vehicle" && sameCell(cell, blocked),
+          );
+          world.isCampSpace.mockImplementation(
+            (_dimension, cell) =>
+              obstacle === "camp" && sameCell(cell, blocked),
+          );
+          world.hasRoofTentNear.mockReturnValue(obstacle === "near");
+          const clear = obstacle === "none";
           expect(
             new PlaceRoofTent(world, lookup).execute({
               ...cmd,
@@ -179,7 +210,13 @@ describe("PlaceRoofTent", () => {
             }),
           ).toBe(clear);
           expect(lookup).not.toHaveBeenCalled();
-          expect(world.groundFree).toHaveBeenCalledWith(DIMENSION, { x, y, z });
+          expect(world.blockAt).toHaveBeenCalledWith(DIMENSION, { x, y, z });
+          if (clear || obstacle === "near")
+            expect(world.hasRoofTentNear).toHaveBeenCalledWith(DIMENSION, {
+              x: x + 0.5,
+              y: y + 1,
+              z: z + 0.5,
+            });
           if (clear)
             expect(world.spawn).toHaveBeenCalledWith(
               { host: { kind: "ground" }, facing: 90, ladder: false },
@@ -192,6 +229,7 @@ describe("PlaceRoofTent", () => {
               ROOF_TENT_SPEC.defaultPaint,
             );
           else {
+            expect(world.spawn).not.toHaveBeenCalled();
             expect(world.consumeItem).not.toHaveBeenCalled();
             expect(world.showRefusal).toHaveBeenCalledWith(PLAYER, "blocked");
           }

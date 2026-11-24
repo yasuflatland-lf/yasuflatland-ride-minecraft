@@ -33,6 +33,7 @@ function fixture(blocks?: WarpBlockTaps) {
   let present = true;
   let drops = 0;
   let removals = 0;
+  let writesAtDrop: number | undefined;
   const messages: (number | string)[] = [];
   const tap = new TapWarpBlock(
     blocks ?? {
@@ -41,6 +42,8 @@ function fixture(blocks?: WarpBlockTaps) {
           ? {
               drop: () => {
                 drops++;
+                writesAtDrop = f.store.writes.length;
+                messages.push("returned");
               },
               remove: () => {
                 present = false;
@@ -79,6 +82,7 @@ function fixture(blocks?: WarpBlockTaps) {
     run,
     settled,
     messages,
+    writesAtDrop: () => writesAtDrop,
     counts: () => ({ drops, removals }),
   };
 }
@@ -200,7 +204,8 @@ it("breaks and removes the entry exactly once after three taps inside the window
       await f.run(0);
       await f.run(first);
       await f.run(first + second, { playerId: asPlayerId("other") });
-      expect(f.messages).toEqual([2, 1, "broken"]);
+      expect(f.messages).toEqual([2, 1, "broken", "returned"]);
+      expect(f.writesAtDrop()).toBe(0);
       for (let i = 1; i <= 5; i++) await f.run(first + second + i);
       await f.clock.advanceTo(1000);
       expect(f.counts()).toEqual({ drops: 1, removals: 1 });

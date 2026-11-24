@@ -2,7 +2,7 @@
 import type { DimensionId } from "../../shared/ids";
 import type { CellBox } from "../box";
 import type { EditRecord } from "../edit/change";
-import type { Taps } from "../flow/flow";
+import type { Taps } from "../flow/taps";
 import type { StructureHandle } from "../structure/handle";
 
 export interface SnapshotRecord {
