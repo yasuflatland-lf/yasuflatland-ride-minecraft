@@ -8,17 +8,20 @@ import { BEACH_PARASOL } from "../../../src/infrastructure/resort/identifiers";
 const game = vi.hoisted(() => {
   class Player {
     id = "player";
+    isValid = true;
   }
   return {
     Player,
     tick: 1,
     dye: true,
+    pending: [] as (() => void)[],
     hit: undefined as ((event: unknown) => void) | undefined,
   };
 });
 vi.mock("@minecraft/server", () => ({
   Player: game.Player,
   system: {
+    run: (callback: () => void) => game.pending.push(callback),
     get currentTick() {
       return game.tick;
     },
@@ -68,9 +71,20 @@ it("does not count dye hits toward recovery and gates a second swing in the tick
   hit();
   game.dye = false;
   hit();
-  expect(setPaint).toHaveBeenCalledTimes(1);
-  for (game.tick = 2; game.tick <= 3; game.tick++) hit();
-  expect(remove).not.toHaveBeenCalled();
   hit();
+  const flush = () => {
+    for (const run of game.pending.splice(0)) run();
+  };
+  expect(setPaint).not.toHaveBeenCalled();
+  flush();
+  expect(setPaint).toHaveBeenCalledTimes(1);
+  game.tick++;
+  hit();
+  flush();
+  expect(remove).not.toHaveBeenCalled();
+  game.tick++;
+  hit();
+  expect(remove).not.toHaveBeenCalled();
+  flush();
   expect(remove).toHaveBeenCalledTimes(1);
 });

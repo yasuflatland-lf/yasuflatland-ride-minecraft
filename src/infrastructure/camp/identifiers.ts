@@ -133,7 +133,7 @@ export const TENT_MATTRESS_COMPONENT = id("tent_mattress");
 export const TENT_LANTERN_BLOCK = id("tent_lantern");
 /** Block state of tent_lantern: whether it gives the lantern's full light. */
 export const TENT_LIT_STATE = id("lit");
-/** Block state of tent_wall: the TentFace its plate sits on. */
+/** Block state of tent_wall: the numeric encoding of the plate side. */
 export const TENT_FACE_STATE = id("face");
 /** Entity dynamic property: the tent's laid cells as JSON (LaidCell<TentBlock>[]). */
 export const TENT_CELLS_PROPERTY = id("tent_cells");

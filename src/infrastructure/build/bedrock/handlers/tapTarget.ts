@@ -1,11 +1,14 @@
 import { type Player, system, world } from "@minecraft/server";
-import { routePress } from "../../../../domain/build/flow/press";
 import { tapTargetCell } from "../../../../domain/build/tapTarget";
 import { asPlayerId } from "../../../../domain/shared/ids";
 import { TAP_TARGET_TYPE } from "../../identifiers";
 import type { BedrockTapTargets } from "../bedrockTapTargets";
 import { heldBuildItem } from "../heldBuildItem";
-import { type BlockPressContext, pressBlockCell } from "./wandPress";
+import {
+  type BlockPressContext,
+  blockPressIntent,
+  pressBlockCell,
+} from "./wandPress";
 
 export function registerTapTarget({
   targets,
@@ -20,13 +23,7 @@ export function registerTapTarget({
     // The preview can leave the old entity in place until its next refresh.
     if (!flow || !tapTargetCell(flow, owner.cell)) return;
     if (!context.debounce.press(playerId, system.currentTick)) return;
-    const intent = routePress({
-      flow,
-      role: "wand",
-      route: "blockInteract",
-      target: "block",
-      sneaking: player.isSneaking,
-    }).kind;
+    const intent = blockPressIntent(flow, player.isSneaking);
     const command = {
       player,
       playerId,

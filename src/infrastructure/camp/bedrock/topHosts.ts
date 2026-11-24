@@ -27,12 +27,14 @@ export const DUTCH_OVEN_ON_TOP: HostedItemKind = {
   id: "dutch_oven" as HostedKindId,
   footprint: DUTCH_OVEN_FOOTPRINT_PX,
   clearance: DUTCH_OVEN_SPEC.clearance,
+  refuses: DUTCH_OVEN_SPEC.refuses,
 };
 
 export const GAS_LANTERN_ON_TOP: HostedItemKind = {
   id: "gas_lantern" as HostedKindId,
   footprint: GAS_LANTERN_FOOTPRINT_PX,
   clearance: GAS_LANTERN_SPEC.tableClearance,
+  refuses: GAS_LANTERN_SPEC.refuses,
 };
 
 export function registerCampTopHosts(registry: TopHostRegistry): void {

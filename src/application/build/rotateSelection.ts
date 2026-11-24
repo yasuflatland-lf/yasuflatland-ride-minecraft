@@ -1,4 +1,4 @@
-import { confirmTappedSpan } from "../../domain/build/flow/flow";
+import { confirmTappedSpan } from "../../domain/build/flow/heightFlow";
 import { inDimension } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";

@@ -12,6 +12,7 @@ const game = vi.hoisted(() => {
   );
   class Player {
     id = "p";
+    isValid = true;
     selectedSlotIndex = 2;
     getGameMode() {
       return "Creative";

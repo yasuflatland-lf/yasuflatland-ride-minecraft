@@ -1,6 +1,5 @@
 import { ticks } from "../../../shared/ticks";
-import type { Medium } from "../../motion/motion";
-import type { TransformingSpec } from "../../motion/transforming";
+import { transformingSpecOf } from "../../motion/transforming";
 
 const HITBOX_FRONT = 1.34;
 
@@ -80,38 +79,7 @@ export const SUV_SPEC = Object.freeze({
   bankSink: 0.03, // blocks/tick of altitude lost at full bank
 } as const);
 
-export const AIR: Medium = Object.freeze({
-  drag: SUV_SPEC.flightDrag,
-  maxSpeed: SUV_SPEC.maxSpeed,
-});
-export const WATER: Medium = Object.freeze({
-  drag: SUV_SPEC.waterDrag,
-  maxSpeed: SUV_SPEC.maxWaterSpeed,
-});
-
-// The SUV's values for the shared transforming drivetrain (ADR 0050).
-export const SUV_TRANSFORMING: TransformingSpec = Object.freeze({
-  carHeight: SUV_SPEC.carHeight,
-  doubleTapTicks: SUV_SPEC.doubleTapTicks,
-  takeoffTicks: SUV_SPEC.takeoffTicks,
-  takeoffClimb: SUV_SPEC.takeoffClimb,
-  landingSink: SUV_SPEC.landingSink,
-  maxClimb: SUV_SPEC.maxClimb,
-  flightVerticalDrag: SUV_SPEC.flightVerticalDrag,
-  waterVerticalDrag: SUV_SPEC.waterVerticalDrag,
-  floatDraft: SUV_SPEC.floatDraft,
-  floatGain: SUV_SPEC.floatGain,
-  surfaceRise: SUV_SPEC.surfaceRise,
-  submarineStepProbeDrop: SUV_SPEC.submarineStepProbeDrop,
-  maxBank: SUV_SPEC.maxBank,
-  bankRate: SUV_SPEC.bankRate,
+export const SUV_TRANSFORMING = transformingSpecOf(SUV_SPEC, {
   bankEasing: "smooth",
-  bankSink: SUV_SPEC.bankSink,
-  gearDownHeight: SUV_SPEC.gearDownHeight,
-  gearProbeOffset: SUV_SPEC.gearProbeOffset,
-  hitboxFront: SUV_SPEC.hitboxFront,
-  stepLaneOffset: SUV_SPEC.stepLaneOffset,
-  air: AIR,
-  water: WATER,
   waterPolicy: "submerge",
 });

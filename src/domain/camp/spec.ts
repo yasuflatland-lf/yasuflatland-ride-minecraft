@@ -1,3 +1,4 @@
+import { VEHICLE_SPACE_ONLY } from "../shared/cells";
 import type { GiveBackPolicy } from "../shared/giveBack";
 import { GEAR_RECOVERY } from "../shared/hitCounter";
 import type { Paint } from "../shared/paint";
@@ -14,12 +15,14 @@ export const CHAIR_SPEC = Object.freeze({
   /** Hits in a row that fold the chair back into its item, as for vehicles (ADR 0008). */
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
 });
 
 export const TABLE_SPEC = Object.freeze({
   clearance: 2,
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
 });
 
 export const DUTCH_OVEN_SPEC = Object.freeze({
@@ -30,6 +33,7 @@ export const DUTCH_OVEN_SPEC = Object.freeze({
   clearance: 2,
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
   hostCheckTicks: ticks(20),
 });
 
@@ -41,6 +45,7 @@ export const FIRE_PIT_SPEC = Object.freeze({
   clearance: 2,
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
 });
 
 // Bump when the laid cells or clear box change.
@@ -67,6 +72,7 @@ export const TENT_SPEC = Object.freeze({
   /** Hits in a row from outside that take the tent down, as for the Low Chair (ADR 0122). */
   recovery: GEAR_RECOVERY,
   giveBack: "hitter" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
   /** Pitched tents a world may hold, in all dimensions together. */
   maxTents: 4,
   /** The tent's yaw snaps to this many degrees. */
@@ -140,6 +146,7 @@ export const GAS_LANTERN_SPEC = Object.freeze({
   spacing: 0.75,
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
 });
 
 export const ROOF_TENT_SPEC = Object.freeze({
@@ -160,6 +167,7 @@ export const ROOF_TENT_SPEC = Object.freeze({
   /** Matches ground gear recovery so the same three deliberate hits fold it (ADR 0200). */
   recovery: GEAR_RECOVERY,
   giveBack: "hitter" satisfies GiveBackPolicy,
+  refuses: VEHICLE_SPACE_ONLY,
   /** Checks faster than tabletop gear so a departing host promptly ejects its sleeper. */
   hostCheckTicks: ticks(4),
   /** Preserves direct interaction reach for ground and roof tents. */

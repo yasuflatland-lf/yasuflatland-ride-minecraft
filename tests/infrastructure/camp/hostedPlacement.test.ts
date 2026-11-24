@@ -29,6 +29,7 @@ const game = vi.hoisted(() => ({
   tick: 10,
   run: vi.fn(),
   interact: vi.fn(),
+  block: vi.fn(),
   script: vi.fn(),
   getEntity: vi.fn(),
 }));
@@ -38,7 +39,7 @@ vi.mock("@minecraft/server", () => ({
   world: {
     getEntity: game.getEntity,
     beforeEvents: {
-      playerInteractWithBlock: { subscribe: vi.fn() },
+      playerInteractWithBlock: { subscribe: game.block },
       playerInteractWithEntity: { subscribe: game.interact },
     },
     afterEvents: { entityHitEntity: { subscribe: vi.fn() } },
@@ -148,8 +149,24 @@ it.each(["lantern", "oven"] as const)(
     };
     const interact = game.interact.mock.calls[0]?.[0];
     interact(event);
-    expect(getComponent).not.toHaveBeenCalled();
     expect(event.cancel).toBe(true);
+    event.cancel = false;
+    interact(event);
+    expect(event.cancel).toBe(true);
+    expect(getComponent).not.toHaveBeenCalled();
+    const groundPress = {
+      player,
+      itemStack: event.itemStack,
+      block: {
+        dimension: { id: "overworld" },
+        location: { x: 0, y: 60, z: 0 },
+      },
+      blockFace: "Up",
+      isFirstEvent: true,
+      cancel: false,
+    };
+    game.block.mock.calls[0]?.[0](groundPress);
+    expect(groundPress.cancel).toBe(true);
     held = item;
     expect(placeHostedOnTop(player, host)).toBe(true);
     expect(game.run).toHaveBeenCalledOnce();

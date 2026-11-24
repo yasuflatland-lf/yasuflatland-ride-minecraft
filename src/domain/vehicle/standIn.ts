@@ -30,7 +30,7 @@ export interface StandInRule {
    * The lift limit while the vehicle is held parked, when lower than `maxLift`: a docked
    * vehicle's own blocks can stand above the ground in the middle box's cell (ADR 0119).
    */
-  readonly parkedMaxLift?: number;
+  readonly heldMaxLift?: number;
 }
 
 /** Where a vehicle's stand-in stands this tick: the feet of the middle box. */

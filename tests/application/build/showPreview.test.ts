@@ -14,7 +14,7 @@ import { UpdateBuildModes } from "../../../src/application/build/updateBuildMode
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import { tapAir } from "../../../src/domain/build/flow/flow";
+import { tapAir } from "../../../src/domain/build/flow/heightFlow";
 import { previewPoints } from "../../../src/domain/build/preview/preview";
 import {
   FACINGS,

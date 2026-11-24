@@ -1,8 +1,10 @@
 // The world's pitched tents, saved as one JSON list (ADR 0131).
+
 import { parseCell } from "../shared/cells";
+import { snapYaw } from "../shared/facing";
 import type { DimensionId } from "../shared/ids";
 import { TENT_LAYOUT_VERSION } from "./spec";
-import type { TentId, TentPose, TentYaw } from "./tent";
+import type { TentId, TentPose } from "./tent";
 
 export interface TentEntry {
   readonly id: TentId;
@@ -11,6 +13,7 @@ export interface TentEntry {
   readonly layout: number;
 }
 
+// Saved worlds use -90, rather than 270, for the fourth direction.
 const YAWS: readonly number[] = [0, 90, 180, -90];
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -21,7 +24,7 @@ function parsePose(v: unknown): TentPose | undefined {
   const cell = parseCell(v);
   const { yaw } = v;
   if (!cell || typeof yaw !== "number" || !YAWS.includes(yaw)) return undefined;
-  return { ...cell, yaw: (yaw + 0) as TentYaw };
+  return { ...cell, yaw: snapYaw(yaw) };
 }
 
 function parseEntry(v: unknown): TentEntry | undefined {

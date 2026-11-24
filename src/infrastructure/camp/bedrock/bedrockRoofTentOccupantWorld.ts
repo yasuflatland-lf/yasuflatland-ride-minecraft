@@ -30,6 +30,7 @@ export class BedrockRoofTentOccupantWorld implements RoofTentOccupantWorld {
 
   remember(entity: Entity, saveExit = false, spawnYaw?: number): void {
     this.occupants.remember(entity, saveExit, spawnYaw);
+    this.ceiling.remember(entity);
   }
 
   clearCeiling(id: RoofTentId): void {
@@ -38,6 +39,7 @@ export class BedrockRoofTentOccupantWorld implements RoofTentOccupantWorld {
 
   forget(id: RoofTentId): void {
     this.occupants.forget(id);
+    this.ceiling.forget(id);
   }
 
   occupantOf(id: RoofTentId): PlayerId | undefined {

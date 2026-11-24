@@ -4,6 +4,11 @@ import type { Vec3 } from "./vec";
 /** Block cell, as integer coordinates. */
 export type Cell = Vec3;
 
+export type ProtectedSpace = "vehicle" | "camp";
+export const VEHICLE_SPACE_ONLY: readonly ProtectedSpace[] = Object.freeze([
+  "vehicle",
+]);
+
 export function parseCell(raw: unknown): Cell | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const { x, y, z } = raw as Cell;

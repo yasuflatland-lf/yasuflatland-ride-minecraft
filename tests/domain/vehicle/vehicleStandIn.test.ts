@@ -27,9 +27,9 @@ const RULE = defined(CAMPER_PROFILE.standIn, "camper stand-in");
 /** The camper with its stand-in rule's lift limits replaced by `lifts`. */
 function camperWithLifts(lifts: {
   maxLift?: number;
-  parkedMaxLift?: number;
+  heldMaxLift?: number;
 }): VehicleProfile {
-  const { maxLift: _max, parkedMaxLift: _parked, ...rule } = RULE;
+  const { maxLift: _max, heldMaxLift: _parked, ...rule } = RULE;
   return { ...CAMPER_PROFILE, standIn: { ...rule, ...lifts } };
 }
 const yaw = fc.double({ min: -720, max: 720, noNaN: true });
@@ -315,7 +315,7 @@ describe("vehicle stand-in (ADR 0116)", () => {
   });
 
   it("rises out of ground in the wall foot while parked, but not into the front end wall above it (ADR 0119)", () => {
-    const parkedMaxLift = defined(RULE.parkedMaxLift, "parked max lift");
+    const heldMaxLift = defined(RULE.heldMaxLift, "parked max lift");
     fc.assert(
       fc.property(
         fc.integer({ min: -8, max: 8 }),
@@ -335,7 +335,7 @@ describe("vehicle stand-in (ADR 0116)", () => {
             stubCamper([snapped], hold).next(hold, solidAt).standIn,
             "stand-in",
           );
-          expect(pose.y).toBe(cy + Math.min(ground ? 1 : 0, parkedMaxLift));
+          expect(pose.y).toBe(cy + Math.min(ground ? 1 : 0, heldMaxLift));
           expect(Math.floor(pose.x)).toBe(middle.x);
           expect(Math.floor(pose.z)).toBe(middle.z);
         },
@@ -353,7 +353,7 @@ describe("vehicle stand-in (ADR 0116)", () => {
         (quarter, at, held, parked) => {
           const snapped = quarter * 90;
           const profile = camperWithLifts(
-            parked === undefined ? {} : { parkedMaxLift: parked },
+            parked === undefined ? {} : { heldMaxLift: parked },
           );
           const camper = stubCamper([snapped], held ? at : undefined, profile);
           const pose = defined(camper.next(at, () => true).standIn, "s");

@@ -1,3 +1,4 @@
+import type { ProtectedSpace } from "../../../domain/shared/cells";
 import type { Brand } from "../../../domain/shared/ids";
 import type { TopRect } from "../../../domain/shared/tableTop";
 
@@ -10,4 +11,5 @@ export interface HostedItemKind {
   readonly footprint: TopRect;
   /** Free air cells the item needs above the table's ground cell. */
   readonly clearance: number;
+  readonly refuses?: readonly ProtectedSpace[];
 }

@@ -1,6 +1,5 @@
 import { ticks } from "../../../shared/ticks";
-import type { Medium } from "../../motion/motion";
-import type { TransformingSpec } from "../../motion/transforming";
+import { transformingSpecOf } from "../../motion/transforming";
 
 /**
  * Keeps the 16.22 px closed aisle at least the 9.6 px player width (0.6 block):
@@ -158,37 +157,7 @@ export const DRAWER_GEAR_IDS: ReadonlySet<string> = new Set([
   "binoculars",
 ]);
 
-export const CAMPER_AIR: Medium = Object.freeze({
-  drag: CAMPER_SPEC.flightDrag,
-  maxSpeed: CAMPER_SPEC.maxSpeed,
-});
-export const CAMPER_WATER: Medium = Object.freeze({
-  drag: CAMPER_SPEC.waterDrag,
-  maxSpeed: CAMPER_SPEC.maxWaterSpeed,
-});
-
-export const CAMPER_TRANSFORMING: TransformingSpec = Object.freeze({
-  carHeight: CAMPER_SPEC.carHeight,
-  doubleTapTicks: CAMPER_SPEC.doubleTapTicks,
-  takeoffTicks: CAMPER_SPEC.takeoffTicks,
-  takeoffClimb: CAMPER_SPEC.takeoffClimb,
-  landingSink: CAMPER_SPEC.landingSink,
-  maxClimb: CAMPER_SPEC.maxClimb,
-  flightVerticalDrag: CAMPER_SPEC.flightVerticalDrag,
-  waterVerticalDrag: CAMPER_SPEC.waterVerticalDrag,
-  floatDraft: CAMPER_SPEC.floatDraft,
-  floatGain: CAMPER_SPEC.floatGain,
-  surfaceRise: CAMPER_SPEC.surfaceRise,
-  submarineStepProbeDrop: CAMPER_SPEC.submarineStepProbeDrop,
-  maxBank: CAMPER_SPEC.maxBank,
-  bankRate: CAMPER_SPEC.bankRate,
+export const CAMPER_TRANSFORMING = transformingSpecOf(CAMPER_SPEC, {
   bankEasing: "constant",
-  bankSink: CAMPER_SPEC.bankSink,
-  gearDownHeight: CAMPER_SPEC.gearDownHeight,
-  gearProbeOffset: CAMPER_SPEC.gearProbeOffset,
-  hitboxFront: CAMPER_SPEC.hitboxFront,
-  stepLaneOffset: CAMPER_SPEC.stepLaneOffset,
-  air: CAMPER_AIR,
-  water: CAMPER_WATER,
   waterPolicy: "submerge",
 });
