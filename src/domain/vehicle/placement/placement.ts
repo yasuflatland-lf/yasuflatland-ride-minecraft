@@ -1,7 +1,8 @@
 // Where a vehicle goes when its item is used on a block (ADR 0008, ADR 0051),
 // and whether there is room for it there.
+
+import { anchorCell, type BlockFace, isTopFace } from "../../shared/blockFace";
 import type { Vec3 } from "../../shared/vec";
-import { add3 } from "../../shared/vec";
 import type { VehicleBody } from "../profile";
 import { SPEC } from "../spec";
 
@@ -52,18 +53,6 @@ export function surfaceCellY(
   return y;
 }
 
-/** The face of a block that was clicked. */
-export type BlockFace = "up" | "down" | "north" | "south" | "east" | "west";
-
-export const FACE_OFFSET: Readonly<Record<BlockFace, Vec3>> = Object.freeze({
-  up: Object.freeze({ x: 0, y: 1, z: 0 }),
-  down: Object.freeze({ x: 0, y: -1, z: 0 }),
-  north: Object.freeze({ x: 0, y: 0, z: -1 }),
-  south: Object.freeze({ x: 0, y: 0, z: 1 }),
-  east: Object.freeze({ x: 1, y: 0, z: 0 }),
-  west: Object.freeze({ x: -1, y: 0, z: 0 }),
-});
-
 export type PlacementLiquid = "water" | "lava";
 
 /**
@@ -109,7 +98,7 @@ function cellOnSurface(
 ): Vec3 | undefined {
   switch (surface) {
     case "top":
-      return face === "up" ? clicked : undefined;
+      return isTopFace(face) ? clicked : undefined;
     case "water":
     case "lava":
       return liquidSurfaceCell(
@@ -127,8 +116,7 @@ function liquidSurfaceCell(
   isWaterAt: (at: Vec3) => boolean,
   maxClimb: number,
 ): Vec3 | undefined {
-  const offset = FACE_OFFSET[face];
-  const next = add3(clicked, offset);
+  const next = anchorCell(clicked, face);
   for (const cell of [clicked, next]) {
     if (!isWaterAt(cell)) continue;
     const { x, z } = cell;

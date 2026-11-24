@@ -4,6 +4,7 @@ import {
   type FirePitId,
 } from "../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../domain/camp/spec";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
@@ -26,7 +27,7 @@ export class FirePitActions {
 
   constructor(private readonly world: FirePitWorld) {}
 
-  canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
+  canUseBlock(dimension: DimensionId, block: Vec3, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
   }
 
