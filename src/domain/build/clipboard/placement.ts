@@ -1,6 +1,6 @@
+import type { BlockFace } from "../../shared/blockFace";
 import type { Cell } from "../../shared/cells";
 import type { Vec3 } from "../../shared/vec";
-import type { Face } from "../aim/face";
 import { boxOf, type CellBox, type Size } from "../box";
 import {
   FACINGS,
@@ -21,7 +21,7 @@ export function placedPasteBox(
   anchor: Cell,
   size: Size,
   facing: Facing,
-  face: Face,
+  face: BlockFace,
 ): CellBox {
   const vertical = face === "up" || face === "down";
   const { forward, right } = DIRECTIONS[vertical ? facing : opposite(face)];

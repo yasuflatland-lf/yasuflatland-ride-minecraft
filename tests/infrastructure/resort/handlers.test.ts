@@ -127,7 +127,7 @@ describe.each(handlerCases)(
   ({ item, entity, placementFields, hitTime, setup }) => {
     it.each([
       ["Up", "up"],
-      ["North", "other"],
+      ["North", "north"],
     ])(
       "cancels a %s press and defers one placement with the captured command",
       (blockFace, face) => {

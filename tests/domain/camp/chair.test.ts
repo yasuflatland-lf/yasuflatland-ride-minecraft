@@ -1,14 +1,14 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  type ChairFace,
   canPlaceChair,
   chairCell,
   chairYaw,
 } from "../../../src/domain/camp/chair";
 import { CHAIR_SPEC } from "../../../src/domain/camp/spec";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 
-const FACES: ChairFace[] = ["up", "down", "north", "south", "east", "west"];
+const FACES: BlockFace[] = ["up", "down", "north", "south", "east", "west"];
 const cell = fc.record({
   x: fc.integer({ min: -1000, max: 1000 }),
   y: fc.integer({ min: -64, max: 320 }),

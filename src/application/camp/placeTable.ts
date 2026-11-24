@@ -4,6 +4,7 @@ import {
   tableOrigin,
   tableYaw,
 } from "../../domain/camp/table";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnCells } from "../shared/groundPlacement";
@@ -20,7 +21,7 @@ interface PlaceTableCommand {
 export class PlaceTable {
   constructor(private readonly world: TableWorld) {}
 
-  canUseBlock(dimensionId: DimensionId, block: Vec3, face: string): boolean {
+  canUseBlock(dimensionId: DimensionId, block: Vec3, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimensionId, block, face);
   }
 

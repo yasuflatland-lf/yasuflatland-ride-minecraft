@@ -1,5 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
+import {
+  type BlockFace,
+  FACE_OFFSET,
+} from "../../../../src/domain/shared/blockFace";
 import type { Vec3 } from "../../../../src/domain/shared/vec";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { CAMPER_PROFILE } from "../../../../src/domain/vehicle/kinds/camper/profile";
@@ -7,10 +11,8 @@ import { profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { SPORTSBOAT_PROFILE } from "../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SUV_PROFILE } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import {
-  type BlockFace,
   canPlaceAt,
   clearanceHeight,
-  FACE_OFFSET,
   placementCell,
   surfaceCellY,
 } from "../../../../src/domain/vehicle/placement/placement";
