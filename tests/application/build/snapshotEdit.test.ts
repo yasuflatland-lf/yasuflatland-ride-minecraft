@@ -109,17 +109,16 @@ it("captures exact snapshots and forwards the store's refusal", () => {
   );
 });
 
-it("commits the snapshot and discards the evicted handle", () => {
+it("commits the snapshot and queues the evicted handle for release", () => {
   const { edit, session, structures } = setup();
   const handles = Array.from({ length: BUILD_SPEC.undoDepth + 1 }, (_, i) =>
     structureHandle(`snapshot_${i}`),
   );
   for (const handle of handles) {
-    structures.live.add(handle);
     edit.commit({ box, handle, paste: true });
   }
-  expect(structures.calls).toEqual([{ kind: "discard", handle: handles[0] }]);
-  expect([...structures.live]).toEqual(handles.slice(1));
+  expect(session.drainReleased()).toEqual([handles[0]]);
+  expect(structures.calls).toEqual([]);
   expect(session.takeUndo()).toEqual({
     kind: "snapshot",
     snapshot: { box, handle: handles.at(-1), dimensionId, paste: true },

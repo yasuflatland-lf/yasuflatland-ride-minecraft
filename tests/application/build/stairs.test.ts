@@ -36,20 +36,13 @@ const to = { ...from, x: 0 };
 const hit = { x: 5, y: 12, z: 4 };
 
 function fixture() {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const aim = new FakeAimReader();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const log = { info() {}, warn() {}, error() {} };
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    log,
-    new FakeBuildPlayers(),
-    structures,
-  );
+  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   const choose = new ChooseStairs(repo, feedback);
   const fix = new FixStairGoal(repo, feedback, aim);
   const confirm = new ConfirmStairs(repo, feedback, jobs);

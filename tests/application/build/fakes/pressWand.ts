@@ -20,11 +20,11 @@ import {
 import { FakeStructureStore } from "./structureStore";
 
 export function wandFixture(afterPaste?: (id: PlayerId, tick: number) => void) {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const aim = new FakeAimReader();
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const onPasted = vi.fn(afterPaste);
   const press = new PressWand(repo, {
     setPoint: new SetPoint(repo, world, feedback),

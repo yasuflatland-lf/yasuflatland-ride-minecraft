@@ -73,15 +73,16 @@ export class CutBox implements BoxAction {
       this.feedback.showMessage(playerId, "cutRestored");
       return false;
     }
-    const previous = session.completeCopy(selection, {
-      material: selection.material,
-      facing: cmd.facing,
-      size: sizeOf(box),
-      blockCount: count,
-      contents: { kind: "structure", handle },
+    this.repo.update(session, (session) => {
+      session.completeCopy(selection, {
+        material: selection.material,
+        facing: cmd.facing,
+        size: sizeOf(box),
+        blockCount: count,
+        contents: { kind: "structure", handle },
+      });
+      edit.commit({ box, handle: snapshot });
     });
-    if (previous !== undefined) this.structures.discard(previous);
-    edit.commit({ box, handle: snapshot });
     if (!cleared) {
       this.log.warn(
         `build cut for ${playerId} could not clear all blocks; snapshot retained for undo`,

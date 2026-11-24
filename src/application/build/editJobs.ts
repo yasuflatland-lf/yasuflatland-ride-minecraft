@@ -19,11 +19,9 @@ import { cellKey } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import { attempt } from "../shared/isolated";
 import type { Logger } from "../shared/ports/logger";
-import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildPlayers } from "./ports/players";
-import type { BuildStructureStore } from "./ports/structures";
 import { reportEditCompletion } from "./snapshotEdit";
 import { unstuck } from "./unstuck";
 
@@ -59,7 +57,6 @@ export class EditJobs {
     private readonly feedback: BuildFeedback,
     private readonly log: Logger,
     private readonly players: BuildPlayers,
-    private readonly structures: Pick<BuildStructureStore, "discard">,
   ) {}
 
   /** Queues a plan for the player's running edit (BuildSession.beginEdit already succeeded). */
@@ -88,42 +85,34 @@ export class EditJobs {
       const share = Math.max(1, Math.ceil(budget / this.jobs.length));
       for (const job of [...this.jobs]) {
         if (budget <= 0) break;
-        let used = 0;
-        const succeeded = attempt(
-          () => {
-            used = this.run(job, Math.min(share, budget));
-          },
-          this.log,
-          () => `build edit job for ${job.playerId} failed`,
-        );
-        if (succeeded) {
-          budget -= used;
-        } else if (this.jobs.includes(job)) {
+        const session = this.repo.get(job.playerId);
+        if (!session) {
           this.drop(job);
-          attempt(
+          continue;
+        }
+        this.repo.update(session, () => {
+          const succeeded = attempt(
             () => {
-              discardAll(
-                this.structures,
-                this.repo
-                  .get(job.playerId)
-                  ?.finishEdit(recordOf(job), job.kind) ?? [],
-              );
+              budget -= this.run(job, session, Math.min(share, budget));
             },
             this.log,
-            () => `build edit history for ${job.playerId} failed`,
+            () => `build edit job for ${job.playerId} failed`,
           );
-        }
+          if (!succeeded && this.jobs.includes(job)) {
+            this.drop(job);
+            attempt(
+              () => session.finishEdit(recordOf(job), job.kind),
+              this.log,
+              () => `build edit history for ${job.playerId} failed`,
+            );
+          }
+        });
       }
     }
   }
 
   /** Runs up to `limit` plan steps of one job and returns how many it consumed. */
-  private run(job: Job, limit: number): number {
-    const session = this.repo.get(job.playerId);
-    if (!session) {
-      this.drop(job);
-      return 0;
-    }
+  private run(job: Job, session: BuildSession, limit: number): number {
     const occupant = this.players.occupantOf(job.playerId);
     const feet =
       occupant?.dimensionId === job.dimensionId ? occupant.feet : undefined;
@@ -145,13 +134,7 @@ export class EditJobs {
 
   private finishJob(job: Job, session: BuildSession): void {
     this.drop(job);
-    const evicted = session.finishEdit(recordOf(job), job.kind);
-    // A throwing discard must not skip unstuck and the completion feedback below.
-    attempt(
-      () => discardAll(this.structures, evicted),
-      this.log,
-      () => `build edit snapshot discard for ${job.playerId} failed`,
-    );
+    session.finishEdit(recordOf(job), job.kind);
     attempt(
       () => {
         if (job.buriedOwner)

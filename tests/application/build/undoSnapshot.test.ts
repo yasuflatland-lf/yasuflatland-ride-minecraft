@@ -32,19 +32,12 @@ const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 const boxArb = fc.tuple(cell, cell).map(([a, b]) => boxOf(a, b));
 
 function setup(box: CellBox) {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const log = { warn: vi.fn() };
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    log,
-    new FakeBuildPlayers(),
-    structures,
-  );
+  const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const session = repo.getOrCreate(playerId);
   const handle = structures.capture(overworld, box, playerId, "exact");

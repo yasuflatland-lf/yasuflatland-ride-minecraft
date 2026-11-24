@@ -76,7 +76,6 @@ export function installBuild(deps: {
   isExcludedEntityType: (typeId: string) => boolean;
   uncopyableBlockTypes: readonly string[];
 }) {
-  const repo = new InMemorySessionRepository();
   const feedback = new BedrockFeedback();
   const ports = {
     blocks: new BedrockBlockWorld(deps),
@@ -85,6 +84,7 @@ export function installBuild(deps: {
       deps.uncopyableBlockTypes,
     ),
   };
+  const repo = new InMemorySessionRepository(ports.structures, consoleLogger);
   const { blocks } = ports;
   const aimOverrides = new Map<PlayerId, AimOverride>();
   const aim = new BedrockAimReader(aimOverrides);
@@ -99,21 +99,11 @@ export function installBuild(deps: {
     BUILD_SPEC.rotateDebounceTicks,
   );
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const endSession = new EndBuildSession(repo, ports.structures, tapTargets);
-  const modes = new UpdateBuildModes(
-    repo,
-    new LeaveBuild(repo, ports.structures, tapTargets),
-  );
+  const endSession = new EndBuildSession(repo, tapTargets);
+  const modes = new UpdateBuildModes(repo, new LeaveBuild(repo, tapTargets));
   const players = new BedrockBuildPlayers();
   const facing = new BedrockFacingReader();
-  const jobs = new EditJobs(
-    repo,
-    blocks,
-    feedback,
-    consoleLogger,
-    players,
-    ports.structures,
-  );
+  const jobs = new EditJobs(repo, blocks, feedback, consoleLogger, players);
   const clear = new ClearSelection(repo, feedback);
   const copyBox = new CopyBox(repo, ports.structures, feedback);
   const cutBox = new CutBox(
@@ -140,7 +130,7 @@ export function installBuild(deps: {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback, facing),
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback, facing),
-    endPasting: new EndPasting(repo, ports.structures),
+    endPasting: new EndPasting(repo),
     newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, ports.structures, players),
     chooseHeighted,

@@ -4,7 +4,6 @@ import {
   system,
   world,
 } from "@minecraft/server";
-import { discardAll } from "../../../application/build/discardAll";
 import type { EndBuildSession } from "../../../application/build/endBuildSession";
 import type { MenuChoices } from "../../../application/build/menuChoices";
 import type { BuildStructureStore } from "../../../application/build/ports/structures";
@@ -135,11 +134,8 @@ export function registerTestEdit(
             );
             return;
           }
-          discardAll(
-            structures,
-            repo
-              .getOrCreate(playerId)
-              .recordSnapshot({ dimensionId, box, handle }),
+          repo.update(repo.getOrCreate(playerId), (session) =>
+            session.recordSnapshot({ dimensionId, box, handle }),
           );
         } else if (
           command === "structure" &&
@@ -166,25 +162,20 @@ export function registerTestEdit(
           if (handle === "tooLarge" || handle === "unreadable")
             throw new Error(handle);
           const selection = selectionOf(dimensionId, box, AIR);
-          const previous = repo.getOrCreate(playerId).completeCopy(selection, {
-            material: selection.material,
-            facing,
-            size: sizeOf(box),
-            blockCount: volume(box),
-            contents: { kind: "structure", handle },
+          repo.update(repo.getOrCreate(playerId), (session) => {
+            session.completeCopy(selection, {
+              material: selection.material,
+              facing,
+              size: sizeOf(box),
+              blockCount: volume(box),
+              contents: { kind: "structure", handle },
+            });
           });
-          if (previous) structures.discard(previous);
         } else if (command === "releaseStructures" && args.length === 0) {
-          const session = repo.getOrCreate(playerId);
-          const clipboard = session.clipboard;
-          if (clipboard?.contents.kind === "structure")
-            structures.discard(clipboard.contents.handle);
-          while (session.hasHistory && !session.isEditing) {
-            const entry = session.takeUndo();
-            if (typeof entry !== "string" && entry.kind === "snapshot")
-              structures.discard(entry.snapshot.handle);
-          }
-          session.endPasting();
+          repo.update(repo.getOrCreate(playerId), (session) => {
+            session.endPasting();
+            if (!session.isEditing) session.clearHistory();
+          });
         } else if (command === "state" && args.length === 0) {
           const mode = messages.lastMode(playerId);
           system.sendScriptEvent(

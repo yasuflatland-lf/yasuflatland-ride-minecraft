@@ -7,7 +7,6 @@ import type { BuildSession } from "../../domain/build/session";
 import type { StructureHandle } from "../../domain/build/structure/handle";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { discardAll } from "./discardAll";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildStructureStore, CaptureRefusal } from "./ports/structures";
 
@@ -74,13 +73,10 @@ export class SnapshotEdit {
   }
 
   commit(record: Omit<SnapshotRecord, "dimensionId">): void {
-    discardAll(
-      this.structures,
-      this.session.recordSnapshot({
-        dimensionId: this.context.dimensionId,
-        ...record,
-      }),
-    );
+    this.session.recordSnapshot({
+      dimensionId: this.context.dimensionId,
+      ...record,
+    });
   }
 
   rollback(
