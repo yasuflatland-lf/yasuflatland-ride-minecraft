@@ -197,7 +197,8 @@ export function installBuild(deps: {
     rotateSelection: new RotateSelection(repo, rotateBox, feedback, blocks),
     pasteDebounce,
     rotateDebounce,
-    refresh: (id, tick, reason) => preview.refresh(id, tick, reason),
+    refresh: (id, tick) => preview.refresh(id, tick),
+    refreshResumedPaste: (id, tick) => preview.refreshResumedPaste(id, tick),
   });
   const pressWand = new PressWand(
     repo,

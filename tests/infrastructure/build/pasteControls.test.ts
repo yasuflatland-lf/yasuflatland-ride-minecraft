@@ -122,6 +122,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const undo = vi.spyOn(pressUndo, "execute");
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const refresh = vi.fn();
+  const refreshResumedPaste = vi.fn();
   const aim = {
     dimensionOf: () => nether,
     aim: vi.fn(() => ({
@@ -146,6 +147,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotateDebounce,
     pasteDebounce,
     refresh,
+    refreshResumedPaste,
   });
   const player = {
     id,
@@ -187,6 +189,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotate,
     place,
     refresh,
+    refreshResumedPaste,
     aim,
     player,
     use,
@@ -248,7 +251,8 @@ it("immediately refreshes the ghost once when Place resumes aiming", () => {
   e.session.startNewCopy();
   engine.tick = 11;
   e.use();
-  expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11, "resumePaste");
+  expect(e.refreshResumedPaste).toHaveBeenCalledExactlyOnceWith(e.id, 11);
+  expect(e.refresh).not.toHaveBeenCalled();
   expect(e.structures.calls).toEqual([]);
 });
 
