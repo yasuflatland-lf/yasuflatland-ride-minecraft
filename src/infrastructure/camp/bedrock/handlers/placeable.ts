@@ -1,5 +1,4 @@
 import {
-  Direction,
   type Entity,
   Player,
   system,
@@ -7,20 +6,17 @@ import {
   world,
 } from "@minecraft/server";
 import {
-  asDimensionId,
   asPlayerId,
   type DimensionId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
-import { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import type { TickScopedSet } from "../../../../domain/shared/tickScoped";
+import {
+  type ItemOnBlock,
+  subscribeItemOnBlock,
+} from "../../../shared/placeable";
 
-export type PlaceContext = {
-  player: PlayerId;
-  dimension: DimensionId;
-  block: Vector3;
-  yaw: number;
-  slot: number;
-};
+export type PlaceContext = Omit<ItemOnBlock<string>, "kind" | "face">;
 
 export type HitContext = {
   entity: Entity;
@@ -41,25 +37,11 @@ export function registerPlaceableEntity(opts: {
   hit(ctx: HitContext): void;
   placements?: TickScopedSet<PlayerId>;
 }): void {
-  const placements = opts.placements ?? new TickScopedSet<PlayerId>();
-  world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
-    if (!ev.isFirstEvent || ev.itemStack?.typeId !== opts.itemId) return;
-    const dimension = asDimensionId(ev.block.dimension.id);
-    const block = ev.block.location;
-    if (
-      !opts.canUseBlock(
-        dimension,
-        block,
-        ev.blockFace === Direction.Up ? "up" : "other",
-      )
-    )
-      return;
-    ev.cancel = true;
-    const player = asPlayerId(ev.player.id);
-    if (!placements.add(system.currentTick, player)) return;
-    const yaw = ev.player.getRotation().y;
-    const slot = ev.player.selectedSlotIndex;
-    system.run(() => opts.place({ player, dimension, block, yaw, slot }));
+  subscribeItemOnBlock({
+    kindOf: (itemId) => (itemId === opts.itemId ? itemId : undefined),
+    accept: opts.canUseBlock,
+    placements: opts.placements,
+    place: ({ kind: _kind, face: _face, ...ctx }) => opts.place(ctx),
   });
   world.afterEvents.entityHitEntity.subscribe((ev) => {
     if (

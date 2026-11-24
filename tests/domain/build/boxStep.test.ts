@@ -2,10 +2,8 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  type HeightStepFlow,
-  heightStepBox,
-} from "../../../src/domain/build/flow/flow";
+import { heightStepBox } from "../../../src/domain/build/flow/heightFlow";
+import type { HeightStepFlow } from "../../../src/domain/build/flow/state";
 import type { HeightStepKind } from "../../../src/domain/build/volume/kind";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 

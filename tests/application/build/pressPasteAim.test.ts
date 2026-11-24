@@ -13,7 +13,7 @@ import {
   chooseHeighted,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -57,9 +57,10 @@ function setup(
   face: Face,
   tick: number,
 ) {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
+  const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
+  const session = repo.getOrCreate(playerId);
   const feedback = new FakeFeedback();
   const jobs = new EditJobs(
     repo,
@@ -67,9 +68,7 @@ function setup(
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
-    { discard: () => {} },
   );
-  const structures = new FakeStructureStore(world);
   const paste = new PasteAt(
     repo,
     world,

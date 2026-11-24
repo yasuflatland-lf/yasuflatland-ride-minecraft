@@ -1,7 +1,11 @@
 import { type Entity, world } from "@minecraft/server";
-import type { TopRefusal } from "../../../application/shared/placeOnTop";
+import type {
+  TopHostWorld,
+  TopRefusal,
+} from "../../../application/shared/placeOnTop";
 import type { HostedKindId } from "../../../application/shared/ports/hostedItem";
 import { decodeHost } from "../../../domain/shared/hosted";
+import { asDimensionId } from "../../../domain/shared/ids";
 import type {
   LocalPoint,
   TopItem,
@@ -33,7 +37,7 @@ export interface HostedEntityKind {
 
 export class TopHostRegistry {
   private readonly hosts = new Map<string, TopHostType>();
-  private readonly kinds = new Map<HostedKindId, HostedEntityKind>();
+  private readonly kinds = new Map<string, HostedEntityKind>();
 
   registerHost(type: TopHostType): void {
     this.hosts.set(type.hostType, type);
@@ -41,6 +45,10 @@ export class TopHostRegistry {
 
   registerHosted(kind: HostedEntityKind): void {
     this.kinds.set(kind.kind, kind);
+  }
+
+  hasHostedKind(name: string): name is HostedKindId {
+    return this.kinds.has(name);
   }
 
   hostTypeOf(entity: Entity): TopHostType | undefined {
@@ -72,10 +80,10 @@ export class TopHostRegistry {
         .getEntities({ type: kind.entityTypeId })
         .flatMap((entity) => {
           const value = entity.getDynamicProperty(kind.hostProperty);
-          const marker = decodeHost(
-            typeof value === "string" ? value : "",
-            (type, spot) => this.hosts.get(type)?.legacySpot?.(spot),
-          );
+          const marker = decodeHost(typeof value === "string" ? value : "", {
+            legacySpot: (type, spot) =>
+              this.hosts.get(type)?.legacySpot?.(spot),
+          });
           return marker.kind === "top" &&
             marker.hostType === hostType &&
             marker.id === id
@@ -92,4 +100,24 @@ export class TopHostRegistry {
   hostedOn(hostType: string, id: string): Entity[] {
     return this.entries(hostType, id).map((entry) => entry.entity);
   }
+}
+
+export function topHostView(
+  registry: TopHostRegistry,
+): Pick<TopHostWorld, "topHost" | "itemsOnTop"> {
+  return {
+    topHost(hostType, id) {
+      const host = registry.host(hostType, id);
+      return host
+        ? {
+            blockedAt: (at, footprint) =>
+              host.type.blockedAt?.(host.entity, at, footprint) ?? false,
+            dimension: asDimensionId(host.entity.dimension.id),
+            at: host.entity.location,
+            yaw: host.entity.getRotation().y,
+          }
+        : undefined;
+    },
+    itemsOnTop: (hostType, id) => registry.itemsOnTop(hostType, id),
+  };
 }

@@ -43,10 +43,10 @@ const origin = fc.record({
 const turn = fc.constantFrom<QuarterTurn>(0, 1, 2, 3);
 
 function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const store = new FakeStructureStore(world);
+  const repo = new FakeSessions(store);
+  const session = repo.getOrCreate(playerId);
   const feedback = new FakeFeedback();
   const players = new FakeBuildPlayers();
   const source = boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 3 });
@@ -84,14 +84,7 @@ function setup(block: { x: number; y: number; z: number }, turn: QuarterTurn) {
     tick: 100,
     sneaking: true,
   };
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    { warn: () => {} },
-    players,
-    store,
-  );
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const undo = new UndoEdit(repo, feedback, jobs, world, store, {
     warn: () => {},
   });
@@ -246,8 +239,7 @@ it("resets the turn on New copy, a completed copy and End pasting", () => {
               selectionOf(overworld, e.source, stone),
               e.clipboard,
             );
-          if (action === "endPasting")
-            new EndPasting(e.repo, e.store).execute(playerId);
+          if (action === "endPasting") new EndPasting(e.repo).execute(playerId);
           expect(e.session.pasteTurn).toBe(0);
           expect(new DescribeBuild(e.repo).execute(playerId).pasteTurn).toBe(0);
           if (action !== "completeCopy") {

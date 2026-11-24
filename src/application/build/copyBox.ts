@@ -35,9 +35,9 @@ export class CopyBox implements BoxAction {
       blockCount: count,
       contents: { kind: "structure", handle },
     };
-    const session = this.repo.getOrCreate(playerId);
-    const previous = session.completeCopy(selection, clipboard);
-    if (previous !== undefined) this.structures.discard(previous);
+    this.repo.update(this.repo.getOrCreate(playerId), (session) => {
+      session.completeCopy(selection, clipboard);
+    });
     this.feedback.showMessage(playerId, "copied", clipboard.blockCount);
     return true;
   }

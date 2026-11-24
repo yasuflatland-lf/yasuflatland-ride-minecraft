@@ -26,6 +26,10 @@
 
 ## Rules
 
+**Glossary**
+
+A camper is **parked** when held by the dock; its room is **laid** when its room blocks have been placed.
+
 ### Interior surface materials
 
 - Applies to: The centre floor, inner side lining, backsplash and dinette table.
@@ -47,7 +51,7 @@
 ### Camper tuning
 
 - Applies to: Camper ground, air, water, bank, and landing-gear motion.
-- Rule: Camper tuning comes from `CAMPER_SPEC`, never `SUV_SPEC`. Ground limits are assembled as `CAMPER_MOTION` and `CAMPER_TYRES` in `profile.ts`; flight and submarine media are `CAMPER_AIR` and `CAMPER_WATER`, and transformation, bank, and gear parameters are assembled as `CAMPER_TRANSFORMING` in `spec.ts`. Ground speed uses `CAMPER_SPEC.maxSpeed`, acceleration uses `CAMPER_SPEC.accel`, water speed uses `CAMPER_SPEC.maxWaterSpeed`, draft uses `CAMPER_SPEC.floatDraft`, bank uses `CAMPER_SPEC.maxBank`, `bankRate`, and `bankSink`, and gear uses `CAMPER_SPEC.gearDownHeight` and `gearProbeOffset`.
+- Rule: Camper tuning comes from `CAMPER_SPEC`, never `SUV_SPEC`. The shared pickers build `CAMPER_MOTION` and `CAMPER_TYRES` in `profile.ts` and build `CAMPER_TRANSFORMING` with its flight and submarine media in `spec.ts`. Ground speed uses `CAMPER_SPEC.maxSpeed`, acceleration uses `CAMPER_SPEC.accel`, water speed uses `CAMPER_SPEC.maxWaterSpeed`, draft uses `CAMPER_SPEC.floatDraft`, bank uses `CAMPER_SPEC.maxBank`, `bankRate`, and `bankSink`, and gear uses `CAMPER_SPEC.gearDownHeight` and `gearProbeOffset`.
 - Agreement: Accepted
 - Basis: [0067](../adr/0067-camper.md) Decision, "with its own `CAMPER_SPEC` (never `SUV_SPEC`)"
 - Implementation: `src/domain/vehicle/kinds/camper/spec.ts`; `src/domain/vehicle/kinds/camper/profile.ts`; `src/domain/vehicle/kinds/camper/drive.ts`
@@ -180,7 +184,7 @@ For a refactor that must preserve every cube, run `pnpm generate` at the base co
 - Rule: Parking requires car form, `onGround`, absolute speed below `SPEC.stoppedSpeed` for `DOCK.ticks` consecutive steps, and both stick axes within `DOCK.stick`. A seated driver is allowed. A failed check is attempted only once until movement or stick input resets the stop. The shared `snapYaw` rounds the parking yaw to a quarter turn; `parkPose` centers x and z in their cells. If the feet fraction is at least `LOW_GROUND_THRESHOLD`, y becomes `ceil(location.y)`; otherwise it becomes `floor(location.y + FEET_EPSILON)`. Refusal returns `cannot_park`, shown as "Can't park here".
 - Agreement: Accepted
 - Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "A seated driver does not stop it from parking. It tries once per stop"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "Parking snaps the yaw to the nearest 90 degrees and the location to the center of the feet's cell"
-- Implementation: `src/domain/vehicle/kinds/camper/drive.ts` (stillness conditions); `src/domain/vehicle/kinds/camper/parking.ts` (uses `StillTimer` and limits attempts to one per stop); `src/domain/vehicle/kinds/camper/parkPose.ts`; `src/domain/vehicle/kinds/camper/groundCheck.ts`; `src/domain/vehicle/motion/dock.ts` (`DOCK`, `StillTimer`); `packs/yasu_ride_rp/texts/en_US.lang`
+- Implementation: `src/domain/vehicle/kinds/camper/drive.ts` (stillness conditions); `src/domain/vehicle/kinds/camper/parking.ts` (uses `Hold` and limits attempts to one per stop); `src/domain/vehicle/kinds/camper/parkPose.ts`; `src/domain/vehicle/kinds/camper/groundCheck.ts`; `src/domain/vehicle/motion/dock.ts` (`DOCK`, `Hold`); `packs/yasu_ride_rp/texts/en_US.lang`
 - Verification: `tests/domain/vehicle/kinds/camper/parking.test.ts` "refuses any blocking cell once per stop, then retries after the stick resets the stop", "never parks off ground or with the stick pushed"; `tests/domain/vehicle/kinds/camper/room.test.ts` "snaps the body and floor together above low ground and down through lower snow layers". Not verified: low-ground and snow behavior on clients in this revision.
 
 ### Parked room shell
@@ -189,7 +193,7 @@ For a refactor that must preserve every cube, run `pnpm generate` at the base co
 - Rule: The room has a full floor over local x -1..1 and z -3..3 at layer 0, a ceiling at layer 3, side and end walls at layers 1–3, three door cells at the middle of the right wall, and a door step using `DOOR_STEP_HEIGHT`. With storage shut it returns 107 distinct cells: 21 floor, 19 ceiling, 57 wall, three door, one step, and six built-in furniture cells. Ceiling compartments and open plates are handled separately. Shell block identifiers are `yasu_ride:camper_floor`, `camper_ceiling`, `camper_wall`, `camper_door`, and `deck_floor` in the same namespace; furniture contributes bed, bunk, and shower-toilet blocks. Furniture behavior belongs to the interior topic.
 - Agreement: Accepted
 - Basis: [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "a full floor at layer 0 over x -1..1, z -3..3"; [0068](../adr/0068-park-the-camper-with-room-blocks.md) Decision, "walls at layers 1-3 around it; a 3-high door in the middle of the right side with a half-high step under it."
-- Implementation: `src/domain/vehicle/kinds/camper/roomCells.ts`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts`; `packs/yasu_ride_bp/blocks/yasu_ride`
+- Implementation: `src/domain/vehicle/kinds/camper/roomCells.ts`; `src/domain/vehicle/kinds/camper/furniture.ts`; `src/infrastructure/vehicle/bedrock/dockBlocks.ts` (deck step and shared layer); `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts` (room block codec); `packs/yasu_ride_bp/blocks/yasu_ride`
 - Verification: `tests/domain/vehicle/kinds/camper/room.test.ts` "lays 107 distinct integer cells with the specified counts at any snapped pose, an open cabinet door's plate in place of a ceiling cell and the open shower door's wall in place of a wall, and no fridge plate, which stands below the ceiling (ADR 0068, 0114, 0118, 0123)", "faces every plate inward and stacks the three door cells above the half step". Not verified: walking through the room on clients in this revision.
 
 ### Parking scan and decoration removal

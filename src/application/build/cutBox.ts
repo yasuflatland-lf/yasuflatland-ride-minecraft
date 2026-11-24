@@ -1,14 +1,16 @@
-import { cellsOf, sizeOf, volume } from "../../domain/build/box";
-import { completionMessage } from "../../domain/build/edit/completion";
-import { airPressOffersUndo } from "../../domain/build/flow/flow";
+import { sizeOf, volume } from "../../domain/build/box";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Logger } from "../shared/ports/logger";
 import type { BoxAction, BoxActionCommand } from "./boxAction";
-import { discardAll } from "./discardAll";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
-import type { BuildStructureStore } from "./ports/structures";
+import type { BuildStructureStore, CaptureRefusal } from "./ports/structures";
+import {
+  isCaptureRefusal,
+  reportEditCompletion,
+  SnapshotEdit,
+} from "./snapshotEdit";
 
 export class CutBox implements BoxAction {
   constructor(
@@ -28,61 +30,59 @@ export class CutBox implements BoxAction {
       return false;
     }
     const session = this.repo.getOrCreate(playerId);
-    if (session.isEditing) {
-      this.feedback.showMessage(playerId, "busy");
-      return false;
-    }
-    for (const cell of cellsOf(box)) {
-      if (!this.world.mayEdit(dimensionId, cell)) {
-        this.feedback.showMessage(playerId, "pasteBlocked");
-        return false;
-      }
-    }
-    const handle = this.structures.capture(dimensionId, box, playerId, "copy");
-    if (handle === "tooLarge" || handle === "unreadable") {
-      if (handle === "tooLarge")
-        this.feedback.showMessage(playerId, "tooLarge", count);
-      else this.feedback.showMessage(playerId, "copyUnreadable");
-      return false;
-    }
-    const snapshot = this.structures.capture(
+    const edit = new SnapshotEdit(session, this.structures, this.feedback, {
       dimensionId,
-      box,
       playerId,
-      "exact",
-    );
-    if (snapshot === "tooLarge" || snapshot === "unreadable") {
-      this.structures.discard(handle);
-      if (snapshot === "tooLarge")
+    });
+    if (
+      edit.preflight(
+        box,
+        {
+          allows: (cell) => this.world.mayEdit(dimensionId, cell),
+          busy: "beforeProtection",
+        },
+        () => this.feedback.showMessage(playerId, "pasteBlocked"),
+      )
+    )
+      return false;
+    const reportCaptureRefusal = (reason: CaptureRefusal) => {
+      if (reason === "tooLarge")
         this.feedback.showMessage(playerId, "tooLarge", count);
       else this.feedback.showMessage(playerId, "copyUnreadable");
+    };
+    const handle = this.structures.capture(dimensionId, box, playerId, "copy");
+    if (isCaptureRefusal(handle)) {
+      reportCaptureRefusal(handle);
       return false;
     }
-    this.structures.clearEntities(dimensionId, box);
-    const cleared = this.structures.clearBlocks(dimensionId, box);
-    if (!cleared && this.structures.place(snapshot, dimensionId, box.min)) {
+    const snapshot = edit.captureExact(box, (reason) => {
       this.structures.discard(handle);
-      this.structures.discard(snapshot);
+      reportCaptureRefusal(reason);
+    });
+    if (snapshot === undefined) return false;
+    const cleared = edit.clear(box);
+    if (
+      !cleared &&
+      edit.rollback(box, snapshot, {
+        clearEntities: false,
+        retainOnFailure: true,
+        discardWithSnapshot: handle,
+      })
+    ) {
       this.log.warn(`build cut for ${playerId} failed; area restored`);
       this.feedback.showMessage(playerId, "cutRestored");
       return false;
     }
-    const previous = session.completeCopy(selection, {
-      material: selection.material,
-      facing: cmd.facing,
-      size: sizeOf(box),
-      blockCount: count,
-      contents: { kind: "structure", handle },
+    this.repo.update(session, (session) => {
+      session.completeCopy(selection, {
+        material: selection.material,
+        facing: cmd.facing,
+        size: sizeOf(box),
+        blockCount: count,
+        contents: { kind: "structure", handle },
+      });
+      edit.commit({ box, handle: snapshot });
     });
-    if (previous !== undefined) this.structures.discard(previous);
-    discardAll(
-      this.structures,
-      session.recordSnapshot({
-        dimensionId,
-        box,
-        handle: snapshot,
-      }),
-    );
     if (!cleared) {
       this.log.warn(
         `build cut for ${playerId} could not clear all blocks; snapshot retained for undo`,
@@ -90,14 +90,14 @@ export class CutBox implements BoxAction {
       this.feedback.showMessage(playerId, "cutIncomplete");
       return true;
     }
-    const completion = completionMessage({
-      kind: "undoable",
-      skipped: 0,
-      flowOffersUndo: airPressOffersUndo(session.flow) && session.hasHistory,
-    });
-    this.feedback.showMessage(playerId, completion.message, count);
-    if (completion.takesUndoHint && session.takeUndoHint())
-      this.feedback.showUndoHint(playerId);
+    reportEditCompletion(
+      session,
+      this.feedback,
+      playerId,
+      "undoable",
+      count,
+      0,
+    );
     return true;
   }
 }

@@ -1,15 +1,8 @@
 import { system, world } from "@minecraft/server";
-import type { AimHeight } from "../../../../application/build/aimHeight";
-import type { ConfirmLiveHeight } from "../../../../application/build/confirmLiveHeight";
-import type { FixStairGoal } from "../../../../application/build/fixStairGoal";
-import type { AimReader } from "../../../../application/build/ports/aim";
-import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
-import type { SetPoint } from "../../../../application/build/setPoint";
-import type { TapAir } from "../../../../application/build/tapAir";
-import { acceptsAnyItemUse } from "../../../../domain/build/flow/flow";
-import { routePress } from "../../../../domain/build/flow/press";
-import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import type { Cell } from "../../../../domain/shared/cells";
+import {
+  acceptsAnyItemUse,
+  routePress,
+} from "../../../../domain/build/flow/press";
 import type { Debounces } from "../../../../domain/shared/debounce";
 import {
   asDimensionId,
@@ -17,53 +10,18 @@ import {
   type PlayerId,
 } from "../../../../domain/shared/ids";
 import { buildItemRole } from "../../identifiers";
-import type { BuildMenus } from "../buildMenus";
 import { heldBuildItem } from "../heldBuildItem";
 import {
   type BlockPressContext,
-  dispatchWandPress,
+  blockPressIntent,
   pressBlockCell,
+  showFollowUp,
 } from "./wandPress";
 
-export function registerWand({
-  setPoint,
-  tapAir,
-  pressPasteAim,
-  aimHeight,
-  confirmLiveHeight,
-  fixStairGoal,
-  repo,
-  menus,
-  aim,
-  debounce,
-  pasteDebounce,
-  refresh,
-  pointOf,
-}: {
-  setPoint: SetPoint;
-  tapAir: TapAir;
-  pressPasteAim: PressPasteAim;
-  aimHeight: AimHeight;
-  confirmLiveHeight: ConfirmLiveHeight;
-  fixStairGoal: FixStairGoal;
-  repo: BuildSessionRepository;
-  menus: BuildMenus;
-  aim: AimReader;
-  debounce: Debounces<PlayerId>;
-  pasteDebounce: Debounces<PlayerId>;
-  refresh(playerId: PlayerId, tick: number): void;
-  pointOf(playerId: PlayerId): Cell | undefined;
-}): void {
-  const blockPressContext: BlockPressContext = {
-    aim,
-    aimHeight,
-    confirmLiveHeight,
-    debounce,
-    fixStairGoal,
-    menus,
-    repo,
-    setPoint,
-  };
+export function registerWand(
+  context: BlockPressContext & { pasteDebounce: Debounces<PlayerId> },
+): void {
+  const { aim, debounce, menus, pasteDebounce, pressWand, repo } = context;
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (heldBuildItem(ev.player) === "wand") ev.cancel = true;
   });
@@ -74,13 +32,7 @@ export function registerWand({
     const player = ev.player;
     const playerId = asPlayerId(player.id);
     const flow = repo.get(playerId)?.flow ?? { kind: "idle" };
-    const intent = routePress({
-      flow,
-      role: "wand",
-      route: "blockInteract",
-      target: "block",
-      sneaking: player.isSneaking,
-    }).kind;
+    const intent = blockPressIntent(flow, player.isSneaking);
     if (intent === "ignore") return;
     // A PC right-click can emit itemUse before the deferred block action runs.
     if (
@@ -95,7 +47,7 @@ export function registerWand({
       dimensionId: asDimensionId(ev.block.dimension.id),
       cell: ev.block.location,
     };
-    system.run(() => pressBlockCell(blockPressContext, command, intent));
+    system.run(() => pressBlockCell(context, command, intent));
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (!source.isValid || buildItemRole(itemStack.typeId) !== "wand") return;
@@ -106,23 +58,25 @@ export function registerWand({
     const presses =
       source.isSneaking && flow?.kind === "pasteAim" ? pasteDebounce : debounce;
     if (!presses.press(playerId, tick)) return;
-    dispatchWandPress({
-      source,
+    if (!flow) return;
+    // FixStairGoal samples its own block hit.
+    const target =
+      flow.kind === "stairAim" || flow.kind === "stairContents"
+        ? undefined
+        : aim.aim(playerId);
+    const intent = routePress({
+      flow,
+      role: "wand",
+      route: "itemUse",
+      target: target ? (target.block ? "block" : "air") : "none",
+      sneaking: source.isSneaking,
+    }).kind;
+    const followUp = pressWand.execute({
       playerId,
-      aim,
-      repo,
-      pressPasteAim,
-      aimHeight,
-      confirmLiveHeight,
-      fixStairGoal,
-      menus,
-      refresh: (id, now) => {
-        // Another event from the paste gesture now routes through selection.
-        debounce.press(id, now);
-        refresh(id, now);
-      },
-      pointOf,
-      tapAir,
+      intent,
+      dimensionId: asDimensionId(source.dimension.id),
+      itemUse: { aim: target, tick, sneaking: source.isSneaking },
     });
+    showFollowUp(menus, source, followUp);
   });
 }

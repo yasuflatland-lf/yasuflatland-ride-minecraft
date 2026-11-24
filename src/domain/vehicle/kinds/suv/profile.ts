@@ -1,5 +1,5 @@
 import { dyeable } from "../../../shared/paint";
-import type { MotionLimits, TyreLimits } from "../../motion/limits";
+import { motionLimitsOf, tyreLimitsOf } from "../../motion/limits";
 import {
   clearanceHeight,
   type PlacementLiquid,
@@ -69,21 +69,6 @@ export const SUV_PROFILE: VehicleProfile = Object.freeze({
   paintPolicy: dyeable("khaki"),
 });
 
-// Frozen because every SUV drive shares this one object.
-export const SUV_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: SUV_SPEC.maxSpeed,
-  maxReverse: SUV_SPEC.maxReverse,
-  accel: SUV_SPEC.accel,
-  reverseAccel: SUV_SPEC.reverseAccel,
-  brake: SUV_SPEC.brake,
-  drag: SUV_SPEC.drag,
-  turnRate: SUV_SPEC.turnRate,
-  steerFullSpeed: SUV_SPEC.steerFullSpeed,
-  grip: SUV_SPEC.grip,
-});
+export const SUV_MOTION = motionLimitsOf(SUV_SPEC);
 
-// Frozen because every SUV drive shares this one object.
-export const SUV_TYRES: TyreLimits = Object.freeze({
-  handbrakeGrip: SUV_SPEC.handbrakeGrip,
-  creepSpeed: SUV_SPEC.creepSpeed,
-});
+export const SUV_TYRES = tyreLimitsOf(SUV_SPEC);

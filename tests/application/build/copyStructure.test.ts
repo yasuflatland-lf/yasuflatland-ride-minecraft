@@ -35,8 +35,8 @@ const boxArb = fc
     boxOf(min, { x: min.x + x - 1, y: min.y + y - 1, z: min.z + z - 1 }),
   );
 function setup() {
-  const repo = new FakeSessions();
   const structures = new FakeStructureStore();
+  const repo = new FakeSessions(structures);
   const feedback = new FakeFeedback();
   const copy = new CopyBox(repo, structures, feedback);
   return { repo, structures, feedback, copy };
@@ -296,19 +296,13 @@ it.each(["absent", "structure"] as const)(
               new NewCopy(e.repo).execute(playerId);
             else {
               if (operation === "endPasting")
-                new EndPasting(e.repo, e.structures).execute(playerId);
+                new EndPasting(e.repo).execute(playerId);
               else if (operation === "leaveBuild")
-                new LeaveBuild(
-                  e.repo,
-                  e.structures,
-                  new FakeTapTargets(),
-                ).execute(playerId);
+                new LeaveBuild(e.repo, new FakeTapTargets()).execute(playerId);
               else {
-                new EndBuildSession(
-                  e.repo,
-                  e.structures,
-                  new FakeTapTargets(),
-                ).execute(playerId);
+                new EndBuildSession(e.repo, new FakeTapTargets()).execute(
+                  playerId,
+                );
                 snapshotHandles = [];
                 sessionExists = false;
               }
@@ -365,11 +359,7 @@ it.each(["absent", "structure"] as const)(
               );
             }
           }
-          new EndBuildSession(
-            e.repo,
-            e.structures,
-            new FakeTapTargets(),
-          ).execute(playerId);
+          new EndBuildSession(e.repo, new FakeTapTargets()).execute(playerId);
           expect(e.structures.live.size).toBe(0);
           expect(discarded).toEqual(captured);
         },

@@ -10,7 +10,7 @@ import {
   setHeight,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -30,13 +30,13 @@ const span = boxOf(from, to);
 const material = blockStateOf("minecraft:stone");
 
 function setup(previous: number) {
-  const repo = new FakeSessions();
+  const world = new FakeWorld();
+  const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const session = repo.getOrCreate(playerId);
   const flow = tapAir(tapBlock(session.flow, overworld, from, material), to);
   if (flow.kind !== "baseHeight") throw new Error("Expected baseHeight");
   session.setFlow({ ...flow, previous });
-  const world = new FakeWorld();
-  const structures = new FakeStructureStore(world);
   const feedback = new FakeFeedback();
   const core = new RotateBox(
     repo,

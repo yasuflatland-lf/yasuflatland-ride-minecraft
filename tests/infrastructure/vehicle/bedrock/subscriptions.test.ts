@@ -10,7 +10,6 @@ import {
   type PlayerBreakBlockBeforeEvent,
   type PlayerInteractWithBlockBeforeEvent,
   type PlayerInteractWithEntityBeforeEvent,
-  type PlayerSpawnAfterEvent,
   type ScriptEventCommandMessageAfterEvent,
   type StartupEvent,
   system,
@@ -58,13 +57,13 @@ import {
   decorBlockId,
   pairDecorBlockId,
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
-import { installCamper } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
+import { registerCamperHandlers } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
 import { FakeClock, FakeWorld } from "../../../application/vehicle/fakes";
 import { defined } from "../../../support/defined";
 
 type UseCases = Parameters<typeof registerCoreSubscriptions>[0] &
-  Parameters<typeof installCamper>[0];
+  Parameters<typeof registerCamperHandlers>[0];
 
 function register({
   useCases = {} as UseCases,
@@ -76,8 +75,8 @@ function register({
 }: {
   useCases?: UseCases;
   testInputs?: VehicleTestStore<RawInput>;
-  doorOwner?: Parameters<typeof installCamper>[1];
-  cellOwner?: Parameters<typeof installCamper>[2];
+  doorOwner?: Parameters<typeof registerCamperHandlers>[1];
+  cellOwner?: Parameters<typeof registerCamperHandlers>[2];
   blockOwner?: Parameters<typeof registerDockGuard>[0];
   laterSwitchTargets?: () => readonly SwitchTarget[];
 } = {}): void {
@@ -86,7 +85,7 @@ function register({
     testInputs,
     cellOwner,
     () =>
-      installCamper(useCases, doorOwner, cellOwner, () =>
+      registerCamperHandlers(useCases, doorOwner, cellOwner, () =>
         registerDockGuard(blockOwner),
       ),
     laterSwitchTargets,
@@ -143,7 +142,6 @@ vi.mock("@minecraft/server", () => {
         entityLoad: signal(),
         entitySpawn: signal(),
         entityDie: signal(),
-        playerSpawn: signal(),
         entityHitEntity: signal(),
       },
     },
@@ -1166,22 +1164,6 @@ it("checks the hints every hint interval, after the drive on the same tick (ADR 
   expect(drive.execute.mock.invocationCallOrder[0]).toBeLessThan(
     defined(hints.execute.mock.invocationCallOrder[0], "hints call"),
   );
-});
-
-it("gives the starter vehicle only on a player's initial spawn", () => {
-  const starter = { execute: vi.fn() };
-  register({
-    useCases: { starter } as unknown as UseCases,
-  });
-  const spawn = vi
-    .mocked(world.afterEvents.playerSpawn.subscribe)
-    .mock.calls.at(-1)?.[0];
-  if (!spawn) throw new Error("playerSpawn not subscribed");
-  const player = { id: "player" };
-  spawn({ player, initialSpawn: false } as unknown as PlayerSpawnAfterEvent);
-  expect(starter.execute).not.toHaveBeenCalled();
-  spawn({ player, initialSpawn: true } as unknown as PlayerSpawnAfterEvent);
-  expect(starter.execute).toHaveBeenCalledExactlyOnceWith("player");
 });
 
 it("dispatches driving input only from valid server events", () => {

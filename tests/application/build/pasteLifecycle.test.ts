@@ -14,7 +14,7 @@ import {
   chooseHeighted,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -41,11 +41,11 @@ const stone = blockStateOf("minecraft:stone");
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
 function setup() {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const feedback = new FakeFeedback();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
+  const session = repo.getOrCreate(playerId);
   const at = { x: 0, y: 0, z: 0 };
   holdClipboard(
     session,
@@ -88,11 +88,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         beginPasteAim(),
       ]) {
         const e = setup();
-        const leave = new LeaveBuild(
-          e.repo,
-          e.structures,
-          new FakeTapTargets(),
-        );
+        const leave = new LeaveBuild(e.repo, new FakeTapTargets());
         const execute = vi.spyOn(leave, "execute");
         const modes = new UpdateBuildModes(e.repo, leave);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
@@ -146,11 +142,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         const e = setup();
         e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
         e.session.setFlow(flow);
-        const leave = new LeaveBuild(
-          e.repo,
-          e.structures,
-          new FakeTapTargets(),
-        );
+        const leave = new LeaveBuild(e.repo, new FakeTapTargets());
         const end = vi.spyOn(e.session, "endPasting");
         leave.execute(playerId);
         const idle = e.session.flow;
@@ -170,7 +162,7 @@ it("EndPasting without a session does not create one", () => {
       const repo = new FakeSessions();
       const create = vi.spyOn(repo, "getOrCreate");
       const remove = vi.spyOn(repo, "remove");
-      new EndPasting(repo, new FakeStructureStore()).execute(asPlayerId(id));
+      new EndPasting(repo).execute(asPlayerId(id));
       expect(repo.get(asPlayerId(id))).toBeUndefined();
       expect(create).not.toHaveBeenCalled();
       expect(remove).not.toHaveBeenCalled();
@@ -190,7 +182,7 @@ it("EndPasting preserves the completed snapshot and older cell history", () => {
       const target = e.target(block);
       e.paste.execute({ playerId, dimensionId: overworld, target });
       expect(e.session.isEditing).toBe(false);
-      new EndPasting(e.repo, e.structures).execute(playerId);
+      new EndPasting(e.repo).execute(playerId);
       expect(e.session.flow.kind).toBe("idle");
       expect(e.session.clipboard).toBeUndefined();
       expect(e.session.isEditing).toBe(false);
@@ -233,7 +225,7 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
         const e = setup();
         const modes = new UpdateBuildModes(
           e.repo,
-          new LeaveBuild(e.repo, e.structures, new FakeTapTargets()),
+          new LeaveBuild(e.repo, new FakeTapTargets()),
         );
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, held: "wand" }]);
@@ -290,7 +282,7 @@ it("does not create a session or enter build mode with paste control or undo alo
         const repo = new FakeSessions();
         const modes = new UpdateBuildModes(
           repo,
-          new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+          new LeaveBuild(repo, new FakeTapTargets()),
         );
         for (const held of items) modes.execute([{ playerId, held }]);
         expect(repo.get(playerId)).toBeUndefined();
@@ -319,7 +311,7 @@ it("preserves aiming through held controls and leaves after consecutive empty ti
         const e = setup();
         const modes = new UpdateBuildModes(
           e.repo,
-          new LeaveBuild(e.repo, e.structures, new FakeTapTargets()),
+          new LeaveBuild(e.repo, new FakeTapTargets()),
         );
         for (let i = 1; i <= BUILD_SPEC.modeEnterTicks; i++) {
           modes.execute([{ playerId, held: "wand" }]);
@@ -357,7 +349,7 @@ it("undo does not enter build mode in an existing inactive session", () => {
         e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
         const modes = new UpdateBuildModes(
           e.repo,
-          new LeaveBuild(e.repo, e.structures, new FakeTapTargets()),
+          new LeaveBuild(e.repo, new FakeTapTargets()),
         );
         for (let i = 0; i < count; i++)
           modes.execute([{ playerId, held: "undo" }]);
@@ -388,7 +380,7 @@ it("retains the selection across build tool swaps and resets the leave grace", (
         const repo = new FakeSessions();
         const modes = new UpdateBuildModes(
           repo,
-          new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+          new LeaveBuild(repo, new FakeTapTargets()),
         );
         if (active) {
           for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
@@ -427,7 +419,7 @@ it.each(["pasteRotate", "pastePlace"] as const)(
     const repo = new FakeSessions();
     const modes = new UpdateBuildModes(
       repo,
-      new LeaveBuild(repo, new FakeStructureStore(), new FakeTapTargets()),
+      new LeaveBuild(repo, new FakeTapTargets()),
     );
     const session = repo.getOrCreate(playerId);
 

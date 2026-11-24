@@ -7,6 +7,7 @@ import {
   PITCHED_STATE,
   tentCells,
 } from "../../../src/domain/camp/tent";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockRoofTentOccupantWorld } from "../../../src/infrastructure/camp/bedrock/bedrockRoofTentOccupantWorld";
 import {
@@ -199,7 +200,7 @@ function install(deps: Partial<Parameters<typeof installCamp>[0]> = {}) {
 }
 
 const dimension = { id: "minecraft:overworld" };
-const POSE = { x: 110, y: -60, z: 46, yaw: 180 } as const;
+const POSE = { x: 110, y: -60, z: 46, yaw: snapYaw(180) } as const;
 const SAVED = JSON.stringify([
   {
     id: "t",

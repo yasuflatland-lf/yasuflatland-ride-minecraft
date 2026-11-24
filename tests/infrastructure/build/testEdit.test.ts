@@ -2,6 +2,7 @@ import { ScriptEventSource, system, world } from "@minecraft/server";
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
+import { MenuChoices } from "../../../src/application/build/menuChoices";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
@@ -31,6 +32,7 @@ import {
   FakeTapTargets,
   fakeSyncTapTarget,
 } from "../../application/build/fakes";
+import { menuCasesFor } from "../../application/build/fakes/menuChoices";
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 
 vi.mock("@minecraft/server", () => ({
@@ -113,8 +115,8 @@ it("counts undo hints per player and forgets only that player's records", () => 
 });
 
 function snapshotHook() {
-  const repo = new FakeSessions();
   const structures = new FakeStructureStore();
+  const repo = new FakeSessions(structures);
   const { feedback, messages } = setup();
   vi.mocked(system.sendScriptEvent).mockClear();
   const builder = {
@@ -146,7 +148,7 @@ function snapshotHook() {
   const undoItem = vi.fn(() => "stepped" as const);
   type Args = Parameters<typeof registerTestEdit>;
   registerTestEdit(
-    {} as Args[0],
+    new MenuChoices(repo, menuCasesFor(repo)),
     {} as Args[1],
     { execute } as unknown as Args[2],
     { execute: undo } as unknown as Args[3],
@@ -154,7 +156,7 @@ function snapshotHook() {
     new DescribeBuild(repo),
     messages,
     repo,
-    new EndBuildSession(repo, structures, new FakeTapTargets()),
+    new EndBuildSession(repo, new FakeTapTargets()),
     structures,
     new RotatePasteAim(repo, feedback),
     { aim: new TestAimReader(overrides), preview },
@@ -181,6 +183,29 @@ function snapshotHook() {
     undoItem,
   };
 }
+
+it("applies an offered paste menu command and reports it in the reply", () => {
+  const e = snapshotHook();
+  const session = e.repo.getOrCreate(player);
+  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  e.send("menu paste endPaste");
+  expect(session.flow).toEqual({ kind: "idle" });
+  expect(
+    JSON.parse(
+      vi.mocked(system.sendScriptEvent).mock.calls.at(-1)?.[1] ?? "{}",
+    ),
+  ).toMatchObject({ offered: true });
+});
+
+it("replies to a dismissed shape menu command with no entry", () => {
+  const e = snapshotHook();
+  e.send("menu shape");
+  expect(
+    JSON.parse(
+      vi.mocked(system.sendScriptEvent).mock.calls.at(-1)?.[1] ?? "{}",
+    ),
+  ).toMatchObject({ offered: false });
+});
 
 it("routes undoitem to the item use case and undo to edit history", () => {
   const e = snapshotHook();

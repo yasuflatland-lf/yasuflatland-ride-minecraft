@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
-import { STARTER_KINDS } from "../../../../src/domain/vehicle/placement/starter";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -11,7 +10,6 @@ import {
   GIFT_RECEIVED_PROPERTY,
   ITEM_TYPE,
   PLAYER_TYPE,
-  STARTER_RECEIVED_PROPERTY,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
@@ -75,44 +73,6 @@ describe("BedrockInventory", () => {
     expect(container.getItem).toHaveBeenCalledWith(3);
     expect(container.setItem).toHaveBeenCalledWith(3, undefined);
   });
-
-  it("reports no starter flag for a missing player", () => {
-    const { inventory } = fixture();
-    expect(
-      inventory.receivedStarter(asPlayerId("nobody"), "suv"),
-    ).toBeUndefined();
-  });
-
-  it("reports the starter flag only when it is exactly true", () => {
-    fc.assert(
-      fc.property(
-        fc.constantFrom(...STARTER_KINDS),
-        fc.constantFrom(true, false, undefined, "true"),
-        (kind, value) => {
-          const { player, inventory } = fixture();
-          player.getDynamicProperty.mockReturnValue(value);
-          expect(inventory.receivedStarter(asPlayerId("player"), kind)).toBe(
-            value === true,
-          );
-          expect(player.getDynamicProperty).toHaveBeenCalledWith(
-            STARTER_RECEIVED_PROPERTY[kind],
-          );
-        },
-      ),
-    );
-  });
-
-  it.each(STARTER_KINDS)(
-    "marks the %s starter as received on a present player",
-    (kind) => {
-      const { player, inventory } = fixture();
-      inventory.markStarterReceived(asPlayerId("player"), kind);
-      expect(player.setDynamicProperty).toHaveBeenCalledExactlyOnceWith(
-        STARTER_RECEIVED_PROPERTY[kind],
-        true,
-      );
-    },
-  );
 
   it.each(VEHICLE_KINDS)("puts one %s item in the inventory", (kind) => {
     const { container, inventory } = fixture();
@@ -218,10 +178,6 @@ describe("BedrockInventory", () => {
   });
 
   it.each<[string, (inventory: BedrockInventory) => void]>([
-    [
-      "markStarterReceived",
-      (inventory) => inventory.markStarterReceived(missing, "suv"),
-    ],
     [
       "markGiftReceived",
       (inventory) => inventory.markGiftReceived(missing, "camping_gear_box"),

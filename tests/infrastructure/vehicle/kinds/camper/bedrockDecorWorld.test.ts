@@ -1,17 +1,15 @@
 import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
-import { serializeDecor } from "../../../../src/domain/vehicle/dock/decor";
+import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
+import { serializeDecor } from "../../../../../src/domain/vehicle/dock/decor";
+import { EntityIndex } from "../../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import { PLAYER_TYPE } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import {
   BedrockDecorWorld,
   savedDecor,
-} from "../../../../src/infrastructure/vehicle/bedrock/bedrockDecorWorld";
-import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
-import {
-  DECOR_PROPERTY,
-  PLAYER_TYPE,
-} from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
-import { decorItemId, decorSlotId } from "../../../support/decorIds";
+} from "../../../../../src/infrastructure/vehicle/kinds/camper/bedrockDecorWorld";
+import { DECOR_PROPERTY } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
+import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
 vi.mock("@minecraft/server", () => ({

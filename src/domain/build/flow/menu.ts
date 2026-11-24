@@ -6,7 +6,8 @@ import {
   fillStylesFor,
   type HeightedKind,
 } from "../volume/kind";
-import { type BuildFlow, selectedStairRow } from "./flow";
+import { selectedStairRow } from "./stairFlow";
+import type { BuildFlow } from "./state";
 
 export type EditEntryId = "cut" | "removeAbove" | "fillBelow" | "copy";
 export type BuildEntryId =
@@ -184,4 +185,16 @@ export function terrainMenu(flow: BuildFlow): MenuEntry<TerrainEntryId>[] {
 
 export function pasteMenu(): MenuEntry<PasteEntryId>[] {
   return [{ id: "newCopy" }, { id: "endPaste" }, { id: "cancel" }];
+}
+
+export function openBuildMenu(flow: BuildFlow): BuildFlow {
+  return flow.kind === "selected" && flow.menuLevel === "root"
+    ? Object.freeze({ ...flow, menuLevel: "build" })
+    : flow;
+}
+
+export function closeBuildMenu(flow: BuildFlow): BuildFlow {
+  return flow.kind === "selected" && flow.menuLevel === "build"
+    ? Object.freeze({ ...flow, menuLevel: "root" })
+    : flow;
 }

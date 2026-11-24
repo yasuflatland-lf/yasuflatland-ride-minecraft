@@ -1,9 +1,9 @@
-import type { SetDecorCommand } from "../../../application/vehicle/room/setDecor";
-import { asVehicleId } from "../../../domain/shared/ids";
+import type { SetDecorCommand } from "../../../../../application/vehicle/room/setDecor";
+import { asVehicleId } from "../../../../../domain/shared/ids";
 import {
   isDecorItem,
   parseDecorSlotId,
-} from "../../../domain/vehicle/dock/decor";
+} from "../../../../../domain/vehicle/dock/decor";
 
 /** `<vehicleId>,<slot>,<item>` sets a slot and `<vehicleId>,<slot>,clear` empties it. */
 export function parseTestDecorMessage(
