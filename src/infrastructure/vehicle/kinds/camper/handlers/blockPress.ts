@@ -12,16 +12,14 @@ import {
 } from "../../../../../domain/shared/ids";
 import { add3 } from "../../../../../domain/shared/vec";
 import type { DockLayer } from "../../../bedrock/dockLayer";
-import { pressedHeight, pressedShape } from "../faceHeight";
+import { pressedPoint } from "../faceHeight";
 import {
   CAMPER_FLOOR_BLOCK,
   campingGearOfItem,
-  DECOR_HEIGHT_STATE,
   isCamperRoomBlock,
   isDecorBlock,
   pairDecorBlockId,
 } from "../identifiers";
-import { touchCorrectedFaceLocation } from "../touchFaceLocation";
 
 function prepareBlock(
   ev: PlayerInteractWithBlockBeforeEvent,
@@ -46,38 +44,36 @@ function prepareBlock(
     eye: player.getHeadLocation(),
     held: item ? { item, hotbarSlot: player.selectedSlotIndex } : undefined,
   };
-  const height = block.permutation.getAllStates()[DECOR_HEIGHT_STATE];
-  const shape = pressedShape(
-    block.typeId,
-    typeof height === "number" ? height : undefined,
+  const point = add3(
+    cell,
+    pressedPoint(
+      {
+        face: blockFace,
+        faceLocation,
+        inputMode: player.inputInfo.lastInputModeUsed,
+      },
+      block.typeId,
+      block.permutation.getAllStates(),
+    ),
   );
-  const point = add3(cell, {
-    ...faceLocation,
-    y: pressedHeight(blockFace, faceLocation.y, shape),
-  });
   if (!drawers && !floor)
     return room.prepare({ ...press, point, surface: { kind: "room" } });
 
-  // Touch reports mirror x and y for drawers. A missed floor ray still uses the ordinary decor point (ADR 0111).
-  const face = touchCorrectedFaceLocation(
-    faceLocation,
-    player.inputInfo.lastInputModeUsed,
-  );
   const sideFace = blockFace !== "Up" && blockFace !== "Down";
-  const drawerPoint = add3(cell, {
-    ...face,
-    y: sideFace ? face.y : pressedHeight(blockFace, face.y, shape),
-  });
   if (drawers)
     return room.prepare({
       ...press,
-      point: drawerPoint,
+      point,
       surface: { kind: "drawers", sideFace },
     });
   return room.prepare({
     ...press,
     point,
-    surface: { kind: "floor", drawerPoint, allowPlacementOnMiss: !ev.cancel },
+    surface: {
+      kind: "floor",
+      drawerPoint: point,
+      allowPlacementOnMiss: !ev.cancel,
+    },
   });
 }
 
