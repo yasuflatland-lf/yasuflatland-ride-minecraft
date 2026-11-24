@@ -13,8 +13,10 @@ import {
 import type {
   BaseHeightFlow,
   BuildFlow,
+  HeightStepFlow,
 } from "../../src/domain/build/flow/state";
 import { chooseTerrain } from "../../src/domain/build/flow/terrainFlow";
+import type { HeightStepKind } from "../../src/domain/build/volume/kind";
 import type { Cell } from "../../src/domain/shared/cells";
 import type { DimensionId } from "../../src/domain/shared/ids";
 
@@ -34,7 +36,7 @@ export function selectionFlows(
   const inProgress = [
     point1,
     baseHeight,
-    chooseHeighted(selected, "hip"),
+    chooseHeightedFlow(selected, "hip"),
     stairAim,
     fixStairGoal(stairAim, {
       row: stairAim.row,
@@ -45,6 +47,16 @@ export function selectionFlows(
     chooseTerrain(selected, "fillBelow"),
   ];
   return { selected, inProgress };
+}
+
+export function chooseHeightedFlow(
+  flow: BuildFlow,
+  kind: HeightStepKind,
+): HeightStepFlow {
+  const result = chooseHeighted(flow, kind);
+  if ("refused" in result)
+    throw new Error(`Expected height step for ${kind}: ${result.refused}`);
+  return result.flow;
 }
 
 export function confirmEndpointHeight(flow: BuildFlow): BuildFlow {

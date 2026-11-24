@@ -67,7 +67,10 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 
 const coord = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -126,7 +129,7 @@ it("keeps taps only in the selected and terrain confirmation flows", () => {
           idle,
           point,
           base,
-          chooseHeighted(selected, "cube"),
+          chooseHeightedFlow(selected, "cube"),
           beginPasteAim(),
         ])
           expect(tapsOf(flow)).toBeUndefined();
@@ -261,7 +264,7 @@ it("offers the ordered root and build menus for every shape and returns unchange
         idle,
         tapBlock(idle, dim, from, stone),
         beginPasteAim(),
-        chooseHeighted(
+        chooseHeightedFlow(
           confirmEndpointHeight(
             tapAir(tapBlock(idle, dim, from, stone), {
               ...from,
@@ -411,11 +414,13 @@ it("accepts every heighted kind only on its supported shapes", () => {
             "sphere",
             "cube",
           ] as const) {
-            const chosen = chooseHeighted(flow, kind);
+            const result = chooseHeighted(flow, kind);
             if (!(ids as readonly string[]).includes(kind)) {
-              expect(chosen).toBe(flow);
+              expect(result).toEqual({ refused: "shape" });
               continue;
             }
+            if ("refused" in result) throw new Error(result.refused);
+            const chosen = result.flow;
             const locked = kind !== "gable" && kind !== "hip";
             expect(chosen).toEqual({
               kind: "heightStep",
@@ -466,7 +471,7 @@ it.each(["gable", "hip"] as const)(
       from: box.min,
       to: box.max,
     } as const;
-    const flow = chooseHeighted(selected, kind);
+    const flow = chooseHeightedFlow(selected, kind);
     expect(flow).toMatchObject({
       kind: "heightStep",
       base: boxWithHeight(box, 1),
@@ -476,8 +481,9 @@ it.each(["gable", "hip"] as const)(
       previous: 3,
     });
     expect(setHeight(flow, 1)).toBe(flow);
-    expect(chooseHeighted(selected, "cube")).toMatchObject({ previous: 2 });
-    expect(chooseHeighted(selected, "cube")).not.toHaveProperty("roofStyle");
+    const cube = chooseHeightedFlow(selected, "cube");
+    expect(cube).toMatchObject({ previous: 2 });
+    expect(cube).not.toHaveProperty("roofStyle");
 
     const aboveTop = {
       ...selected,
@@ -487,7 +493,7 @@ it.each(["gable", "hip"] as const)(
         stair,
       ),
     };
-    expect(chooseHeighted(aboveTop, kind)).toBe(aboveTop);
+    expect(chooseHeighted(aboveTop, kind)).toEqual({ refused: "tooLarge" });
   },
 );
 
@@ -509,21 +515,23 @@ it("roof and paste stages accept only their own transitions and ignore selection
           (shape.kind === "rect" && shape.flat === "y")
         ) {
           expect(roof).toEqual({
-            kind: "heightStep",
-            heightLocked: false,
-            dimensionId: dim,
-            base: boxWithHeight(boxOf(a, b), 1),
-            ...(shape.kind === "box" && endpoint.kind === "selected"
-              ? { selectionBefore: endpoint.selection.box }
-              : {}),
-            from: a,
-            to: b,
-            heightedKind: kind,
-            previous: 1,
-            material: stone,
+            flow: {
+              kind: "heightStep",
+              heightLocked: false,
+              dimensionId: dim,
+              base: boxWithHeight(boxOf(a, b), 1),
+              ...(shape.kind === "box" && endpoint.kind === "selected"
+                ? { selectionBefore: endpoint.selection.box }
+                : {}),
+              from: a,
+              to: b,
+              heightedKind: kind,
+              previous: 1,
+              material: stone,
+            },
           });
-        } else expect(roof).toBe(endpoint);
-        const horizontal = chooseHeighted(
+        } else expect(roof).toEqual({ refused: "shape" });
+        const horizontal = chooseHeightedFlow(
           confirmEndpointHeight(
             tapAir(tapBlock(idle, dim, a, stone), {
               x: a.x + 2,
@@ -545,7 +553,7 @@ it("roof and paste stages accept only their own transitions and ignore selection
             flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
           );
           if (flow.kind !== "selected")
-            expect(chooseHeighted(flow, kind)).toBe(flow);
+            expect(chooseHeighted(flow, kind)).toEqual({ refused: "shape" });
           expect(contentsMenu(flow)).toEqual(
             flow.kind === "heightStep"
               ? [{ id: "fill" }, { id: "hollow" }, { id: "cancel" }]
@@ -587,7 +595,7 @@ it("roof Cancel preserves the original first point for either selection directio
           tapAir(tapBlock(idle, dim, from, stone), to),
         );
         for (const kind of ["gable", "hip"] as const) {
-          expect(backToAiming(chooseHeighted(endpoint, kind))).toEqual({
+          expect(backToAiming(chooseHeightedFlow(endpoint, kind))).toEqual({
             kind: "point1",
             dimensionId: dim,
             cell: from,

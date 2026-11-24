@@ -3,12 +3,7 @@ import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
 import { boxOf, boxWithHeight, type CellBox, sizeOf } from "../box";
 import { isRoofKind, stairRoofHeight } from "../roof/roof";
-import {
-  type Selection,
-  selectionHeightLimit,
-  selectionOf,
-  withBox,
-} from "../selection";
+import { selectionHeightLimit, selectionOf, withBox } from "../selection";
 import { type Shape, shapeOf } from "../shape/shape";
 import { BUILD_SPEC } from "../spec";
 import { stairMaterialOf } from "../stair";
@@ -142,26 +137,14 @@ function acceptsHeightedShape(shape: Shape): boolean {
   return shape.kind === "box" || (shape.kind === "rect" && shape.flat === "y");
 }
 
-export function stairRoofFits(
-  { box, material }: Selection,
-  kind: HeightStepKind,
-): boolean {
-  return (
-    !isRoofKind(kind) ||
-    !stairMaterialOf(material) ||
-    !acceptsHeightedShape(shapeOf(box.min, box.max)) ||
-    box.min.y + stairRoofHeight(box) - 1 <= BUILD_SPEC.worldTopY
-  );
-}
-
 export function chooseHeighted(
   flow: BuildFlow,
   kind: HeightStepKind,
-): BuildFlow {
-  if (flow.kind !== "selected") return flow;
+): { flow: HeightStepFlow } | { refused: "tooLarge" | "shape" } {
+  if (flow.kind !== "selected") return { refused: "shape" };
   const { box, dimensionId, material } = flow.selection;
   const shape = shapeOf(box.min, box.max);
-  if (!acceptsHeightedShape(shape)) return flow;
+  if (!acceptsHeightedShape(shape)) return { refused: "shape" };
   const locked = locksBoxHeight(kind);
   const base = boxWithHeight(box, 1);
   const stairRoof = isRoofKind(kind) && stairMaterialOf(material) !== undefined;
@@ -170,22 +153,25 @@ export function chooseHeighted(
     : locked
       ? sizeOf(box).y
       : 1;
-  if (stairRoof && !stairRoofFits(flow.selection, kind)) return flow;
-  return Object.freeze({
-    kind: "heightStep",
-    dimensionId,
-    base,
-    ...(stairRoof || (!locked && shape.kind === "box")
-      ? { selectionBefore: box }
-      : {}),
-    from: flow.from,
-    to: flow.to,
-    heightedKind: kind,
-    previous,
-    heightLocked: locked || stairRoof,
-    ...(stairRoof ? { roofStyle: "stair" as const } : {}),
-    material,
-  });
+  if (stairRoof && base.min.y + previous - 1 > BUILD_SPEC.worldTopY)
+    return { refused: "tooLarge" };
+  return {
+    flow: Object.freeze({
+      kind: "heightStep",
+      dimensionId,
+      base,
+      ...(stairRoof || (!locked && shape.kind === "box")
+        ? { selectionBefore: box }
+        : {}),
+      from: flow.from,
+      to: flow.to,
+      heightedKind: kind,
+      previous,
+      heightLocked: locked || stairRoof,
+      ...(stairRoof ? { roofStyle: "stair" as const } : {}),
+      material,
+    }),
+  };
 }
 
 export function setHeight(flow: BuildFlow, height: number): BuildFlow {

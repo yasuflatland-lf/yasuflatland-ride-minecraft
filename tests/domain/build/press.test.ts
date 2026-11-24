@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
-  chooseHeighted,
   confirmLiveHeight,
   tapAir,
   tapBlock,
@@ -23,6 +22,7 @@ import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 
 const idle: BuildFlow = { kind: "idle" };
 const point1 = tapBlock(
@@ -45,7 +45,7 @@ const flows = {
   point1,
   baseHeight,
   selected,
-  heightStep: chooseHeighted(selected, "gable"),
+  heightStep: chooseHeightedFlow(selected, "gable"),
   terrainConfirm: chooseTerrain(selected, "removeAbove"),
   pasteAim: beginPasteAim(),
 } satisfies Record<BuildFlow["kind"], BuildFlow>;

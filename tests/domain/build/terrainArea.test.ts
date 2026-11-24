@@ -4,11 +4,13 @@ import { virtualEndPoint } from "../../../src/domain/build/aim/aim";
 import { boxOf, contains } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import {
+  fillBelowBox,
   fitsTerrainLimit,
   removeAboveBox,
   terrainAreaOf,
   terrainSides,
 } from "../../../src/domain/build/terrain/area";
+import { isFillable } from "../../../src/domain/build/terrain/fillable";
 import type { Cell } from "../../../src/domain/shared/cells";
 
 const areaOf = (a: Cell, b: Cell) => terrainAreaOf(boxOf(a, b), a, b);
@@ -139,4 +141,44 @@ describe("fitsTerrainLimit", () => {
       }),
     );
   });
+});
+
+it("spans the selected footprint from the given bottom through the higher tap", () => {
+  fc.assert(
+    fc.property(cell, cell, cell, cell, cell, (a, b, from, to, bottom) => {
+      const footprint = boxOf(a, b);
+      const area = terrainAreaOf(footprint, from, to);
+      const topY = Math.max(from.y, to.y);
+      const bottomY = Math.min(bottom.y, topY);
+      expect(fillBelowBox(area, bottomY)).toEqual({
+        min: { ...footprint.min, y: bottomY },
+        max: { ...footprint.max, y: topY },
+      });
+    }),
+  );
+});
+
+it("fills only readable air and fluids that can be edited", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom(
+        "minecraft:air",
+        "minecraft:water",
+        "minecraft:flowing_water",
+        "minecraft:lava",
+        "minecraft:flowing_lava",
+      ),
+      fc.boolean(),
+      (open, editable) => {
+        expect(isFillable(open, () => editable)).toBe(editable);
+        const unexpectedProtectionCheck = () => {
+          throw new Error("Closed or unreadable cells skip protection checks");
+        };
+        expect(isFillable("minecraft:stone", unexpectedProtectionCheck)).toBe(
+          false,
+        );
+        expect(isFillable(undefined, unexpectedProtectionCheck)).toBe(false);
+      },
+    ),
+  );
 });
