@@ -384,6 +384,7 @@ describe("roof tent mounts", () => {
           expect(point.z).toBeLessThanOrEqual(profile.body.front);
           if (kind === "camper" && pointName === "entrance")
             expect(point.x).toBeLessThan(0);
+          expect(mount.shell).toBe(kind === "suv" ? "raised" : "flat");
           expect(mount.ladder).toBe(kind === "suv");
         },
       ),

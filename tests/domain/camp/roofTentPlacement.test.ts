@@ -17,6 +17,7 @@ const mountArb: fc.Arbitrary<RoofTentMount> = fc.record({
     z: fc.double({ noNaN: true }),
   }),
   ladder: fc.boolean(),
+  shell: fc.constantFrom("raised", "flat" as const),
   entrance: fc.record({
     x: fc.double({ noNaN: true }),
     z: fc.double({ noNaN: true }),
@@ -24,7 +25,7 @@ const mountArb: fc.Arbitrary<RoofTentMount> = fc.record({
 });
 const yawArb = fc.double({ min: -1e4, max: 1e4, noNaN: true });
 
-it("plans a free roof on a supported vehicle with the mount's ladder", () => {
+it("plans a free roof on a supported vehicle with the mount's shell and ladder", () => {
   fc.assert(
     fc.property(
       fc.string().map(asVehicleId),
@@ -38,6 +39,7 @@ it("plans a free roof on a supported vehicle with the mount's ladder", () => {
         expect(plan).toMatchObject({
           host: { kind: "vehicle", id: asVehicleId(id) },
           ladder: mount.ladder,
+          shell: mount.shell,
         });
       },
     ),
@@ -102,7 +104,11 @@ it("plans on the ground iff it is clear, without a ladder", () => {
     fc.property(fc.boolean(), yawArb, (clear, yaw) => {
       const plan = planRoofTent({ target: { type: "ground", clear }, yaw });
       if (clear) {
-        expect(plan).toMatchObject({ host: { kind: "ground" }, ladder: false });
+        expect(plan).toMatchObject({
+          host: { kind: "ground" },
+          shell: "flat",
+          ladder: false,
+        });
       } else {
         expect(plan).toBe("blocked");
       }

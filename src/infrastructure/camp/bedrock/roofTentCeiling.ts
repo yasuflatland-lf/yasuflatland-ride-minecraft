@@ -5,12 +5,8 @@ import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
 import { SingleBlockLayer } from "../../shared/laidBlockLayer";
-import {
-  ROOF_TENT_CEILING_PROPERTY,
-  ROOF_TENT_LADDER_PROPERTY,
-  TENT_CEILING_BLOCK,
-} from "../identifiers";
-import { roofTentEntity } from "./bedrockRoofTentWorld";
+import { ROOF_TENT_CEILING_PROPERTY, TENT_CEILING_BLOCK } from "../identifiers";
+import { roofTentEntity, roofTentShell } from "./bedrockRoofTentWorld";
 import type { RoofTentOccupants } from "./roofTentOccupants";
 export class RoofTentCeiling {
   private readonly layer: SingleBlockLayer<RoofTentId>;
@@ -47,14 +43,14 @@ export class RoofTentCeiling {
     try {
       const entity = roofTentEntity(id);
       if (!entity) return;
-      const variant =
-        entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true
-          ? "ladder"
-          : "ground";
       this.layer.lay(
         id,
         entity,
-        roofTentCeilingCells(entity.location, entity.getRotation().y, variant),
+        roofTentCeilingCells(
+          entity.location,
+          entity.getRotation().y,
+          roofTentShell(entity),
+        ),
         warn,
       );
     } catch (error) {
