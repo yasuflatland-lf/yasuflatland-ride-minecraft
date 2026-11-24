@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import {
   inDimension,
   selectionOf,

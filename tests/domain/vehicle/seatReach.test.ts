@@ -53,7 +53,7 @@ describe("farthestSeatReach", () => {
 
 it("computes DECK_SEAT_REACH from the current kinds' seats and parked seats (ADR 0095)", () => {
   const toilet = defined(
-    CAMPER_PROFILE.parkedSeats?.positions[0],
+    CAMPER_PROFILE.heldSeats?.positions[0],
     "toilet position",
   );
   expect(DECK_SEAT_REACH).toBeCloseTo(Math.hypot(toilet.x, toilet.z));

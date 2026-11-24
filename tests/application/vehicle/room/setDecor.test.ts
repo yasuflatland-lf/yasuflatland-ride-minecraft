@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import type { DecorWorld } from "../../../../src/application/vehicle/ports/decor";
+import type { DecorWorld } from "../../../../src/application/vehicle/room/ports";
 import { SetDecor } from "../../../../src/application/vehicle/room/setDecor";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { DecorPlacement } from "../../../../src/domain/vehicle/dock/decor";

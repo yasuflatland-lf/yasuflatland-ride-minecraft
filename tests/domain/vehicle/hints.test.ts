@@ -49,7 +49,7 @@ const viewArb = fc.record({
   y: coord(-2, 5),
   z: coord(-6, 8),
   yaw: yawArb,
-  docked: fc.boolean(),
+  isHeld: fc.boolean(),
   driverSeatFree: fc.boolean(),
   hasRiders: fc.boolean(),
   dyeable: fc.boolean(),
@@ -62,7 +62,7 @@ const viewOf = (s: ViewSample, yaw = s.yaw): HintView => ({
   kind: "camper",
   offset: worldOffset(yaw, s.x, s.y, s.z),
   yaw,
-  docked: s.docked,
+  isHeld: s.isHeld,
   driverSeatFree: s.driverSeatFree,
   hasRiders: s.hasRiders,
   dyeable: s.dyeable,
@@ -197,7 +197,7 @@ describe("hintAt", () => {
       fc.property(viewArb, (s) => {
         const hint = hintAt(ZONES, SEATS, viewOf(s));
         if (isDriveHint(hint)) {
-          expect(s.docked && s.driverSeatFree).toBe(true);
+          expect(s.isHeld && s.driverSeatFree).toBe(true);
           expect(hint).toEqual({ name: `drive_${s.controls}` });
         }
       }),
@@ -220,7 +220,7 @@ describe("hintAt", () => {
       y: 1,
       z: SEAT0.z,
       yaw: 0,
-      docked: true,
+      isHeld: true,
       driverSeatFree: true,
       hasRiders: false,
       dyeable: true,
@@ -237,7 +237,7 @@ describe("hintAt", () => {
     };
     fc.assert(
       fc.property(viewArb, coord(BUMPER.feet[0], BUMPER.feet[1]), (s, y) => {
-        const view = viewOf({ ...s, y, docked: true, driverSeatFree: true });
+        const view = viewOf({ ...s, y, isHeld: true, driverSeatFree: true });
         expect(hintAt(both, [SEAT0], view)).toEqual({
           name: `drive_${s.controls}`,
         });
@@ -267,7 +267,7 @@ describe("hintAt", () => {
       y: 0.5003,
       z: 3.7003,
       yaw: 0,
-      docked: true,
+      isHeld: true,
       driverSeatFree: true,
       hasRiders: false,
       dyeable: true,
@@ -300,7 +300,7 @@ describe("hintAt", () => {
       y: 1,
       z: SEAT0.z - 1,
       yaw: 90,
-      docked: true,
+      isHeld: true,
       driverSeatFree: true,
       hasRiders: false,
       dyeable: true,
@@ -308,7 +308,7 @@ describe("hintAt", () => {
       controls: "touch",
     });
     expect(hintAt(ZONES, SEATS, view)).toEqual({ name: HINTS.driveTouch });
-    expect(hintAt(ZONES, SEATS, { ...view, docked: false })).toBeUndefined();
+    expect(hintAt(ZONES, SEATS, { ...view, isHeld: false })).toBeUndefined();
   });
 });
 

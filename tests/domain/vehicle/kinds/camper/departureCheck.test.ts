@@ -21,6 +21,7 @@ import {
   ownPlateBlock,
   storagePlateChecks,
 } from "../../../../../src/domain/vehicle/kinds/camper/storagePlates";
+import { Hold } from "../../../../../src/domain/vehicle/motion/dock";
 import { decorItemId, decorSlotId } from "../../../../support/decorIds";
 
 it("checks cargo, each slot and plate, and both exits against the original departure predicates", () => {
@@ -101,7 +102,7 @@ it("checks cargo, each slot and plate, and both exits against the original depar
         solidAt: () => false,
         waterAt: () => false,
       };
-      const result = new CamperParking(false, false).departureCheck(
+      const result = new CamperParking(new Hold(false), false).departureCheck(
         pose,
         ctx,
         decor,

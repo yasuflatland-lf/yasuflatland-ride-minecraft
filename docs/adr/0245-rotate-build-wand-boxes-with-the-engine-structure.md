@@ -45,7 +45,7 @@ A spike on the dev BDS (2026-11-10, `@minecraft/server` 2.11.0, throwaway code d
 
 ## Consequences
 
-- Rotation snapshots share the per-player `BUILD_SPEC.undoDepth` (10) entry history with paste, cut and cell edits, as in 0243. Evict the oldest entry first and discard its structure handle when it is a snapshot.
+- Rotation snapshots share the per-player `BUILD_SPEC.undoDepth` (10) entry history with paste, cut and cell edits, as in 0243. Evict the oldest entry first. The session queues evicted snapshot handles for disposal by the repository at the end of the update.
 - Entities with a `yasu_ride:` or `yasu_build:` identifier are excluded from structures and are not moved, as in 0243. Item frames, paintings and mobs follow whatever the structure keeps today; if the probe shows they are lost or mis-turned, that is recorded as a limitation.
 - In-place rotation overwrites blocks outside the old box by design. This is acceptable only because the undo snapshot covers the union box.
 - Revisit if the engine raises or changes the structure size limit, if placement over existing blocks does not write air, or if device checks require tuning the rotate debounce.

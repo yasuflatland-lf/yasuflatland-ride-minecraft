@@ -1,6 +1,12 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { planRoofTent } from "../../../src/domain/camp/roofTent/placement";
+import {
+  groundRoofTentCells,
+  planRoofTent,
+  supportsGroundRoofTent,
+} from "../../../src/domain/camp/roofTent/placement";
+import { cellKey } from "../../../src/domain/shared/cells";
+import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import { asVehicleId } from "../../../src/domain/shared/ids";
 import type { RoofTentMount } from "../../../src/domain/shared/roofTent";
 
@@ -102,4 +108,42 @@ it("plans on the ground iff it is clear, without a ladder", () => {
       }
     }),
   );
+});
+
+it("uses the clicked support cell and two clear layers across the 3 by 3 footprint", () => {
+  fc.assert(
+    fc.property(
+      fc.record({ x: fc.integer(), y: fc.integer(), z: fc.integer() }),
+      (clicked) => {
+        const { support, clear } = groundRoofTentCells(clicked);
+        expect(support).toEqual([clicked]);
+        expect(clear).toHaveLength(18);
+        expect(new Set(clear.map(cellKey)).size).toBe(18);
+        for (const cell of clear) {
+          expect(Math.abs(cell.x - clicked.x)).toBeLessThanOrEqual(1);
+          expect(Math.abs(cell.z - clicked.z)).toBeLessThanOrEqual(1);
+          expect([1, 2]).toContain(cell.y - clicked.y);
+        }
+      },
+    ),
+  );
+});
+
+it("accepts non-liquid, non-air support including partial blocks and rejects decorations", () => {
+  fc.assert(
+    fc.property(
+      fc.oneof(
+        fc.constant("minecraft:stone_slab"),
+        fc.constantFrom(...CLEARABLE_DECORATIONS),
+      ),
+      fc.boolean(),
+      fc.boolean(),
+      (typeId, isAir, isLiquid) => {
+        expect(supportsGroundRoofTent({ typeId, isAir, isLiquid })).toBe(
+          typeId === "minecraft:stone_slab" && !isAir && !isLiquid,
+        );
+      },
+    ),
+  );
+  expect(supportsGroundRoofTent(undefined)).toBe(false);
 });

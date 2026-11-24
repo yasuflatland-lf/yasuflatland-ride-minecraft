@@ -1,22 +1,37 @@
-import type { SleepInBed } from "../../../../application/shared/sleepInBed";
-import type { NormalizePaint } from "../../../../application/vehicle/normalizePaint";
-import type { FindBedSpawnCell } from "../../../../application/vehicle/room/findBedSpawnCell";
-import type { PlaceDecor } from "../../../../application/vehicle/room/placeDecor";
-import type { PressShowerToilet } from "../../../../application/vehicle/room/pressShowerToilet";
-import type { PressStorage } from "../../../../application/vehicle/room/pressStorage";
-import type { RemoveDecor } from "../../../../application/vehicle/room/removeDecor";
-import type { UseDockDoor } from "../../../../application/vehicle/room/useDockDoor";
+import { SleepInBed } from "../../../../application/shared/sleepInBed";
+import { NormalizePaint } from "../../../../application/vehicle/normalizePaint";
+import type { Clock } from "../../../../application/vehicle/ports/shared";
+import { FindBedSpawnCell } from "../../../../application/vehicle/room/findBedSpawnCell";
+import { PlaceDecor } from "../../../../application/vehicle/room/placeDecor";
+import { PressShowerToilet } from "../../../../application/vehicle/room/pressShowerToilet";
+import { PressStorage } from "../../../../application/vehicle/room/pressStorage";
+import { RemoveDecor } from "../../../../application/vehicle/room/removeDecor";
+import { SetDecor } from "../../../../application/vehicle/room/setDecor";
+import { SwitchCeilingLights } from "../../../../application/vehicle/room/switchCeilingLights";
+import { UseDockDoor } from "../../../../application/vehicle/room/useDockDoor";
 import type { DimensionId, VehicleId } from "../../../../domain/shared/ids";
 import type { Vec3 } from "../../../../domain/shared/vec";
+import type { VehicleRepository } from "../../../../domain/vehicle/vehicleRepository";
 import { registerBedBlock } from "../../../shared/bedBlock";
+import { BedrockBedWorld } from "../../../shared/bedrockBedWorld";
+import type { BedrockInventory } from "../../bedrock/bedrockInventory";
+import { BedrockPaintWorld } from "../../bedrock/bedrockPaintWorld";
+import type { EntityIndex } from "../../bedrock/entityIndex";
+import { BedrockDecorWorld } from "./bedrockDecorWorld";
 import { registerDecor } from "./handlers/decor";
 import { registerDockDoor } from "./handlers/dockDoor";
 import { registerNormalizePaint } from "./handlers/normalizePaint";
 import { registerShowerToilet } from "./handlers/showerToilet";
 import { registerStorage } from "./handlers/storage";
 import { CAMPER_BED_COMPONENT } from "./identifiers";
+import { registerTestDecor } from "./testHooks/testDecor";
 
-export function installCamper(
+type DockOwner = (
+  dimensionId: DimensionId,
+  cell: Vec3,
+) => VehicleId | undefined;
+
+export function registerCamperHandlers(
   useCases: {
     normalizePaint: NormalizePaint;
     door: UseDockDoor;
@@ -27,14 +42,8 @@ export function installCamper(
     removeDecor: RemoveDecor;
     storage: PressStorage;
   },
-  dockDoorOwner: (
-    dimensionId: DimensionId,
-    cell: Vec3,
-  ) => VehicleId | undefined,
-  dockCellOwner: (
-    dimensionId: DimensionId,
-    cell: Vec3,
-  ) => VehicleId | undefined,
+  dockDoorOwner: DockOwner,
+  dockCellOwner: DockOwner,
   registerDockGuard: () => void,
 ): void {
   registerNormalizePaint(useCases.normalizePaint);
@@ -54,4 +63,46 @@ export function installCamper(
   registerDockGuard();
   registerShowerToilet(useCases.showerToilet, dockCellOwner);
   registerStorage(useCases.storage, dockCellOwner);
+}
+
+export function installCamper(
+  {
+    repo,
+    index,
+    inventory,
+    clock,
+  }: {
+    repo: VehicleRepository;
+    index: EntityIndex;
+    inventory: BedrockInventory;
+    clock: Clock;
+  },
+  dockDoorOwner: DockOwner,
+  dockCellOwner: DockOwner,
+  registerDockGuard: () => void,
+) {
+  const decorWorld = new BedrockDecorWorld(index, inventory);
+  return {
+    ceilingLights: new SwitchCeilingLights(repo, clock),
+    registerHandlers: () =>
+      registerCamperHandlers(
+        {
+          normalizePaint: new NormalizePaint(
+            new BedrockPaintWorld(index, inventory),
+          ),
+          door: new UseDockDoor(repo, clock),
+          bed: new SleepInBed(new BedrockBedWorld(index)),
+          bedSpawnCell: new FindBedSpawnCell(repo),
+          showerToilet: new PressShowerToilet(repo, clock),
+          placeDecor: new PlaceDecor(decorWorld, repo),
+          removeDecor: new RemoveDecor(decorWorld, repo),
+          storage: new PressStorage(decorWorld, repo, clock),
+        },
+        dockDoorOwner,
+        dockCellOwner,
+        registerDockGuard,
+      ),
+    registerTestHooks: () =>
+      __TEST_HOOKS__ && registerTestDecor(new SetDecor(decorWorld, repo)),
+  };
 }

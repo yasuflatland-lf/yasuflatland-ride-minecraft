@@ -1,5 +1,6 @@
 import type { RoofTentId } from "../../../domain/camp/ids";
 import type {
+  RoofTentBlock,
   RoofTentPlan,
   RoofTentRefusal,
 } from "../../../domain/camp/roofTent/placement";
@@ -21,7 +22,10 @@ export interface RoofTentWorld extends HitsLeftFeedback {
   hostOf(tentId: RoofTentId): Host;
   /** Without an owner, drop the item at the tent before it is removed. */
   returnItem(tentId: RoofTentId, ownerId: PlayerId | undefined): void;
-  groundFree(dimensionId: DimensionId, cell: Vec3): boolean;
+  blockAt(dimensionId: DimensionId, cell: Vec3): RoofTentBlock | undefined;
+  isVehicleSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+  isCampSpace(dimensionId: DimensionId, cell: Vec3): boolean;
+  hasRoofTentNear(dimensionId: DimensionId, at: Vec3): boolean;
   loaded(): readonly RoofTentId[];
   isCreative(playerId: PlayerId): boolean;
   consumeItem(playerId: PlayerId, slot: number): boolean;

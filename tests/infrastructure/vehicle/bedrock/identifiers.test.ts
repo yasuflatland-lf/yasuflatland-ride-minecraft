@@ -11,7 +11,6 @@ import {
 } from "../../../../src/infrastructure/shared/identifiers";
 import {
   DECK_SEAT_TYPE,
-  DECOR_PROPERTY,
   ENTITY_TYPE,
   entityEventId,
   entityPropertyId,
@@ -29,6 +28,7 @@ import {
   STARTER_RECEIVED_PROPERTY,
   TEST_INPUT_EVENT,
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { DECOR_PROPERTY } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { CORE_PROPERTY_NAMES } from "../../../support/coreContract";
 
 describe("identifiers (ADR 0047)", () => {

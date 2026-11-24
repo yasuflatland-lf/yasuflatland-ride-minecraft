@@ -9,7 +9,7 @@ import {
   chooseHeighted,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { Debounces } from "../../../src/domain/shared/debounce";
 import { asPlayerId, type PlayerId } from "../../../src/domain/shared/ids";
@@ -61,8 +61,8 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
         for (const event of ["dimension", "die"]) {
-          const repo = new FakeSessions();
           const structures = new FakeStructureStore();
+          const repo = new FakeSessions(structures);
           const session = repo.getOrCreate(id);
           const debounce = new Debounces<PlayerId>(ticks(10));
           const pasteDebounce = new Debounces<PlayerId>(ticks(10));
@@ -92,8 +92,8 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           expect(rotateDebounce.press(id, 0)).toBe(true);
           expect(undoDebounce.press(id, 0)).toBe(true);
           registerSessions(
-            new EndBuildSession(repo, structures, new FakeTapTargets()),
-            new EndPasting(repo, structures),
+            new EndBuildSession(repo, new FakeTapTargets()),
+            new EndPasting(repo),
             debounce,
             pasteDebounce,
             rotateDebounce,
@@ -121,7 +121,8 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
 });
 
 it("ignores non-player deaths and drops the session, history and all debounces on disconnect", () => {
-  const repo = new FakeSessions();
+  const structures = new FakeStructureStore();
+  const repo = new FakeSessions(structures);
   const id = asPlayerId("p");
   const session = repo.getOrCreate(id);
   const debounce = new Debounces<PlayerId>(ticks(10));
@@ -129,7 +130,6 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const rotateDebounce = new Debounces<PlayerId>(ticks(7));
   const undoDebounce = new Debounces<PlayerId>(ticks(10));
   const at = { x: 0, y: 0, z: 0 };
-  const structures = new FakeStructureStore();
   new CopyBox(repo, structures, new FakeFeedback()).execute({
     playerId: id,
     selection: selectionOf(overworld, boxOf(at, at), AIR),
@@ -153,8 +153,8 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   targets.show(id, { dimensionId: overworld, cell: at });
   const onPlayerLeave = vi.fn();
   registerSessions(
-    new EndBuildSession(repo, structures, targets),
-    new EndPasting(repo, structures),
+    new EndBuildSession(repo, targets),
+    new EndPasting(repo),
     debounce,
     pasteDebounce,
     rotateDebounce,

@@ -18,9 +18,9 @@ it("captures the selected layers and choice facing immediately for Copy and Cut"
       fc.constantFrom("copy", "cut"),
       fc.integer({ min: 1, max: 8 }),
       (facing, kind, height) => {
-        const repo = new FakeSessions();
         const feedback = new FakeFeedback();
         const structures = new FakeStructureStore();
+        const repo = new FakeSessions(structures);
         const actions = {
           copy: new CopyBox(repo, structures, feedback),
           cut: new CutBox(repo, new FakeWorld(), structures, feedback, {

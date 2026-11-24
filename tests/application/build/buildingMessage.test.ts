@@ -58,7 +58,6 @@ it.each([
       e.feedback,
       { warn: () => {} },
       new FakeBuildPlayers(),
-      { discard: () => {} },
     ),
   ).execute({ playerId, style });
   expect(e.feedback.messages).toEqual([
@@ -105,7 +104,6 @@ it("does not announce a rejected or busy build", () => {
       e.feedback,
       { warn: () => {} },
       new FakeBuildPlayers(),
-      { discard: () => {} },
     ),
   ).execute({ playerId, style: "walls" });
   e.session.beginEdit();
@@ -118,7 +116,6 @@ it("does not announce a rejected or busy build", () => {
       e.feedback,
       { warn: () => {} },
       new FakeBuildPlayers(),
-      { discard: () => {} },
     ),
   ).execute({ playerId, style: "fill" });
   expect(

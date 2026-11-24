@@ -6,7 +6,7 @@ import type {
 import { CAMPER_ROOM } from "../../../domain/vehicle/kinds/index";
 // Use case: put an item in a vehicle's decor slot or empty it, and save the decor (ADR 0093).
 import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
-import type { DecorWorld } from "../ports/decor";
+import type { DecorWorld } from "./ports";
 
 export interface SetDecorCommand {
   vehicleId: VehicleId;

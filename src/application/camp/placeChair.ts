@@ -6,10 +6,11 @@ import {
   chairCell,
   chairYaw,
 } from "../../domain/camp/chair";
+import { CHAIR_SPEC } from "../../domain/camp/spec";
 import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-import { placeOnCells } from "../shared/groundPlacement";
+import { isSpaceRefused, placeOnCells } from "../shared/groundPlacement";
 import type { ItemPayment } from "../shared/ports/itemPayment";
 import type { ChairWorld } from "./ports/chair";
 
@@ -46,7 +47,7 @@ export class PlaceChair {
     face: ChairFace,
   ): Vec3 | undefined {
     const cell = chairCell(clicked, face);
-    if (cell === undefined || this.blockedByVehicle(dimensionId, cell))
+    if (cell === undefined || this.blockedAtSeat(dimensionId, cell))
       return undefined;
     return cell;
   }
@@ -64,10 +65,10 @@ export class PlaceChair {
       {
         support: [],
         clear: [],
-        protect: ["vehicle"],
+        refuses: CHAIR_SPEC.refuses,
         // Chairs check vehicle space at seat height only, before testing any air cells.
         extraCheck: () =>
-          !this.blockedByVehicle(dimension, block) &&
+          !this.blockedAtSeat(dimension, block) &&
           canPlaceChair((dy) => world.isAir(dimension, above(block, dy))) &&
           !world.hasChairAt(kind, dimension, above(block, 1)),
       },
@@ -82,10 +83,15 @@ export class PlaceChair {
     ).placed;
   }
 
-  private blockedByVehicle(dimensionId: DimensionId, block: Vec3): boolean {
+  private blockedAtSeat(dimensionId: DimensionId, block: Vec3): boolean {
     return (
       this.world.isOwnBlock(dimensionId, block) ||
-      this.world.isVehicleSpace(dimensionId, above(block, 1))
+      isSpaceRefused(
+        this.world,
+        dimensionId,
+        above(block, 1),
+        CHAIR_SPEC.refuses,
+      )
     );
   }
 }

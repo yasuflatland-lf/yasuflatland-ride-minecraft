@@ -42,7 +42,7 @@ export class PlaceFurniture {
       {
         support: furnitureSupportCells(pose),
         clear: furnitureClearCells(pose),
-        protect: ["vehicle", "camp"],
+        refuses: FURNITURE_SPEC[kind].refuses,
         extraCheck: () => {
           const occupied = world.resortGearCells(
             dimension,

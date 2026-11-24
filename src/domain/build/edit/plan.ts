@@ -9,8 +9,9 @@ import { stairDescending, stairFlatTop, stairMaterialOf } from "../stair";
 import { type StairRole, stairCells } from "../stairs/roles";
 import type { Staircase } from "../stairs/staircase";
 import type { TerrainArea } from "../terrain/area";
-import { type HeightedSpec, placementOf } from "../volume/geometry";
+import { placementOf } from "../volume/geometry";
 import type { FillStyle } from "../volume/kind";
+import type { HeightedSpec } from "../volume/types";
 import { type PlannedChange, type PlanStep, SCAN_STEP } from "./change";
 import type { Pattern } from "./pattern";
 

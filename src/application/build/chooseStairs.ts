@@ -1,5 +1,5 @@
 import { isFillMaterial } from "../../domain/build/edit/guard";
-import { chooseStairs } from "../../domain/build/flow/flow";
+import { chooseStairs } from "../../domain/build/flow/stairFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { StairOp } from "../../domain/build/stairs/contents";
 import type { PlayerId } from "../../domain/shared/ids";

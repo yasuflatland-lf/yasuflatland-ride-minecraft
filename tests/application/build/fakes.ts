@@ -7,42 +7,32 @@ import type {
 } from "../../../src/application/build/ports/feedback";
 import type { GroundProbe } from "../../../src/application/build/ports/ground";
 import type { BuildPlayers } from "../../../src/application/build/ports/players";
+import type { BuildStructureStore } from "../../../src/application/build/ports/structures";
 import type {
   TapTargetPlacement,
   TapTargets,
 } from "../../../src/application/build/ports/tapTargets";
 import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
+import type { Logger } from "../../../src/application/shared/ports/logger";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
-import { BuildSession } from "../../../src/domain/build/session";
-import type { BuildSessionRepository } from "../../../src/domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Cell } from "../../../src/domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../src/domain/shared/ids";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
+import { FakeStructureStore } from "./fakes/structureStore";
 
 export const overworld = asDimensionId("minecraft:overworld");
 export const nether = asDimensionId("minecraft:nether");
 
-export class FakeSessions implements BuildSessionRepository {
-  private readonly sessions = new Map<PlayerId, BuildSession>();
-  get(id: PlayerId) {
-    return this.sessions.get(id);
-  }
-  getOrCreate(id: PlayerId) {
-    let session = this.sessions.get(id);
-    if (!session) {
-      session = new BuildSession(id);
-      this.sessions.set(id, session);
-    }
-    return session;
-  }
-  remove(id: PlayerId) {
-    this.sessions.delete(id);
-  }
-  ids() {
-    return [...this.sessions.keys()];
+export class FakeSessions extends InMemorySessionRepository {
+  constructor(
+    structures: Pick<BuildStructureStore, "discard"> = new FakeStructureStore(),
+    log: Logger = { warn: () => {} },
+  ) {
+    super(structures, log);
   }
 }
 
