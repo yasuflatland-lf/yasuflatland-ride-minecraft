@@ -39,6 +39,7 @@ import {
   chooseHeightedFlow,
   tapAir,
   tapBlock,
+  tappedSelection,
 } from "../../support/buildSelection";
 
 type Answer = {
@@ -212,9 +213,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
         { kind: "idle" } as const,
         {
           kind: "point1",
-          dimensionId: overworld,
-          cell: a,
-          material: stone,
+          start: { dimensionId: overworld, cell: a, material: stone },
         } as const,
         end,
         chooseHeightedFlow(roofBase, "hip"),
@@ -263,9 +262,7 @@ it("shows exactly the applicable utility entries", async () => {
         if (aiming)
           session.setFlow({
             kind: "point1",
-            dimensionId: overworld,
-            cell: from,
-            material: stone,
+            start: { dimensionId: overworld, cell: from, material: stone },
           });
         ui.forms.length = 0;
         await menus.showUtilityMenu(player);
@@ -392,14 +389,14 @@ it("bounds the fallback slider, starts at the initial roof height and applies it
             label: { translate: BUILD_FORM.height },
             min: 1,
             max,
-            options: { defaultValue: flow.previous, valueStep: 1 },
+            options: { defaultValue: flow.liveHeight, valueStep: 1 },
           },
         ]);
         expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
           playerId,
           height: max,
         });
-        expect(session.flow).toEqual({ ...flow, previous: max });
+        expect(session.flow).toEqual({ ...flow, liveHeight: max });
         expect(ui.forms[3]?.buttons).toEqual(
           labels(contentsMenu(session.flow)),
         );
@@ -530,16 +527,18 @@ it.each(["gable", "hip"] as const)(
     session.setFlow({
       kind: "selected",
       menuLevel: "root",
-      selection: selectionOf(
-        overworld,
-        box,
-        blockStateOf("minecraft:oak_stairs", {
-          weirdo_direction: 0,
-          upside_down_bit: false,
-        }),
+      ...tappedSelection(
+        selectionOf(
+          overworld,
+          box,
+          blockStateOf("minecraft:oak_stairs", {
+            weirdo_direction: 0,
+            upside_down_bit: false,
+          }),
+        ),
+        from,
+        to,
       ),
-      from,
-      to,
     });
     ui.answers.push(...shapeAnswers(session.flow, kind), { selection: 1 });
     await menus.showShapeMenu(player);
@@ -583,7 +582,7 @@ it.each([
     });
     expect(session.flow).toMatchObject({
       heightLocked: true,
-      previous: y - from.y + 1,
+      liveHeight: y - from.y + 1,
     });
     expect(ui.forms[2]?.sliders).toEqual([]);
   },
@@ -716,7 +715,10 @@ it.each([
     ui.answers.push(removeAboveAnswer(), answer);
     await menus.showShapeMenu(player);
     expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
-    expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+    expect(session.flow).toMatchObject({
+      kind: "point1",
+      start: { cell: from },
+    });
   },
 );
 
@@ -820,7 +822,7 @@ it.each([false, true])(
     expect(session.flow).toMatchObject({
       heightedKind: "sideCylinderX",
       heightLocked: true,
-      previous: 5,
+      liveHeight: 5,
     });
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
@@ -856,7 +858,7 @@ it.each([false, true])(
     expect(session.flow).toMatchObject({
       heightedKind: "sideCylinderX",
       heightLocked: true,
-      previous: 1,
+      liveHeight: 1,
     });
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
@@ -1027,7 +1029,10 @@ it.each([
       expect(session.flow).toBe(endpoint);
     } else {
       expect(cases.confirmStairs.execute).not.toHaveBeenCalled();
-      expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+      expect(session.flow).toMatchObject({
+        kind: "point1",
+        start: { cell: from },
+      });
     }
   },
 );
@@ -1068,7 +1073,10 @@ it.each([{ selection: 0 }, { selection: 1 }, { canceled: true }])(
       expect(session.flow).toBe(endpoint);
     } else {
       expect(cases.confirmTerrace.execute).not.toHaveBeenCalled();
-      expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+      expect(session.flow).toMatchObject({
+        kind: "point1",
+        start: { cell: from },
+      });
     }
   },
 );

@@ -7,7 +7,10 @@ import { boxOf } from "../../../src/domain/build/box";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { chooseHeightedFlow } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  tappedSelection,
+} from "../../support/buildSelection";
 import { FakeSessions, FakeWorld, overworld } from "./fakes";
 
 it("sets only a roof flow's height and leaves other players and missing sessions alone", () => {
@@ -27,13 +30,15 @@ it("sets only a roof flow's height and leaves other players and missing sessions
         const endpoint: BuildFlow = {
           kind: "selected",
           menuLevel: "root",
-          selection: selectionOf(
-            overworld,
-            boxOf({ x: 0, y: 60, z: 0 }, { x: 3, y: 60, z: 4 }),
-            blockStateOf("minecraft:stone"),
+          ...tappedSelection(
+            selectionOf(
+              overworld,
+              boxOf({ x: 0, y: 60, z: 0 }, { x: 3, y: 60, z: 4 }),
+              blockStateOf("minecraft:stone"),
+            ),
+            { x: 0, y: 60, z: 0 },
+            { x: 3, y: 60, z: 4 },
           ),
-          from: { x: 0, y: 60, z: 0 },
-          to: { x: 3, y: 60, z: 4 },
         };
         for (const flow of [
           { kind: "idle" } as const,
@@ -44,7 +49,7 @@ it("sets only a roof flow's height and leaves other players and missing sessions
           session.setFlow(flow);
           set.execute({ playerId, height });
           expect(session.flow).toEqual(
-            flow.kind === "heightStep" ? { ...flow, previous: height } : flow,
+            flow.kind === "heightStep" ? { ...flow, liveHeight: height } : flow,
           );
         }
         expect(other.flow).toBe(otherFlow);
@@ -68,13 +73,18 @@ it("keeps locked box heights and other players unchanged for aiming and explicit
           {
             kind: "selected",
             menuLevel: "root",
-            selection: selectionOf(
-              overworld,
-              boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60 + height - 1, z: 5 }),
-              blockStateOf("minecraft:stone"),
+            ...tappedSelection(
+              selectionOf(
+                overworld,
+                boxOf(
+                  { x: 0, y: 60, z: 0 },
+                  { x: 4, y: 60 + height - 1, z: 5 },
+                ),
+                blockStateOf("minecraft:stone"),
+              ),
+              { x: 0, y: 60, z: 0 },
+              { x: 4, y: 60 + height - 1, z: 5 },
             ),
-            from: { x: 0, y: 60, z: 0 },
-            to: { x: 4, y: 60 + height - 1, z: 5 },
           },
           "cylinder",
         );

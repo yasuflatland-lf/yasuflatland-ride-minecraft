@@ -228,9 +228,7 @@ it("ends paste aiming and clears the clipboard and confirmed box", () => {
     { kind: "idle" } as const,
     {
       kind: "point1",
-      dimensionId: overworld,
-      cell: from,
-      material: stone,
+      start: { dimensionId: overworld, cell: from, material: stone },
     } as const,
     endpoint,
     chooseHeightedFlow(endpoint, "hip"),

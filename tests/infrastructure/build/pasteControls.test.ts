@@ -36,7 +36,11 @@ import {
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
 import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import { structureClipboard } from "../../support/buildClipboard";
-import { tapAir, tapBlock } from "../../support/buildSelection";
+import {
+  tapAir,
+  tapBlock,
+  tappedSelection,
+} from "../../support/buildSelection";
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -202,9 +206,7 @@ it("debounces Paste Rotate across block and item events for the selected box", (
   e.session.setFlow({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(nether, box, AIR),
-    from: box.min,
-    to: box.max,
+    ...tappedSelection(selectionOf(nether, box, AIR), box.min, box.max),
   });
   expect(e.interact().cancel).toBe(true);
   flush();
@@ -592,7 +594,7 @@ it.each([false, true])(
     if (!blockFirst) e.interact();
     flush();
     expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
-    expect(e.session.flow).toBe(point);
+    expect(e.session.flow).toEqual(point);
     expect(e.editUndo).not.toHaveBeenCalled();
     expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 0);
   },

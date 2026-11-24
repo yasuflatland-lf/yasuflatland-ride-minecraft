@@ -24,7 +24,7 @@ export function aimedHeight(
     cap: live
       ? selectionHeightLimit(base, range)
       : volumeOf(flow.heightedKind).maxHeight(base, range),
-    previous: flow.previous,
+    previous: flow.liveHeight,
     // Heights count layers, so the exclusive ceiling keeps the last layer inside the dimension.
     maxY: range.maxY + 1,
   });

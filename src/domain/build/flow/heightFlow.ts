@@ -8,7 +8,12 @@ import { selectionHeightLimit, selectionOf, withBox } from "../selection";
 import { type Shape, shapeOf } from "../shape/shape";
 import { stairMaterialOf } from "../stair";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
-import type { BaseHeightFlow, BuildFlow, HeightStepFlow } from "./state";
+import {
+  type BaseHeightFlow,
+  type BuildFlow,
+  type HeightStepFlow,
+  point1,
+} from "./state";
 
 /** The height the two taps span, clamped to the selection height limit. */
 export function tappedSpanHeight(box: CellBox, range: HeightRange): number {
@@ -16,7 +21,7 @@ export function tappedSpanHeight(box: CellBox, range: HeightRange): number {
 }
 
 export function heightStepBox(flow: HeightStepFlow): CellBox {
-  return boxWithHeight(flow.base, flow.previous);
+  return boxWithHeight(flow.base, flow.liveHeight);
 }
 
 export function tapBlock(
@@ -36,13 +41,14 @@ export function tapBlock(
     flow.kind === "stairContents"
   )
     return flow;
-  if (flow.kind === "idle" || flow.dimensionId !== dimensionId)
-    return Object.freeze({
-      kind: "point1",
-      dimensionId,
-      cell: Object.freeze({ ...cell }),
-      material,
-    });
+  if (flow.kind === "idle" || flow.start.dimensionId !== dimensionId)
+    return point1(
+      Object.freeze({
+        dimensionId,
+        cell: Object.freeze({ ...cell }),
+        material,
+      }),
+    );
   return tapAir(flow, cell, range);
 }
 
@@ -52,30 +58,28 @@ export function tapAir(
   range: HeightRange,
 ): BuildFlow {
   if (flow.kind !== "point1" || !end) return flow;
-  const selection = selectionOf(
-    flow.dimensionId,
-    boxOf(flow.cell, end),
-    flow.material,
-  );
-  const from = flow.cell;
+  const { start } = flow;
+  const { dimensionId, cell: from, material } = start;
   const to = Object.freeze({ ...end });
+  const taps = Object.freeze({ from, to });
+  const selection = selectionOf(dimensionId, boxOf(from, to), material);
   if (shapeOf(from, to).kind === "line")
     return Object.freeze({
       kind: "selected",
-      stepBackTo: flow,
+      start,
+      freshEnd: true,
       menuLevel: "root",
       selection,
-      from,
-      to,
+      taps,
     });
   return Object.freeze({
     kind: "baseHeight",
-    stepBackTo: flow,
+    start,
+    freshEnd: true,
     selection,
-    from,
-    to,
+    taps,
     baseBox: boxWithHeight(selection.box, 1),
-    previous: tappedSpanHeight(selection.box, range),
+    liveHeight: tappedSpanHeight(selection.box, range),
   });
 }
 
@@ -97,15 +101,15 @@ export function adjustHeight(flow: BuildFlow, range: HeightRange): BuildFlow {
   return Object.freeze({
     kind: "baseHeight",
     selection: flow.selection,
-    from: flow.from,
-    to: flow.to,
+    start: flow.start,
+    taps: flow.taps,
     baseBox: boxWithHeight(box, 1),
-    previous: tappedSpanHeight(box, range),
+    liveHeight: tappedSpanHeight(box, range),
   });
 }
 
 export function liveHeightBox(flow: BaseHeightFlow): CellBox {
-  return boxWithHeight(flow.baseBox, flow.previous);
+  return boxWithHeight(flow.baseBox, flow.liveHeight);
 }
 
 function tappedSpanBox(flow: BaseHeightFlow, range: HeightRange): CellBox {
@@ -134,8 +138,8 @@ function confirmBox(
     kind: "selected",
     menuLevel: "root",
     selection: withBox(flow.selection, box),
-    from: flow.from,
-    to: flow.to,
+    start: flow.start,
+    taps: flow.taps,
   });
 }
 
@@ -149,41 +153,40 @@ export function chooseHeighted(
   range: HeightRange,
 ): { flow: HeightStepFlow } | { refused: "tooLarge" | "shape" } {
   if (flow.kind !== "selected") return { refused: "shape" };
-  const { box, dimensionId, material } = flow.selection;
+  const { box } = flow.selection;
   const shape = shapeOf(box.min, box.max);
   if (!acceptsHeightedShape(shape)) return { refused: "shape" };
   const locked = locksBoxHeight(kind);
   const base = boxWithHeight(box, 1);
-  const stairRoof = isRoofKind(kind) && stairMaterialOf(material) !== undefined;
-  const previous = stairRoof
+  const stairRoof =
+    isRoofKind(kind) && stairMaterialOf(flow.start.material) !== undefined;
+  const liveHeight = stairRoof
     ? stairRoofHeight(base)
     : locked
       ? sizeOf(box).y
       : 1;
-  if (stairRoof && base.min.y + previous - 1 > range.maxY)
+  if (stairRoof && base.min.y + liveHeight - 1 > range.maxY)
     return { refused: "tooLarge" };
   return {
     flow: Object.freeze({
       kind: "heightStep",
-      dimensionId,
+      start: flow.start,
       base,
       ...(stairRoof || (!locked && shape.kind === "box")
         ? { selectionBefore: box }
         : {}),
-      from: flow.from,
-      to: flow.to,
+      taps: flow.taps,
       heightedKind: kind,
-      previous,
+      liveHeight,
       heightLocked: locked || stairRoof,
       ...(stairRoof ? { roofStyle: "stair" as const } : {}),
-      material,
     }),
   };
 }
 
 export function setHeight(flow: BuildFlow, height: number): BuildFlow {
-  return (flow.kind === "baseHeight" && height !== flow.previous) ||
+  return (flow.kind === "baseHeight" && height !== flow.liveHeight) ||
     (flow.kind === "heightStep" && !flow.heightLocked)
-    ? Object.freeze({ ...flow, previous: height })
+    ? Object.freeze({ ...flow, liveHeight: height })
     : flow;
 }

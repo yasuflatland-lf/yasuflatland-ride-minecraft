@@ -32,14 +32,12 @@ it("grows the inclusive height-step box from its base without changing the flow"
         const base = boxOf(a, b);
         const flow: HeightStepFlow = {
           kind: "heightStep",
-          dimensionId,
           base,
-          from: a,
-          to: b,
           heightedKind: kind,
-          previous: height,
+          liveHeight: height,
           heightLocked,
-          material: stone,
+          start: { dimensionId, cell: a, material: stone },
+          taps: { from: a, to: b },
         };
         const before = structuredClone(flow);
         const box = heightStepBox(flow);

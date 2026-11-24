@@ -79,7 +79,7 @@ export class RotateBox {
       edit.commit({
         box: plan.union,
         selectionBefore: selectedBox,
-        selectionBeforeTaps: { from: flow.from, to: flow.to },
+        selectionBeforeTaps: flow.taps,
         handle: snapshot,
       });
     });
@@ -87,7 +87,7 @@ export class RotateBox {
     session.setFlow(withoutStepBack(flow));
     session.replaceSelection(
       withBox(selection, plan.target),
-      tapsForBox(plan.target, flow),
+      tapsForBox(plan.target, flow.taps),
       this.world.heightRange(dimensionId),
     );
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);

@@ -2,7 +2,6 @@ import { AIR } from "../../domain/build/blockState";
 import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planFillBelow, planShape } from "../../domain/build/edit/plan";
 import { backToAiming } from "../../domain/build/flow/stepBack";
-import { cornerTaps, tapsOf } from "../../domain/build/flow/taps";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
 import { removeAboveBox, terrainAreaOf } from "../../domain/build/terrain/area";
@@ -33,10 +32,9 @@ export class ConfirmTerrain {
       this.feedback.showMessage(playerId, "busy");
       return;
     }
-    const { selection } = flow;
+    const { selection, taps } = flow;
     const { dimensionId, material } = selection;
-    const taps = tapsOf(flow) ?? cornerTaps(selection.box);
-    const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
+    const area = terrainAreaOf(selection.box, taps.from, taps.to);
     const range = this.world.heightRange(dimensionId);
     const box = removeAboveBox(area, range);
     if (flow.op === "removeAbove" && !box) {

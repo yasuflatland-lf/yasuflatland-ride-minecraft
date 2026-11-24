@@ -132,8 +132,7 @@ it("cancels wand interactions and defers only the first block event", () => {
         if (holding)
           expect(f.flow()).toMatchObject({
             kind: "point1",
-            cell,
-            dimensionId: nether,
+            start: { dimensionId: nether, cell },
           });
         else expect(f.flow()).toBeUndefined();
       },

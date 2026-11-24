@@ -35,7 +35,7 @@ export class ChooseHeighted {
       cmd.playerId,
       "building",
       undefined,
-      flow.material,
+      flow.start.material,
     );
   }
 }

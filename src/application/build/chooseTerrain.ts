@@ -31,7 +31,11 @@ export class ChooseTerrain {
       this.feedback.showMessage(playerId, "fillMaterialRefused");
       return;
     }
-    const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
+    const area = terrainAreaOf(
+      flow.selection.box,
+      flow.taps.from,
+      flow.taps.to,
+    );
     if (!fitsTerrainLimit(area)) {
       const range = this.world.heightRange(flow.selection.dimensionId);
       const box =

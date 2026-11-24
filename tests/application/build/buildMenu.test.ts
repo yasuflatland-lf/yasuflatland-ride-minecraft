@@ -102,7 +102,7 @@ it("adjusts an existing selection from its current height and confirms the new h
         if (flow.kind !== "baseHeight") throw new Error("Expected live height");
         expect(flow.selection).toEqual(initial.selection);
         expect(flow.baseBox.max.y).toBe(initial.selection.box.min.y);
-        expect(flow.previous).toBe(
+        expect(flow.liveHeight).toBe(
           Math.min(
             height,
             selectionHeightLimit(initial.selection.box, OVERWORLD_RANGE),
