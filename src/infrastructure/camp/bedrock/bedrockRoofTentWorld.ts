@@ -19,10 +19,10 @@ import { blockIn } from "../../shared/blocks";
 import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import { entityOfType, hasEntityNear } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
+import { paidItem } from "../../shared/groundCells";
 import { id } from "../../shared/identifiers";
 import {
   consumeHeld,
-  isCreative,
   playerById,
   showActionBar,
   showHitsLeftHint,
@@ -142,17 +142,14 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
   loaded(): readonly RoofTentId[] {
     return loadedEntityIds(ROOF_TENT_TYPE).map(asRoofTentId);
   }
-  isCreative(id: PlayerId): boolean {
-    return isCreative(playerById(id));
-  }
-  consumeItem(id: PlayerId, slot: number): boolean {
-    const player = playerById(id);
-    return player !== undefined && consumeHeld(player, ROOF_TENT_ITEM, slot);
-  }
-  giveItem(id: PlayerId): void {
+  private readonly payment = paidItem(ROOF_TENT_ITEM);
+  readonly isCreative = this.payment.isCreative;
+  readonly consumeItem = this.payment.consumeItem;
+  refund(id: PlayerId, _slot: number): void {
     const player = playerById(id);
     if (player?.isValid) giveBack(player, ROOF_TENT_ITEM, player);
   }
+
   showHitsLeft(id: PlayerId, hitsLeft: number): void {
     showHitsLeftHint(id, TENT_HITS_LEFT_HINT, hitsLeft);
   }

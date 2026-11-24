@@ -18,15 +18,9 @@ import type { TentEntry } from "../../../domain/camp/tentRegistry";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { giveBack } from "../../shared/gearEntity";
+import { paidItem } from "../../shared/groundCells";
 import type { CellLayer } from "../../shared/laidCells";
-import {
-  consumeHeld,
-  isCreative,
-  playerById,
-  showActionBar,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { showActionBar, showHitsLeftHint } from "../../shared/players";
 import {
   PITCH_REFUSAL_MESSAGE,
   TENT_HITS_LEFT_HINT,
@@ -98,19 +92,10 @@ export class BedrockTentWorld
     return this.layout.survey(dimensionId, pose);
   }
 
-  isCreative(playerId: PlayerId): boolean {
-    return isCreative(playerById(playerId));
-  }
-
-  consumeTentItem(playerId: PlayerId, slot: number): boolean {
-    const player = playerById(playerId);
-    return player !== undefined && consumeHeld(player, TENT_ITEM, slot);
-  }
-
-  giveTentItem(playerId: PlayerId): void {
-    const player = playerById(playerId);
-    if (player) giveBack(player, TENT_ITEM, player);
-  }
+  private readonly payment = paidItem(TENT_ITEM);
+  readonly isCreative = this.payment.isCreative;
+  readonly consumeItem = this.payment.consumeItem;
+  readonly refund = this.payment.refund;
 
   clearDecorations(dimensionId: DimensionId, cells: readonly Cell[]): void {
     this.layout.clearDecorations(dimensionId, cells);
