@@ -73,11 +73,6 @@ export interface DooredStorage<
   readonly doors: readonly StorageDoorDef<Id>[];
   readonly compartmentBlock: (look: CompartmentLook) => StorageCompartmentBlock;
   readonly plateBlock: (look: PlateLook) => StoragePlateBlock;
-  /**
-   * The namespace-free name of the block plateBlock lays: a plate in the room's inside layers
-   * lets the camper park and leave while its cell holds it (storagePlates.ts ownPlateBlock).
-   */
-  readonly plateBlockName: string;
 }
 
 /** A door with the unit it belongs to. */

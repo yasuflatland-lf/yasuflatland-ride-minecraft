@@ -65,6 +65,21 @@ export class CellLayer<Owner extends string, B> {
     private readonly recheckTicks: Ticks,
   ) {}
 
+  /** A restored vehicle can query ownership before its first lay tick. */
+  restore(owner: Owner, holder: CellHolder): readonly LaidCell<B>[] {
+    const entry = this.laid.get(owner);
+    if (entry)
+      return entry.dimension.id === holder.dimension.id ? entry.cells : [];
+    const cells = savedLaidCells(holder, this.codec);
+    if (cells.length > 0)
+      this.laid.set(owner, {
+        dimension: holder.dimension,
+        cells,
+        recheckIn: 0,
+      });
+    return cells;
+  }
+
   /** The owner that laid this cell, while the world still holds the block it laid there (ADR 0096). */
   laidBlockOwner(
     dimensionId: DimensionId,

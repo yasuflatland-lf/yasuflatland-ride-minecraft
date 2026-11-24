@@ -85,13 +85,16 @@ export function installVehicles(deps: {
     ...LIGHT_CODEC,
     ...CAMPER_ROOM_CODEC,
   });
+  const docks = new DockBlocks(deps.isCampSpace, dockCodec);
   const bedrock = new BedrockVehicleWorld(
     index,
     testInputs,
     testHeldItems,
     deps.isCampSpace,
-    new DockBlocks(deps.isCampSpace, dockCodec),
-    { camper: (vehicle) => readCamperRestored(vehicle, dockCodec) },
+    docks,
+    {
+      camper: (vehicle) => readCamperRestored(vehicle, docks.restore(vehicle)),
+    },
     isStandableRoomBlock,
   );
   const fleetWorld = new BedrockFleetWorld(

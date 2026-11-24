@@ -43,7 +43,6 @@ import { decorItemId } from "../../../../support/decorIds";
 import { defined } from "../../../../support/defined";
 import {
   createDockBlocks,
-  dockCodec,
   dockFixture as fixture,
 } from "../../../../support/dockBlocks";
 
@@ -87,7 +86,10 @@ it("restores and rewrites the exact saved deck_cells of a build before the share
   wanted.forEach((c, i) => {
     f.blocks.set(cellKey(c), { typeId: defined(ids[i], "block id") });
   });
-  expect(savedDock(f.car, dockCodec)).toEqual({ laid: true, doorOpen: true });
+  expect(savedDock(createDockBlocks().restore(f.car))).toEqual({
+    laid: true,
+    doorOpen: true,
+  });
   const floors = createDockBlocks();
   floors.lay(asVehicleId(f.car.id), f.car, wanted);
   expect(f.writes).toEqual([]);
@@ -113,7 +115,7 @@ it("restores and clears saved dashboard decor spots", () => {
   f.saved.set(DECK_CELLS_PROPERTY, JSON.stringify(saved));
   for (const c of saved)
     f.blocks.set(cellKey(c), { typeId: decorBlockId("potted_plant") });
-  expect(savedDock(f.car, dockCodec).laid).toBe(true);
+  expect(savedDock(createDockBlocks().restore(f.car)).laid).toBe(true);
   createDockBlocks().lay(asVehicleId(f.car.id), f.car, []);
   for (const c of saved) expect(f.at(c).typeId).toBe("minecraft:air");
   expect(f.saved.get(DECK_CELLS_PROPERTY)).toBeUndefined();
@@ -715,13 +717,13 @@ it.each([true, false])(
   (open) => {
     const f = fixture();
     const read = vi.spyOn(f.car, "getDynamicProperty");
-    expect(savedDock(f.car, dockCodec)).toEqual({
+    expect(savedDock(createDockBlocks().restore(f.car))).toEqual({
       laid: false,
       doorOpen: undefined,
     });
     for (const raw of ["{", "{}", "[]"]) {
       f.saved.set(DECK_CELLS_PROPERTY, raw);
-      expect(savedDock(f.car, dockCodec)).toEqual({
+      expect(savedDock(createDockBlocks().restore(f.car))).toEqual({
         laid: false,
         doorOpen: undefined,
       });
@@ -730,7 +732,7 @@ it.each([true, false])(
       DECK_CELLS_PROPERTY,
       JSON.stringify([{ x: 0, y: 64, z: 0, height: 8 }]),
     );
-    expect(savedDock(f.car, dockCodec)).toEqual({
+    expect(savedDock(createDockBlocks().restore(f.car))).toEqual({
       laid: true,
       doorOpen: undefined,
     });
@@ -743,7 +745,10 @@ it.each([true, false])(
       ),
     );
     read.mockClear();
-    expect(savedDock(f.car, dockCodec)).toEqual({ laid: true, doorOpen: open });
+    expect(savedDock(createDockBlocks().restore(f.car))).toEqual({
+      laid: true,
+      doorOpen: open,
+    });
     expect(read).toHaveBeenCalledExactlyOnceWith(DECK_CELLS_PROPERTY);
   },
 );

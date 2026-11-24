@@ -9,17 +9,11 @@ import {
   DECOR_SPOTS,
   type DecorSlot,
   isStoragePairKind,
-  type LocalCell,
   STORAGE_DOORS,
 } from "./furniture";
 import { axes, cellAt, localCellAt } from "./parkPose";
-import { AIR } from "./roomGeometry";
 
 const PX_PER_BLOCK = 16;
-
-// The namespace-free name of yasu_ride:camper_furniture; identifiers.test.ts checks
-// it against CAMPER_FURNITURE_BLOCK (ADR 0097).
-const FURNITURE_BLOCK_SUFFIX = ":camper_furniture";
 
 // yasu_ride:camper_furniture's height 0 is the hanging box under the hook,
 // whatever the hanging slot's own height (ADR 0097, 0102).
@@ -145,40 +139,5 @@ export function furnitureCells(
 export function slotCells(pose: HoldPose): Vec3[] {
   return DECOR_CELLS.map(({ cell }) =>
     cellAt(pose, cell.x, cell.z, cell.layer),
-  );
-}
-
-/**
- * The namespace-free name of the block the decor in `cell` lays: the pair block of the
- * table, or the decor block of the cell's item; undefined while the cell holds
- * no decor (ADR 0093, 0108). A storage compartment always lays its unit's pair block (ADR 0114, 0121).
- */
-export function decorBlockName(
-  cell: LocalCell,
-  decor: readonly DecorPlacement[],
-): string | undefined {
-  const door = compartmentDoorAt(cell, STORAGE_DOORS);
-  if (door) return `${door.unit.pairKind}_decor_pair`;
-  const placed = decorInCell(cell, decor);
-  const slot = placed && decorSlot(placed.slot);
-  if (!placed || !slot) return undefined;
-  return slot.pair ? `${slot.pair.kind}_decor_pair` : `${placed.item}_decor`;
-}
-
-/**
- * A slot cell lets the camper leave only while it holds air, the furniture block, or
- * `decorBlock`, the block its decor lays (decorBlockName; undefined for an empty cell)
- * (ADR 0093, 0097, 0108).
- */
-export function ownSlotBlock(
-  typeId: string | undefined,
-  decorBlock: string | undefined,
-): boolean {
-  // An occupied slot may still hold its furniture block: decor placed this tick
-  // is laid only on the next step.
-  if (typeId === AIR || typeId?.endsWith(FURNITURE_BLOCK_SUFFIX) === true)
-    return true;
-  return (
-    decorBlock !== undefined && typeId?.endsWith(`:${decorBlock}`) === true
   );
 }

@@ -1,4 +1,5 @@
 import { BlockPermutation, type Entity } from "@minecraft/server";
+import { sameCell } from "../../domain/shared/cells";
 import {
   type DecorPlacement,
   isDecorItem,
@@ -64,6 +65,7 @@ function fixture(
   if (!top || !bottom) throw new Error("Missing drawer fixture slots");
   const cell = localCellAt(pose, top.cell);
   let tick = 100;
+  let laidDrawer: string | undefined;
   const properties = new Map<string, number | boolean | string>();
   const ctx: TickContext = {
     tick,
@@ -73,6 +75,7 @@ function fixture(
     deckSeatInputs: [],
     solidAt: () => false,
     waterAt: () => false,
+    ownsLaidBlock: (at, typeId) => sameCell(at, cell) && typeId === laidDrawer,
     blockTypes: (cells) => cells.map((at) => a.dim.getBlock(at)?.typeId),
   };
   const step = (input?: RawInput): DriveStep => {
@@ -85,7 +88,7 @@ function fixture(
       }
     carrier.setDynamicProperty(id("decor"), JSON.stringify(room.decor.decor()));
     const drawer = out.dock?.cells.find((c) => c.block.type === "drawers");
-    if (drawer?.block.type === "drawers")
+    if (drawer?.block.type === "drawers") {
       a.dim
         .getBlock(cell)
         ?.setPermutation(
@@ -94,6 +97,8 @@ function fixture(
             drawerBlockStates(drawer.block),
           ),
         );
+      laidDrawer = pairDecorBlockId("drawers");
+    }
     const blockStates = a.dim.getBlock(cell)?.permutation.getAllStates();
     requireCheck(
       blockStates?.[id("top_drawer")] === undefined &&

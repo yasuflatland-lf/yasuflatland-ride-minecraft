@@ -245,8 +245,6 @@ export const WALL_CABINET: DooredStorage<StorageDoorId, "cabinet"> = {
   }),
   // The plates stand under the ceiling, where no light hangs, so `lit` is always false.
   plateBlock: ({ face }) => ({ type: "cabinetDoor", face }),
-  // The namespace-free name of yasu_ride:camper_cabinet_door; identifiers.test.ts checks it.
-  plateBlockName: "camper_cabinet_door",
 };
 
 // The fridge stands where the two-board shelf stood, behind the driver, its two compartments
@@ -317,8 +315,6 @@ export const FRIDGE: DooredStorage<StorageDoorId, "fridge"> = {
     ...(end1 === undefined ? {} : { end1 }),
   }),
   plateBlock: ({ face, lit }) => ({ type: "fridgeDoor", face, lit }),
-  // The namespace-free name of yasu_ride:camper_fridge_door; identifiers.test.ts checks it.
-  plateBlockName: "camper_fridge_door",
 };
 
 const COUNTER_CELL = { x: -1, z: -1, layer: DRAWER_CELL_LAYER } as const;
@@ -378,7 +374,6 @@ export const KITCHEN_DRAWERS: DooredStorage<StorageDoorId, StoragePairKind> = {
   plateBlock: () => {
     throw new Error("Sliding storage has no plate");
   },
-  plateBlockName: "",
 };
 
 export const CAMPER_STORAGE: readonly DooredStorage<
