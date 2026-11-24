@@ -5,8 +5,8 @@ import {
   cylinderPlacement,
   cylinderVolume,
 } from "../../../src/domain/build/volume/cylinder";
-import type { HeightedSpec } from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
+import type { HeightedSpec } from "../../../src/domain/build/volume/types";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -100, max: 100 });

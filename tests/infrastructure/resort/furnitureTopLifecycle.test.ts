@@ -119,7 +119,9 @@ it("cancels owned tabletop breaks through the laid-block guard", () => {
   const breaking = game.handlers.get("playerBreakBlock");
   breaking?.(event);
   expect(event.cancel).toBe(false);
-  f.adapter.ownerAt.mockReturnValue(asFurnitureId("table"));
+  f.adapter.ownerAt.mockImplementation((_dimension, _cell, typeId) =>
+    typeId === DINING_TABLE_TOP ? asFurnitureId("table") : undefined,
+  );
   breaking?.(event);
   expect(event.cancel).toBe(true);
   event.cancel = false;

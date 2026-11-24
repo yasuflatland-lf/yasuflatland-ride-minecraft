@@ -151,12 +151,14 @@ it("retains unloaded cells for cleanup after the entity has gone", () => {
   if (!block) throw Error("missing block");
   f.blocks.delete(f.key(cell));
   game.getEntity.mockReturnValue(undefined);
-  f.adapter.clearCeiling(id);
+  f.dimension.getBlock.mockClear();
+  expect(f.adapter.clearCeiling(id)).toBe(false);
+  expect(f.dimension.getBlock).toHaveBeenCalledTimes(f.wanted.length);
   expect(f.adapter.ceilingOwner(dimensionId, cell, PARASOL_CEILING_BLOCK)).toBe(
     id,
   );
   f.blocks.set(f.key(cell), block);
-  f.adapter.clearCeiling(id);
+  expect(f.adapter.clearCeiling(id)).toBe(true);
   expect(block.isAir).toBe(true);
   expect(
     f.adapter.ceilingOwner(dimensionId, cell, PARASOL_CEILING_BLOCK),

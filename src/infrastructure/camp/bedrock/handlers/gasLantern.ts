@@ -1,13 +1,15 @@
-import { type Entity, type Player, system, world } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
 import type { GasLanternActions } from "../../../../application/camp/gasLantern";
 import { asGasLanternId } from "../../../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../../../domain/camp/spec";
-import { asPlayerId, type PlayerId } from "../../../../domain/shared/ids";
+import type { PlayerId } from "../../../../domain/shared/ids";
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import { heldTypeId } from "../../../shared/heldItem";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../shared/identifiers";
-import { showTopRefusal, topAim } from "../../../shared/tableTop/aim";
-import type { PlaceHostedOnTop } from "../../../shared/tableTop/hosted";
+import {
+  type PlaceHostedOnTop,
+  registerHostedOnTop,
+} from "../../../shared/tableTop/hosted";
 import type { TopHostRegistry } from "../../../shared/tableTop/registry";
 import { GAS_LANTERN_ITEM, GAS_LANTERN_TYPE } from "../../identifiers";
 import type { BedrockGasLanternWorld } from "../bedrockGasLanternWorld";
@@ -23,34 +25,12 @@ export function registerGasLantern(
     GAS_LANTERN_SPEC.lightTicks,
   );
   const placements = new TickScopedSet<PlayerId>();
-  const place = (
-    placer: Player,
-    host: Entity,
-    held: string | undefined,
-  ): boolean => {
-    if (held !== GAS_LANTERN_ITEM) return false;
-    const type = registry.hostTypeOf(host);
-    if (!type) return false;
-    const player = asPlayerId(placer.id);
-    if (!placements.add(system.currentTick, player)) return true;
-    const slot = placer.selectedSlotIndex;
-    const aim = topAim(placer, host, type.surface);
-    const id = host.id;
-    system.run(() =>
-      showTopRefusal(
-        placer,
-        type,
-        actions.placeOnTop(type.surface, {
-          player,
-          hostType: type.hostType,
-          host: id,
-          slot,
-          aim,
-        }),
-      ),
-    );
-    return true;
-  };
+  const placeOnTop = registerHostedOnTop({
+    itemId: GAS_LANTERN_ITEM,
+    placeOnTop: (surface, cmd) => actions.placeOnTop(surface, cmd),
+    registry,
+    placements,
+  });
   registerPlaceableEntity({
     itemId: GAS_LANTERN_ITEM,
     entityTypeIds: new Set([GAS_LANTERN_TYPE]),
@@ -67,7 +47,7 @@ export function registerGasLantern(
     placements,
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
-    if (place(ev.player, ev.target, ev.itemStack?.typeId)) ev.cancel = true;
+    if (placeOnTop(ev.player, ev.target, ev)) ev.cancel = true;
   });
   world.beforeEvents.playerInteractWithEntity.subscribe((ev) => {
     if (
@@ -79,5 +59,5 @@ export function registerGasLantern(
     const id = ev.target.id;
     system.run(() => actions.switch(asGasLanternId(id), system.currentTick));
   });
-  return (player, host) => place(player, host, heldTypeId(player));
+  return placeOnTop;
 }

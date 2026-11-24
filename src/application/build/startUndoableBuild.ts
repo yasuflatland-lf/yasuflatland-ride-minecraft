@@ -1,6 +1,6 @@
 import type { CellBox } from "../../domain/build/box";
 import type { PlanStep } from "../../domain/build/edit/change";
-import type { Taps } from "../../domain/build/flow/flow";
+import type { Taps } from "../../domain/build/flow/taps";
 import type { Selection } from "../../domain/build/selection";
 import type { BuildSession } from "../../domain/build/session";
 import type { PlayerId } from "../../domain/shared/ids";

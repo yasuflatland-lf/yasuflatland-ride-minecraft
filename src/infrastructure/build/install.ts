@@ -25,12 +25,17 @@ import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
 import { FixStairGoal } from "../../application/build/fixStairGoal";
 import { LeaveBuild } from "../../application/build/leaveBuild";
+import {
+  type MenuCases,
+  MenuChoices,
+} from "../../application/build/menuChoices";
 import { NewCopy } from "../../application/build/newCopy";
 import { OpenBuildMenu } from "../../application/build/openBuildMenu";
 import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { PressUndo } from "../../application/build/pressUndo";
+import { PressWand } from "../../application/build/pressWand";
 import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
@@ -64,7 +69,6 @@ import { registerPasteControls } from "./bedrock/handlers/pasteControls";
 import { registerSessions } from "./bedrock/handlers/sessions";
 import { registerTapTarget } from "./bedrock/handlers/tapTarget";
 import { registerWand } from "./bedrock/handlers/wand";
-import type { BlockPressContext } from "./bedrock/handlers/wandPress";
 import { InMemorySessionRepository } from "./persistence/inMemorySessionRepository";
 
 export function installBuild(deps: {
@@ -146,7 +150,6 @@ export function installBuild(deps: {
       aim,
       chooseHeighted,
     ),
-    aimHeight: new AimHeight(repo),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseStairs: new ChooseStairs(repo, feedback),
     confirmTerrace: new ConfirmTerrace(repo, feedback, jobs),
@@ -179,8 +182,9 @@ export function installBuild(deps: {
     confirmShape: cases.fill,
     cancel,
     setHeight: new SetHeightTo(repo),
-  };
-  const menus = new BedrockBuildMenus(repo, menuCases);
+  } satisfies MenuCases;
+  const menuChoices = new MenuChoices(repo, menuCases);
+  const menus = new BedrockBuildMenus(repo, menuChoices);
   const pressPasteAim = new PressPasteAim(
     repo,
     cases.pasteAt,
@@ -204,31 +208,22 @@ export function installBuild(deps: {
     rotateDebounce,
     refresh: (id, tick, reason) => preview.refresh(id, tick, reason),
   });
-  const blockPressContext: BlockPressContext = {
+  const pressWand = new PressWand(repo, {
     setPoint: new SetPoint(repo, blocks, feedback),
-    aimHeight: cases.aimHeight,
+    tapAir: new TapAir(repo, feedback),
+    aimHeight: new AimHeight(repo),
     confirmLiveHeight: new ConfirmLiveHeight(repo),
     fixStairGoal: new FixStairGoal(repo, feedback, aim),
-    repo,
-    menus,
-    aim,
-    debounce,
-  };
-  registerWand({
-    ...blockPressContext,
-    tapAir: new TapAir(repo, feedback),
     pressPasteAim,
-    pasteDebounce,
-    refresh: (id, tick) => preview.refresh(id, tick),
-    pointOf: (playerId) => {
-      const flow = repo.get(playerId)?.flow;
-      return flow?.kind === "point1" ? flow.cell : undefined;
+    onPasted: (id, tick) => {
+      // Another event from the paste gesture now routes through selection.
+      debounce.press(id, tick);
+      preview.refresh(id, tick);
     },
   });
-  const pressTapTarget = registerTapTarget({
-    ...blockPressContext,
-    targets: tapTargets,
-  });
+  const wand = { repo, aim, menus, pressWand, debounce };
+  registerWand({ ...wand, pasteDebounce });
+  const pressTapTarget = registerTapTarget({ ...wand, targets: tapTargets });
   registerModeTick(modes);
   registerOutlineTick(preview);
   registerSessions(
@@ -252,9 +247,11 @@ export function installBuild(deps: {
     preview,
     tapTargets,
     pressTapTarget,
+    pressWand,
     modes,
     routes,
     menuCases,
+    menuChoices,
     pressPasteAim,
     pressUndo,
     endSession,

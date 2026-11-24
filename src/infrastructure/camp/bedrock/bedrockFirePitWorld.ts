@@ -1,10 +1,11 @@
-import { ItemStack, world } from "@minecraft/server";
+import { world } from "@minecraft/server";
 import type { FirePitWorld } from "../../../application/camp/ports/firePit";
 import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../../domain/camp/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { spawnWithRollback } from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
   playerById,
@@ -14,6 +15,7 @@ import {
 import {
   DUTCH_OVEN_ON_TOP_HINT,
   FIRE_PIT_HITS_LEFT_HINT,
+  FIRE_PIT_IGNITER_ITEM,
   FIRE_PIT_ITEM,
   FIRE_PIT_LIT_PROPERTY,
   FIRE_PIT_TYPE,
@@ -80,7 +82,7 @@ export class BedrockFirePitWorld
       "minecraft:inventory",
     )?.container;
     const item = inventory?.getItem(slot);
-    if (item?.typeId !== "minecraft:flint_and_steel") return;
+    if (item?.typeId !== FIRE_PIT_IGNITER_ITEM) return;
     const durability = item.getComponent("minecraft:durability");
     if (!durability || durability.unbreakable) return;
     if (durability.damage + 1 >= durability.maxDurability)
@@ -91,12 +93,14 @@ export class BedrockFirePitWorld
     }
   }
 
-  dropItem(id: FirePitId): void {
+  dropItem(id: FirePitId, hitter?: PlayerId): void {
     const entity = firePit(id);
-    entity?.dimension.spawnItem(
-      new ItemStack(FIRE_PIT_ITEM, 1),
-      entity.location,
-    );
+    if (entity)
+      giveBack(
+        entity,
+        FIRE_PIT_ITEM,
+        giveBackReceiver(FIRE_PIT_SPEC.giveBack, hitter),
+      );
   }
 
   removeFirePit(id: FirePitId): void {

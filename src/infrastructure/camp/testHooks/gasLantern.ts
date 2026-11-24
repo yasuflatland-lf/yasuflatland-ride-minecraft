@@ -10,6 +10,7 @@ import {
   TEST_GAS_LANTERN_ON_TABLE_EVENT,
   TEST_GAS_LANTERN_ON_TOP_EVENT,
 } from "../identifiers";
+import { placeTestItemOnTop } from "./hostedOnTop";
 
 export function registerTestGasLantern(
   actions: GasLanternActions,
@@ -18,17 +19,7 @@ export function registerTestGasLantern(
   system.afterEvents.scriptEventReceive.subscribe((ev) => {
     if (ev.sourceType !== ScriptEventSource.Server) return;
     if (ev.id === TEST_GAS_LANTERN_ON_TOP_EVENT) {
-      const [hostType, ...parts] = ev.message.trim().split(/\s+/);
-      const request = testTableTopRequest(parts.join(" "));
-      if (!hostType || !request) return;
-      const host = registry.host(hostType, request.table);
-      if (host)
-        actions.placeOnTop(host.type.surface, {
-          hostType,
-          host: request.table,
-          aim: request.aim,
-          slot: 0,
-        });
+      placeTestItemOnTop(ev.message, registry, actions);
       return;
     }
     if (ev.id === TEST_GAS_LANTERN_ON_TABLE_EVENT) {

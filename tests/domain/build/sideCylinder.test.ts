@@ -3,11 +3,11 @@ import { expect, it } from "vitest";
 import type { HorizontalAxis } from "../../../src/domain/build/axis";
 import { cellBox, contains } from "../../../src/domain/build/box";
 import {
-  type HeightedSpec,
   placementOf,
   volumeOf,
 } from "../../../src/domain/build/volume/geometry";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
+import type { HeightedSpec } from "../../../src/domain/build/volume/types";
 import { cellKey } from "../../../src/domain/shared/cells";
 
 const coordinate = fc.integer({ min: -30, max: 30 });
