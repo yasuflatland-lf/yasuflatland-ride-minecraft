@@ -1,12 +1,12 @@
 import { TABLE_SPEC } from "../../domain/camp/spec";
-import { tableCells, tableOrigin, tableYaw } from "../../domain/camp/table";
+import {
+  tableClearCells,
+  tableOrigin,
+  tableYaw,
+} from "../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
-import {
-  canUseBlockTop,
-  clearanceCells,
-  placeOnCells,
-} from "../shared/groundPlacement";
+import { canUseBlockTop, placeOnCells } from "../shared/groundPlacement";
 import type { TableWorld } from "./ports/table";
 
 interface PlaceTableCommand {
@@ -45,9 +45,7 @@ export class PlaceTable {
       },
       {
         support: [],
-        clear: tableCells(block, yaw).flatMap((cell) =>
-          clearanceCells({ ...cell, y: cell.y + 1 }, TABLE_SPEC.clearance),
-        ),
+        clear: tableClearCells(block, yaw),
         refuses: TABLE_SPEC.refuses,
         extraCheck: () => !world.hasTableNear(dimension, at),
       },
