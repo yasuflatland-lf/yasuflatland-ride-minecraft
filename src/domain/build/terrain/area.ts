@@ -49,3 +49,10 @@ export function removeAboveBox(area: TerrainArea): CellBox | undefined {
     { x: area.maxX, y: BUILD_SPEC.worldTopY, z: area.maxZ },
   );
 }
+
+export function fillBelowBox(area: TerrainArea, bottomY: number): CellBox {
+  return cellBox(
+    { x: area.minX, y: bottomY, z: area.minZ },
+    { x: area.maxX, y: area.higherY, z: area.maxZ },
+  );
+}

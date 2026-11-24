@@ -6,11 +6,7 @@ import { CopySelection } from "../../../src/application/build/copySelection";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -19,7 +15,10 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 import {
   FakeFeedback,
   FakeSessions,
@@ -147,7 +146,7 @@ it("refuses Copy when the selection is not confirmed", () => {
       const to = { x: from.x + 1, y: from.y, z: from.z + 1 };
       const point = tapBlock({ kind: "idle" }, overworld, from, stone);
       const baseHeight = tapAir(point, to);
-      const roof = chooseHeighted(endpoint(from, to), "gable");
+      const roof = chooseHeightedFlow(endpoint(from, to), "gable");
       for (const flow of [
         { kind: "idle" },
         point,
@@ -175,7 +174,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
         { kind: "idle" },
         tapBlock({ kind: "idle" }, overworld, from, stone),
         selected,
-        chooseHeighted(selected, "hip"),
+        chooseHeightedFlow(selected, "hip"),
         {
           kind: "pasteAim",
           manualTurn: 1,
