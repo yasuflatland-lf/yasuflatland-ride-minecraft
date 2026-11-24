@@ -5,10 +5,12 @@ import {
   asTentId,
   PITCHED_STATE,
   type TentBlock,
+  type TentPlateSide,
   type TentPose,
   tentCells,
 } from "../../../src/domain/camp/tent";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import type { LaidCell } from "../../../src/domain/shared/laidCells";
 import {
   createTentBlocks,
@@ -60,7 +62,7 @@ it("recognizes legacy tent block names only within the add-on's tent prefix", ()
 describe("TENT_CELL_CODEC (ADR 0131)", () => {
   it("accepts the saved shape and rejects malformed cells", () => {
     for (const cell of JSON.parse(SAVED))
-      expect(TENT_CELL_CODEC.isCell(cell)).toBe(true);
+      expect(TENT_CELL_CODEC.isCell(TENT_CELL_CODEC.upgrade(cell))).toBe(true);
     for (const bad of [
       null,
       { x: 1, y: 2, z: 3 },
@@ -73,32 +75,54 @@ describe("TENT_CELL_CODEC (ADR 0131)", () => {
       expect(TENT_CELL_CODEC.isCell(bad)).toBe(false);
   });
 
-  it("reads the saved shape back unchanged", () => {
+  it("decodes every saved wall side into its world direction", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom([0, "-z"], [1, "+z"], [2, "-x"], [3, "+x"]),
+        ([encoded, side]) => {
+          const holder = {
+            getDynamicProperty: () =>
+              JSON.stringify([
+                { x: 1, y: 2, z: 3, block: { type: "wall", face: encoded } },
+              ]),
+          };
+          expect(savedLaidCells(holder, TENT_CELL_CODEC)[0]?.block).toEqual({
+            type: "wall",
+            face: side,
+          });
+        },
+      ),
+    );
+  });
+
+  it("reads the saved ceiling unchanged", () => {
     const holder = {
       getDynamicProperty: (key: string) =>
         key === TENT_CELLS_PROPERTY ? SAVED : undefined,
     };
-    expect(savedLaidCells(holder, TENT_CELL_CODEC)).toEqual(JSON.parse(SAVED));
+    expect(savedLaidCells(holder, TENT_CELL_CODEC)[1]).toEqual(
+      JSON.parse(SAVED)[1],
+    );
   });
 
   it("compares the type and the face", () => {
-    const wall = (face: 0 | 1 | 2 | 3): TentBlock => ({ type: "wall", face });
+    const wall = (face: TentPlateSide): TentBlock => ({ type: "wall", face });
     const ceiling: TentBlock = { type: "ceiling" };
-    expect(TENT_CELL_CODEC.same(wall(1), wall(1))).toBe(true);
-    expect(TENT_CELL_CODEC.same(wall(1), wall(2))).toBe(false);
-    expect(TENT_CELL_CODEC.same(wall(1), ceiling)).toBe(false);
-    expect(TENT_CELL_CODEC.same(ceiling, wall(0))).toBe(false);
+    expect(TENT_CELL_CODEC.same(wall("+z"), wall("+z"))).toBe(true);
+    expect(TENT_CELL_CODEC.same(wall("+z"), wall("-x"))).toBe(false);
+    expect(TENT_CELL_CODEC.same(wall("+z"), ceiling)).toBe(false);
+    expect(TENT_CELL_CODEC.same(ceiling, wall("-z"))).toBe(false);
     expect(TENT_CELL_CODEC.same(ceiling, { type: "ceiling" })).toBe(true);
   });
 
   it("names and resolves each block", () => {
-    expect(TENT_CELL_CODEC.blockIdOf({ type: "wall", face: 2 })).toBe(
+    expect(TENT_CELL_CODEC.blockIdOf({ type: "wall", face: "-x" })).toBe(
       TENT_WALL_BLOCK,
     );
     expect(TENT_CELL_CODEC.blockIdOf({ type: "ceiling" })).toBe(
       TENT_CEILING_BLOCK,
     );
-    TENT_CELL_CODEC.permutationOf({ type: "wall", face: 3 });
+    TENT_CELL_CODEC.permutationOf({ type: "wall", face: "+x" });
     expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(TENT_WALL_BLOCK, {
       [TENT_FACE_STATE]: 3,
     });
@@ -143,19 +167,21 @@ describe("TENT_CELL_CODEC (ADR 0131)", () => {
         expect(TENT_CELL_CODEC.isCell(cell(bad))).toBe(false);
       // The walls and ceilings saved before this change still load.
       for (const saved of JSON.parse(SAVED))
-        expect(TENT_CELL_CODEC.isCell(saved)).toBe(true);
+        expect(TENT_CELL_CODEC.isCell(TENT_CELL_CODEC.upgrade(saved))).toBe(
+          true,
+        );
     });
 
     it("tells open from closed, one flap from another, and a flap from a wall", () => {
       expect(TENT_CELL_CODEC.same(flap(true), flap(true))).toBe(true);
       expect(TENT_CELL_CODEC.same(flap(true), flap(false))).toBe(false);
       expect(TENT_CELL_CODEC.same(flap(true), flap(true, "left"))).toBe(false);
-      expect(TENT_CELL_CODEC.same(flap(false), { type: "wall", face: 1 })).toBe(
-        false,
-      );
-      expect(TENT_CELL_CODEC.same({ type: "wall", face: 1 }, flap(false))).toBe(
-        false,
-      );
+      expect(
+        TENT_CELL_CODEC.same(flap(false), { type: "wall", face: "+z" }),
+      ).toBe(false);
+      expect(
+        TENT_CELL_CODEC.same({ type: "wall", face: "+z" }, flap(false)),
+      ).toBe(false);
       expect(TENT_CELL_CODEC.same({ type: "ceiling" }, flap(false))).toBe(
         false,
       );
@@ -167,8 +193,8 @@ describe("tent mattress cells (ADR 0092, 0133)", () => {
   const mattress = (index: 0 | 1): TentBlock => ({ type: "mattress", index });
   const others: TentBlock[] = [
     { type: "ceiling" },
-    { type: "wall", face: 0 },
-    { type: "wall", face: 3 },
+    { type: "wall", face: "-z" },
+    { type: "wall", face: "+x" },
   ];
 
   it("names both mattresses TENT_MATTRESS_BLOCK", () => {
@@ -220,7 +246,7 @@ describe("tent mattress cells (ADR 0092, 0133)", () => {
       '[{"x":3,"y":65,"z":-4,"block":{"type":"mattress","index":1}}]',
     );
     for (const cell of saved) {
-      expect(TENT_CELL_CODEC.isCell(cell)).toBe(true);
+      expect(TENT_CELL_CODEC.isCell(TENT_CELL_CODEC.upgrade(cell))).toBe(true);
       expect(TENT_CELL_CODEC.upgrade(cell)).toBe(cell);
     }
   });
@@ -232,7 +258,7 @@ describe("tent mattress cells (ADR 0092, 0133)", () => {
     );
   });
 
-  const pose: TentPose = { x: 0, y: 64, z: 0, yaw: 0 };
+  const pose: TentPose = { x: 0, y: 64, z: 0, yaw: snapYaw(0) };
   const id = asTentId("tent-1");
   const mattressCells = tentCells(pose, PITCHED_STATE).filter(
     (c) => c.block.type === "mattress",
@@ -292,6 +318,38 @@ describe("tent mattress cells (ADR 0092, 0133)", () => {
     );
   });
 
+  it("saves wall directions using the existing numeric encoding", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          ["-z", 0],
+          ["+z", 1],
+          ["-x", 2],
+          ["+x", 3],
+        ) as fc.Arbitrary<[TentPlateSide, number]>,
+        ([face, encoded]) => {
+          const f = fixture([]);
+          const cell: LaidCell<TentBlock> = {
+            x: 1,
+            y: 2,
+            z: 3,
+            block: { type: "wall", face },
+          };
+          TENT_CELL_CODEC.permutationOf(cell.block);
+          expect(BlockPermutation.resolve).toHaveBeenLastCalledWith(
+            TENT_WALL_BLOCK,
+            { [TENT_FACE_STATE]: encoded },
+          );
+          f.layer.lay(id, f.holder, [cell]);
+          expect(f.savedNow()).toEqual([
+            { ...cell, block: { type: "wall", face: encoded } },
+          ]);
+          expect(savedLaidCells(f.holder, TENT_CELL_CODEC)).toEqual([cell]);
+        },
+      ),
+    );
+  });
+
   it("clears on take-down a mattress that is still its own, and keeps another block", () => {
     const f = fixture([]);
     f.layer.lay(id, f.holder, tentCells(pose, PITCHED_STATE));
@@ -326,7 +384,7 @@ describe("tent lantern cells (ADR 0134)", () => {
 
   it("accepts a lantern cell only with a boolean lit, and reads it back", () => {
     const cell = { x: 1, y: 2, z: 3, block: { type: "lantern", lit: true } };
-    expect(TENT_CELL_CODEC.isCell(cell)).toBe(true);
+    expect(TENT_CELL_CODEC.isCell(TENT_CELL_CODEC.upgrade(cell))).toBe(true);
     for (const lit of [undefined, 1, "true", null])
       expect(
         TENT_CELL_CODEC.isCell({ ...cell, block: { type: "lantern", lit } }),
@@ -334,11 +392,15 @@ describe("tent lantern cells (ADR 0134)", () => {
     const saved = JSON.stringify([...JSON.parse(SAVED), cell]);
     expect(
       savedLaidCells({ getDynamicProperty: () => saved }, TENT_CELL_CODEC),
-    ).toEqual(JSON.parse(saved));
+    ).toEqual([
+      { x: 110, y: -60, z: 49, block: { type: "wall", face: "+z" } },
+      JSON.parse(SAVED)[1],
+      cell,
+    ]);
   });
 
   it("relays a tent saved before the lantern: its ceiling cell there becomes the lantern", () => {
-    const pose: TentPose = { x: 110, y: -60, z: 46, yaw: 180 };
+    const pose: TentPose = { x: 110, y: -60, z: 46, yaw: snapYaw(180) };
     const wanted = tentCells(pose, PITCHED_STATE);
     const key = cellKey(lanternCell(pose));
     const saved = wanted.map((c) =>

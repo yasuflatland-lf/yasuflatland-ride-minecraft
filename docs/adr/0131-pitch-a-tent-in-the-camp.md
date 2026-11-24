@@ -50,7 +50,9 @@ The entity stands at the bottom middle of local `(0, 11, 0)`, the rear wall's mi
 
 That is 87 `yasu_ride:tent_wall` cells and 50 `yasu_ride:tent_ceiling` cells. The
 flap cells of 0130 are laid as closed walls until 10/13; the mattress cells stay air
-until 11/13. The wall's `yasu_ride:face` state uses the camper's face numbers, and its
+until 11/13. The wall's `yasu_ride:face` state and saved cells encode plate sides as 0 for -z,
+1 for +z, 2 for -x, and 3 for +x. The domain represents these sides as strings,
+and the cell codec converts them at the persistence and block-state boundaries. Its
 2 px plate has equal collision and selection boxes, so hits from outside reach it.
 The ceiling is a 3 px plate at the bottom of its cell, so the headroom is exactly 3
 in the rooms and 2 under the tarp. Both blocks use the hidden cube of 0101 and are

@@ -5,13 +5,14 @@ import { removeTent } from "../../../src/application/camp/removeTent";
 import { legacyTentClearCells } from "../../../src/domain/camp/legacyTent";
 import { asTentId } from "../../../src/domain/camp/tent";
 import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 
 const ENTRY: TentEntry = {
   id: asTentId("tent"),
   layout: 1,
   dimensionId: asDimensionId("minecraft:overworld"),
-  pose: { x: 12, y: 64, z: -4, yaw: -90 },
+  pose: { x: 12, y: 64, z: -4, yaw: snapYaw(-90) },
 };
 
 it("unlays before clearing and uses the entity state from before unlaying", () => {
