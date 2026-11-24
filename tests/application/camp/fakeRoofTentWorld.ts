@@ -45,8 +45,4 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   refund = vi.fn<RoofTentWorld["refund"]>();
   showRefusal = vi.fn<RoofTentWorld["showRefusal"]>();
   showHitsLeft = vi.fn<RoofTentWorld["showHitsLeft"]>();
-  paintOf = vi.fn<RoofTentWorld["paintOf"]>();
-  paint = vi.fn<RoofTentWorld["paint"]>();
-  consumeDye = vi.fn<RoofTentWorld["consumeDye"]>();
-  playPaintSound = vi.fn<RoofTentWorld["playPaintSound"]>();
 }

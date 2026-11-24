@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PAINTS, paintEventName } from "../../../../src/domain/shared/paint";
 import { HEADLIGHTS_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
@@ -30,6 +30,8 @@ import {
 } from "../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { DECOR_PROPERTY } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { CORE_PROPERTY_NAMES } from "../../../support/coreContract";
+
+vi.mock("@minecraft/server", () => ({}));
 
 describe("identifiers (ADR 0047)", () => {
   it("reserves the property identifiers the core writes (ADR 0055)", () => {
