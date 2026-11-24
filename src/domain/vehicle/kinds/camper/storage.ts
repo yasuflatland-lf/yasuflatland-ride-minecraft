@@ -1,5 +1,4 @@
 import { sameCell } from "../../../shared/cells";
-import type { Vec3 } from "../../../shared/vec";
 import {
   type DecorItemId,
   parseDecorSlotId,
@@ -26,7 +25,7 @@ import {
   type StorageDoorId,
 } from "./furniture";
 import { localCellAt } from "./parkPose";
-import type { DrawerTarget, StoragePressRequest } from "./room";
+import type { DrawerRayPress, DrawerTarget, StoragePressRequest } from "./room";
 import type { CamperRoomDecor } from "./roomDecor";
 import { DRAWER_GEAR_IDS } from "./spec";
 import { storagePressTarget } from "./storagePlates";
@@ -116,18 +115,15 @@ export class CamperStorage {
       target.door.id,
       target.onCompartment && (takeContents ?? hit?.takeContents ?? true),
       tick,
-      () => decor.takeBehindDoor(pose, cell, target.door.id, point),
+      () => decor.takeBehindDoor(pose, { cell, point }, target.door.id),
     );
   }
 
   drawerTarget(
     pose: HoldPose,
     decor: CamperRoomDecor,
-    eye: Vec3,
-    direction: Vec3,
-    cell?: Vec3,
+    { eye, direction, cell, feet }: DrawerRayPress,
     item?: DecorItemId,
-    feet?: Vec3,
   ): DrawerTarget | undefined {
     const counter = cell
       ? drawerPressCell(pose, cell)

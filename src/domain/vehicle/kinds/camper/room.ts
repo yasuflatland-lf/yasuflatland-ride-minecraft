@@ -7,12 +7,29 @@ import type {
   StoragePress,
 } from "../../dock/decor";
 
-export interface StoragePressRequest {
+export interface RoomPress {
   readonly cell: Vec3;
   readonly point?: Vec3;
+  readonly eye?: Vec3;
+  readonly feet?: Vec3;
+  readonly direction?: Vec3;
+}
+
+export interface DecorPress extends RoomPress {
+  readonly point: Vec3;
+}
+
+export type DecorFallback = "nearestFree" | "none";
+
+// An itemUse view ray has no pressed block.
+export interface DrawerRayPress extends Partial<RoomPress> {
+  readonly eye: Vec3;
+  readonly direction: Vec3;
+}
+
+export interface StoragePressRequest extends RoomPress {
   readonly tick: number;
   readonly takeContents?: boolean;
-  readonly eye?: Vec3;
   readonly openOnly?: boolean;
   /** Set only for a side face of the drawers block itself; rerouted floor presses use the ray. */
   readonly drawersSideFace?: boolean;
@@ -31,28 +48,27 @@ interface RoomDecorHost {
   decor(): readonly DecorPlacement[];
   /** Puts `item` in `slot`, or empties it when undefined. Returns whether the decor changed (ADR 0093). */
   setDecor(slot: DecorSlotId, item: DecorItemId | undefined): boolean;
-  /** The free decor slot that accepts `item`: the slot of the pressed world `cell` when it can take it, else the one nearest `point` unless `exact`, once the vehicle has parked (after its parking tick); undefined otherwise. With the player's `eye`, nearness is measured along the line of sight (ADR 0093, 0097, 0104, 0110). */
+  /**
+   * While parked, prefer a free accepting slot in the pressed cell. With "nearestFree",
+   * other cells are eligible when the pressed cell has no such slot. The player's eye
+   * supplies the line of sight for ranking slots (ADR 0093, 0097, 0104, 0110).
+   */
   decorSlotFor(
     item: DecorItemId,
-    point: Vec3,
-    cell: Vec3,
-    exact: boolean,
-    eye?: Vec3,
+    press: DecorPress,
+    fallback: DecorFallback,
   ): DecorSlotId | undefined;
   /** A player puts `item` in `slot`; false when the vehicle is not parked or the slot is taken or does not accept it (ADR 0093). */
   placeDecor(slot: DecorSlotId, item: DecorItemId): boolean;
   /** A player takes the decor out of the slot at world `cell` while parked, the one nearest the pressed `point` (seen from `eye`) when the cell holds two; returns its item, or undefined when there is none (ADR 0093, 0108). */
-  removeDecor(cell: Vec3, point?: Vec3, eye?: Vec3): DecorItemId | undefined;
+  removeDecor(press: RoomPress): DecorItemId | undefined;
 }
 
 export interface RoomStorageHost {
   /** Read-only drawer routing for block presses and itemUse rays. */
   drawerTarget(
-    eye: Vec3,
-    direction: Vec3,
-    cell?: Vec3,
+    press: DrawerRayPress,
     item?: DecorItemId,
-    feet?: Vec3,
   ): DrawerTarget | undefined;
   /** A player pressed storage with doors, such as the wall cabinet, at world `cell`, at `point` when known, at `tick`: opens or shuts a door, or takes an item out of an open compartment; undefined when nothing happened (ADR 0114, 0121). */
   pressStorage(request: StoragePressRequest): StoragePress | undefined;

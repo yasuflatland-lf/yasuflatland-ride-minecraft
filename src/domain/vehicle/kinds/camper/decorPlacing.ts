@@ -8,6 +8,7 @@ import { cellTaken, DECOR_SLOTS } from "./decor";
 import { decorSlotCell, decorSpotOffset } from "./decorCells";
 import { usableBehindDoor } from "./dooredStorage";
 import { type DecorSlot, STORAGE_DOORS, type StorageDoorId } from "./furniture";
+import type { DecorFallback, DecorPress } from "./room";
 import { NO_DOORS } from "./roomGeometry";
 import { storagePressTarget } from "./storagePlates";
 
@@ -121,7 +122,7 @@ export function slotsAt(pose: HoldPose, cell: Vec3): DecorSlot[] {
  * The free slot of the pressed `cell` nearest `point` when the cell has free slots
  * accepting `item`, such as the free end of the table or an open compartment (ADR 0108);
  * otherwise the free accepting slot nearest `point` (ADR 0093, 0097, 0105), or none when
- * `exact`: a press on a dinette seat names one slot, and filling
+ * the fallback is `"none"`: a press on a dinette seat names one slot, and filling
  * another one left the player unable to tell where the item went (ADR 0104). With the
  * player's `eye`, nearness is measured where the line of sight crosses each slot's
  * surface (ADR 0110). Only the cabinet compartments whose doors are in `open` take items,
@@ -131,10 +132,8 @@ export function slotForPress(
   pose: HoldPose,
   item: DecorItemId,
   decor: readonly DecorPlacement[],
-  cell: Vec3,
-  point: Vec3,
-  exact: boolean,
-  eye?: Vec3,
+  { cell, point, eye }: DecorPress,
+  fallback: DecorFallback,
   open: ReadonlySet<StorageDoorId> = NO_DOORS,
   drawerDoor?: StorageDoorId,
 ): DecorSlot | undefined {
@@ -172,6 +171,6 @@ export function slotForPress(
     (slot) => accepting.has(slot) && !cellTaken(slot, decor),
   );
   if (pressed.length > 0) return nearest(pose, pressed, point, eye);
-  if (exact) return undefined;
+  if (fallback === "none") return undefined;
   return nearestFreeSlot(pose, item, decor, point, eye, surfaceOpen);
 }
