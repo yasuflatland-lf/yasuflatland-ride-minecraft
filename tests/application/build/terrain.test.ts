@@ -10,22 +10,24 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { SCAN_STEP } from "../../../src/domain/build/edit/change";
-import {
-  setHeight,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { setHeight } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Cell } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import {
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
   FakeWorld,
+  nether,
   overworld,
 } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -33,19 +35,25 @@ import { FakeStructureStore } from "./fakes/structureStore";
 const playerId = asPlayerId("alex");
 const stone = blockStateOf("minecraft:stone");
 const dirt = blockStateOf("minecraft:dirt");
-const top = BUILD_SPEC.worldTopY;
+const top = OVERWORLD_RANGE.maxY;
 
-function setup() {
+function setup(dimensionId = overworld) {
   const repo = new FakeSessions();
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
+  world.heightRanges.set(nether, NETHER_RANGE);
   const players = new FakeBuildPlayers();
   const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const session = repo.getOrCreate(playerId);
+  const range = world.heightRange(dimensionId);
   const select = (from: Cell, to: Cell) => {
     session.setFlow(
       confirmEndpointHeight(
-        tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
+        tapAir(
+          tapBlock({ kind: "idle" }, dimensionId, from, stone, range),
+          to,
+          range,
+        ),
       ),
     );
   };
@@ -57,7 +65,7 @@ function setup() {
     world,
     session,
     select,
-    choose: new ChooseTerrain(repo, feedback),
+    choose: new ChooseTerrain(repo, feedback, world),
     confirm: new ConfirmTerrain(repo, feedback, jobs, world),
     fill: new ConfirmShape(repo, feedback, jobs),
     undo: new UndoEdit(repo, feedback, jobs, world, new FakeStructureStore(), {
@@ -193,7 +201,7 @@ it("keeps protected and kept cells and clears the rest", () => {
 
 it("refuses a terrain operation exactly when either footprint side exceeds the limit", () => {
   const limit = BUILD_SPEC.maxTerrainSide;
-  const bottom = BUILD_SPEC.worldBottomY;
+  const bottom = OVERWORLD_RANGE.minY;
   fc.assert(
     fc.property(
       fc.constantFrom("removeAbove" as const, "fillBelow" as const),
@@ -251,7 +259,10 @@ it.each([60, top])(
     expect(e.session.beginEdit()).toBeUndefined();
     e.confirm.execute({ playerId });
     expect(e.feedback.messages.at(-1)?.message).toBe("busy");
-    expect(e.session.flow).toMatchObject({ kind: "point1", cell: from });
+    expect(e.session.flow).toMatchObject({
+      kind: "point1",
+      start: { cell: from },
+    });
     expect(e.session.confirmedBox).toBeUndefined();
     expect(e.session.isEditing).toBe(true);
   },
@@ -344,6 +355,24 @@ it.each([
   },
 );
 
+it("stops terrain edits at both Nether height limits", () => {
+  const e = setup(nether);
+  const floor = { x: 0, y: NETHER_RANGE.minY, z: 0 };
+  const ceiling = { ...floor, y: NETHER_RANGE.maxY };
+  const above = { ...ceiling, y: ceiling.y + 1 };
+  e.world.put(ceiling, stone);
+  e.world.put(above, stone);
+  e.select(floor, floor);
+  removeAbove(e);
+  e.drain();
+  expect(e.world.stateAt(nether, ceiling)).toEqual(AIR);
+  expect(e.world.stateAt(nether, above)).toEqual(stone);
+  fillBelow(e);
+  e.drain();
+  expect(e.world.stateAt(nether, floor)).toEqual(stone);
+  expect(e.world.stateAt(nether, { ...floor, y: floor.y - 1 })).toEqual(AIR);
+});
+
 it("refuses an unstable material at menu choice without changing flow", () => {
   const e = setup();
   e.session.setFlow(
@@ -424,24 +453,30 @@ it("budgets scans and writes together on a maximum-size fill", () => {
   expect(e.world.writes).toBe(BUILD_SPEC.blocksPerTick / 2);
   expect(e.session.isEditing).toBe(true);
   e.drain();
-  expect(e.world.writes).toBe(32 * 32 * (top - BUILD_SPEC.worldBottomY + 1));
+  expect(e.world.writes).toBe(32 * 32 * (top - OVERWORLD_RANGE.minY + 1));
 });
 
-it("reports the entire Fill below prism at the world ceiling and across unequal endpoints", () => {
-  for (const lowerY of [BUILD_SPEC.worldBottomY, 0, top]) {
-    for (const reversed of [false, true]) {
-      const e = setup();
-      const low = { x: 0, y: lowerY, z: 0 };
-      const high = { x: 32, y: top, z: 0 };
-      e.select(reversed ? high : low, reversed ? low : high);
-      e.choose.execute({ playerId, op: "fillBelow" });
-      expect(e.feedback.messages.at(-1)).toMatchObject({
-        message: "tooLarge",
-        count: 33 * (top - BUILD_SPEC.worldBottomY + 1),
-      });
+it.each([
+  [overworld, OVERWORLD_RANGE],
+  [nether, NETHER_RANGE],
+] as const)(
+  "reports the entire Fill below prism across unequal endpoints in %s",
+  (dimensionId, { minY, maxY }) => {
+    for (const lowerY of [minY, Math.floor((minY + maxY) / 2), maxY]) {
+      for (const reversed of [false, true]) {
+        const e = setup(dimensionId);
+        const low = { x: 0, y: lowerY, z: 0 };
+        const high = { x: 32, y: maxY, z: 0 };
+        e.select(reversed ? high : low, reversed ? low : high);
+        e.choose.execute({ playerId, op: "fillBelow" });
+        expect(e.feedback.messages.at(-1)).toMatchObject({
+          message: "tooLarge",
+          count: 33 * (maxY - minY + 1),
+        });
+      }
     }
-  }
-});
+  },
+);
 
 it("keeps the confirmed box for Copy while Fill below uses the original corners", () => {
   fc.assert(

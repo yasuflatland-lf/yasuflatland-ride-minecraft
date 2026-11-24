@@ -6,7 +6,7 @@ export function registerChairPlacement(placeChair: PlaceChair): void {
   subscribeItemOnBlock({
     kindOf: (itemId) => CHAIR_KIND_BY_ITEM.get(itemId),
     accept: (dimension, block, face) =>
-      face === "up" && placeChair.cellFor(dimension, block, face) !== undefined,
+      placeChair.cellFor(dimension, block, face) !== undefined,
     place: ({ player, dimension, block, yaw, slot, kind }) =>
       placeChair.execute({
         kind,

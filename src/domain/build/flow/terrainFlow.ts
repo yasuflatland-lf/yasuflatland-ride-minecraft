@@ -6,8 +6,8 @@ export function chooseTerrain(flow: BuildFlow, op: TerrainOp): BuildFlow {
   return Object.freeze({
     kind: "terrainConfirm",
     selection: flow.selection,
-    from: flow.from,
-    to: flow.to,
+    start: flow.start,
+    taps: flow.taps,
     op,
   });
 }

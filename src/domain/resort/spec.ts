@@ -79,6 +79,11 @@ export const BEACH_CHAIR_SPEC = Object.freeze({
   topLimit: 4,
   /** Layers of air needed above the floor so a lying player fits. */
   headroom: 2,
+  cells: Object.freeze([
+    Object.freeze({ ahead: 0, left: 0 }),
+    Object.freeze({ ahead: 1, left: 0 }),
+    Object.freeze({ ahead: 2, left: 0 }),
+  ]),
   /** Hits in a row that take the chair back, as for camp gear (ADR 0008). */
   recovery: GEAR_RECOVERY,
   giveBack: "hitter" satisfies GiveBackPolicy,

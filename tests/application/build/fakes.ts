@@ -16,12 +16,13 @@ import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import type { Logger } from "../../../src/application/shared/ports/logger";
 import { AIR, type BlockState } from "../../../src/domain/build/blockState";
 import { isUsableMaterial } from "../../../src/domain/build/edit/guard";
+import type { HeightRange } from "../../../src/domain/build/heightRange";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
-import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { Cell } from "../../../src/domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../src/domain/shared/ids";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { InMemorySessionRepository } from "../../../src/infrastructure/build/persistence/inMemorySessionRepository";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 export const overworld = asDimensionId("minecraft:overworld");
@@ -95,14 +96,14 @@ export class FakeFeedback implements BuildFeedback {
 
 export class FakeWorld implements BuildBlockWorld {
   private readonly blocks = new Map<string, BlockState>();
-  readonly topYs = new Map<DimensionId, number>();
+  readonly heightRanges = new Map<DimensionId, HeightRange>();
   readonly protectedCells = new Set<string>();
   readonly laidCells = new Set<string>();
   readonly refusedCells = new Set<string>();
   readonly unreadableCells = new Set<string>();
   writes = 0;
-  topY(dimensionId: DimensionId): number {
-    return this.topYs.get(dimensionId) ?? BUILD_SPEC.worldTopY;
+  heightRange(dimensionId: DimensionId): HeightRange {
+    return this.heightRanges.get(dimensionId) ?? OVERWORLD_RANGE;
   }
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused" {
     const state = this.stateAt(dimensionId, cell);

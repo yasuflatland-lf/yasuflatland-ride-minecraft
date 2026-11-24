@@ -23,11 +23,11 @@ Facts this decision builds on:
 
 ## Decision
 
-- A press on a room block carries the player's eye with the hit point. The infrastructure reads `getHeadLocation()` and passes a plain `Vec3` through `PlaceDecor` and the drive's `decorSlotFor` to `slotForPress`; the domain never sees the engine
+- For a room block, the handler reads the player's eye with `getHeadLocation()`. `PlaceDecor` passes the pressed cell, corrected hit point and eye together as a `RoomPress` through the room's `decorSlotFor` to `slotForPress`
 - For each candidate slot, the ray from the eye through the hit point is intersected with the horizontal plane at the height of that slot's point. The slot whose point is nearest that crossing wins; on a tie, the slot listed first, as before. The pressed-cell rule and the nearest-free-slot rule of 0107 both measure this way
 - When the ray does not descend to a slot's plane (the hit point is level with or above the eye, or the plane is level with or above the eye), that slot is measured from the hit point, as before
 - The hanging slot uses its point's height for its plane, like every other slot. It is the only slot that takes a hanging item, so the plane only matters if more hanging slots are added
-- The press on a dinette deck seat passes no eye and keeps measuring from its point. It names one cell, and every dinette cell has one slot, so the measure never changes the result there
+- A dinette deck seat press uses the seat location as its point and omits the eye. Each dinette cell has one slot. Its `fallback` is `"none"`, so placement fails if that slot is taken or cannot accept the item
 - The eye is optional in the domain and the application. A caller without one, such as a test that presses a slot's point directly, gets the old measure
 
 ## Consequences

@@ -6,9 +6,10 @@ import { boxWithHeight } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
 import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
-import type { BuildFlow } from "./flow/state";
+import { type BuildFlow, type BuildStart, startOf } from "./flow/state";
 import { cancel } from "./flow/stepBack";
 import type { Taps } from "./flow/taps";
+import type { HeightRange } from "./heightRange";
 import {
   EMPTY_HISTORY,
   type SnapshotRecord,
@@ -24,6 +25,21 @@ import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
 import { inDimension, type Selection, selectionHeightLimit } from "./selection";
 import { BUILD_SPEC } from "./spec";
 import type { StructureHandle } from "./structure/handle";
+
+function selectionStart(
+  flow: BuildFlow,
+  selection: Selection,
+  taps: Taps,
+): BuildStart {
+  const start = startOf(flow);
+  const { dimensionId, material } = selection;
+  const cell = taps.from;
+  return start?.cell === cell &&
+    start.dimensionId === dimensionId &&
+    start.material === material
+    ? start
+    : Object.freeze({ dimensionId, cell, material });
+}
 
 type EditRefusal =
   | "noSelection"
@@ -77,18 +93,28 @@ export class BuildSession {
     )
       this.currentMode = { active: true, streak: 0 };
   }
-  replaceSelection(selection: Selection, taps: Taps): void {
+  replaceSelection(selection: Selection, taps: Taps, range: HeightRange): void {
     const flow = this.currentFlow;
     if (flow.kind === "baseHeight") {
       this.currentFlow = Object.freeze({
         kind: "baseHeight",
         selection,
-        ...taps,
+        start: selectionStart(flow, selection, taps),
+        taps,
         baseBox: boxWithHeight(selection.box, 1),
-        previous: clamp(flow.previous, 1, selectionHeightLimit(selection.box)),
+        liveHeight: clamp(
+          flow.liveHeight,
+          1,
+          selectionHeightLimit(selection.box, range),
+        ),
       });
     } else if (flow.kind === "selected") {
-      this.currentFlow = Object.freeze({ ...flow, ...taps, selection });
+      this.currentFlow = Object.freeze({
+        ...flow,
+        selection,
+        start: selectionStart(flow, selection, taps),
+        taps,
+      });
     } else return;
     if (
       this.currentConfirmedBox &&
@@ -106,8 +132,8 @@ export class BuildSession {
             kind: "selected",
             menuLevel: "root",
             selection,
-            from: taps.from,
-            to: taps.to,
+            start: selectionStart(this.currentFlow, selection, taps),
+            taps,
           })
         : cancel(this.currentFlow),
     );

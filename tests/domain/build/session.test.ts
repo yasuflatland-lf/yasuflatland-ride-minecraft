@@ -4,7 +4,7 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
-import { cornerTaps, tapsOf } from "../../../src/domain/build/flow/taps";
+import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import {
   EMPTY_HISTORY,
   takeLast,
@@ -25,11 +25,12 @@ import {
   structureHandle,
 } from "../../../src/domain/build/structure/handle";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { selectionFlows } from "../../support/buildSelection";
+import { selectionFlows, tappedSelection } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 
 const dim = asDimensionId("minecraft:overworld");
@@ -276,9 +277,11 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
   fc.constant({ kind: "idle" } as const),
   fc.record({
     kind: fc.constant("point1" as const),
-    dimensionId: dimensionArb,
-    cell: cellArb,
-    material: fc.constant(stone),
+    start: fc.record({
+      dimensionId: dimensionArb,
+      cell: cellArb,
+      material: fc.constant(stone),
+    }),
   }),
   fc
     .record({
@@ -288,34 +291,42 @@ const flowArb: fc.Arbitrary<BuildFlow> = fc.oneof(
       from: cellArb,
       to: cellArb,
     })
-    .map(({ dimensionId, ...flow }) => ({
+    .map(({ dimensionId, from, to, ...flow }) => ({
       ...flow,
-      selection: selectionOf(dimensionId, boxOf(flow.from, flow.to), stone),
+      ...tappedSelection(
+        selectionOf(dimensionId, boxOf(from, to), stone),
+        from,
+        to,
+      ),
     })),
   boxArb.map((box) => ({
     kind: "baseHeight" as const,
-    selection: selectionOf(dim, box, stone),
-    ...cornerTaps(box),
+    ...tappedSelection(selectionOf(dim, box, stone), box.min, box.max),
     baseBox: boxWithHeight(box, 1),
-    previous: 5,
+    liveHeight: 5,
   })),
-  fc.record({
-    kind: fc.constant("heightStep" as const),
-    dimensionId: dimensionArb,
-    base: boxArb,
-    from: cellArb,
-    to: cellArb,
-    heightedKind: fc.constantFrom(
-      "cube" as const,
-      "cylinder" as const,
-      "sphere" as const,
-      "gable" as const,
-      "hip" as const,
-    ),
-    previous: fc.integer({ min: 1, max: 100 }),
-    heightLocked: fc.boolean(),
-    material: fc.constant(stone),
-  }),
+  fc
+    .record({
+      kind: fc.constant("heightStep" as const),
+      dimensionId: dimensionArb,
+      base: boxArb,
+      from: cellArb,
+      to: cellArb,
+      heightedKind: fc.constantFrom(
+        "cube" as const,
+        "cylinder" as const,
+        "sphere" as const,
+        "gable" as const,
+        "hip" as const,
+      ),
+      liveHeight: fc.integer({ min: 1, max: 100 }),
+      heightLocked: fc.boolean(),
+    })
+    .map(({ dimensionId, from, to, ...flow }) => ({
+      ...flow,
+      start: { dimensionId, cell: from, material: stone },
+      taps: { from, to },
+    })),
   fc.record({
     kind: fc.constant("pasteAim" as const),
     manualTurn: fc.constant(0 as const),
@@ -519,17 +530,11 @@ it("confirms a box as an active root selection with matching Copy bounds", () =>
     fc.property(boxArb, dimensionArb, (box, dimensionId) => {
       const session = new BuildSession(asPlayerId("p1"));
       const selection = selectionOf(dimensionId, box, stone);
-      session.confirmBox(
-        selection,
-        "selected",
-        tapsOf(session.flow) ?? cornerTaps(selection.box),
-      );
+      session.confirmBox(selection, "selected", cornerTaps(selection.box));
       expect(session.flow).toEqual({
         kind: "selected",
         menuLevel: "root",
-        selection,
-        from: box.min,
-        to: box.max,
+        ...tappedSelection(selection, box.min, box.max),
       });
       expect(session.confirmedBox).toBe(selection);
       expect(session.isInBuildMode).toBe(true);
@@ -546,17 +551,13 @@ it("uses the supplied taps even when replacing a selected box, and defaults to i
       session.setFlow({
         kind: "selected",
         menuLevel: "build",
-        selection,
-        from: box.min,
-        to: box.max,
+        ...tappedSelection(selection, box.min, box.max),
       });
       session.confirmBox(selection, "selected", { from, to });
       expect(session.flow).toEqual({
         kind: "selected",
         menuLevel: "root",
-        selection,
-        from,
-        to,
+        ...tappedSelection(selection, from, to),
       });
       session.confirmBox(selection);
       expect(session.flow).toEqual({ kind: "idle" });
@@ -575,27 +576,22 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
       (from, to, height, kind) => {
         const session = new BuildSession(asPlayerId("p1"));
         const selection = selectionOf(dim, boxOf(from, to), stone);
-        session.setFlow(
+        const fixed = tappedSelection(selection, from, to);
+        const flow =
           kind === "selected"
-            ? { kind, menuLevel: "build", selection, from, to }
-            : { kind, selection, from, to, op: "fillBelow" },
-        );
+            ? { kind, menuLevel: "build" as const, ...fixed }
+            : { kind, op: "fillBelow" as const, ...fixed };
+        session.setFlow(flow);
         const next = selectionOf(
           dim,
           boxWithHeight(selection.box, height),
           stone,
         );
-        session.confirmBox(
-          next,
-          "selected",
-          tapsOf(session.flow) ?? cornerTaps(next.box),
-        );
+        session.confirmBox(next, "selected", flow.taps);
         expect(session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
-          selection: next,
-          from,
-          to,
+          ...tappedSelection(next, from, to),
         });
       },
     ),
@@ -609,17 +605,19 @@ it("replaces taps and bounds together only while selected or aiming height", () 
       session.setFlow(flow);
       const selection = selectionOf(dim, box, stone);
       const taps = { from: box.max, to: box.min };
-      session.replaceSelection(selection, taps);
+      session.replaceSelection(selection, taps, OVERWORLD_RANGE);
       if (flow.kind === "selected" || flow.kind === "baseHeight") {
         expect(session.flow).toMatchObject({
           kind: flow.kind,
-          selection,
-          ...taps,
+          ...tappedSelection(selection, taps.from, taps.to),
         });
         if (flow.kind === "baseHeight")
           expect(session.flow).toMatchObject({
             baseBox: boxWithHeight(box, 1),
-            previous: Math.min(flow.previous, selectionHeightLimit(box)),
+            liveHeight: Math.min(
+              flow.liveHeight,
+              selectionHeightLimit(box, OVERWORLD_RANGE),
+            ),
           });
       } else expect(session.flow).toBe(flow);
       expect(session.confirmedBox).toBeUndefined();
@@ -642,21 +640,22 @@ it("advances rotation selections and only updates confirmed boxes in the same di
         session.setFlow({
           kind: "selected",
           menuLevel: "root",
-          selection: selectionOf(dim, box, stone),
-          from: box.min,
-          to: box.max,
+          ...tappedSelection(selectionOf(dim, box, stone), box.min, box.max),
         });
         const target = planRotationAboutCenter(box).target;
         session.replaceSelection(
           selectionOf(dim, target, stone),
           cornerTaps(target),
+          OVERWORLD_RANGE,
         );
         expect(session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
-          from: target.min,
-          to: target.max,
-          selection: selectionOf(dim, target, stone),
+          ...tappedSelection(
+            selectionOf(dim, target, stone),
+            target.min,
+            target.max,
+          ),
         });
         expect(session.confirmedBox).toEqual({
           material: stone,
@@ -679,9 +678,7 @@ it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
         session.setFlow({
           kind: "selected",
           menuLevel: "root",
-          selection: selectionOf(dim, box, stone),
-          from: box.min,
-          to: box.max,
+          ...tappedSelection(selectionOf(dim, box, stone), box.min, box.max),
         });
         session.finishEdit(record, "undoable");
         session[exit]();

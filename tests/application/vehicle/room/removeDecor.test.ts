@@ -41,7 +41,7 @@ describe("RemoveDecor (ADR 0093)", () => {
     ]);
   });
 
-  it("takes back the end of the table nearest the pressed point (ADR 0108)", () => {
+  it("takes back the end of the table along the line of sight (ADR 0108, 0110)", () => {
     const { car, pose, world, remove } = setup();
     car
       .capability(CAMPER_ROOM)
@@ -50,14 +50,23 @@ describe("RemoveDecor (ADR 0093)", () => {
       .capability(CAMPER_ROOM)
       ?.decor.placeDecor(decorSlotId("table_aisle"), decorItemId("mug_pair"));
     const aisle = decorSlot(decorSlotId("table_aisle"));
-    if (!aisle) throw new Error("no table_aisle slot");
+    const table = decorSlot(decorSlotId("table"));
+    if (!aisle || !table) throw new Error("missing table slots");
+    const aim = slotPoint(pose, aisle);
+    const other = slotPoint(pose, table);
+    const point = { ...other, y: aim.y - 1 };
+    const eye = {
+      x: 2 * aim.x - point.x,
+      y: aim.y + 1,
+      z: 2 * aim.z - point.z,
+    };
     expect(
       remove.execute({
         playerId: asPlayerId("p"),
         vehicleId: car.id,
         cell: decorSlotCell(pose, aisle),
-        point: slotPoint(pose, aisle),
-        eye: { ...slotPoint(pose, aisle), y: pose.y + 3 },
+        point,
+        eye,
       }),
     ).toBe(true);
     expect(world.calls).toEqual([

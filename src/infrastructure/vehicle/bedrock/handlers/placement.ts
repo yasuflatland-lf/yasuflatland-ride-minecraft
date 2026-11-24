@@ -3,7 +3,7 @@
 import {
   type Block,
   type Dimension,
-  Direction,
+  type Direction,
   type Player,
   system,
   world,
@@ -20,18 +20,9 @@ import {
 import { TickScopedSet } from "../../../../domain/shared/tickScoped";
 import type { Vec3 } from "../../../../domain/shared/vec";
 import type { VehicleKind } from "../../../../domain/vehicle/kind";
-import type { BlockFace } from "../../../../domain/vehicle/placement/placement";
+import { blockFaceOf } from "../../../shared/faces";
 import { kindOfItem } from "../identifiers";
 import { isLavaAt, isWaterAt } from "../water";
-
-const BLOCK_FACE: Readonly<Record<Direction, BlockFace>> = {
-  [Direction.Up]: "up",
-  [Direction.Down]: "down",
-  [Direction.North]: "north",
-  [Direction.South]: "south",
-  [Direction.East]: "east",
-  [Direction.West]: "west",
-};
 
 // How far the itemUse ray looks for liquids, in blocks. It reaches open water a
 // little past the block interaction; a land hit never places (see itemUse below).
@@ -67,7 +58,7 @@ export function registerPlacement(placeVehicle: PlaceVehicle): void {
       kind,
       asDimensionId(block.dimension.id),
       block.location,
-      BLOCK_FACE[face],
+      blockFaceOf(face),
     );
 
   // The after-event only fires when the interaction did something, and an item

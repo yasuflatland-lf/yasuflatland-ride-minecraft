@@ -3,8 +3,12 @@ import { aimedHeight } from "../../domain/build/aim/height";
 import { setHeight } from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
+import type { BuildBlockWorld } from "./ports/blocks";
 export class AimHeight {
-  constructor(private readonly repo: BuildSessionRepository) {}
+  constructor(
+    private readonly repo: BuildSessionRepository,
+    private readonly blocks: Pick<BuildBlockWorld, "heightRange">,
+  ) {}
   execute(cmd: { playerId: PlayerId; ray: Ray }): void {
     const session = this.repo.get(cmd.playerId);
     if (!session) return;
@@ -14,7 +18,11 @@ export class AimHeight {
       (flow.kind !== "heightStep" || flow.heightLocked)
     )
       return;
-    const height = aimedHeight(flow, cmd.ray);
+    const height = aimedHeight(
+      flow,
+      cmd.ray,
+      this.blocks.heightRange(flow.start.dimensionId),
+    );
     session.setFlow(setHeight(flow, height));
   }
 }

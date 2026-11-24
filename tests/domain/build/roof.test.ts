@@ -207,8 +207,13 @@ describe("roof", () => {
           const limit =
             3 *
             Math.max(base.max.x - base.min.x + 1, base.max.z - base.min.z + 1);
-          expect(maxRoofHeight(base)).toBe(limit);
-          expect(maxRoofHeight(base, worldTopY)).toBe(
+          expect(
+            maxRoofHeight(base, {
+              minY: base.min.y,
+              maxY: base.min.y + limit - 1,
+            }),
+          ).toBe(limit);
+          expect(maxRoofHeight(base, { minY: -64, maxY: worldTopY })).toBe(
             Math.max(1, Math.min(limit, worldTopY - base.min.y + 1)),
           );
         },

@@ -3,11 +3,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+
 import {
   buildMenu,
   contentsMenu,
@@ -19,7 +15,6 @@ import {
 import { fixStairGoal } from "../../../src/domain/build/flow/stairFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
-import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -35,10 +30,17 @@ import {
   stone,
   to,
 } from "../../application/build/fakes/menuChoices";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import {
+  chooseHeightedFlow,
+  tapAir,
+  tapBlock,
+  tappedSelection,
+} from "../../support/buildSelection";
 
 type Answer = {
   canceled?: boolean;
@@ -87,12 +89,21 @@ const ui = vi.hoisted(() => {
   }
   return { answers, forms, Form };
 });
+const engine = vi.hoisted(() => ({ tick: 17 }));
+vi.mock("@minecraft/server", () => ({
+  system: {
+    get currentTick() {
+      return engine.tick;
+    },
+  },
+}));
 vi.mock("@minecraft/server-ui", () => ({
   FormCancelationReason: { UserBusy: "UserBusy", UserClosed: "UserClosed" },
   ActionFormData: ui.Form,
   ModalFormData: ui.Form,
 }));
 beforeEach(() => {
+  engine.tick = 17;
   ui.answers.length = 0;
   ui.forms.length = 0;
 });
@@ -103,14 +114,13 @@ const cell = fc.record({
   z: fc.integer({ min: -20, max: 20 }),
 });
 function setup(fallback?: boolean) {
-  const { repo, session, cases, choices } = setupMenuChoices();
+  const { repo, world, session, cases, choices } = setupMenuChoices();
   const player = {
     id: playerId,
     isValid: true,
-    dimension: { heightRange: { min: -64, max: 320 } },
   } as unknown as Player;
-  const menus = new BedrockBuildMenus(repo, choices, fallback);
-  return { repo, session, cases, player, menus };
+  const menus = new BedrockBuildMenus(repo, choices, world, fallback);
+  return { repo, world, session, cases, player, menus };
 }
 function shapeAnswers(flow: BuildFlow, id: string): Answer[] {
   const root = shapeMenu(flow);
@@ -183,6 +193,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     );
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      tick: engine.tick,
     });
     expect(session.flow).toEqual(endpoint);
   },
@@ -207,16 +218,15 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
     fc.asyncProperty(cell, cell, async (a, b) => {
       const { session, menus, player } = setup();
       const end: BuildFlow = selected(a, b);
+      const roofBase = selected(a, { ...a, x: a.x + 1, z: a.z + 1 });
       for (const flow of [
         { kind: "idle" } as const,
         {
           kind: "point1",
-          dimensionId: overworld,
-          cell: a,
-          material: stone,
+          start: { dimensionId: overworld, cell: a, material: stone },
         } as const,
         end,
-        chooseHeighted(end, "hip"),
+        chooseHeightedFlow(roofBase, "hip"),
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
         session.setFlow(flow);
@@ -262,9 +272,7 @@ it("shows exactly the applicable utility entries", async () => {
         if (aiming)
           session.setFlow({
             kind: "point1",
-            dimensionId: overworld,
-            cell: from,
-            material: stone,
+            start: { dimensionId: overworld, cell: from, material: stone },
           });
         ui.forms.length = 0;
         await menus.showUtilityMenu(player);
@@ -328,7 +336,7 @@ it("keeps a dismissed root selection and clears it on Cancel", async () => {
 
 it("returns to aiming on contents Cancel", async () => {
   const { session, menus, player, cases } = setup();
-  session.setFlow(chooseHeighted(endpoint, "gable"));
+  session.setFlow(chooseHeightedFlow(endpoint, "gable"));
   ui.answers.push({ selection: 2 });
   await menus.showContentsMenu(player);
   expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
@@ -363,15 +371,16 @@ it("keeps the confirmed box after utility dismissal and forgets it on Clear", as
 it("bounds the fallback slider, starts at the initial roof height and applies it before the roof menu", async () => {
   await fc.assert(
     fc.asyncProperty(
-      fc.integer({ min: 0, max: 319 }),
+      fc.integer({ min: 0, max: 127 }),
       fc.constantFrom("gable" as const, "hip" as const),
       async (y, kind) => {
-        const { session, menus, player, cases } = setup(true);
+        const { session, menus, player, cases, world } = setup(true);
+        world.heightRanges.set(overworld, NETHER_RANGE);
         const selection = selected({ ...from, y }, { ...to, y });
         session.setFlow(selection);
-        const flow = chooseHeighted(selection, kind);
+        const flow = chooseHeightedFlow(selection, kind);
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
-        const max = volumeOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
+        const max = volumeOf(kind).maxHeight(flow.base, NETHER_RANGE);
         ui.forms.length = 0;
         ui.answers.push(
           ...shapeAnswers(selection, kind),
@@ -390,14 +399,14 @@ it("bounds the fallback slider, starts at the initial roof height and applies it
             label: { translate: BUILD_FORM.height },
             min: 1,
             max,
-            options: { defaultValue: flow.previous, valueStep: 1 },
+            options: { defaultValue: flow.liveHeight, valueStep: 1 },
           },
         ]);
         expect(cases.setHeight.execute).toHaveBeenCalledExactlyOnceWith({
           playerId,
           height: max,
         });
-        expect(session.flow).toEqual({ ...flow, previous: max });
+        expect(session.flow).toEqual({ ...flow, liveHeight: max });
         expect(ui.forms[3]?.buttons).toEqual(
           labels(contentsMenu(session.flow)),
         );
@@ -464,7 +473,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
     const { session, menus, player, cases } = setup(stage === "slider");
     let close!: (answer: Answer) => void;
     if (stage === "slider") ui.answers.push(...shapeAnswers(endpoint, "hip"));
-    if (stage === "roof") session.setFlow(chooseHeighted(endpoint, "hip"));
+    if (stage === "roof") session.setFlow(chooseHeightedFlow(endpoint, "hip"));
     if (stage === "paste") {
       holdClipboard(
         session,
@@ -528,16 +537,18 @@ it.each(["gable", "hip"] as const)(
     session.setFlow({
       kind: "selected",
       menuLevel: "root",
-      selection: selectionOf(
-        overworld,
-        box,
-        blockStateOf("minecraft:oak_stairs", {
-          weirdo_direction: 0,
-          upside_down_bit: false,
-        }),
+      ...tappedSelection(
+        selectionOf(
+          overworld,
+          box,
+          blockStateOf("minecraft:oak_stairs", {
+            weirdo_direction: 0,
+            upside_down_bit: false,
+          }),
+        ),
+        from,
+        to,
       ),
-      from,
-      to,
     });
     ui.answers.push(...shapeAnswers(session.flow, kind), { selection: 1 });
     await menus.showShapeMenu(player);
@@ -581,7 +592,7 @@ it.each([
     });
     expect(session.flow).toMatchObject({
       heightLocked: true,
-      previous: y - from.y + 1,
+      liveHeight: y - from.y + 1,
     });
     expect(ui.forms[2]?.sliders).toEqual([]);
   },
@@ -640,11 +651,11 @@ function removeAboveAnswer() {
   };
 }
 
-it.each([320, 128, 256])(
+it.each([320, 128, 256, 512])(
   "shows the dimension top for Remove above with exclusive ceiling %i",
   async (ceiling) => {
-    const { menus, player, cases, session } = setup();
-    player.dimension.heightRange.max = ceiling;
+    const { menus, player, cases, session, world } = setup();
+    world.heightRanges.set(overworld, { minY: 0, maxY: ceiling - 1 });
     const area: BuildFlow = selected(
       { x: 0, y: 64, z: 0 },
       { x: 4, y: 60, z: 6 },
@@ -681,8 +692,8 @@ it.each([320, 128, 256])(
 );
 
 it.each([
-  [320, BUILD_SPEC.worldTopY],
-  [512, BUILD_SPEC.worldTopY],
+  [320, OVERWORLD_RANGE.maxY],
+  [512, 511],
   [128, 127],
   [128, 128],
   [256, 255],
@@ -690,8 +701,8 @@ it.each([
 ])(
   "confirms without a form for ceiling %i and floor %i",
   async (ceiling, floor) => {
-    const { menus, player, cases, session } = setup();
-    player.dimension.heightRange.max = ceiling;
+    const { menus, player, cases, session, world } = setup();
+    world.heightRanges.set(overworld, { minY: 0, maxY: ceiling - 1 });
     session.setFlow(selected({ ...from, y: floor }, { ...to, y: floor }));
     ui.answers.push(removeAboveAnswer());
     await menus.showShapeMenu(player);
@@ -714,7 +725,10 @@ it.each([
     ui.answers.push(removeAboveAnswer(), answer);
     await menus.showShapeMenu(player);
     expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
-    expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+    expect(session.flow).toMatchObject({
+      kind: "point1",
+      start: { cell: from },
+    });
   },
 );
 
@@ -769,16 +783,15 @@ it("labels New copy and dispatches it through the paste menu with or without his
 
 it.each([
   [-64, 320, 64],
-  [-64, 320, BUILD_SPEC.worldTopY],
+  [-64, 320, OVERWORLD_RANGE.maxY],
   [0, 128, 64],
   [0, 256, 64],
   [-32, 256, 64],
 ])(
   "shows Fill below's dimension bottom %i, ceiling %i and inclusive top %i",
   async (bottom, ceiling, y) => {
-    const { menus, player, cases, session } = setup();
-    player.dimension.heightRange.min = bottom;
-    player.dimension.heightRange.max = ceiling;
+    const { menus, player, cases, session, world } = setup();
+    world.heightRanges.set(overworld, { minY: bottom, maxY: ceiling - 1 });
     const area: BuildFlow = selected({ x: 0, y, z: 0 }, { x: 4, y: 60, z: 6 });
     session.setFlow(area);
     ui.answers.push(
@@ -819,7 +832,7 @@ it.each([false, true])(
     expect(session.flow).toMatchObject({
       heightedKind: "sideCylinderX",
       heightLocked: true,
-      previous: 5,
+      liveHeight: 5,
     });
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
@@ -855,7 +868,7 @@ it.each([false, true])(
     expect(session.flow).toMatchObject({
       heightedKind: "sideCylinderX",
       heightLocked: true,
-      previous: 1,
+      liveHeight: 1,
     });
     expect(ui.forms).toHaveLength(3);
     expect(ui.forms[2]?.buttons).toEqual(labels(contentsMenu(session.flow)));
@@ -902,9 +915,11 @@ it.each([
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      tick: engine.tick,
     });
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      tick: engine.tick,
     });
     expect(ui.forms.map((form) => form.heading)).toEqual([
       { translate: BUILD_FORM.shapeTitle },
@@ -1026,7 +1041,10 @@ it.each([
       expect(session.flow).toBe(endpoint);
     } else {
       expect(cases.confirmStairs.execute).not.toHaveBeenCalled();
-      expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+      expect(session.flow).toMatchObject({
+        kind: "point1",
+        start: { cell: from },
+      });
     }
   },
 );
@@ -1067,7 +1085,10 @@ it.each([{ selection: 0 }, { selection: 1 }, { canceled: true }])(
       expect(session.flow).toBe(endpoint);
     } else {
       expect(cases.confirmTerrace.execute).not.toHaveBeenCalled();
-      expect(session.flow).toMatchObject({ kind: "point1", cell: from });
+      expect(session.flow).toMatchObject({
+        kind: "point1",
+        start: { cell: from },
+      });
     }
   },
 );

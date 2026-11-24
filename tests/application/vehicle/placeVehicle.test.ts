@@ -4,6 +4,7 @@ import {
   PlaceVehicle,
   type PlaceVehicleCommand,
 } from "../../../src/application/vehicle/placeVehicle";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import {
   asDimensionId,
   asPlayerId,
@@ -11,10 +12,7 @@ import {
 } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import { profileOf } from "../../../src/domain/vehicle/kinds/index";
-import {
-  type BlockFace,
-  placementCell,
-} from "../../../src/domain/vehicle/placement/placement";
+import { placementCell } from "../../../src/domain/vehicle/placement/placement";
 import { FakeWorld, InMemoryRepo } from "./fakes";
 
 const log = { warn: () => {} };

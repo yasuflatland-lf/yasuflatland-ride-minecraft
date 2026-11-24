@@ -34,7 +34,7 @@ const game = vi.hoisted(() => {
   };
 });
 export const bedrockResortHandlers = () => ({
-  Direction: { Up: "Up" },
+  Direction: { Up: "Up", North: "North" },
   GameMode: { Creative: "Creative" },
   Player: game.Player,
   world: {

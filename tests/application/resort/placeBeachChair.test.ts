@@ -7,6 +7,7 @@ import {
   beachChairPose,
   beachChairSupportCells,
 } from "../../../src/domain/resort/beachChair";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { fakeBeachChairWorld } from "./fakeBeachChairWorld";
@@ -19,7 +20,7 @@ const command = fc.record({
     y: fc.integer({ min: 0, max: 200 }),
     z: fc.integer({ min: -1000, max: 1000 }),
   }),
-  face: fc.constant<string>("up"),
+  face: fc.constant<BlockFace>("up"),
   yaw: fc.integer({ min: -360, max: 360 }),
   slot: fc.integer({ min: 0, max: 8 }),
 });
