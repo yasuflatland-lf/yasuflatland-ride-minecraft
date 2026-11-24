@@ -15,6 +15,7 @@ import {
 import { goalRowTaps } from "../../domain/build/stairs/staircase";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { EditJobs } from "./editJobs";
+import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import { startUndoableBuild } from "./startUndoableBuild";
 
@@ -23,6 +24,7 @@ abstract class StairEdit {
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
     private readonly jobs: EditJobs,
+    private readonly blocks: Pick<BuildBlockWorld, "heightRange">,
   ) {}
 
   protected confirm(
@@ -36,16 +38,18 @@ abstract class StairEdit {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    const { staircase, dimensionId, material, selectionBefore } = flow;
+    const { staircase, start, selectionBefore } = flow;
+    const { dimensionId, material } = start;
     const taps = goalRowTaps(staircase);
+    const range = this.blocks.heightRange(dimensionId);
     if (
       startUndoableBuild(
         { feedback: this.feedback, jobs: this.jobs },
         {
           playerId,
           session,
-          count: stairCellCount(staircase, roles),
-          plan: planStairs(staircase, roles, material),
+          count: stairCellCount(staircase, roles, range),
+          plan: planStairs(staircase, roles, material, range),
           selectionBefore,
           selectionBeforeTaps: flow.taps,
           keepEmpty: true,

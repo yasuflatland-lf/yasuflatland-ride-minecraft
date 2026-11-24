@@ -954,17 +954,25 @@ it("places and removes decor by hand once parked, and lays it with the room on t
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
   expect(
-    f.room.decor.decorSlotFor(decorItemId("percolator"), point, cell, false),
+    f.room.decor.decorSlotFor(
+      decorItemId("percolator"),
+      { cell, point },
+      "nearestFree",
+    ),
   ).toBeUndefined();
   expect(
     f.room.decor.placeDecor(decorSlotId("stove"), decorItemId("percolator")),
   ).toBe(false);
-  expect(f.room.decor.removeDecor(cell)).toBeUndefined();
+  expect(f.room.decor.removeDecor({ cell })).toBeUndefined();
   expect(f.room.decor.decor()).toEqual([]);
 
   expect(f.step().dock?.cells).toEqual([]);
   expect(
-    f.room.decor.decorSlotFor(decorItemId("percolator"), point, cell, false),
+    f.room.decor.decorSlotFor(
+      decorItemId("percolator"),
+      { cell, point },
+      "nearestFree",
+    ),
   ).toBe("stove");
   expect(
     f.room.decor.placeDecor(
@@ -982,14 +990,17 @@ it("places and removes decor by hand once parked, and lays it with the room on t
     f.room.decor.placeDecor(decorSlotId("stove"), decorItemId("enamel_kettle")),
   ).toBe(false);
   expect(
-    f.room.decor.decorSlotFor(decorItemId("enamel_kettle"), point, cell, false),
+    f.room.decor.decorSlotFor(
+      decorItemId("enamel_kettle"),
+      { cell, point },
+      "nearestFree",
+    ),
   ).not.toBe("stove");
   expect(
     f.room.decor.decorSlotFor(
       decorItemId("macrame_planter"),
-      point,
-      decorSlotCell(f.pose, slotNamed("ceiling_hook")),
-      false,
+      { cell: decorSlotCell(f.pose, slotNamed("ceiling_hook")), point },
+      "nearestFree",
     ),
   ).toBe("ceiling_hook");
 
@@ -1004,10 +1015,10 @@ it("places and removes decor by hand once parked, and lays it with the room on t
   expect(f.room.decor.decor()).toEqual([{ slot: "stove", item: "percolator" }]);
 
   expect(
-    f.room.decor.removeDecor({ ...cell, y: cell.y + 100 }),
+    f.room.decor.removeDecor({ cell: { ...cell, y: cell.y + 100 } }),
   ).toBeUndefined();
-  expect(f.room.decor.removeDecor(cell)).toBe("percolator");
-  expect(f.room.decor.removeDecor(cell)).toBeUndefined();
+  expect(f.room.decor.removeDecor({ cell })).toBe("percolator");
+  expect(f.room.decor.removeDecor({ cell })).toBeUndefined();
   const after = defined(f.step().dock, "laid dock").cells;
   expect(after.some((c) => c.block.type === "decor")).toBe(false);
   expect(f.room.decor.decor()).toEqual([]);
@@ -1025,16 +1036,15 @@ it("keeps placed decor through a departure and refuses changes while driving", (
   expect(
     f.room.decor.decorSlotFor(
       decorItemId("enamel_kettle"),
-      slotPoint(f.pose, stove),
-      decorSlotCell(f.pose, stove),
-      false,
+      { cell: decorSlotCell(f.pose, stove), point: slotPoint(f.pose, stove) },
+      "nearestFree",
     ),
   ).toBeUndefined();
   expect(
     f.room.decor.placeDecor(decorSlotId("table"), decorItemId("mug_pair")),
   ).toBe(false);
   expect(
-    f.room.decor.removeDecor(decorSlotCell(f.pose, stove)),
+    f.room.decor.removeDecor({ cell: decorSlotCell(f.pose, stove) }),
   ).toBeUndefined();
 });
 
@@ -1045,9 +1055,11 @@ it("places the item in the pressed slot ahead of a nearer free slot (ADR 0097)",
   expect(
     f.room.decor.decorSlotFor(
       decorItemId("mug_pair"),
-      slotPoint(f.pose, slotNamed("dashboard_center")),
-      decorSlotCell(f.pose, slotNamed("dashboard_left")),
-      false,
+      {
+        cell: decorSlotCell(f.pose, slotNamed("dashboard_left")),
+        point: slotPoint(f.pose, slotNamed("dashboard_center")),
+      },
+      "nearestFree",
     ),
   ).toBe("dashboard_left");
 });
@@ -1062,7 +1074,11 @@ it("puts the stove item on its one burner and takes no second item while it hold
       const cell = decorSlotCell(f.pose, burner);
       const point = slotPoint(f.pose, burner);
       expect(
-        f.room.decor.decorSlotFor(decorItemId("saucepan"), point, cell, false),
+        f.room.decor.decorSlotFor(
+          decorItemId("saucepan"),
+          { cell, point },
+          "nearestFree",
+        ),
       ).toBe("stove");
       expect(
         f.room.decor.placeDecor(decorSlotId("stove"), decorItemId("saucepan")),
@@ -1076,9 +1092,8 @@ it("puts the stove item on its one burner and takes no second item while it hold
       expect(
         f.room.decor.decorSlotFor(
           decorItemId("enamel_kettle"),
-          point,
-          cell,
-          true,
+          { cell, point },
+          "none",
         ),
       ).toBeUndefined();
       expect(
@@ -1086,9 +1101,8 @@ it("puts the stove item on its one burner and takes no second item while it hold
           defined(
             f.room.decor.decorSlotFor(
               decorItemId("enamel_kettle"),
-              point,
-              cell,
-              false,
+              { cell, point },
+              "nearestFree",
             ),
             "fallback slot",
           ),
@@ -1109,7 +1123,7 @@ it("puts the stove item on its one burner and takes no second item while it hold
           },
         },
       ]);
-      expect(f.room.decor.removeDecor(cell)).toBe("saucepan");
+      expect(f.room.decor.removeDecor({ cell })).toBe("saucepan");
       expect(f.room.decor.decor()).toEqual([]);
     }),
   );
@@ -1172,9 +1186,8 @@ it("holds two items on the table: a press on its cell sends the next item to the
         expect(
           f.room.decor.decorSlotFor(
             decorItemId("cushion"),
-            at(first),
-            cell,
-            false,
+            { cell, point: at(first) },
+            "nearestFree",
           ),
         ).toBe(first.id);
         expect(f.room.decor.placeDecor(first.id, decorItemId("cushion"))).toBe(
@@ -1184,9 +1197,8 @@ it("holds two items on the table: a press on its cell sends the next item to the
         expect(
           f.room.decor.decorSlotFor(
             decorItemId("book_stack"),
-            at(first),
-            cell,
-            false,
+            { cell, point: at(first) },
+            "nearestFree",
           ),
         ).toBe(second.id);
         expect(
@@ -1195,9 +1207,8 @@ it("holds two items on the table: a press on its cell sends the next item to the
         expect(
           f.room.decor.decorSlotFor(
             decorItemId("toaster"),
-            at(first),
-            cell,
-            true,
+            { cell, point: at(first) },
+            "none",
           ),
         ).toBeUndefined();
         const both = [
@@ -1217,14 +1228,18 @@ it("holds two items on the table: a press on its cell sends the next item to the
           [`end${second.pair.end}`]: "book_stack",
         });
         f.blocks.set(cellKey(cell), `yasu_ride:${first.pair.kind}_decor_pair`);
-        expect(f.room.decor.removeDecor(cell, at(second))).toBe("book_stack");
+        expect(f.room.decor.removeDecor({ cell, point: at(second) })).toBe(
+          "book_stack",
+        );
         expect(f.room.decor.decor()).toEqual([
           { slot: first.id, item: "cushion" },
         ]);
         expect(
           f.room.decor.placeDecor(second.id, decorItemId("book_stack")),
         ).toBe(true);
-        expect(f.room.decor.removeDecor(cell, at(first))).toBe("cushion");
+        expect(f.room.decor.removeDecor({ cell, point: at(first) })).toBe(
+          "cushion",
+        );
         expect(f.room.decor.placeDecor(first.id, decorItemId("cushion"))).toBe(
           true,
         );
@@ -1260,9 +1275,9 @@ it("takes back the pair end the line of sight is aimed at, though the press land
     z: (aim.z + eye.z) / 2,
   };
   const cell = decorSlotCell(f.pose, far);
-  expect(f.room.decor.removeDecor(cell, point)).toBe("mug_pair");
+  expect(f.room.decor.removeDecor({ cell, point })).toBe("mug_pair");
   fill();
-  expect(f.room.decor.removeDecor(cell, point, eye)).toBe("fruit_bowl");
+  expect(f.room.decor.removeDecor({ cell, point, eye })).toBe("fruit_bowl");
   expect(f.room.decor.decor()).toEqual([{ slot: near.id, item: "mug_pair" }]);
 });
 
@@ -1291,10 +1306,14 @@ it("refuses an exact press on a taken slot instead of offering another one (ADR 
   const point = slotPoint(f.pose, stove);
   const cell = decorSlotCell(f.pose, stove);
   expect(
-    f.room.decor.decorSlotFor(decorItemId("toaster"), point, cell, true),
+    f.room.decor.decorSlotFor(decorItemId("toaster"), { cell, point }, "none"),
   ).toBeUndefined();
   expect(
-    f.room.decor.decorSlotFor(decorItemId("toaster"), point, cell, false),
+    f.room.decor.decorSlotFor(
+      decorItemId("toaster"),
+      { cell, point },
+      "nearestFree",
+    ),
   ).toBeDefined();
 });
 
@@ -1323,10 +1342,18 @@ it("picks the free slot along the line of sight from the eye when one is given (
     z: Math.floor(point.z),
   };
   expect(
-    f.room.decor.decorSlotFor(decorItemId("saucepan"), point, cell, false),
+    f.room.decor.decorSlotFor(
+      decorItemId("saucepan"),
+      { cell, point },
+      "nearestFree",
+    ),
   ).not.toBe("counter");
   expect(
-    f.room.decor.decorSlotFor(decorItemId("saucepan"), point, cell, false, eye),
+    f.room.decor.decorSlotFor(
+      decorItemId("saucepan"),
+      { cell, point, eye },
+      "nearestFree",
+    ),
   ).toBe("counter");
 });
 

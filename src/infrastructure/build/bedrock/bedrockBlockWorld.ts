@@ -1,18 +1,24 @@
-import { BlockPermutation, world } from "@minecraft/server";
+import { BlockPermutation, type Dimension, world } from "@minecraft/server";
 import type { BuildBlockWorld } from "../../../application/build/ports/blocks";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { BlockState } from "../../../domain/build/blockState";
 import { isUsableMaterial } from "../../../domain/build/edit/guard";
+import type { HeightRange } from "../../../domain/build/heightRange";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
 import { LAID_BLOCK_TAG } from "../identifiers";
 import { stateOfPermutation } from "./blockStates";
 
+export function blockHeightRange(dimension: Dimension): HeightRange {
+  const { min, max } = dimension.heightRange;
+  return { minY: min, maxY: max - 1 };
+}
+
 export class BedrockBlockWorld implements BuildBlockWorld {
   constructor(private readonly deps: { isProtected: SpaceCheck }) {}
 
-  topY(dimensionId: DimensionId): number {
-    return world.getDimension(dimensionId).heightRange.max - 1;
+  heightRange(dimensionId: DimensionId): HeightRange {
+    return blockHeightRange(world.getDimension(dimensionId));
   }
 
   materialOf(dimensionId: DimensionId, cell: Cell): BlockState | "refused" {

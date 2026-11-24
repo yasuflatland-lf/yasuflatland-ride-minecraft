@@ -11,7 +11,6 @@ import { StepBackSelection } from "../../../src/application/build/stepBackSelect
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { Debounces } from "../../../src/domain/shared/debounce";
@@ -35,7 +34,13 @@ import {
   nether,
 } from "../../application/build/fakes";
 import { FakeStructureStore } from "../../application/build/fakes/structureStore";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import { structureClipboard } from "../../support/buildClipboard";
+import {
+  tapAir,
+  tapBlock,
+  tappedSelection,
+} from "../../support/buildSelection";
 
 const engine = vi.hoisted(() => {
   const handlers = new Map<string, (event: unknown) => void>();
@@ -117,6 +122,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const undo = vi.spyOn(pressUndo, "execute");
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const refresh = vi.fn();
+  const refreshResumedPaste = vi.fn();
   const aim = {
     dimensionOf: () => nether,
     aim: vi.fn(() => ({
@@ -141,6 +147,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotateDebounce,
     pasteDebounce,
     refresh,
+    refreshResumedPaste,
   });
   const player = {
     id,
@@ -182,6 +189,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotate,
     place,
     refresh,
+    refreshResumedPaste,
     aim,
     player,
     use,
@@ -201,9 +209,7 @@ it("debounces Paste Rotate across block and item events for the selected box", (
   e.session.setFlow({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(nether, box, AIR),
-    from: box.min,
-    to: box.max,
+    ...tappedSelection(selectionOf(nether, box, AIR), box.min, box.max),
   });
   expect(e.interact().cancel).toBe(true);
   flush();
@@ -245,7 +251,8 @@ it("immediately refreshes the ghost once when Place resumes aiming", () => {
   e.session.startNewCopy();
   engine.tick = 11;
   e.use();
-  expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11, "resumePaste");
+  expect(e.refreshResumedPaste).toHaveBeenCalledExactlyOnceWith(e.id, 11);
+  expect(e.refresh).not.toHaveBeenCalled();
   expect(e.structures.calls).toEqual([]);
 });
 
@@ -583,6 +590,7 @@ it.each([false, true])(
       nether,
       { x: 0, y: 60, z: 0 },
       AIR,
+      NETHER_RANGE,
     );
     e.session.setFlow(tapAir(point, { x: 4, y: 60, z: 4 }));
     if (blockFirst) e.interact();
@@ -590,7 +598,7 @@ it.each([false, true])(
     if (!blockFirst) e.interact();
     flush();
     expect(e.undo).toHaveBeenCalledExactlyOnceWith({ playerId: e.id });
-    expect(e.session.flow).toBe(point);
+    expect(e.session.flow).toEqual(point);
     expect(e.editUndo).not.toHaveBeenCalled();
     expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 0);
   },

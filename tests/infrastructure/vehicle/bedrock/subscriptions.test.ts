@@ -22,6 +22,7 @@ import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import { drawerAtHeight } from "../../../../src/domain/vehicle/kinds/camper/furniture";
 import { COUNTER_HEIGHT } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
@@ -1285,7 +1286,7 @@ it("places held camping gear on a camper room, furniture, decor, or pair block o
       point: { x: 1.25, y, z: 2.5 },
       cell: { x: 1, y: 64, z: 2 },
       hotbarSlot: 4,
-      exact: false,
+      fallback: "nearestFree",
       eye: { x: 1.5, y: 66.62, z: 2.5 },
     });
     game.run.mockClear();
@@ -1316,7 +1317,7 @@ it.each(["Touch", "KeyboardAndMouse"])(
         drawersSideFace: true,
         point: {
           x: mode === "Touch" ? 2 : 1,
-          y: 64 + (mode === "Touch" ? 1 - 4.679 / 16 : 4.679 / 16),
+          y: 64 + (1 - 4.679 / 16),
           z: 2.5,
         },
       }),
@@ -1324,21 +1325,20 @@ it.each(["Touch", "KeyboardAndMouse"])(
   },
 );
 
-it("uses the corrected touch ray to test a floor hit and the original x for ordinary placement", () => {
+it("uses the same corrected touch point for the floor ray and ordinary placement", () => {
   const { event, send, storage, placeDecor } = decorFixture();
   const ev = event({ itemStack: { typeId: "yasu_ride:mug_pair" } });
   ev.player.inputInfo.lastInputModeUsed = "Touch";
   expect(send(ev).cancel).toBe(true);
   const eye = ev.player.getHeadLocation();
-  expect(storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
-    "car",
+  expect(storage.drawerTarget).toHaveBeenCalledExactlyOnceWith("car", {
     eye,
-    { x: 1.75 - eye.x, y: 65 - eye.y, z: 2.5 - eye.z },
-    ev.block.location,
-  );
+    direction: { x: 1.75 - eye.x, y: 65 - eye.y, z: 2.5 - eye.z },
+    cell: ev.block.location,
+  });
   for (const [run] of game.run.mock.calls) run();
   expect(placeDecor.execute).toHaveBeenCalledExactlyOnceWith(
-    expect.objectContaining({ point: { x: 1.25, y: 65, z: 2.5 } }),
+    expect.objectContaining({ point: { x: 1.75, y: 65, z: 2.5 } }),
   );
   game.run.mockClear();
   // Another subscriber already cancelled this floor event, so a missed drawer gets no placement fallback.
@@ -1468,7 +1468,7 @@ it("places held camping gear on the dinette slot under a pressed deck seat inste
       point: { x: 1.5, y: 64.68, z: 2.5 },
       cell: slot,
       hotbarSlot: 3,
-      exact: true,
+      fallback: "none",
     });
     game.run.mockClear();
     expect(sendSeat(seatEvent()).cancel).toBe(true);
@@ -1545,7 +1545,7 @@ it("places held camping gear pressed on the shower-toilet block like on any room
     point: { x: 1.25, y: 65, z: 2.5 },
     cell: { x: 1, y: 64, z: 2 },
     hotbarSlot: 4,
-    exact: false,
+    fallback: "nearestFree",
     eye: { x: 1.5, y: 66.62, z: 2.5 },
   });
 });
@@ -1571,25 +1571,29 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   ) =>
     ({
       dimension: { id: "minecraft:overworld" },
-      block: { location: cell },
+      block: {
+        typeId: pairDecorBlockId("table"),
+        location: cell,
+        permutation: { getAllStates: () => ({}) },
+      },
+      face: "Up",
       faceLocation: withFace ? { x: 0.25, y: 0.5, z: 0.75 } : undefined,
       player: withPlayer
         ? {
             id: "p",
             selectedSlotIndex: 0,
+            inputInfo: { lastInputModeUsed: "Touch" },
             getComponent: () => ({ container: { getItem: () => held } }),
             getHeadLocation: () => eye,
           }
         : undefined,
     }) as unknown as Parameters<typeof interact>[0];
-  // The pressed x and z tell the two items of a pair block apart; the eye is not sent,
-  // since this event's faceLocation.y is unmeasured (ADR 0108, 0111).
   interact(event(), { params: undefined });
   expect(removeDecor.execute).toHaveBeenCalledExactlyOnceWith({
     playerId: "p",
     vehicleId: "car",
     cell,
-    point: { x: 1.25, y: 65.5, z: 2.75 },
+    point: { x: 1.75, y: 66.25, z: 2.75 },
   });
   removeDecor.execute.mockClear();
   interact(event(undefined, true, false), { params: undefined });
@@ -1607,9 +1611,11 @@ it("takes decor back on an empty-hand interaction with a decor block (ADR 0093)"
   expect(removeDecor.execute).not.toHaveBeenCalled();
 });
 
-it("sends an empty-hand press on the wall cabinet, with the pressed point, to the storage use case, and ignores a held item, no player, or no owner (ADR 0114)", () => {
+it("routes a storage component press to the upper drawer when raw y would select the lower drawer, and ignores a held item, no player, or no owner (ADR 0114)", () => {
   const before = game.startup.mock.calls.length;
-  const cabinet = { execute: vi.fn() };
+  const cabinet = {
+    execute: vi.fn<(request: { point?: At }) => void>(),
+  };
   const owner = vi.fn<(dimensionId: string, cell: At) => VehicleId | undefined>(
     () => asVehicleId("car"),
   );
@@ -1635,12 +1641,18 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
   ) =>
     ({
       dimension: { id: "minecraft:overworld" },
-      block: { location: cell },
+      block: {
+        typeId: pairDecorBlockId("drawers"),
+        location: cell,
+        permutation: { getAllStates: () => ({}) },
+      },
+      face: "East",
       faceLocation: withFace ? { x: 0.5, y: 0.25, z: 0.125 } : undefined,
       player: withPlayer
         ? {
             id: "p",
             selectedSlotIndex: 0,
+            inputInfo: { lastInputModeUsed: "Touch" },
             getComponent: () => ({ container: { getItem: () => held } }),
           }
         : undefined,
@@ -1651,8 +1663,12 @@ it("sends an empty-hand press on the wall cabinet, with the pressed point, to th
     playerId: "p",
     vehicleId: "car",
     cell,
-    point: { x: 3.5, y: 67.25, z: -3.875 },
+    point: { x: 3.5, y: 67.75, z: -3.875 },
   });
+  const point = cabinet.execute.mock.lastCall?.[0].point;
+  expect(drawerAtHeight(defined(point, "storage point").y - cell.y)).toBe(
+    "drawer_top",
+  );
   cabinet.execute.mockClear();
   interact(event(undefined, true, false), { params: undefined });
   expect(cabinet.execute).toHaveBeenCalledExactlyOnceWith({
@@ -2222,12 +2238,11 @@ it("routes corrected touch floor side-face points through the drawer ray", () =>
     f.storage.execute.mockReturnValue(true);
     expect(f.send(ev).cancel).toBe(true);
     for (const [callback] of game.run.mock.calls) callback();
-    expect(f.storage.drawerTarget).toHaveBeenCalledExactlyOnceWith(
-      "car",
-      ev.player.getHeadLocation(),
-      { x: 0.5, y: 64.75 - 66.62, z: 0 },
-      ev.block.location,
-    );
+    expect(f.storage.drawerTarget).toHaveBeenCalledExactlyOnceWith("car", {
+      eye: ev.player.getHeadLocation(),
+      direction: { x: 0.5, y: 64.75 - 66.62, z: 0 },
+      cell: ev.block.location,
+    });
     expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         cell: counter,
@@ -2239,33 +2254,36 @@ it("routes corrected touch floor side-face points through the drawer ray", () =>
   }
 });
 
-it("routes keyboard and mouse drawer front presses with raw side height while cancelling held repeats", () => {
+it("routes keyboard and mouse drawer front presses with corrected side height while cancelling held repeats", () => {
   fc.assert(
-    fc.property(fc.double({ min: 0.05, max: 0.8, noNaN: true }), (height) => {
-      const f = decorFixture();
-      const ev = f.event({
-        itemStack: undefined,
-        blockFace: "West",
-        faceLocation: { x: 0, y: 1 - height, z: 0.5 },
-      });
-      ev.block = { ...ev.block, typeId: pairDecorBlockId("drawers") };
-      f.storage.execute.mockReturnValue(true);
-      expect(f.send(ev).cancel).toBe(true);
-      for (const [callback] of game.run.mock.calls) callback();
-      expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith({
-        playerId: "p",
-        vehicleId: "car",
-        cell: ev.block.location,
-        // Side-face height picks the drawer; virtual boxes serve other routes.
-        point: { x: 1, y: 64 + ev.faceLocation.y, z: 2.5 },
-        eye: ev.player.getHeadLocation(),
-        drawersSideFace: true,
-      });
-      expect(f.removeDecor.execute).not.toHaveBeenCalled();
-      game.run.mockClear();
-      expect(f.send({ ...ev, isFirstEvent: false }).cancel).toBe(true);
-      expect(game.run).not.toHaveBeenCalled();
-    }),
+    fc.property(
+      fc.double({ min: 0.05, max: 0.8, noNaN: true }),
+      (reportedY) => {
+        const f = decorFixture();
+        const ev = f.event({
+          itemStack: undefined,
+          blockFace: "West",
+          faceLocation: { x: 0, y: reportedY, z: 0.5 },
+        });
+        ev.block = { ...ev.block, typeId: pairDecorBlockId("drawers") };
+        f.storage.execute.mockReturnValue(true);
+        expect(f.send(ev).cancel).toBe(true);
+        for (const [callback] of game.run.mock.calls) callback();
+        expect(f.storage.execute).toHaveBeenCalledExactlyOnceWith({
+          playerId: "p",
+          vehicleId: "car",
+          cell: ev.block.location,
+          // Side-face height picks the drawer; virtual boxes serve other routes.
+          point: { x: 1, y: 64 + (1 - reportedY), z: 2.5 },
+          eye: ev.player.getHeadLocation(),
+          drawersSideFace: true,
+        });
+        expect(f.removeDecor.execute).not.toHaveBeenCalled();
+        game.run.mockClear();
+        expect(f.send({ ...ev, isFirstEvent: false }).cancel).toBe(true);
+        expect(game.run).not.toHaveBeenCalled();
+      },
+    ),
   );
 });
 
@@ -2287,7 +2305,7 @@ it("opens a closed drawer with held gear, places on an open drawer, and routes t
   expect(f.placeDecor.execute).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({
       item: "percolator",
-      point: { x: 1.25, y: 64.25, z: 2.5 },
+      point: { x: 1.25, y: 64.75, z: 2.5 },
     }),
   );
   game.run.mockClear();

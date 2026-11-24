@@ -17,6 +17,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tappedSelection } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -102,9 +103,7 @@ it("selects the pasted box at the root and keeps the clipboard", () => {
         expect(e.session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
-          selection: { dimensionId, box, material },
-          from: box.min,
-          to: box.max,
+          ...tappedSelection({ dimensionId, box, material }, box.min, box.max),
         });
         expect(e.session.confirmedBox).toEqual({ dimensionId, box, material });
         expect(e.session.clipboard).toBe(clipboard);

@@ -29,8 +29,8 @@ export const cubePlacement: HeightedPlacement = {
 };
 
 export const cubeVolume: HeightedVolume = {
-  maxHeight(base, worldTopY) {
-    return Math.max(1, worldTopY - base.min.y + 1);
+  maxHeight(base, { maxY }) {
+    return Math.max(1, maxY - base.min.y + 1);
   },
   wireframe(spec, maxPoints) {
     return boxOutline(boundsOf(spec), maxPoints);

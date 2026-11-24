@@ -3,26 +3,30 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   adjustHeight,
-  chooseHeighted,
   confirmLiveHeight,
   confirmTappedSpan,
   setHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import {
   chooseStairs,
   fixStairGoal,
 } from "../../../src/domain/build/flow/stairFlow";
-import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { type BuildFlow, startOf } from "../../../src/domain/build/flow/state";
 import {
+  backToAiming,
   stepBackSelection,
   withoutStepBack,
 } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import {
+  chooseHeightedFlow,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -36,13 +40,13 @@ it("reverses every fresh end tap to the exact original first point", () => {
       const flow = tapAir(point, end);
       const result = stepBackSelection(flow);
       expect(result).toEqual({ flow: point, cleared: "end" });
-      expect(result?.flow).toBe(point);
+      expect(result && startOf(result.flow)).toBe(startOf(point));
       expect(stepBackSelection(point)).toEqual({
         flow: { kind: "idle" },
         cleared: "start",
       });
       const stripped = withoutStepBack(flow);
-      expect(stripped).not.toHaveProperty("stepBackTo");
+      expect(stripped).not.toHaveProperty("freshEnd");
       expect(withoutStepBack(stripped)).toBe(stripped);
       expect(stepBackSelection(stripped)).toBeUndefined();
       expect(stepBackSelection(withoutStepBack(point))).toEqual(
@@ -73,19 +77,26 @@ it("does not step back confirmed heights, adjusted heights or operation flows", 
         z: start.z + 3,
       });
       if (!stairs) throw new Error("Expected staircase");
-      const flows: BuildFlow[] = [
-        { kind: "idle" },
-        beginPasteAim(),
-        selected,
-        confirmTappedSpan(base),
-        adjustHeight(selected),
-        chooseHeighted(selected, "gable"),
+      const operations = [
+        chooseHeightedFlow(selected, "gable"),
         chooseTerrain(selected, "fillBelow"),
         stairAim,
         fixStairGoal(stairAim, stairs),
       ];
+      const flows: BuildFlow[] = [
+        { kind: "idle" },
+        beginPasteAim(),
+        selected,
+        confirmTappedSpan(base, OVERWORLD_RANGE),
+        adjustHeight(selected, OVERWORLD_RANGE),
+        ...operations,
+      ];
       for (const flow of flows) expect(stepBackSelection(flow)).toBeUndefined();
-      expect(stepBackSelection(setHeight(base, size))?.flow).toBe(point);
+      for (const flow of operations) {
+        expect(backToAiming(flow)).toEqual(point);
+        expect(startOf(flow)).toBe(startOf(point));
+      }
+      expect(stepBackSelection(setHeight(base, size))?.flow).toEqual(point);
     }),
   );
 });

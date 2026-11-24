@@ -30,6 +30,7 @@ import {
   cellKey,
   sameCell,
 } from "../../domain/shared/cells";
+import { blockHeightRange } from "../../infrastructure/build/bedrock/bedrockBlockWorld";
 import {
   BUILD_UNDO_TYPE,
   LAID_BLOCK_TAG,
@@ -78,14 +79,12 @@ interface Reply {
   timedOut?: boolean;
   flow: {
     kind: string;
-    previous?: number;
+    liveHeight?: number;
     menuLevel?: "root" | "build";
     heightLocked?: boolean;
     heightedKind?: string;
-    cell?: Cell;
-    dimensionId?: string;
-    material?: BlockState;
-    to?: Cell;
+    start?: { cell: Cell; dimensionId: string; material: BlockState };
+    taps?: { from: Cell; to: Cell };
     selection?: { box: BoxBounds };
   };
   mode?: boolean;
@@ -367,11 +366,11 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
       check(
         step.kind === "heightStep" &&
           step.heightLocked === false &&
-          step.previous === 1,
+          step.liveHeight === 1,
         "roof did not start its own height step",
       );
       check(
-        (await f.edit("height 3")).flow.previous === 3,
+        (await f.edit("height 3")).flow.liveHeight === 3,
         "height not applied",
       );
       const before = snapshot(f, cells);
@@ -685,11 +684,11 @@ export function buildStairRoofs(a: Arena): Promise<Outcome> {
       check(
         step.kind === "heightStep" &&
           step.heightLocked === true &&
-          step.previous === height,
+          step.liveHeight === height,
         `${label}: expected locked height ${height}`,
       );
       check(
-        (await f.edit("height 1")).flow.previous === height,
+        (await f.edit("height 1")).flow.liveHeight === height,
         `${label}: height changed`,
       );
       const result = await f.menu("contents", fill);
@@ -909,6 +908,7 @@ function aimedTapTargetCell(f: Fixture): Cell {
       direction: f.player.getViewDirection(),
     },
     BUILD_SPEC.touchTapReach,
+    blockHeightRange(f.player.dimension),
   );
   check(cell !== undefined && f.block(cell).isAir, "no reachable air endpoint");
   return cell;
@@ -1013,8 +1013,8 @@ export function buildTapTargetPress(a: Arena): Promise<Outcome> {
     const base = (await f.mode()).flow;
     check(
       base.kind === "baseHeight" &&
-        base.to !== undefined &&
-        sameCell(base.to, cell),
+        base.taps?.to !== undefined &&
+        sameCell(base.taps?.to, cell),
       "the repeated press did not fix just the targeted endpoint",
     );
 
@@ -1023,8 +1023,8 @@ export function buildTapTargetPress(a: Arena): Promise<Outcome> {
     const raised = (await f.mode()).flow;
     check(
       raised.kind === "baseHeight" &&
-        raised.previous !== undefined &&
-        raised.previous > (base.previous ?? 0),
+        raised.liveHeight !== undefined &&
+        raised.liveHeight > (base.liveHeight ?? 0),
       "looking up did not raise the live outline",
     );
     press();
@@ -1033,7 +1033,7 @@ export function buildTapTargetPress(a: Arena): Promise<Outcome> {
     check(
       fixed.kind === "selected" &&
         fixed.selection?.box.max.y ===
-          Math.min(f.cell().y, cell.y) + raised.previous - 1,
+          Math.min(f.cell().y, cell.y) + raised.liveHeight - 1,
       "the next target press did not confirm the live height",
     );
   });
@@ -1050,7 +1050,7 @@ export function buildLiveHeight(a: Arena): Promise<Outcome> {
     const base = await f.tap("block", end);
     check(
       base.flow.kind === "baseHeight" &&
-        base.flow.previous === 1 &&
+        base.flow.liveHeight === 1 &&
         base.menu === undefined,
       "second tap did not start a one-layer live outline",
     );
@@ -1058,7 +1058,7 @@ export function buildLiveHeight(a: Arena): Promise<Outcome> {
     await wait(BUILD_SPEC.outlineInterval);
     const raised = (await f.mode()).flow;
     check(
-      raised.kind === "baseHeight" && (raised.previous ?? 0) > 1,
+      raised.kind === "baseHeight" && (raised.liveHeight ?? 0) > 1,
       "looking up did not raise the live outline",
     );
     const fixed = await f.tap("air");
@@ -1066,8 +1066,8 @@ export function buildLiveHeight(a: Arena): Promise<Outcome> {
     check(
       fixed.flow.kind === "selected" &&
         fixed.menu === undefined &&
-        raised.previous !== undefined &&
-        top === f.cell().y + raised.previous - 1,
+        raised.liveHeight !== undefined &&
+        top === f.cell().y + raised.liveHeight - 1,
       "press did not fix the outlined height without a menu",
     );
     await f.lookSettled(-90, 0);
@@ -1378,15 +1378,10 @@ export function buildUndoItemEnd(a: Arena): Promise<Outcome> {
         message === "endCleared" && flow.kind === "point1",
         "End remained set",
       );
-      check(
-        flow.cell !== undefined && sameCell(flow.cell, start),
-        "Start moved",
-      );
-      check(flow.dimensionId === a.dim.id, "Dimension changed");
-      check(
-        flow.material !== undefined && sameBlockState(flow.material, material),
-        "Material changed",
-      );
+      check(flow.start !== undefined, "Start missing");
+      check(sameCell(flow.start.cell, start), "Start moved");
+      check(flow.start.dimensionId === a.dim.id, "Dimension changed");
+      check(sameBlockState(flow.start.material, material), "Material changed");
 
       const picked = await f.tap("air", next);
       const selected = line ? picked : await f.tap("fixHeight");
@@ -1912,7 +1907,7 @@ async function placeSolid(
   check(
     flow.kind === "heightStep" &&
       flow.heightLocked === true &&
-      flow.previous === height,
+      flow.liveHeight === height,
     `${shape} did not lock the selected height ${height}`,
   );
   const done = await f.menu("contents", fill);
@@ -1968,11 +1963,11 @@ export function buildCylinderBox(a: Arena): Promise<Outcome> {
       f.block(f.cell()).setType("minecraft:air");
       const step = await f.menu("shape", "cylinder");
       check(
-        step.flow.kind === "heightStep" && step.flow.previous === 5,
+        step.flow.kind === "heightStep" && step.flow.liveHeight === 5,
         "box cylinder did not lock the height to the box",
       );
       check(
-        (await f.edit("height 2")).flow.previous === 5,
+        (await f.edit("height 2")).flow.liveHeight === 5,
         "locked cylinder height changed",
       );
       const done = await f.menu("contents", fill);
@@ -2014,11 +2009,11 @@ export function buildSphereBox(a: Arena): Promise<Outcome> {
         f.block(f.cell()).setType("minecraft:air");
         const step = await f.menu("shape", "sphere");
         check(
-          step.flow.kind === "heightStep" && step.flow.previous === size[1],
+          step.flow.kind === "heightStep" && step.flow.liveHeight === size[1],
           "box sphere did not lock the height to the box",
         );
         check(
-          (await f.edit("height 2")).flow.previous === size[1],
+          (await f.edit("height 2")).flow.liveHeight === size[1],
           "locked sphere height changed",
         );
         const done = await f.menu("contents", fill);
@@ -2397,14 +2392,22 @@ export function buildCutStructure(a: Arena): Promise<Outcome> {
 /** Footprint columns from a layer below the fixture's origin up to the world top. */
 function columnRegion(f: Fixture, sx: number, sz: number, bottom: number) {
   const offset = f.cell(0, bottom, 0);
-  return f.region(sx, BUILD_SPEC.worldTopY - offset.y + 1, sz, offset);
+  return f.region(
+    sx,
+    blockHeightRange(f.player.dimension).maxY - offset.y + 1,
+    sz,
+    offset,
+  );
 }
 
 export function buildRemoveAbove(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const cells = columnRegion(f, 3, 3, -3);
     for (const cell of cells) f.block(cell).setType("minecraft:air");
-    const ceiling = f.block({ ...f.cell(1, 0, 1), y: BUILD_SPEC.worldTopY });
+    const ceiling = f.block({
+      ...f.cell(1, 0, 1),
+      y: blockHeightRange(a.dim).maxY,
+    });
     const floor = f.region(3, 1, 3, f.cell(0, -3, 0));
     for (const cell of floor) f.block(cell).setType("minecraft:stone");
     const below = f.block(f.cell(1, -4, 1));
@@ -2853,7 +2856,7 @@ function buildSideCylinder(a: Arena, axis: "x" | "z"): Promise<Outcome> {
       await f.lookSettled(axis === "x" ? 0 : -90);
       check(
         step.flow.heightLocked === true &&
-          (await f.edit("height 2")).flow.previous === 5,
+          (await f.edit("height 2")).flow.liveHeight === 5,
         "sideways cylinder height was not locked",
       );
       const done = await f.menu("contents", fill);
@@ -3297,7 +3300,7 @@ export function buildRotateTappedSpan(a: Arena): Promise<Outcome> {
       await holdPasteControl(f, PASTE_ROTATE_TYPE);
       const live = (await f.mode()).flow;
       check(
-        live.kind === "baseHeight" && (live.previous ?? 0) > 2,
+        live.kind === "baseHeight" && (live.liveHeight ?? 0) > 2,
         "Expected the gaze above the tapped span",
       );
       const turned = await f.press("itemUse");

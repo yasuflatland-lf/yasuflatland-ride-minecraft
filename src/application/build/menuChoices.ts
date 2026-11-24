@@ -73,14 +73,18 @@ export class MenuChoices {
     private readonly cases: MenuCases,
   ) {}
 
-  openShapeMenu(playerId: PlayerId): MenuEntry<RootEntryId>[] {
+  openShapeMenu(playerId: PlayerId, tick: number): MenuEntry<RootEntryId>[] {
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind === "selected" && flow.menuLevel === "build")
-      this.cases.closeBuildMenu.execute({ playerId });
+      this.cases.closeBuildMenu.execute({ playerId, tick });
     return this.cases.openSelectionMenu.execute({ playerId });
   }
 
-  chooseShape(playerId: PlayerId, entryId: string | undefined): boolean {
+  chooseShape(
+    playerId: PlayerId,
+    entryId: string | undefined,
+    tick: number,
+  ): boolean {
     const flow = this.repo.get(playerId)?.flow;
     if (!flow || !isOffered([...shapeMenu(flow), ...buildMenu(flow)], entryId))
       return false;
@@ -94,10 +98,10 @@ export class MenuChoices {
         this.cases.chooseAdjustHeight.execute({ playerId });
         break;
       case "openBuild":
-        this.cases.openBuildMenu.execute({ playerId });
+        this.cases.openBuildMenu.execute({ playerId, tick });
         break;
       case "closeBuild":
-        this.cases.closeBuildMenu.execute({ playerId });
+        this.cases.closeBuildMenu.execute({ playerId, tick });
         break;
       case "edit":
         this.dispatchEditEntry(choice.id, playerId);

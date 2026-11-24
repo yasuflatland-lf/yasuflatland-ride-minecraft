@@ -115,7 +115,7 @@ it("refuses an overflowing placement before consuming survival gear and preserve
       cell: localCellAt(pose, slot.cell),
       point: slotPoint(pose, slot),
       hotbarSlot: 0,
-      exact: true,
+      fallback: "none",
     }),
   ).toBe(false);
   expect(world.calls).toEqual(["showMessage"]);

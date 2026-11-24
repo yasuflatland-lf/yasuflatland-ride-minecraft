@@ -3,12 +3,11 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, edgePoints } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import {
   boxOutline,
   endpointMarkers,
-  previewPoints,
+  previewModel,
 } from "../../../src/domain/build/preview/preview";
 import { roofCells } from "../../../src/domain/build/roof/roof";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -17,6 +16,10 @@ import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import {
+  chooseHeightedFlow,
+  tappedSelection,
+} from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -10000, max: 10000 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -47,40 +50,49 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
       cell,
       cell,
       fc.boolean(),
+      fc.string({ minLength: 1 }),
       fc.integer({ min: 1, max: 300 }),
       fc.constantFrom("gable" as const, "hip" as const),
-      (a, b, blink, height, heightedKind) => {
+      (a, b, blink, viewer, height, heightedKind) => {
+        const playerDimension = asDimensionId(`test:${viewer}`);
         const box = boxOf(a, b);
         const flows: BuildFlow[] = [
           { kind: "idle" },
-          { kind: "point1", cell: a, dimensionId, material },
+          { kind: "point1", start: { dimensionId, cell: a, material } },
           {
             kind: "selected",
             menuLevel: "root",
-            from: a,
-            to: b,
-            selection: selectionOf(dimensionId, boxOf(a, b), material),
+            ...tappedSelection(
+              selectionOf(dimensionId, boxOf(a, b), material),
+              a,
+              b,
+            ),
           },
           {
             kind: "heightStep",
             heightLocked: false,
-            from: a,
-            to: b,
             base: boxOf(a, { ...b, y: a.y }),
             heightedKind,
-            previous: height,
-            dimensionId,
-            material,
+            liveHeight: height,
+            start: { dimensionId, cell: a, material },
+            taps: { from: a, to: b },
           },
           { kind: "pasteAim", manualTurn: 0 },
         ];
         for (const flow of flows) {
-          const set = previewPoints(flow, {
+          const model = previewModel(flow, {
             blink,
+            playerDimension,
             end: flow.kind === "selected" ? a : b,
             pasteBox: box,
             height: height,
           });
+          const { set } = model;
+          expect(model.dimensionId).toBe(
+            flow.kind === "idle" || flow.kind === "pasteAim"
+              ? playerDimension
+              : dimensionId,
+          );
           for (const points of Object.values(set))
             expect(points.length).toBeLessThanOrEqual(
               BUILD_SPEC.outlineMaxPoints,
@@ -110,23 +122,21 @@ it("draws the terrain confirmation at the confirmed selection height", () => {
     boxOf(from, { ...to, y: 68 }),
     material,
   );
-  const common = { from, to, selection };
+  const common = tappedSelection(selection, from, to);
   expect(
-    previewPoints(
+    previewModel(
       { ...common, kind: "terrainConfirm", op: "removeAbove" },
       { blink: true },
-    ),
+    ).set,
   ).toEqual(
-    previewPoints(
+    previewModel(
       {
-        from,
-        to,
-        selection,
         kind: "selected",
         menuLevel: "root",
+        ...tappedSelection(selection, from, to),
       },
       { blink: true },
-    ),
+    ).set,
   );
 });
 
@@ -140,10 +150,10 @@ it("blinks the start marker while the end is undefined", () => {
         sharedMarker: [],
       });
       expect(
-        previewPoints(
-          { kind: "point1", cell: start, dimensionId, material },
+        previewModel(
+          { kind: "point1", start: { dimensionId, cell: start, material } },
           { blink },
-        ),
+        ).set,
       ).toMatchObject(markers);
     }),
   );
@@ -180,7 +190,7 @@ it("leaves idle and unaimed paste empty", () => {
     { kind: "pasteAim", manualTurn: 0 } as const,
   ]) {
     expect(
-      Object.values(previewPoints(flow, { blink: true })).every(
+      Object.values(previewModel(flow, { blink: true }).set).every(
         (points) => points.length === 0,
       ),
     ).toBe(true);
@@ -192,23 +202,21 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
   const flow = {
     kind: "heightStep" as const,
     heightLocked: false,
-    from: base.min,
-    to: base.max,
     base,
-    previous: 5,
-    dimensionId,
-    material,
+    liveHeight: 5,
+    start: { dimensionId, cell: base.min, material },
+    taps: { from: base.min, to: base.max },
   };
-  const gable = previewPoints(
+  const gable = previewModel(
     { ...flow, heightedKind: "gable" },
     { blink: false },
-  ).roof;
+  ).set.roof;
   expect(gable).toContainEqual({ x: 0.5, y: 14.5, z: 2.5 });
   expect(gable).toContainEqual({ x: 8.5, y: 14.5, z: 2.5 });
-  const hip = previewPoints(
+  const hip = previewModel(
     { ...flow, heightedKind: "hip" },
     { blink: false, height: 7 },
-  ).roof;
+  ).set.roof;
   expect(hip).toContainEqual({ x: 2.5, y: 16.5, z: 2.5 });
   expect(hip).toContainEqual({ x: 6.5, y: 16.5, z: 2.5 });
   for (const point of [
@@ -216,14 +224,14 @@ it("draws gable ridges on the long axis and hip ridges inset at both ends", () =
     { x: 8.5, y: 10.5, z: 4.5 },
   ])
     expect(hip).toContainEqual(point);
-  const square = previewPoints(
+  const square = previewModel(
     {
       ...flow,
       base: boxOf(base.min, { x: 4, y: 10, z: 4 }),
       heightedKind: "hip",
     },
     { blink: false },
-  ).roof;
+  ).set.roof;
   expect(
     square.filter((p) => p.y === 14.5).every((p) => p.x === 2.5 && p.z === 2.5),
   ).toBe(true);
@@ -243,20 +251,18 @@ it("keeps roof wireframes within the built footprint and centers the ridge on it
           y: origin.y,
           z: origin.z + depth - 1,
         });
-        const points = previewPoints(
+        const points = previewModel(
           {
             kind: "heightStep",
             heightLocked: false,
-            from: origin,
-            to: base.max,
             base,
             heightedKind,
-            previous: height,
-            dimensionId,
-            material,
+            liveHeight: height,
+            start: { dimensionId, cell: origin, material },
+            taps: { from: origin, to: base.max },
           },
           { blink: true },
-        ).roof;
+        ).set.roof;
         expect(points.length).toBeGreaterThan(0);
         for (const p of points) {
           expect(p.x).toBeGreaterThanOrEqual(base.min.x + 0.5);
@@ -305,24 +311,26 @@ it.each([
   "draws a locked stair %s wireframe at its fixed pitch",
   (kind, ridge) => {
     const box = boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 15, z: 6 });
-    const flow = chooseHeighted(
+    const flow = chooseHeightedFlow(
       {
         kind: "selected",
         menuLevel: "build",
-        selection: selectionOf(
-          dimensionId,
-          box,
-          blockStateOf("minecraft:oak_stairs", {
-            weirdo_direction: 0,
-            upside_down_bit: false,
-          }),
+        ...tappedSelection(
+          selectionOf(
+            dimensionId,
+            box,
+            blockStateOf("minecraft:oak_stairs", {
+              weirdo_direction: 0,
+              upside_down_bit: false,
+            }),
+          ),
+          box.min,
+          box.max,
         ),
-        from: box.min,
-        to: box.max,
       },
       kind,
     );
-    const { roof } = previewPoints(flow, { blink: false, height: 8 });
+    const { roof } = previewModel(flow, { blink: false, height: 8 }).set;
     expect(roof).toContainEqual(ridge);
     expect(roof).toContainEqual({ x: 0.5, y: 10.5, z: 0.5 });
     expect(Math.max(...roof.map((point) => point.y))).toBe(ridge.y);
@@ -335,17 +343,22 @@ it("draws a locked cylinder at the box height even when another height is aimed"
       fc.integer({ min: 2, max: 30 }),
       fc.integer({ min: 1, max: 100 }),
       (height, aimed) => {
-        const flow = chooseHeighted(
+        const flow = chooseHeightedFlow(
           {
             kind: "selected",
             menuLevel: "root",
-            selection: selectionOf(
-              dimensionId,
-              boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 10 + height - 1, z: 5 }),
-              material,
+            ...tappedSelection(
+              selectionOf(
+                dimensionId,
+                boxOf(
+                  { x: 0, y: 10, z: 0 },
+                  { x: 4, y: 10 + height - 1, z: 5 },
+                ),
+                material,
+              ),
+              { x: 0, y: 10, z: 0 },
+              { x: 4, y: 10 + height - 1, z: 5 },
             ),
-            from: { x: 0, y: 10, z: 0 },
-            to: { x: 4, y: 10 + height - 1, z: 5 },
           },
           "cylinder",
         );
@@ -355,9 +368,9 @@ it("draws a locked cylinder at the box height even when another height is aimed"
           BUILD_SPEC.outlineMaxPoints,
         );
         expect(expected.length).toBeGreaterThan(0);
-        expect(previewPoints(flow, { blink: false }).roof).toEqual(expected);
+        expect(previewModel(flow, { blink: false }).set.roof).toEqual(expected);
         expect(
-          previewPoints(flow, { blink: false, height: aimed }).roof,
+          previewModel(flow, { blink: false, height: aimed }).set.roof,
         ).toEqual(expected);
       },
     ),

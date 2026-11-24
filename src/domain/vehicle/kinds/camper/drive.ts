@@ -66,16 +66,14 @@ export class CamperDrive extends TransformingDrive {
         decor: () => this.roomDecor.all(),
         setDecor: (slot, item) => this.roomDecor.set(slot, item),
         // Decor placed on the parking tick is laid with the room on the next step (ADR 0068, 0093).
-        decorSlotFor: (item, point, cell, exact, eye) => {
+        decorSlotFor: (item, press, fallback) => {
           const pose = this.hold.held;
           if (!pose) return undefined;
           return this.roomDecor.slotFor(
             { pose, open: this.storage.open() },
             item,
-            point,
-            cell,
-            exact,
-            eye,
+            press,
+            fallback,
           );
         },
         placeDecor: (slot, item) => {
@@ -87,30 +85,20 @@ export class CamperDrive extends TransformingDrive {
             item,
           );
         },
-        removeDecor: (cell, point, eye) => {
+        removeDecor: (press) => {
           const pose = this.hold.held;
           if (!pose) return undefined;
           return this.roomDecor.remove(
             { pose, open: this.storage.open() },
-            cell,
-            point,
-            eye,
+            press,
           );
         },
       },
       storage: {
-        drawerTarget: (eye, direction, cell, item, feet) => {
+        drawerTarget: (press, item) => {
           const pose = this.hold.held;
           if (!pose) return undefined;
-          return this.storage.drawerTarget(
-            pose,
-            this.roomDecor,
-            eye,
-            direction,
-            cell,
-            item,
-            feet,
-          );
+          return this.storage.drawerTarget(pose, this.roomDecor, press, item);
         },
         pressStorage: (request) => {
           const pose = this.hold.held;
