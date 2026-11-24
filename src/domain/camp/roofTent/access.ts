@@ -1,17 +1,17 @@
+import { LocalFrame } from "../../shared/frame";
 import type { RoofTentMount } from "../../shared/roofTent";
-import { distanceXZ, forward, leftOf, type Vec3 } from "../../shared/vec";
+import { distanceXZ, type Vec3 } from "../../shared/vec";
 import { ROOF_TENT_SPEC } from "../spec";
 
 export function entranceWorld(
   mount: RoofTentMount,
   host: { location: Vec3; yaw: number },
 ): { x: number; z: number } {
-  const f = forward(host.yaw);
-  const l = leftOf(f);
-  return {
-    x: host.location.x + l.x * mount.entrance.x + f.x * mount.entrance.z,
-    z: host.location.z + l.z * mount.entrance.x + f.z * mount.entrance.z,
-  };
+  const { x, z } = new LocalFrame(host.location, host.yaw).toWorld(
+    { left: mount.entrance.x, ahead: mount.entrance.z, up: 0 },
+    "left-first",
+  );
+  return { x, z };
 }
 
 export function canReachEntrance(

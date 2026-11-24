@@ -7,6 +7,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tappedSelection } from "../../support/buildSelection";
 import { FakeSessions, FakeTapTargets, overworld } from "./fakes";
 
 it("clears the selection on an item switch while retaining history", () => {
@@ -27,9 +28,11 @@ it("clears the selection on an item switch while retaining history", () => {
       session.setFlow({
         kind: "selected",
         menuLevel: "root",
-        selection: selectionOf(overworld, boxOf(cell, cell), stone),
-        from: cell,
-        to: cell,
+        ...tappedSelection(
+          selectionOf(overworld, boxOf(cell, cell), stone),
+          cell,
+          cell,
+        ),
       });
       const targets = new FakeTapTargets();
       targets.show(id, { dimensionId: overworld, cell });
@@ -52,9 +55,11 @@ it("hides on mode exit when the flow reached idle before the next preview", () =
   const cell = { x: 0, y: 60, z: 0 };
   session.setFlow({
     kind: "point1",
-    dimensionId: overworld,
-    cell,
-    material: blockStateOf("minecraft:stone"),
+    start: {
+      dimensionId: overworld,
+      cell,
+      material: blockStateOf("minecraft:stone"),
+    },
   });
   targets.show(playerId, { dimensionId: overworld, cell });
   session.clearSelection();

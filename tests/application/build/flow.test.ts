@@ -11,7 +11,7 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import { cancel } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -21,7 +21,12 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+  tappedSelection,
+} from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -51,7 +56,7 @@ function setup() {
   );
   const session = repo.getOrCreate(playerId);
   const point = new SetPoint(repo, world, feedback);
-  const air = new TapAir(repo, feedback);
+  const air = new TapAir(repo, feedback, world);
   const confirm = new ConfirmShape(repo, feedback, jobs);
   const copy = new CopySelection(
     repo,
@@ -88,9 +93,7 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   expect(e.session.confirmedBox).toBeUndefined();
   expect(e.session.flow).toEqual({
     kind: "point1",
-    dimensionId: overworld,
-    cell: from,
-    material: stone,
+    start: { dimensionId: overworld, cell: from, material: stone },
   });
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
@@ -100,9 +103,11 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   expect(e.session.flow).toEqual({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(overworld, boxOf(from, to), stone),
-    from,
-    to,
+    ...tappedSelection(
+      selectionOf(overworld, boxOf(from, to), stone),
+      from,
+      to,
+    ),
   });
   expect(e.feedback.messages).toEqual([
     { message: "pointSet", count: undefined },
@@ -113,9 +118,7 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   e.point.execute({ playerId, dimensionId: nether, cell: to });
   expect(e.session.flow).toEqual({
     kind: "point1",
-    dimensionId: nether,
-    cell: to,
-    material: dirt,
+    start: { dimensionId: nether, cell: to, material: dirt },
   });
   expect(material).toHaveBeenCalledTimes(2);
 });
@@ -252,9 +255,7 @@ it("Cancellation and returning to aiming preserve the confirmed box until Clear"
   new BackToAiming(e.repo).backToAiming({ playerId });
   expect(e.session.flow).toEqual({
     kind: "point1",
-    dimensionId: overworld,
-    cell: from,
-    material: stone,
+    start: { dimensionId: overworld, cell: from, material: stone },
   });
   e.session.setFlow(cancel(e.session.flow));
   expect(e.session.flow.kind).toBe("idle");

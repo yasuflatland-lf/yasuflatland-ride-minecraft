@@ -5,6 +5,7 @@ import type { Cell } from "../../../src/domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../src/domain/shared/decorations";
 import {
   makeSafeStand,
+  playerRiderOf,
   seatRider,
 } from "../../../src/infrastructure/shared/seating";
 
@@ -128,13 +129,11 @@ it("requires a dry, non-decoration floor and two air cells outside vehicle and c
             throw Error("seat exits do not need a solidity probe");
           },
         };
-        const isSafe = makeSafeStand({
-          isVehicleSpace: (cell) => vehicle[cell.y] === true,
-          isCampSpace: (cell) => camp[cell.y] === true,
+        const isSafe = makeSafeStand(dimension as unknown as Dimension, {
+          isVehicleSpace: (_, cell) => vehicle[cell.y] === true,
+          isCampSpace: (_, cell) => camp[cell.y] === true,
         });
-        expect(
-          isSafe(dimension as unknown as Dimension, { x: 0, y: 0, z: 0 }),
-        ).toBe(
+        expect(isSafe({ x: 0, y: 0, z: 0 })).toBe(
           acceptedFloors.includes(floor) &&
             air.every(Boolean) &&
             !vehicle.some(Boolean) &&
@@ -155,15 +154,31 @@ it.each([0, 1])("rejects an unavailable body cell at height %s", (y) => {
     throw Error("unavailable");
   });
   const dimension = { getBlock, getBlockAbove } as unknown as Dimension;
-  const isSafe = makeSafeStand({
+  const isSafe = makeSafeStand(dimension as unknown as Dimension, {
     isVehicleSpace: () => false,
     isCampSpace: () => false,
   });
-  expect(isSafe(dimension, { x: 0, y: 0, z: 0 })).toBe(true);
+  expect(isSafe({ x: 0, y: 0, z: 0 })).toBe(true);
   expect(getBlockAbove).not.toHaveBeenCalled();
   getBlock.mockImplementation((cell) => {
     if (cell.y === y) throw Error("unloaded");
     return { typeId: "minecraft:stone", isAir: cell.y !== -1, isLiquid: false };
   });
-  expect(isSafe(dimension, { x: 0, y: 0, z: 0 })).toBe(false);
+  expect(isSafe({ x: 0, y: 0, z: 0 })).toBe(false);
+});
+
+it("finds the first player among any mix of riders", () => {
+  fc.assert(
+    fc.property(fc.array(fc.boolean()), (players) => {
+      const riders = players.map((isPlayer, i) => ({
+        id: String(i),
+        typeId: isPlayer ? "minecraft:player" : "minecraft:pig",
+      }));
+      const entity = { getComponent: () => ({ getRiders: () => riders }) };
+      const firstPlayer = players.indexOf(true);
+      expect(playerRiderOf(entity as unknown as Entity)).toBe(
+        firstPlayer < 0 ? undefined : String(firstPlayer),
+      );
+    }),
+  );
 });

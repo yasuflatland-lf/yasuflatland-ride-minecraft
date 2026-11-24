@@ -21,7 +21,7 @@ import {
 } from "../identifiers";
 import { tentEntityOf } from "./tentEntity";
 import type { TentFlapStore } from "./tentFlapStore";
-import type { TentLayout } from "./tentLayout";
+import type { TentSpace } from "./tentSpace";
 
 // Only feet inside a flap cell need checking; neighbouring bodies add no reach (ADR 0212).
 function flapBlockerBox(cell: Vec3): {
@@ -36,7 +36,7 @@ function flapBlockerBox(cell: Vec3): {
 
 export class BedrockTentFlapWorld {
   constructor(
-    private readonly layout: TentLayout,
+    private readonly space: TentSpace,
     private readonly flaps: TentFlapStore,
   ) {}
 
@@ -45,13 +45,13 @@ export class BedrockTentFlapWorld {
     dimensionId: DimensionId,
     cell: Vec3,
   ): { tentId: TentId; flap: FlapId } | undefined {
-    const tentId = this.layout.tentBlockOwner(
+    const tentId = this.space.tentBlockOwner(
       dimensionId,
       cell,
       TENT_FLAP_BLOCK,
     );
     if (tentId === undefined) return undefined;
-    const entry = this.layout.entryOf(tentId);
+    const entry = this.space.entryOf(tentId);
     const flap = entry && flapAt(entry.pose, cell);
     return flap === undefined ? undefined : { tentId, flap };
   }
@@ -62,7 +62,7 @@ export class BedrockTentFlapWorld {
   }
 
   clearPlayersForClose(tentId: TentId, flap: FlapId): boolean {
-    const entry = this.layout.entryOf(tentId);
+    const entry = this.space.entryOf(tentId);
     if (!entry) return true;
     const dimension = dimensionById(entry.dimensionId);
     if (!dimension) return true;

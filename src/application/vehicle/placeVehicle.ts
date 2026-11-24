@@ -1,3 +1,4 @@
+import type { BlockFace } from "../../domain/shared/blockFace";
 import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 // Use case: place a vehicle from its item on the cell its kind's placement rule
@@ -10,7 +11,6 @@ import type { VehicleKind } from "../../domain/vehicle/kind";
 import { createVehicle, profileOf } from "../../domain/vehicle/kinds/index";
 import type { PlacementGift } from "../../domain/vehicle/placement/gift";
 import {
-  type BlockFace,
   canPlaceAt,
   type PlacementLiquid,
   placementCell,

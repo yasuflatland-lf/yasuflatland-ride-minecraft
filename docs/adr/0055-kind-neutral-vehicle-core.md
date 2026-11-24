@@ -42,7 +42,7 @@ Three ways to carry per-kind visual state were compared: a typed state per kind 
 
 ### Contracts
 
-- `Vehicle` takes `(id, profile, drive)` with no defaults. It keeps seats and driver, ram, the hit counter, and the headlight switch
+- `Vehicle` takes `(id, profile, drive)` with no defaults. It coordinates the drive with `Crew` for seating, `StandInKeeper` for stand-in placement, `RamSensor` for ramming, and `CabMonitor` for screen synchronization and tool switches. The aggregate keeps the hit counter and headlight switch
 - `Drive` exposes `speed` and `yaw`, `onDriverMounted(driverYaw): void`, `onSeatVacated(seat)`, which returns commands, and `step(raw: RawInput | undefined, ctx: TickContext)`, which returns `{ impulse, forward, commands, riders: { thirdPerson, underwater } }`. The drive owns its motion state and limits. The state of the shared motion functions stays a type in `motion/`; state only one kind uses, such as the boat's water drag estimate, lives in that kind's drive
 - `Vehicle.tick` takes the riders, the test input, and the sensors. `Drive.step` gets only the sensors: `TickContext` is `{ tick, location, velocity: Vec3, onGround, solidAt(offset), waterAt(offset), targets() }`, and the three queries are lazy
 - `VehicleProfile` keeps only what the core reads: kind, seat positions, ram body, beams, and placement
@@ -53,7 +53,7 @@ Three ways to carry per-kind visual state were compared: a typed state per kind 
 - Commands are `setProperty`, `triggerEvent`, `playAnimation`, and `playSound` (at the vehicle). The vocabulary grows only when a kind needs an engine operation these four cannot express
 - Properties, events, and animations use names local to the entity (`form`, `gravity_off`, `door_fr`). The infrastructure turns them into `yasu_ride:form` and `animation.yasu_ride.<entity>.<name>`, and exports those functions to the test pack. Sounds use full names, since vanilla sounds have no namespace
 - Each kind declares an entity contract: properties with their type, enum values, or range; events; animations; and the properties restored after `/reload`. Commands are built by typed functions bound to the contract's keys
-- `DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`. A throw skips the rest of that vehicle's tick, so a failed gravity event never writes the form (0021). A missing entity makes a command do nothing
+- `DriveVehicles` runs the step's commands first, in order, and the seat commands last, through `DriveWorld.run(vehicleId, commands)`. A throw skips the rest of that vehicle's tick, so a failed gravity event never writes the form (0021). The full world-call sequence is documented at `DriveVehicles.tickVehicle`. A missing entity makes a command do nothing
 - Kinds cannot declare names the core writes: `headlights` and the paint events
 
 ### Placement

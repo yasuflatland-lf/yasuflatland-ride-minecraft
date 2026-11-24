@@ -38,6 +38,7 @@ export function registerPasteControls({
   rotateDebounce,
   pasteDebounce,
   refresh,
+  refreshResumedPaste,
 }: {
   repo: BuildSessionRepository;
   aim: AimReader;
@@ -48,7 +49,8 @@ export function registerPasteControls({
   undoDebounce: Debounces<PlayerId>;
   rotateDebounce: Debounces<PlayerId>;
   pasteDebounce: Debounces<PlayerId>;
-  refresh(playerId: PlayerId, tick: number, reason?: "resumePaste"): void;
+  refresh(playerId: PlayerId, tick: number): void;
+  refreshResumedPaste(playerId: PlayerId, tick: number): void;
 }): PasteControlRoutes {
   function pressFromBlockTap(player: Player, isFirstEvent: boolean): boolean {
     if (!controlRole(heldTypeId(player))) return false;
@@ -115,7 +117,7 @@ export function registerPasteControls({
           sneaking: source.isSneaking,
           intent: "place",
         });
-        if (outcome === "aiming") refresh(playerId, tick, "resumePaste");
+        if (outcome === "aiming") refreshResumedPaste(playerId, tick);
         else if (outcome === "pasted") refresh(playerId, tick);
         break;
       }

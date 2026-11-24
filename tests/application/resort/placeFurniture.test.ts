@@ -15,6 +15,7 @@ import {
   furniturePose,
   furnitureSupportCells,
 } from "../../../src/domain/resort/furniture";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { type Cell, cellKey, sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { distance3, type Vec3 } from "../../../src/domain/shared/vec";
@@ -33,7 +34,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
       y: fc.integer({ min: 0, max: 200 }),
       z: fc.integer({ min: -1000, max: 1000 }),
     }),
-    face: fc.constant<string>("up"),
+    face: fc.constant<BlockFace>("up"),
     yaw: fc.integer({ min: -360, max: 360 }),
     slot: fc.integer({ min: 0, max: 8 }),
   });
@@ -57,7 +58,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
       player: asPlayerId("p"),
       dimension: asDimensionId("overworld"),
       block: { x: 10, y: 20, z: 30 },
-      face: "up",
+      face: "up" as const,
       yaw: 0,
       slot: 2,
     };
@@ -170,7 +171,7 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
         const cmd = {
           player: asPlayerId("p"),
           dimension: asDimensionId("overworld"),
-          face: "up",
+          face: "up" as const,
           slot: 0,
         };
         function attempt(

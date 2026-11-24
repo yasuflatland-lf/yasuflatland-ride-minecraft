@@ -1,6 +1,7 @@
-import type { Player } from "@minecraft/server";
+import { type Player, system } from "@minecraft/server";
 import { ModalFormData } from "@minecraft/server-ui";
 import type { MenuChoices } from "../../../application/build/menuChoices";
+import type { BuildBlockWorld } from "../../../application/build/ports/blocks";
 import {
   type BuildMenuEntryId,
   buildMenu,
@@ -27,6 +28,7 @@ import {
 } from "../../../domain/build/stairs/contents";
 import { stairCellCount } from "../../../domain/build/stairs/roles";
 import {
+  fillBelowBox,
   removeAboveBox,
   terrainAreaOf,
   terrainSides,
@@ -71,6 +73,7 @@ export class BedrockBuildMenus implements BuildMenus {
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly choices: MenuChoices,
+    private readonly world: Pick<BuildBlockWorld, "heightRange">,
     private readonly heightSliderFallback: boolean = BUILD_SPEC.heightSliderFallback,
   ) {}
 
@@ -92,7 +95,7 @@ export class BedrockBuildMenus implements BuildMenus {
         return;
       const entries =
         level === "root"
-          ? this.choices.openShapeMenu(playerId)
+          ? this.choices.openShapeMenu(playerId, system.currentTick)
           : buildMenu(flow);
       const opened = this.repo.get(playerId)?.flow;
       const answer = await chooseFromFormResult(
@@ -112,7 +115,8 @@ export class BedrockBuildMenus implements BuildMenus {
           : level === "build"
             ? "back"
             : undefined;
-      if (!this.choices.chooseShape(playerId, choice)) return;
+      if (!this.choices.chooseShape(playerId, choice, system.currentTick))
+        return;
       if (choice === "buildShape" || choice === "back") {
         level = choice === "buildShape" ? "build" : "root";
         continue;
@@ -162,7 +166,15 @@ export class BedrockBuildMenus implements BuildMenus {
           terrace
             ? {
                 translate: BUILD_FORM.terraceBody,
-                with: [String(stairCellCount(flow.staircase, TERRACE_ROLES))],
+                with: [
+                  String(
+                    stairCellCount(
+                      flow.staircase,
+                      TERRACE_ROLES,
+                      this.world.heightRange(flow.start.dimensionId),
+                    ),
+                  ),
+                ],
               }
             : undefined,
         );
@@ -237,13 +249,17 @@ export class BedrockBuildMenus implements BuildMenus {
     const playerId = asPlayerId(player.id);
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "terrainConfirm") return;
-    const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
-    const bottomY = player.dimension.heightRange.min;
-    const topY = player.dimension.heightRange.max - 1;
-    if (
-      flow.op === "removeAbove" &&
-      (!removeAboveBox(area) || area.lowerY >= topY)
-    ) {
+    const area = terrainAreaOf(
+      flow.selection.box,
+      flow.taps.from,
+      flow.taps.to,
+    );
+    const range = this.world.heightRange(flow.selection.dimensionId);
+    const box =
+      flow.op === "fillBelow"
+        ? fillBelowBox(area, range)
+        : removeAboveBox(area, range);
+    if (!box) {
       this.choices.chooseTerrain(playerId, "confirm");
       return;
     }
@@ -265,8 +281,8 @@ export class BedrockBuildMenus implements BuildMenus {
         with: [
           String(sides.x),
           String(sides.z),
-          String(flow.op === "fillBelow" ? bottomY : area.lowerY + 1),
-          String(flow.op === "fillBelow" ? area.higherY : topY),
+          String(box.min.y),
+          String(box.max.y),
         ],
       },
     );
@@ -293,8 +309,11 @@ export class BedrockBuildMenus implements BuildMenus {
       .slider(
         { translate: BUILD_FORM.height },
         1,
-        volumeOf(flow.heightedKind).maxHeight(flow.base, BUILD_SPEC.worldTopY),
-        { defaultValue: flow.previous, valueStep: 1 },
+        volumeOf(flow.heightedKind).maxHeight(
+          flow.base,
+          this.world.heightRange(flow.start.dimensionId),
+        ),
+        { defaultValue: flow.liveHeight, valueStep: 1 },
       )
       .submitButton({ translate: BUILD_FORM.submit })
       .show(player);

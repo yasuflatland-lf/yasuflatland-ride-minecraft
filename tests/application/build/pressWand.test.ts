@@ -2,14 +2,13 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import { chooseStairs } from "../../../src/domain/build/flow/stairFlow";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-
+import { chooseHeightedFlow } from "../../support/buildSelection";
 import { nether } from "./fakes";
 import { wandFixture } from "./fakes/pressWand";
 
@@ -53,7 +52,7 @@ it("samples the final ray before offering the shape or roof contents menu", () =
           kind: "selected",
           selection: { box: boxOf(cell, { ...end, y: cell.y + 3 }) },
         });
-        session.setFlow(chooseHeighted(session.flow, roof));
+        session.setFlow(chooseHeightedFlow(session.flow, roof));
         expect(press.execute({ playerId, intent: "aimHeight" })).toBe("none");
         expect(
           press.execute({
@@ -62,7 +61,10 @@ it("samples the final ray before offering the shape or roof contents menu", () =
             ray: { ...ray, direction: { x: 1, y: 0, z: 0 } },
           }),
         ).toBe("contentsMenu");
-        expect(session.flow).toMatchObject({ kind: "heightStep", previous: 5 });
+        expect(session.flow).toMatchObject({
+          kind: "heightStep",
+          liveHeight: 5,
+        });
       },
     ),
   );
@@ -92,8 +94,7 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
         const session = repo.getOrCreate(playerId);
         expect(session.flow).toMatchObject({
           kind: "selected",
-          from: cell,
-          to: { ...cell, z: cell.z + 2 },
+          taps: { from: cell, to: { ...cell, z: cell.z + 2 } },
         });
         expect(press.execute({ playerId, intent: "openUtilityMenu" })).toBe(
           "utilityMenu",

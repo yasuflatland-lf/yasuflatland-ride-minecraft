@@ -13,9 +13,9 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tapAir, tapBlock } from "../../support/buildSelection";
 import {
   FakeAimReader,
   FakeBuildPlayers,
@@ -45,7 +45,7 @@ function fixture() {
   const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   const choose = new ChooseStairs(repo, feedback);
   const fix = new FixStairGoal(repo, feedback, aim);
-  const confirm = new ConfirmStairs(repo, feedback, jobs);
+  const confirm = new ConfirmStairs(repo, feedback, jobs, world);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const cancel = new BackToAiming(repo);
   const preview = new ShowPreview(
@@ -54,6 +54,7 @@ function fixture() {
     aim,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
     fakeSyncTapTarget(),
+    world,
   );
   const session = repo.getOrCreate(playerId);
   const select = (material = stone, end = to) => {
@@ -72,7 +73,7 @@ function fixture() {
     choose,
     fix,
     confirm,
-    terrace: new ConfirmTerrace(repo, feedback, jobs),
+    terrace: new ConfirmTerrace(repo, feedback, jobs, world),
     undo,
     cancel,
     preview,
@@ -173,15 +174,17 @@ it("builds the step cells, selects the goal row, and restores the original row a
   expect(f.session.confirmedBox?.box).toEqual(boxOf(goalFrom, goalTo));
   expect(f.session.flow).toMatchObject({
     kind: "selected",
-    from: goalFrom,
-    to: goalTo,
+    taps: { from: goalFrom, to: goalTo },
   });
   expect(f.world.stateAt(overworld, goalFrom)).toBe(stone);
   expect(f.world.writes).toBe(15);
   f.undo.execute(command);
   f.jobs.step();
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
-  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    taps: { from, to },
+  });
   expect(f.world.stateAt(overworld, goalFrom)).toBe(AIR);
 });
 
@@ -190,26 +193,26 @@ it("keeps the last valid preview while aiming and uses the fixed goal in content
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
   f.aimAt();
-  f.preview.refresh(playerId, 0);
+  f.preview.refresh(playerId, 1);
   const first = f.feedback.previews.at(-1)?.set.stairs;
   expect(first?.length).toBeGreaterThan(0);
   f.aim.target = undefined;
-  f.preview.refresh(playerId, 0);
+  f.preview.refresh(playerId, 2);
   expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(first);
   f.aimAt({ ...hit, z: -4 });
-  f.preview.refresh(playerId, 0);
+  f.preview.refresh(playerId, 3);
   const latest = f.feedback.previews.at(-1)?.set.stairs;
   expect(latest).not.toEqual(first);
   expect(f.fix.execute(command)).toBe(true);
   f.aimAt();
-  f.preview.refresh(playerId, 0);
+  f.preview.refresh(playerId, 4);
   expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(latest);
   f.cancel.backToAiming(command);
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
   f.aim.target = undefined;
   const previews = f.feedback.previews.length;
-  f.preview.refresh(playerId, 0);
+  f.preview.refresh(playerId, 5);
   expect(f.feedback.previews).toHaveLength(previews);
 });
 
@@ -234,7 +237,10 @@ it("can Undo a goal-row advance when the steps already match", () => {
   expect(f.session.hasHistory).toBe(true);
   f.undo.execute(command);
   f.jobs.step();
-  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    taps: { from, to },
+  });
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
   expect(f.world.writes).toBe(0);
 });
@@ -262,14 +268,16 @@ it("terraces with sand selected and restores the stone and original taps on Undo
   for (const cell of cells) expect(f.world.stateAt(overworld, cell)).toBe(AIR);
   expect(f.session.flow).toMatchObject({
     kind: "selected",
-    from: { x: 0, y: 12, z: 4 },
-    to: { x: 2, y: 12, z: 4 },
+    taps: { from: { x: 0, y: 12, z: 4 }, to: { x: 2, y: 12, z: 4 } },
   });
   f.undo.execute(command);
   f.jobs.step();
   for (const cell of cells)
     expect(f.world.stateAt(overworld, cell)).toBe(stone);
-  expect(f.session.flow).toMatchObject({ kind: "selected", from, to });
+  expect(f.session.flow).toMatchObject({
+    kind: "selected",
+    taps: { from, to },
+  });
   expect(f.session.confirmedBox?.box).toEqual(boxOf(from, to));
 });
 

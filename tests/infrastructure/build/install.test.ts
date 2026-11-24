@@ -234,6 +234,7 @@ it("uses the supplied test corner and reports the selection menu only on a later
   } as unknown as Player;
   vi.mocked(world.getAllPlayers).mockReturnValue([player]);
   engine.getEntity.mockReturnValue(player);
+  engine.getDimension.mockReturnValue({ heightRange: { min: -64, max: 320 } });
   const build = installBuild({
     isProtected: () => false,
     isExcludedEntityType: () => false,
@@ -242,9 +243,11 @@ it("uses the supplied test corner and reports the selection menu only on a later
   const session = build.repo.getOrCreate(playerId);
   session.setFlow({
     kind: "point1",
-    cell: start,
-    dimensionId,
-    material: blockStateOf("minecraft:stone"),
+    start: {
+      dimensionId,
+      cell: start,
+      material: blockStateOf("minecraft:stone"),
+    },
   });
   installBuildTestHooks(build);
   const tap = (type: "air" | "block") => {
@@ -262,7 +265,7 @@ it("uses the supplied test corner and reports the selection menu only on a later
     return JSON.parse(reply ?? "{}");
   };
   expect(tap("air")).toMatchObject({
-    flow: { kind: "baseHeight", to: end },
+    flow: { kind: "baseHeight", taps: { to: end } },
     message: "heightAim",
   });
   const fixed = tap("block");

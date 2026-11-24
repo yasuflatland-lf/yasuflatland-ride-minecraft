@@ -125,7 +125,7 @@ export function installBuild(deps: {
     copy: copyBox,
     cut: cutBox,
   };
-  const chooseHeighted = new ChooseHeighted(repo, feedback);
+  const chooseHeighted = new ChooseHeighted(repo, feedback, blocks);
   const cases = {
     chooseBoxStep: new ChooseBoxStep(repo, actions, feedback, facing),
     fill: new ConfirmShape(repo, feedback, jobs),
@@ -142,9 +142,9 @@ export function installBuild(deps: {
     ),
     confirmHeighted: new ConfirmHeighted(repo, feedback, jobs),
     chooseStairs: new ChooseStairs(repo, feedback),
-    confirmTerrace: new ConfirmTerrace(repo, feedback, jobs),
-    confirmStairs: new ConfirmStairs(repo, feedback, jobs),
-    chooseTerrain: new ChooseTerrain(repo, feedback),
+    confirmTerrace: new ConfirmTerrace(repo, feedback, jobs, blocks),
+    confirmStairs: new ConfirmStairs(repo, feedback, jobs, blocks),
+    chooseTerrain: new ChooseTerrain(repo, feedback, blocks),
     confirmTerrain: new ConfirmTerrain(repo, feedback, jobs, blocks),
     undo: new UndoEdit(
       repo,
@@ -162,9 +162,10 @@ export function installBuild(deps: {
     aim,
     resolveTarget,
     new SyncTapTarget(blocks, tapTargets),
+    blocks,
   );
   const menuCases = {
-    chooseAdjustHeight: new ChooseAdjustHeight(repo, feedback),
+    chooseAdjustHeight: new ChooseAdjustHeight(repo, feedback, blocks),
     openSelectionMenu: new OpenSelectionMenu(repo),
     openBuildMenu: new OpenBuildMenu(repo, preview),
     closeBuildMenu: new CloseBuildMenu(repo, preview),
@@ -174,7 +175,7 @@ export function installBuild(deps: {
     setHeight: new SetHeightTo(repo),
   } satisfies MenuCases;
   const menuChoices = new MenuChoices(repo, menuCases);
-  const menus = new BedrockBuildMenus(repo, menuChoices);
+  const menus = new BedrockBuildMenus(repo, menuChoices, blocks);
   const pressPasteAim = new PressPasteAim(
     repo,
     cases.pasteAt,
@@ -193,24 +194,29 @@ export function installBuild(deps: {
     aim,
     pressPasteAim,
     rotatePasteAim,
-    rotateSelection: new RotateSelection(repo, rotateBox, feedback),
+    rotateSelection: new RotateSelection(repo, rotateBox, feedback, blocks),
     pasteDebounce,
     rotateDebounce,
-    refresh: (id, tick, reason) => preview.refresh(id, tick, reason),
+    refresh: (id, tick) => preview.refresh(id, tick),
+    refreshResumedPaste: (id, tick) => preview.refreshResumedPaste(id, tick),
   });
-  const pressWand = new PressWand(repo, {
-    setPoint: new SetPoint(repo, blocks, feedback),
-    tapAir: new TapAir(repo, feedback),
-    aimHeight: new AimHeight(repo),
-    confirmLiveHeight: new ConfirmLiveHeight(repo),
-    fixStairGoal: new FixStairGoal(repo, feedback, aim),
-    pressPasteAim,
-    onPasted: (id, tick) => {
-      // Another event from the paste gesture now routes through selection.
-      debounce.press(id, tick);
-      preview.refresh(id, tick);
+  const pressWand = new PressWand(
+    repo,
+    {
+      setPoint: new SetPoint(repo, blocks, feedback),
+      tapAir: new TapAir(repo, feedback, blocks),
+      aimHeight: new AimHeight(repo, blocks),
+      confirmLiveHeight: new ConfirmLiveHeight(repo),
+      fixStairGoal: new FixStairGoal(repo, feedback, aim),
+      pressPasteAim,
+      onPasted: (id, tick) => {
+        // Another event from the paste gesture now routes through selection.
+        debounce.press(id, tick);
+        preview.refresh(id, tick);
+      },
     },
-  });
+    blocks,
+  );
   const wand = { repo, aim, menus, pressWand, debounce };
   registerWand({ ...wand, pasteDebounce });
   const pressTapTarget = registerTapTarget({ ...wand, targets: tapTargets });

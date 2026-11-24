@@ -72,7 +72,7 @@ function fixture(
 it("accepts only block tops outside add-on rooms", () => {
   const { actions } = fixture();
   expect(actions.canUseBlock(dimension, block, "up")).toBe(true);
-  expect(actions.canUseBlock(dimension, block, "other")).toBe(false);
+  expect(actions.canUseBlock(dimension, block, "north")).toBe(false);
   expect(
     fixture({ isOwnBlock: () => true }).actions.canUseBlock(
       dimension,

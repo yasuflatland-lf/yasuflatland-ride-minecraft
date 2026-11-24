@@ -1,15 +1,12 @@
-import type { BuildFlow } from "./state";
+import { type BuildFlow, point1 } from "./state";
 
 export type SelectionStep = "end" | "start";
 
 export function stepBackSelection(
   flow: BuildFlow,
 ): { readonly flow: BuildFlow; readonly cleared: SelectionStep } | undefined {
-  if (
-    (flow.kind === "baseHeight" || flow.kind === "selected") &&
-    flow.stepBackTo
-  )
-    return { flow: flow.stepBackTo, cleared: "end" };
+  if ((flow.kind === "baseHeight" || flow.kind === "selected") && flow.freshEnd)
+    return { flow: point1(flow.start), cleared: "end" };
   if (flow.kind === "point1")
     return { flow: { kind: "idle" }, cleared: "start" };
 }
@@ -17,10 +14,10 @@ export function stepBackSelection(
 export function withoutStepBack(flow: BuildFlow): BuildFlow {
   if (
     (flow.kind !== "baseHeight" && flow.kind !== "selected") ||
-    !flow.stepBackTo
+    !flow.freshEnd
   )
     return flow;
-  const { stepBackTo: _, ...confirmed } = flow;
+  const { freshEnd: _, ...confirmed } = flow;
   return Object.freeze(confirmed);
 }
 
@@ -29,26 +26,13 @@ export function cancel(_flow: BuildFlow): BuildFlow {
 }
 
 export function backToAiming(flow: BuildFlow): BuildFlow {
-  if (flow.kind === "heightStep")
-    return Object.freeze({
-      kind: "point1",
-      dimensionId: flow.dimensionId,
-      cell: flow.from,
-      material: flow.material,
-    });
-  if (flow.kind === "stairAim" || flow.kind === "stairContents")
-    return Object.freeze({
-      kind: "point1",
-      dimensionId: flow.dimensionId,
-      cell: flow.taps.from,
-      material: flow.material,
-    });
-  return flow.kind === "terrainConfirm"
-    ? Object.freeze({
-        kind: "point1",
-        dimensionId: flow.selection.dimensionId,
-        cell: flow.from,
-        material: flow.selection.material,
-      })
-    : flow;
+  switch (flow.kind) {
+    case "heightStep":
+    case "stairAim":
+    case "stairContents":
+    case "terrainConfirm":
+      return point1(flow.start);
+    default:
+      return flow;
+  }
 }

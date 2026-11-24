@@ -7,15 +7,19 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   confirmLiveHeight,
   setHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import { selectionHeightLimit } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { confirmEndpointHeight } from "../../support/buildSelection";
-import { FakeFeedback, FakeSessions, overworld } from "./fakes";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import {
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
+import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 
 const playerId = asPlayerId("builder");
+const tick = 17;
 
 it("opens and closes the build menu before refreshing the preview without changing the selection", () => {
   fc.assert(
@@ -36,9 +40,9 @@ it("opens and closes the build menu before refreshing the preview without changi
       session.setFlow(endpoint);
       const levels: unknown[] = [];
       const preview = {
-        refresh(id: typeof playerId, tick: number) {
+        refresh(id: typeof playerId, refreshedAt: number) {
           expect(id).toBe(playerId);
-          expect(tick).toBe(0);
+          expect(refreshedAt).toBe(tick);
           levels.push(
             session.flow.kind === "selected"
               ? session.flow.menuLevel
@@ -46,9 +50,9 @@ it("opens and closes the build menu before refreshing the preview without changi
           );
         },
       };
-      new OpenBuildMenu(repo, preview).execute({ playerId });
+      new OpenBuildMenu(repo, preview).execute({ playerId, tick });
       expect(session.flow).toEqual({ ...endpoint, menuLevel: "build" });
-      new CloseBuildMenu(repo, preview).execute({ playerId });
+      new CloseBuildMenu(repo, preview).execute({ playerId, tick });
       expect(session.flow).toEqual(endpoint);
       expect(levels).toEqual(["build", "root"]);
       expect(session.hasHistory).toBe(false);
@@ -64,8 +68,8 @@ it("ignores missing sessions without creating one or refreshing a preview", () =
       throw new Error("Unexpected preview");
     },
   };
-  new OpenBuildMenu(repo, preview).execute({ playerId });
-  new CloseBuildMenu(repo, preview).execute({ playerId });
+  new OpenBuildMenu(repo, preview).execute({ playerId, tick });
+  new CloseBuildMenu(repo, preview).execute({ playerId, tick });
   expect(repo.get(playerId)).toBeUndefined();
 });
 
@@ -91,7 +95,7 @@ it("adjusts an existing selection from its current height and confirms the new h
         if (initial.kind !== "selected") throw new Error("Expected selection");
         session.setFlow(initial);
         const feedback = new FakeFeedback();
-        const adjust = new ChooseAdjustHeight(repo, feedback);
+        const adjust = new ChooseAdjustHeight(repo, feedback, new FakeWorld());
         adjust.execute({ playerId });
         adjust.execute({ playerId });
         expect(feedback.messages).toEqual([{ message: "heightAim" }]);
@@ -99,8 +103,11 @@ it("adjusts an existing selection from its current height and confirms the new h
         if (flow.kind !== "baseHeight") throw new Error("Expected live height");
         expect(flow.selection).toEqual(initial.selection);
         expect(flow.baseBox.max.y).toBe(initial.selection.box.min.y);
-        expect(flow.previous).toBe(
-          Math.min(height, selectionHeightLimit(initial.selection.box)),
+        expect(flow.liveHeight).toBe(
+          Math.min(
+            height,
+            selectionHeightLimit(initial.selection.box, OVERWORLD_RANGE),
+          ),
         );
         const changed = setHeight(flow, nextHeight);
         if (changed.kind !== "baseHeight")

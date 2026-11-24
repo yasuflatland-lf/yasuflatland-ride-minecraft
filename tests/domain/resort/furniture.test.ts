@@ -49,15 +49,11 @@ describe("furniture placement", () => {
             expect(furnitureSupportCells(pose)).toEqual(
               floor.map((cell) => ({ ...cell, y: cell.y - 1 })),
             );
-            const clear = furnitureClearCells(pose);
-            expect(clear).toHaveLength(floor.length * spec.clearance);
-            const clearKeys = new Set(clear.map(cellKey));
-            expect(clearKeys.size).toBe(clear.length);
-            for (const cell of floor)
-              for (let up = 0; up < spec.clearance; up++)
-                expect(
-                  clearKeys.has(cellKey({ ...cell, y: cell.y + up })),
-                ).toBe(true);
+            expect(furnitureClearCells(pose)).toEqual(
+              Array.from({ length: spec.clearance }, (_, up) =>
+                floor.map((cell) => ({ ...cell, y: cell.y + up })),
+              ).flat(),
+            );
             expect(pose.origin).toEqual({
               x:
                 floor.reduce((sum, cell) => sum + cell.x + 0.5, 0) /

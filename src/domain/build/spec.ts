@@ -15,8 +15,6 @@ export const BUILD_SPEC = Object.freeze({
   heightSliderFallback: false,
   // ADR 0254 leaves room to walk over each tread and the landing.
   stairHeadroom: 3,
-  worldTopY: 319,
-  worldBottomY: -64,
   // A held touch repeats itemUse every 4-6 ticks on mobile (ADR 0024).
   pressDebounceTicks: ticks(10),
   pasteRepeatTicks: ticks(10),
