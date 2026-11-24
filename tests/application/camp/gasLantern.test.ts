@@ -158,7 +158,7 @@ it("clears a lit lantern's light before dropping its item and removing it", () =
     [player, 2],
     [player, 1],
   ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(id, player);
   expect(world.removeGasLantern).toHaveBeenCalledExactlyOnceWith(id);
   expect(world.clearLight).toHaveBeenCalledExactlyOnceWith(id);
   expect(world.clearLight.mock.invocationCallOrder[0]).toBeLessThan(

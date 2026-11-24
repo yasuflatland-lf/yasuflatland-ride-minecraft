@@ -65,7 +65,7 @@ it("places on clear ground outside vehicle space and folds back after three hits
     [player, 2],
     [player, 1],
   ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit, player);
   expect(world.removeFirePit).toHaveBeenCalledOnce();
 });
 
@@ -86,7 +86,7 @@ it("refuses covered hits without advancing or resetting the fold counter", () =>
     world.isCovered.mockReturnValue(false);
     for (let hit = 1; hit <= 3 - previousHits; hit++)
       expect(actions.hit(pit, player, 5 + hit)).toBe(hit === 3 - previousHits);
-    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit);
+    expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(pit, player);
     expect(world.removeFirePit).toHaveBeenCalledExactlyOnceWith(pit);
   }
 });
