@@ -4,16 +4,13 @@ import { Debounce } from "../shared/debounce";
 import { HitCounters, hitRule } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
 import { isDyeable } from "../shared/paint";
-import { SyncedValue } from "../shared/syncedValue";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import type { CapabilityKey } from "./capability";
-import { RamCooldowns } from "./cooldowns";
 import { Crew } from "./crew";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
-import { MONITOR_PROPERTY_NAME } from "./entityContract";
 import {
   type HeldItem,
   type Hint,
@@ -27,28 +24,17 @@ import {
   headlightCells as cellsLitFrom,
   type LitCell,
 } from "./lighting/headlights";
-import { monitorScreen, monitorTool, nextToolState } from "./monitor/monitor";
+import { CabMonitor } from "./monitor/monitor";
 import type { Pave } from "./pave";
-import {
-  type ChaseCamera,
-  ramHalfWidthLimit,
-  type VehicleProfile,
-} from "./profile";
-import { type RamHit, type RamTarget, ramsAt, selectHits } from "./ram";
+import type { ChaseCamera, VehicleProfile } from "./profile";
+import { type RamHit, RamSensor, type RamTarget } from "./ram";
 import { type RiderPoseCommand, RiderPoseState } from "./riderPose";
 import type { SeatAssignment } from "./seatChoice";
 import type { SeatLeaver } from "./seating";
 import { DRIVER_SEAT, seatWorldPositions, toLocal } from "./seats";
 import { SPEC } from "./spec";
-import {
-  liftStandIn,
-  type StandInAxis,
-  type StandInPose,
-  standInAxis,
-  standInPose,
-} from "./standIn";
+import { StandInKeeper, type StandInPose } from "./standIn";
 
-const HALF_BLOCK = 0.5;
 const TAKE_BACK_RULE = hitRule(SPEC.hitsToBreak, SPEC.hitResetTicks);
 
 /** What a rider holds, read once per tick. The tool is the bare yasu_ride item ID for the monitor (ADR 0139); the block is the namespaced block the item places as itself (ADR 0181). Either may be absent. */
@@ -87,50 +73,8 @@ export interface SeatExit {
 }
 
 /**
- * What one vehicle does this tick. The application's per-vehicle tick
- * applies it with these world calls, in this order, and a throw skips the
- * rest of that vehicle's tick (ADR 0055). Steps 4, 13, 14, 15 and 16 run
- * every tick: with nothing to keep, they release what the vehicle held,
- * seated, stood in for it, laid or lit before.
- *
- * 1. `stepCommands`: the drive's commands, then the cab monitor's screen (ADR 0139),
- *    in order, before anything else that could throw,
- *    because drives send them only on change (ADR 0055); if they fail, the vehicle
- *    resyncs and sends every value again next tick (ADR 0127).
- * 2. `riderPoses`: own riders' pose changes and refreshes, within the stepCommands
- *    failure boundary so a failed send resyncs their poses too (ADR 0250).
- * 3. `message` on the action bar of `driverId`, only when there is one.
- * 4. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
- * 5. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
- * 6. `cut`, when not empty, right after `clear` and before the move, so the
- *    body moves into the cleared strip on the same tick (ADR 0137).
- * 7. `pave`, when it has cells, right after `cut` and before the move, so the
- *    body moves onto a road laid on the same tick (ADR 0181).
- * 8. `riders` is collected. After every vehicle has ticked, the chase
- *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
- *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
- * 9. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
- *    held instead of moved (ADR 0063).
- * 10. `seatLayout`: for a kind whose players choose their seat, the
- *    vehicle's riders are laid in this order, with a seat filler for each
- *    undefined entry, so each player sits in their seat (ADR 0120).
- * 11. `boardDeckRiders`: the deck-seat riders move into the vehicle
- *    (ADR 0063), before standing players are seated (ADR 0068).
- * 12. `depart`: take any deck-seat rider the vehicle refused off their deck
- *    seat, then seat them and the standing players, nearest first, and move
- *    those left without a seat to the exit (ADR 0068, 0095).
- * 13. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
- *    the deck seats are removed.
- * 14. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
- *     removed when there is none (ADR 0116).
- * 15. `dock.cells`; with no `dock`, the laid cells are cleared.
- * 16. Headlight cells along the vehicle's heading after this tick, or none
- *     when its headlights are off (ADR 0020).
- * 17. `hits`, credited to `driverId`.
- * 18. `finalCommands`: the vacated seats' commands, such as the door
- *     animation, then the taken seats' commands (ADR 0007, 0055).
- * 19. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
- *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
+ * The outcome of one vehicle tick.
+ * @see [DriveVehicles.tickVehicle](../../application/vehicle/driveVehicles.ts) for world-call order.
  */
 export interface TickOutcome {
   dock?: Dock;
@@ -159,19 +103,16 @@ export interface TickOutcome {
 export class Vehicle {
   private crew: Crew;
   private readonly riderPoses = new RiderPoseState();
-  private readonly monitorSync = new SyncedValue<number>();
-  private readonly ramCooldowns = new RamCooldowns();
+  private readonly monitor: CabMonitor;
+  private readonly ram: RamSensor;
+  private readonly standIn: StandInKeeper | undefined;
   private readonly switchCooldown = new Debounce(SPEC.headlightSwitchCooldown);
-  // Its own cooldown, so monitor tools and light switches never block each other (ADR 0171).
-  private readonly toolCooldown = new Debounce(SPEC.toolSwitchCooldown);
   private readonly hitCounters = new HitCounters<PlayerId>(TAKE_BACK_RULE);
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private held = false;
   private driverSeatFree = true;
   /** The held vehicle's wheel deck seat rider when the profile enables headlights there (ADR 0149). */
   private deckDriverId: PlayerId | undefined;
-  /** The row axis of the stand-in kept last tick; a rebuilt vehicle starts with none (ADR 0116). */
-  private standInAxis: StandInAxis | undefined;
 
   /** Called only by kinds/index.ts, which picks the drive for the kind. */
   constructor(
@@ -180,6 +121,11 @@ export class Vehicle {
     private readonly drive: Drive,
   ) {
     this.crew = new Crew(profile);
+    this.monitor = new CabMonitor(profile.monitor, drive);
+    this.ram = new RamSensor(profile);
+    this.standIn = profile.standIn
+      ? new StandInKeeper(profile.standIn)
+      : undefined;
   }
 
   /**
@@ -291,7 +237,7 @@ export class Vehicle {
   /** Called by the application when this tick's step commands may not have reached the entity (ADR 0055, 0127). */
   resync(): void {
     this.drive.resync();
-    this.monitorSync.resync();
+    this.monitor.resync();
     this.riderPoses.resync();
   }
 
@@ -320,7 +266,7 @@ export class Vehicle {
       awaitingDriver: seated.awaitingDriver,
       deckSeatInputs,
     });
-    const monitor = this.monitorCommands(held?.tool);
+    const monitor = this.monitor.commands(held?.tool);
     this.held = step.dock !== undefined;
     this.deckDriverId =
       this.held && this.profile.deckSeatDriverHeadlights
@@ -351,8 +297,14 @@ export class Vehicle {
       boardDeckRiders: step.boardDeckRiders ?? false,
       impulse: step.impulse,
       yaw: this.drive.yaw,
-      standIn: this.standIn(step.dock?.hold, sensors),
-      hits: this.ram(sensors.tick, targets, step.forward, step.ramHalfWidth),
+      standIn: this.standIn?.pose(this.drive.yaw, step.dock?.hold, sensors),
+      hits: this.ram.hits(
+        sensors.tick,
+        this.drive.speed,
+        targets,
+        step.forward,
+        step.ramHalfWidth,
+      ),
       driverId: driver?.id,
       stepCommands:
         monitor.length === 0 ? step.commands : [...step.commands, ...monitor],
@@ -368,17 +320,6 @@ export class Vehicle {
       exits: this.seatExits(seated.left, step.dock?.hold ?? sensors.location),
       riders: step.riders,
     };
-  }
-
-  private monitorCommands(held: string | undefined): readonly EngineCommand[] {
-    const rule = this.profile.monitor;
-    if (!rule) return [];
-    const value = this.monitorSync.next(
-      monitorScreen(rule, held, (item) => this.drive.toolState?.(item)),
-    );
-    return value === undefined
-      ? []
-      : [{ type: "setProperty", name: MONITOR_PROPERTY_NAME, value }];
   }
 
   /**
@@ -399,73 +340,6 @@ export class Vehicle {
   }
 
   /**
-   * The stand-in at the vehicle's heading after this step, from its hold pose while held
-   * or its location before this tick's move while driving: the move is applied after this
-   * tick's world calls, so a driving stand-in trails the body by one tick (ADR 0116).
-   * It rises out of solid ground in its middle cell, less far while held (ADR 0119).
-   */
-  private standIn(
-    hold: Vec3 | undefined,
-    sensors: Pick<TickContext, "location" | "solidAt">,
-  ): StandInPose | undefined {
-    const rule = this.profile.standIn;
-    if (!rule) return undefined;
-    const yaw = this.drive.yaw;
-    this.standInAxis = standInAxis(yaw, this.standInAxis, rule.turnMargin);
-    const pose = standInPose(
-      rule,
-      hold ?? sensors.location,
-      yaw,
-      this.standInAxis,
-    );
-    const maxLift = hold
-      ? Math.min(
-          rule.maxLift ?? 0,
-          rule.heldMaxLift ?? Number.POSITIVE_INFINITY,
-        )
-      : (rule.maxLift ?? 0);
-    if (maxLift <= 0) return pose;
-    // solidAt reads the block at an offset from the entity's location; the half block
-    // picks the middle of each layer above the stand-in's feet.
-    return liftStandIn(pose, maxLift, (layer) =>
-      sensors.solidAt({
-        x: pose.x - sensors.location.x,
-        y: pose.y - sensors.location.y + layer + HALF_BLOCK,
-        z: pose.z - sensors.location.z,
-      }),
-    );
-  }
-
-  private ram(
-    tick: number,
-    targets: () => readonly RamTarget[],
-    f: Vec2,
-    halfWidth: number | undefined,
-  ): RamHit[] {
-    this.ramCooldowns.prune(tick);
-    // selectHits checks the speed too; checking here skips the targets() query.
-    const { body, ramMinReverseSpeed } = this.profile;
-    if (!ramsAt(this.drive.speed, ramMinReverseSpeed)) return [];
-    const hits = selectHits(
-      f,
-      this.drive.speed,
-      targets(),
-      this.ramCooldowns.recent,
-      tick,
-      {
-        front: body.front,
-        halfWidth: Math.min(
-          halfWidth ?? body.halfWidth,
-          ramHalfWidthLimit(this.profile),
-        ),
-      },
-      ramMinReverseSpeed,
-    );
-    this.ramCooldowns.record(hits, tick);
-    return hits;
-  }
-
-  /**
    * The driver holds the wheel, as does the wheel deck seat rider of a held vehicle
    * whose profile enables deckSeatDriverHeadlights (ADR 0149). Their switch operates the headlights only.
    */
@@ -478,25 +352,16 @@ export class Vehicle {
     return this.atTheWheel(playerId) && this.switchCooldown.press(tick);
   }
 
-  /** Only the driver may advance a monitor tool; all tools share an idle cooldown (ADR 0024, 0171). */
   switchTool(playerId: PlayerId, item: string, tick: number): boolean {
-    const tool = monitorTool(this.profile.monitor, item);
-    if (playerId !== this.crew.driver || !tool || !this.drive.setToolState)
-      return false;
-    if (!this.toolCooldown.press(tick)) return false;
-    return this.drive.setToolState(
-      item,
-      nextToolState(tool, this.drive.toolState?.(item)),
-    );
+    return this.monitor.switchTool(playerId === this.crew.driver, item, tick);
   }
 
   toolState(item: string): string | undefined {
-    return this.drive.toolState?.(item);
+    return this.monitor.toolState(item);
   }
 
-  /** Bypasses role and cooldown checks for the server-only test hook (ADR 0171). */
   forceTool(item: string, state: string): boolean {
-    return this.drive.setToolState?.(item, state) ?? false;
+    return this.monitor.forceTool(item, state);
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */

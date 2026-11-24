@@ -51,12 +51,12 @@ export class FakeTentWorld implements TentWorld {
   isCreative(): boolean {
     return this.creative;
   }
-  consumeTentItem(playerId: PlayerId, slot: number): boolean {
-    this.calls.push(["consumeTentItem", playerId, slot]);
+  consumeItem(playerId: PlayerId, slot: number): boolean {
+    this.calls.push(["consumeItem", playerId, slot]);
     return this.consumeResult;
   }
-  giveTentItem(playerId: PlayerId): void {
-    this.calls.push(["giveTentItem", playerId]);
+  refund(playerId: PlayerId, slot: number): void {
+    this.calls.push(["refund", playerId, slot]);
   }
   clearDecorations(_d: DimensionId, cells: readonly Cell[]): void {
     this.calls.push(["clearDecorations", cells]);

@@ -11,7 +11,6 @@ import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { isSpaceRefused, placeOnCells } from "../shared/groundPlacement";
-import type { ItemPayment } from "../shared/ports/itemPayment";
 import type { ChairWorld } from "./ports/chair";
 
 export interface PlaceChairCommand {
@@ -55,13 +54,8 @@ export class PlaceChair {
   execute(cmd: PlaceChairCommand): boolean {
     const world = this.world;
     const { kind, dimensionId: dimension, blockLocation: block } = cmd;
-    const payment: ItemPayment = {
-      isCreative: (p) => world.isCreative(p),
-      consumeItem: (p, s) => world.consumeChairItem(kind, p, s),
-      refund: (p) => world.refundChairItem(kind, p),
-    };
     return placeOnCells(
-      { dimension, cells: world, payment },
+      { dimension, cells: world, payment: world.paymentFor(kind) },
       {
         support: [],
         clear: [],

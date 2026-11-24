@@ -1,4 +1,5 @@
 import type { Cell } from "../../shared/cells";
+import type { HeightRange } from "../heightRange";
 import { facingVector } from "../rotation/facing";
 import { BUILD_SPEC } from "../spec";
 import { rowCells } from "./row";
@@ -12,7 +13,11 @@ export interface StairCell {
   readonly nose: boolean;
 }
 
-function* treadRanges(s: Staircase, roles: ReadonlySet<StairRole>) {
+function* treadRanges(
+  s: Staircase,
+  roles: ReadonlySet<StairRole>,
+  range: HeightRange,
+) {
   const goalY = s.row.y + s.rise;
   const lowY = Math.min(s.row.y, goalY);
   const highY = Math.max(s.row.y, goalY);
@@ -32,8 +37,8 @@ function* treadRanges(s: Staircase, roles: ReadonlySet<StairRole>) {
     ];
     for (const [role, bottom, top] of ranges) {
       if (!roles.has(role)) continue;
-      const min = Math.max(bottom, BUILD_SPEC.worldBottomY);
-      const max = Math.min(top, BUILD_SPEC.worldTopY);
+      const min = Math.max(bottom, range.minY);
+      const max = Math.min(top, range.maxY);
       if (min <= max) yield { start, end, role, min, max };
     }
   }
@@ -42,9 +47,10 @@ function* treadRanges(s: Staircase, roles: ReadonlySet<StairRole>) {
 export function* stairCells(
   s: Staircase,
   roles: ReadonlySet<StairRole>,
+  range: HeightRange,
 ): Iterable<StairCell> {
   const direction = facingVector(s.toward);
-  for (const { start, end, role, min, max } of treadRanges(s, roles)) {
+  for (const { start, end, role, min, max } of treadRanges(s, roles, range)) {
     for (let k = start; k <= end; k++) {
       const nose = role === "step" && k === (s.rise > 0 ? start : end);
       for (const rowCell of rowCells(s.row)) {
@@ -60,9 +66,10 @@ export function* stairCells(
 export function stairCellCount(
   s: Staircase,
   roles: ReadonlySet<StairRole>,
+  range: HeightRange,
 ): number {
   let columnCount = 0;
-  for (const { start, end, min, max } of treadRanges(s, roles))
+  for (const { start, end, min, max } of treadRanges(s, roles, range))
     columnCount += (end - start + 1) * (max - min + 1);
   const { along, min, max } = s.row;
   const width = along === undefined ? 1 : max[along] - min[along] + 1;

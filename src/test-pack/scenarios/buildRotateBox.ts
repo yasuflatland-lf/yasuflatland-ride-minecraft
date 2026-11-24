@@ -48,7 +48,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   const log = { warn: (value: string) => console.warn(value) };
   const repo = new InMemorySessionRepository(structures, log);
   const core = new RotateBox(repo, world, players, structures, feedback, log);
-  const rotate = new RotateSelection(repo, core, feedback);
+  const rotate = new RotateSelection(repo, core, feedback, world);
   const undo = new UndoEdit(
     repo,
     feedback,

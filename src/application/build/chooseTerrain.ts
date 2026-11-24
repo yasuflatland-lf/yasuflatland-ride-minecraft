@@ -1,21 +1,23 @@
-import { cellBox, volume } from "../../domain/build/box";
+import { volume } from "../../domain/build/box";
 import { isFillMaterial } from "../../domain/build/edit/guard";
 import { chooseTerrain } from "../../domain/build/flow/terrainFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import { BUILD_SPEC } from "../../domain/build/spec";
 import {
+  fillBelowBox,
   fitsTerrainLimit,
   removeAboveBox,
   type TerrainOp,
   terrainAreaOf,
 } from "../../domain/build/terrain/area";
 import type { PlayerId } from "../../domain/shared/ids";
+import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 
 export class ChooseTerrain {
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
+    private readonly world: Pick<BuildBlockWorld, "heightRange">,
   ) {}
 
   execute({ playerId, op }: { playerId: PlayerId; op: TerrainOp }): void {
@@ -31,13 +33,11 @@ export class ChooseTerrain {
     }
     const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
     if (!fitsTerrainLimit(area)) {
+      const range = this.world.heightRange(flow.selection.dimensionId);
       const box =
         op === "fillBelow"
-          ? cellBox(
-              { x: area.minX, y: BUILD_SPEC.worldBottomY, z: area.minZ },
-              { x: area.maxX, y: area.higherY, z: area.maxZ },
-            )
-          : removeAboveBox(area);
+          ? fillBelowBox(area, range)
+          : removeAboveBox(area, range);
       this.feedback.showMessage(playerId, "tooLarge", box ? volume(box) : 0);
       return;
     }

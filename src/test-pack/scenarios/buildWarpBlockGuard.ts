@@ -44,6 +44,7 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
     repo,
     new RotateBox(repo, world, players, structures, feedback, log),
     feedback,
+    world,
   );
   const cut = new CutBox(repo, world, structures, feedback, log);
   const selection = selectionOf(

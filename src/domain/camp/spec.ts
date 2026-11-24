@@ -23,6 +23,10 @@ export const CHAIR_SPEC = Object.freeze({
 export const TABLE_SPEC = Object.freeze({
   spacing: 1.75,
   clearance: 2,
+  cells: Object.freeze([
+    Object.freeze({ ahead: 0, left: 0 }),
+    Object.freeze({ ahead: 1, left: 0 }),
+  ]),
   recovery: GEAR_RECOVERY,
   giveBack: "atGear" satisfies GiveBackPolicy,
   refuses: VEHICLE_SPACE_ONLY,

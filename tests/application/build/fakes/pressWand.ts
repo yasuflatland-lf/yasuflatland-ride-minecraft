@@ -26,19 +26,23 @@ export function wandFixture(afterPaste?: (id: PlayerId, tick: number) => void) {
   const structures = new FakeStructureStore(world);
   const repo = new FakeSessions(structures);
   const onPasted = vi.fn(afterPaste);
-  const press = new PressWand(repo, {
-    setPoint: new SetPoint(repo, world, feedback),
-    tapAir: new TapAir(repo, feedback),
-    aimHeight: new AimHeight(repo),
-    confirmLiveHeight: new ConfirmLiveHeight(repo),
-    fixStairGoal: new FixStairGoal(repo, feedback, aim),
-    pressPasteAim: new PressPasteAim(
-      repo,
-      new PasteAt(repo, world, feedback, structures, new FakeBuildPlayers()),
-      feedback,
-      new ResolvePasteTarget(repo, new FakeGroundProbe()),
-    ),
-    onPasted,
-  });
+  const press = new PressWand(
+    repo,
+    {
+      setPoint: new SetPoint(repo, world, feedback),
+      tapAir: new TapAir(repo, feedback, world),
+      aimHeight: new AimHeight(repo, world),
+      confirmLiveHeight: new ConfirmLiveHeight(repo),
+      fixStairGoal: new FixStairGoal(repo, feedback, aim),
+      pressPasteAim: new PressPasteAim(
+        repo,
+        new PasteAt(repo, world, feedback, structures, new FakeBuildPlayers()),
+        feedback,
+        new ResolvePasteTarget(repo, new FakeGroundProbe()),
+      ),
+      onPasted,
+    },
+    world,
+  );
   return { repo, press, world, aim, feedback, structures, onPasted };
 }
