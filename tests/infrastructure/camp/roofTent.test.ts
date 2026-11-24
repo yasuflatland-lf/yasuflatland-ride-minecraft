@@ -103,6 +103,7 @@ const MOUNT = {
   anchor: { x: 0, z: 0 },
   entrance: { x: 2, z: 0 },
   ladder: true,
+  shell: "raised" as const,
 };
 let state: VehicleHostState;
 const host = vi.fn(() => state);
@@ -189,6 +190,7 @@ function spawn(hosted = true) {
         : { kind: "ground" },
       facing: 0,
       ladder: hosted,
+      shell: hosted ? "raised" : "flat",
     },
     { dimensionId: DIM, location: tent.location, yaw: 0 },
     asPlayerId("owner"),
@@ -234,35 +236,41 @@ beforeEach(() => {
   });
 });
 
-it("spawns with the host marker, owner, paint and collision bounds selected by ladder", () => {
+it("spawns with the host marker, owner, paint and collision bounds selected by shell", () => {
   fc.assert(
-    fc.property(fc.constantFrom(...PAINTS), fc.boolean(), (paint, ladder) => {
-      const tent = entity();
-      game.dimension.spawnEntity.mockReturnValue(tent);
-      expect(
-        tents.spawn(
-          {
-            host: { kind: "vehicle", id: asVehicleId("host") },
-            facing: 90,
-            ladder,
-          },
-          { dimensionId: DIM, location: tent.location, yaw: 37 },
-          asPlayerId("owner"),
-          paint,
-        ),
-      ).toBe("tent");
-      expect(tent.getDynamicProperty(ids.ROOF_TENT_HOST_PROPERTY)).toBe(
-        "vehicle:host",
-      );
-      expect(tents.ownerOf(asRoofTentId("tent"))).toBe("owner");
-      expect(tent.getProperty(ids.ROOF_TENT_LADDER_PROPERTY)).toBe(ladder);
-      expect(tent.setRotation).toHaveBeenCalledWith({ x: 0, y: 37 });
-      expect(tent.triggerEvent.mock.calls.map(([event]) => event)).toEqual(
-        ladder
-          ? ["yasu_ride:suv_bounds", paintEvent(paint)]
-          : [paintEvent(paint)],
-      );
-    }),
+    fc.property(
+      fc.constantFrom(...PAINTS),
+      fc.boolean(),
+      fc.constantFrom("raised", "flat" as const),
+      (paint, ladder, shell) => {
+        const tent = entity();
+        game.dimension.spawnEntity.mockReturnValue(tent);
+        expect(
+          tents.spawn(
+            {
+              host: { kind: "vehicle", id: asVehicleId("host") },
+              facing: 90,
+              ladder,
+              shell,
+            },
+            { dimensionId: DIM, location: tent.location, yaw: 37 },
+            asPlayerId("owner"),
+            paint,
+          ),
+        ).toBe("tent");
+        expect(tent.getDynamicProperty(ids.ROOF_TENT_HOST_PROPERTY)).toBe(
+          "vehicle:host",
+        );
+        expect(tents.ownerOf(asRoofTentId("tent"))).toBe("owner");
+        expect(tent.getProperty(ids.ROOF_TENT_LADDER_PROPERTY)).toBe(ladder);
+        expect(tent.setRotation).toHaveBeenCalledWith({ x: 0, y: 37 });
+        expect(tent.triggerEvent.mock.calls.map(([event]) => event)).toEqual(
+          shell === "raised"
+            ? ["yasu_ride:suv_bounds", paintEvent(paint)]
+            : [paintEvent(paint)],
+        );
+      },
+    ),
   );
 });
 it("places the SUV tent at its shifted left anchor with the model front at -z", () => {
@@ -295,7 +303,7 @@ it("rolls back a failed spawn so placement can refund the item", () => {
   });
   expect(
     tents.spawn(
-      { host: { kind: "ground" }, facing: 0, ladder: false },
+      { host: { kind: "ground" }, facing: 0, shell: "flat", ladder: false },
       { dimensionId: DIM, location: tent.location, yaw: 0 },
       undefined,
       "khaki",
@@ -986,15 +994,16 @@ function savedCeiling(tent: ReturnType<typeof entity>): Cell[] {
 }
 
 it.each([true, false])(
-  "lays and records the rotated ceiling on entry with ladder %s, then clears only its own blocks",
-  (ladder) => {
-    const tent = spawn(ladder);
+  "lays and records the rotated ceiling on entry with a hosted tent %s, then clears only its own blocks",
+  (hosted) => {
+    const tent = spawn(hosted);
+    tent.setProperty(ids.ROOF_TENT_LADDER_PROPERTY, !hosted);
     tent.getRotation = () => ({ x: 0, y: 37 });
     const { blocks } = ceilingTerrain();
     const cells = roofTentCeilingCells(
       tent.location,
       37,
-      ladder ? "ladder" : "ground",
+      hosted ? "raised" : "flat",
     );
     occupants.setOccupant(asRoofTentId("tent"), PLAYER);
     expect(savedCeiling(tent)).toEqual(cells);
@@ -1010,6 +1019,21 @@ it.each([true, false])(
     expect(
       tent.getDynamicProperty(ids.ROOF_TENT_CEILING_PROPERTY),
     ).toBeUndefined();
+  },
+);
+
+it.each([true, false])(
+  "restores the shell of a legacy tent with ladder %s",
+  (ladder) => {
+    const tent = spawn(ladder);
+    tent.setDynamicProperty(ids.ROOF_TENT_SHELL_PROPERTY, undefined);
+    ceilingTerrain();
+    occupants.setOccupant(asRoofTentId(tent.id), PLAYER);
+    const shell = ladder ? "raised" : "flat";
+    expect(tent.getDynamicProperty(ids.ROOF_TENT_SHELL_PROPERTY)).toBe(shell);
+    expect(savedCeiling(tent)).toEqual(
+      roofTentCeilingCells(tent.location, 0, shell),
+    );
   },
 );
 
@@ -1031,7 +1055,7 @@ it("clears the old ceiling when an occupied roof tent moves", () => {
 it("skips occupied, missing, unloaded and vehicle-space cells without losing successful cells", () => {
   const tent = spawn();
   const { blocks, missing, throwing } = ceilingTerrain();
-  const cells = roofTentCeilingCells(tent.location, 0, "ladder");
+  const cells = roofTentCeilingCells(tent.location, 0, "raised");
   const [solid, absent, unloaded, vehicle] = cells as [
     Cell,
     Cell,

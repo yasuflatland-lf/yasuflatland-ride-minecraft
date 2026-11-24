@@ -219,7 +219,12 @@ describe("PlaceRoofTent", () => {
             });
           if (clear)
             expect(world.spawn).toHaveBeenCalledWith(
-              { host: { kind: "ground" }, facing: 90, ladder: false },
+              {
+                host: { kind: "ground" },
+                facing: 90,
+                shell: "flat",
+                ladder: false,
+              },
               {
                 dimensionId: DIMENSION,
                 location: { x: x + 0.5, y: y + 1, z: z + 0.5 },

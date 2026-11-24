@@ -84,6 +84,7 @@ export const CAMPER_SPEC = Object.freeze({
   roofTentRoofHeight: 4.0, // Equals CAMPER_SPEC.carHeight: tools/gen_camper.py puts ROOF at 64 px.
   roofTentAnchorX: 0, // Centered between the roof edge rails.
   roofTentAnchorZ: -0.875, // Between the vent (-2..6 px) and rear rack (22..55 px) in tools/gen_camper.py.
+  roofTentShell: "flat",
   roofTentLadder: false, // tools/gen_camper.py already supplies the rear ladder.
   roofTentEntranceX: -1.0625, // Midpoint of LADDER = (13, 21) px on the right; profile x points left.
   roofTentEntranceZ: -3.7, // At the ladder foot, ahead of bodyRear 3.9 and clear of the rack.

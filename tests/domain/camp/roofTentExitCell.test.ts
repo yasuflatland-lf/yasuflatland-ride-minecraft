@@ -11,6 +11,7 @@ const distinctMount = fc.record({
   entrance: point,
   roofHeight: coordinate,
   ladder: fc.boolean(),
+  shell: fc.constantFrom("raised", "flat" as const),
 });
 const mount = fc.oneof(
   distinctMount,
@@ -60,6 +61,7 @@ it("uses the facing direction when the entrance equals the anchor", () => {
           entrance: { x: 0, z: 0 },
           roofHeight: 2,
           ladder: true,
+          shell: "raised" as const,
         },
         { location: { x: 0.5, y: 64.8, z: 0.5 }, yaw: 37 },
         facing,
@@ -78,6 +80,7 @@ it("rotates the entrance and its outward direction by the host yaw", () => {
     entrance: { x: 2, z: 0 },
     roofHeight: 2,
     ladder: true,
+    shell: "raised" as const,
   };
   expect(
     exitCell(mount, { location: { x: 0, y: 64.5, z: 0 }, yaw: 0 }, 0),
