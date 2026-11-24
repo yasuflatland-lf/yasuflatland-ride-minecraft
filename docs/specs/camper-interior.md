@@ -182,14 +182,14 @@
 
 ### Leaving with decor
 
-- Applies to: Departure checks for slots and inside storage plates.
-- Rule: `ownSlotBlock` accepts only air, the furniture block, or the block named by `decorBlockName` for that cell: its own item decor, table pair, or storage compartment block. These comparisons use namespace-free suffixes. `ownPlateBlock` accepts air or the plate block suffix from that door's definition. Unexpected or unreadable cells keep the camper parked with its clear-cargo message. Decor survives departure and is laid again in the same slots on the next park, with storage shut.
+- Applies to: Parking and departure checks for slots and inside storage plates.
+- Rule: Parking accepts blocks that the dock records as laid by this camper at the observed cell. On departure, each slot and inside plate cell must hold air or still hold the block the camper laid there. Unexpected or unreadable cells keep the camper parked with its clear-cargo message. Decor survives departure and is laid again in the same slots on the next park, with storage shut.
 - Agreement: Accepted
 - Basis: [0097](../adr/0097-press-the-camper-furniture-to-place-decor.md) Decision / Departure, "A slot cell lets the camper leave while it holds air, the furniture block, or the decor block of the item in that slot."
 - Basis: [0108](../adr/0108-two-items-on-each-shelf-board-and-the-table.md) Decision / Departure, saved decor, and the earlier build, "The departure check accepts, in a pair cell, air, the furniture block, or the pair block of that furniture"
-- Basis: [0121](../adr/0121-doored-storage-in-the-camper.md) Decision / Shared code, "which takes air or the door's own plate block"
+- Basis: [0121](../adr/0121-doored-storage-in-the-camper.md) Decision / Shared code, inside-layer plate checks
 - Implementation: `src/domain/vehicle/kinds/camper/decorCells.ts`; `src/domain/vehicle/kinds/camper/storagePlates.ts`; `src/domain/vehicle/kinds/camper/parking.ts`
-- Verification: `tests/domain/vehicle/kinds/camper/room.test.ts` "lets a slot cell hold only air, the furniture block, or the block its decor lays" checks allowed types. `tests/domain/vehicle/kinds/camper/dooredStorageDeparture.test.ts` "reads the inside plate cells between the slot and exit cells on departure" checks plates. `tests/domain/vehicle/kinds/camper/parking.test.ts` "keeps the decor through departure and lays it again on the next park" checks preservation. Not verified: departure with actual player-placed blocks and decor on devices.
+- Verification: `tests/domain/vehicle/kinds/camper/departureCheck.test.ts` checks owned, foreign, air, and unreadable cells during parking and departure. `tests/domain/vehicle/kinds/camper/dooredStorageDeparture.test.ts` "reads the inside plate cells between the slot and exit cells on departure" checks plates. `tests/domain/vehicle/kinds/camper/parking.test.ts` "keeps the decor through departure and lays it again on the next park" checks preservation. Not verified: departure with actual player-placed blocks and decor on devices.
 
 ### Decor pair blocks
 

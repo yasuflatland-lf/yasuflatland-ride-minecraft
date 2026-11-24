@@ -169,6 +169,10 @@ export class FakeWorld
   }
   private nextId = 1;
 
+  ownsLaidBlock(): boolean {
+    return false;
+  }
+
   blockTypes(
     _vehicleId: string,
     cells: readonly Vec3[],

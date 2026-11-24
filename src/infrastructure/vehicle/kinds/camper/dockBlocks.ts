@@ -1,11 +1,13 @@
-import type { Entity } from "@minecraft/server";
 import {
   type DecorItemId,
   isDecorItem,
 } from "../../../../domain/vehicle/dock/decor";
-import type { DockBlock, Face } from "../../../../domain/vehicle/dock/floor";
+import type {
+  DockBlock,
+  DockCell,
+  Face,
+} from "../../../../domain/vehicle/dock/floor";
 import { STANDING_GEAR_IDS } from "../../../../domain/vehicle/kinds/index";
-import { type CellCodec, savedLaidCells } from "../../../shared/laidCells";
 import { type DockBlockCodecs, dockBlock } from "../../bedrock/dockLayer";
 import {
   CAMPER_BED_BLOCK,
@@ -191,14 +193,10 @@ function facePlate(id: string) {
 }
 
 /** State derived from the cells actually laid, with one saved-property read per rebuild. */
-export function savedDock(
-  vehicle: Entity,
-  codec: CellCodec<DockBlock>,
-): {
+export function savedDock(cells: readonly DockCell[]): {
   laid: boolean;
   doorOpen: boolean | undefined;
 } {
-  const cells = savedLaidCells(vehicle, codec);
   const door = cells.find((c) => c.block.type === "door");
   return {
     laid: cells.length > 0,

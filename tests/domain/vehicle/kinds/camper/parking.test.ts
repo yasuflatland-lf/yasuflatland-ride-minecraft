@@ -90,6 +90,7 @@ const slotNamed = (id: string) =>
 const slotIndex = (p: { slot: string }) =>
   DECOR_SLOTS.findIndex((s) => s.id === p.slot);
 function fixture(dockDecor?: string, yaw = 37) {
+  const laid = new Map<string, string>();
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
     (cells: readonly { x: number; y: number; z: number }[]) =>
@@ -103,6 +104,7 @@ function fixture(dockDecor?: string, yaw = 37) {
     deckSeatInputs: [],
     solidAt: () => false,
     waterAt: () => false,
+    ownsLaidBlock: (cell, typeId) => laid.get(cellKey(cell)) === typeId,
     blockTypes,
   };
   const drive = new CamperDrive(
@@ -116,6 +118,7 @@ function fixture(dockDecor?: string, yaw = 37) {
     for (let i = 0; i < DOCK.ticks; i++) step();
   };
   return {
+    laid,
     blocks,
     blockTypes,
     ctx,
@@ -724,6 +727,7 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
   };
   const f = parked();
   const table = decorSlotCell(f.pose, slotNamed("stove"));
+  f.laid.set(cellKey(table), "yasu_ride:potted_plant_decor");
   f.blocks.set(cellKey(table), "yasu_ride:potted_plant_decor");
   const out = f.step(PUSH);
   expect(out.depart).toBeDefined();
@@ -738,6 +742,7 @@ it("departs past its own decor blocks and refuses any other block in a slot cell
 
   const departs = (withDecor: boolean, typeId: string) => {
     const g = parked(withDecor);
+    g.laid.set(cellKey(table), "yasu_ride:camper_furniture");
     g.blocks.set(cellKey(table), typeId);
     return g.step(PUSH);
   };
@@ -1227,7 +1232,9 @@ it("holds two items on the table: a press on its cell sends the next item to the
           [`end${first.pair.end}`]: "cushion",
           [`end${second.pair.end}`]: "book_stack",
         });
-        f.blocks.set(cellKey(cell), `yasu_ride:${first.pair.kind}_decor_pair`);
+        const pairType = "test:table_pair";
+        f.laid.set(cellKey(cell), pairType);
+        f.blocks.set(cellKey(cell), pairType);
         expect(f.room.decor.removeDecor({ cell, point: at(second) })).toBe(
           "book_stack",
         );
@@ -1247,7 +1254,7 @@ it("holds two items on the table: a press on its cell sends the next item to the
         f.blocks.set(cellKey(cell), `yasu_ride:cushion_decor`);
         expect(f.step(PUSH).message).toBe("clear_cargo");
         f.step(NEUTRAL);
-        f.blocks.set(cellKey(cell), `yasu_ride:${first.pair.kind}_decor_pair`);
+        f.blocks.set(cellKey(cell), pairType);
         expect(f.step(PUSH).depart).toBeDefined();
       },
     ),

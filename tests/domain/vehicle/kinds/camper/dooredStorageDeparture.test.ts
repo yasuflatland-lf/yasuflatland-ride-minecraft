@@ -1,5 +1,3 @@
-// Departure of the camper with the fridge, whose plates stand in the room's inside layers: the
-// drive reads those plate cells with ownPlateBlock instead of as cargo (ADR 0121, 0123).
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { cellKey } from "../../../../../src/domain/shared/cells";
@@ -23,6 +21,7 @@ const INSIDE_PLATES = storagePlateChecks(
 );
 
 function parked(yaw: number) {
+  const laid = new Map<string, string>();
   const blocks = new Map<string, string>();
   const blockTypes = vi.fn(
     (cells: readonly { x: number; y: number; z: number }[]) =>
@@ -37,12 +36,19 @@ function parked(yaw: number) {
     deckSeatInputs: [],
     solidAt: () => false,
     waterAt: () => false,
+    ownsLaidBlock: (cell, typeId) => laid.get(cellKey(cell)) === typeId,
     blockTypes,
   };
   const drive = new CamperDrive(yaw, {});
   const step = (raw?: typeof PUSH) => drive.step(raw, { ...ctx, tick: tick++ });
   for (let i = 0; i <= DOCK.ticks; i++) step();
-  return { blocks, blockTypes, pose: parkPose(ctx.location, drive.yaw), step };
+  return {
+    laid,
+    blocks,
+    blockTypes,
+    pose: parkPose(ctx.location, drive.yaw),
+    step,
+  };
 }
 
 it("has the fridge's two plates in the inside layers", () => {
@@ -57,17 +63,15 @@ it("reads the inside plate cells between the slot and exit cells on departure, a
     fc.property(
       fc.integer({ min: -180, max: 179 }),
       fc.nat({ max: INSIDE_PLATES.length - 1 }),
-      fc.constantFrom(
-        "yasu_ride:camper_fridge_door",
-        "yasu_ride:camper_cabinet_door",
-        "minecraft:stone",
-        AIR,
-      ),
-      (yaw, plateIndex, typeId) => {
+      fc.constantFrom(AIR, "test:door", "minecraft:stone"),
+      fc.boolean(),
+      (yaw, plateIndex, typeId, laid) => {
         const f = parked(yaw);
         const plates = storagePlateChecks(f.pose, STORAGE_DOORS);
         const cell = plates[plateIndex]?.cell;
-        if (cell) f.blocks.set(cellKey(cell), typeId);
+        if (!cell) throw new Error("Missing plate cell");
+        if (laid) f.laid.set(cellKey(cell), "test:door");
+        f.blocks.set(cellKey(cell), typeId);
         const out = f.step(PUSH);
         expect(f.blockTypes.mock.calls.at(-1)?.[0]).toEqual([
           ...cargoCells(f.pose),
@@ -75,8 +79,7 @@ it("reads the inside plate cells between the slot and exit cells on departure, a
           ...plates.map((p) => p.cell),
           ...exitCells(f.pose),
         ]);
-        const leaves =
-          typeId === AIR || typeId === "yasu_ride:camper_fridge_door";
+        const leaves = typeId === AIR || (laid && typeId === "test:door");
         expect(out.depart !== undefined).toBe(leaves);
         expect(out.message).toBe(leaves ? undefined : "clear_cargo");
       },

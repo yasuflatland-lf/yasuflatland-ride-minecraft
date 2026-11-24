@@ -37,12 +37,10 @@ import {
   ceilingLightCells,
   roomCells,
 } from "../../../../../src/domain/vehicle/kinds/camper/roomCells";
-import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SPEC } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import {
   cargoCells,
   compartmentCells,
-  ownPlateBlock,
   storagePlateCells,
   storagePlateChecks,
   storagePressTarget,
@@ -690,28 +688,6 @@ describe("cells", () => {
           ),
         );
       }),
-    );
-  });
-
-  it("lets an inside plate cell leave only with air or its own unit's plate", () => {
-    fc.assert(
-      fc.property(
-        fc.constantFrom(...TWO_UNITS),
-        fc.constantFrom(
-          AIR,
-          "yasu_ride:camper_fridge_door",
-          "yasu_ride:camper_cabinet_door",
-          "minecraft:stone",
-          "minecraft:short_grass",
-        ),
-        (door, typeId) => {
-          expect(ownPlateBlock(typeId, door)).toBe(
-            typeId === AIR ||
-              typeId === `yasu_ride:${door.unit.plateBlockName}`,
-          );
-          expect(ownPlateBlock(undefined, door)).toBe(false);
-        },
-      ),
     );
   });
 });
