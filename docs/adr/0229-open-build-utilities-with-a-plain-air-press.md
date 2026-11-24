@@ -12,8 +12,9 @@ A player on iPad made a mistake and could not work out how to undo. Outside past
 
 ## Decision
 
-1. An air press in `idle` opens the utility menu at either sneak state. In `point1`, a plain air press fixes the virtual end point and a sneak air press opens the utility menu. In `selected`, the wand opens the root shape menu on an air press or an interaction with any block at either sneak state. `opensUtilityMenu(flow, sneaking)` admits air presses in `idle` and `selected` and sneak air presses in other flows that reach the check. Live selection height, operation height confirmation and paste aiming have their own routing. In `baseHeight`, a wand press in air or on a block fixes the aimed height at either sneak state without opening a menu.
+1. An air press in `idle` opens the utility menu at either sneak state. In `point1`, a plain air press fixes the virtual end point and a sneak air press opens the utility menu. In `selected`, the wand opens the root shape menu on an air press or an interaction with any block at either sneak state. `opensUtilityMenu(flow, sneaking)` admits air presses in `idle` and `selected` and sneak air presses in other flows that reach the check. Live selection height, operation height confirmation and paste aiming have their own routing. In `baseHeight`, a wand press in air or on a block fixes the aimed height at either sneak state and opens the root shape menu.
 2. The undo hint names the idle air press in a short action bar message, plus one chat line the first time per session. `airPressOffersUndo(flow)` is true only in `idle`. The selected root menu offers the shape actions, and Build Undo remains available as a held item. In other flows the action bar shows the count and the first-use chat hint remains available for a later edit.
+3. Cut, Paste, snapshot Undo and queued edits use `reportEditCompletion` to send completion feedback. The gesture requires an undoable edit, an idle flow and history at completion. Only a positive changed count can consume the chat hint. Partial cell Undo reports both restored and skipped counts.
 
 ## Consequences
 

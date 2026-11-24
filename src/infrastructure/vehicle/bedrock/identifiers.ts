@@ -200,13 +200,6 @@ export function fleetEntryOf(entity: {
   };
 }
 
-/** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
-export const DECOR_PROPERTY = id("decor");
-/** The item type of a camping gear id (ADR 0093). */
-export function campingGearItem(gear: string): string {
-  return id(gear);
-}
-
 /** Action bar hints for players on foot near a vehicle (ADR 0086). */
 export const hintKey = (name: string): string => `${NAMESPACE}.hint.${name}`;
 

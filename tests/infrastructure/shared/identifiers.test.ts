@@ -17,7 +17,6 @@ import {
   DECK_CELLS_PROPERTY,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEATS_PROPERTY,
-  DECOR_PROPERTY,
   FLEET_PROPERTY,
   GIFT_RECEIVED_PROPERTY,
   LIT_CELLS_PROPERTY,
@@ -26,6 +25,7 @@ import {
   STAND_IN_PROPERTY,
   STARTER_RECEIVED_PROPERTY,
 } from "../../../src/infrastructure/vehicle/bedrock/identifiers";
+import { DECOR_PROPERTY } from "../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import {
   WARP_REGISTRY_COUNT,
   warpRegistryChunkKey,

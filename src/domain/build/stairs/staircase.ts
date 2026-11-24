@@ -1,7 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import { sub3 } from "../../shared/vec";
 import { dominantHorizontalAxis } from "../axis";
-import type { Taps } from "../flow/flow";
+import type { Taps } from "../flow/tapCells";
 import { type Facing, facingOfStep, facingVector } from "../rotation/facing";
 import type { StairRow } from "./row";
 

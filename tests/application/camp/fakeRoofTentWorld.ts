@@ -35,7 +35,10 @@ export class FakeRoofTentWorld implements RoofTentWorld {
   returnItem = vi.fn<RoofTentWorld["returnItem"]>((id, owner) => {
     this.calls.push(`return:${id}:${owner ?? "drop"}`);
   });
-  groundFree = vi.fn<RoofTentWorld["groundFree"]>(() => true);
+  blockAt = vi.fn<RoofTentWorld["blockAt"]>();
+  isVehicleSpace = vi.fn<RoofTentWorld["isVehicleSpace"]>(() => false);
+  isCampSpace = vi.fn<RoofTentWorld["isCampSpace"]>(() => false);
+  hasRoofTentNear = vi.fn<RoofTentWorld["hasRoofTentNear"]>(() => false);
   loaded = () => [...this.hosts.keys()];
   isCreative = vi.fn<RoofTentWorld["isCreative"]>(() => false);
   consumeItem = vi.fn<RoofTentWorld["consumeItem"]>(() => true);

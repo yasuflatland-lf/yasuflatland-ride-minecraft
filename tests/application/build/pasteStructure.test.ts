@@ -37,12 +37,12 @@ const origin = fc.record({
   z: fc.integer({ min: -50, max: 50 }),
 });
 function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const feedback = new FakeFeedback();
   const store = new FakeStructureStore(world);
+  const repo = new FakeSessions(store);
+  const session = repo.getOrCreate(playerId);
   store.live.add(handle);
   const box = boxOf(anchor, {
     x: anchor.x + 1,
@@ -56,14 +56,7 @@ function setup(anchor = { x: 0, y: 1, z: 0 }, blockCount = 8) {
     facing: "east",
     contents: { kind: "structure", handle },
   });
-  const jobs = new EditJobs(
-    repo,
-    world,
-    feedback,
-    { warn: () => {} },
-    players,
-    store,
-  );
+  const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const start = vi.spyOn(jobs, "start");
   const paste = new PasteAt(repo, world, feedback, store, players);
   const cmd = {
@@ -317,15 +310,17 @@ it("discards the clipboard and paste snapshot before removing the session, and t
       expect(e.paste.execute(e.cmd)).toBe("pasted");
       const snapshot = structureHandle("fake_paste_1");
       expect(e.store.live.has(snapshot)).toBe(true);
-      const discard = vi.spyOn(e.store, "discard");
-      const remove = vi.spyOn(e.repo, "remove");
-      const end = new EndBuildSession(e.repo, e.store, new FakeTapTargets());
+      const original = e.store.discard.bind(e.store);
+      const discard = vi
+        .spyOn(e.store, "discard")
+        .mockImplementation((handle) => {
+          expect(e.repo.get(playerId)).toBe(e.session);
+          original(handle);
+        });
+      const end = new EndBuildSession(e.repo, new FakeTapTargets());
       end.execute(playerId);
       expect(discard).toHaveBeenCalledWith(handle);
       expect(discard).toHaveBeenCalledWith(snapshot);
-      expect(discard.mock.invocationCallOrder[1]).toBeLessThan(
-        remove.mock.invocationCallOrder[0] ?? 0,
-      );
       expect(e.store.live.has(snapshot)).toBe(false);
       expect(e.session.hasHistory).toBe(false);
       expect(e.repo.get(playerId)).toBeUndefined();
@@ -348,7 +343,8 @@ it("discards only the oldest snapshot on the eleventh paste", () => {
     );
   }
   expect(e.store.live.has(handle)).toBe(true);
-  expect(e.session.clearHistory()).toEqual(
+  e.session.clearHistory();
+  expect(e.session.drainReleased()).toEqual(
     Array.from({ length: BUILD_SPEC.undoDepth }, (_, i) =>
       structureHandle(`fake_paste_${i + 2}`),
     ),

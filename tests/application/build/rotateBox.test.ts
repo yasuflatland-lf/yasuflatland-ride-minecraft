@@ -15,11 +15,8 @@ import {
   sameBox,
   volume,
 } from "../../../src/domain/build/box";
-import {
-  type BuildFlow,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -50,10 +47,10 @@ const boxArb = fc
   );
 
 function setup(box: CellBox = wideBox) {
-  const repo = new FakeSessions();
   const world = new FakeWorld();
   const players = new FakeBuildPlayers();
   const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
   const feedback = new FakeFeedback();
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
@@ -65,7 +62,7 @@ function setup(box: CellBox = wideBox) {
     to: box.max,
   });
   const rotate = new RotateBox(repo, world, players, structures, feedback, log);
-  const jobs = new EditJobs(repo, world, feedback, log, players, structures);
+  const jobs = new EditJobs(repo, world, feedback, log, players);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   return {
     repo,

@@ -1,4 +1,9 @@
-import { type Cell, cellCenter } from "../../domain/shared/cells";
+import {
+  type Cell,
+  cellCenter,
+  type ProtectedSpace,
+  VEHICLE_SPACE_ONLY,
+} from "../../domain/shared/cells";
 import { snapYaw } from "../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
@@ -6,12 +11,13 @@ import { type Payer, placePaid } from "./paidPlacement";
 import type { GroundCellsWorld } from "./ports/groundCells";
 import type { ItemPayment } from "./ports/itemPayment";
 
-type PlacementCells = Pick<GroundCellsWorld, "isAir" | "isVehicleSpace"> & {
+type PlacementCells = Pick<
+  GroundCellsWorld,
+  "isAir" | "isVehicleSpace" | "isCampSpace"
+> & {
   isSolidTop?(dimension: DimensionId, cell: Cell): boolean;
-  isCampSpace?(dimension: DimensionId, cell: Cell): boolean;
 };
 
-type ProtectedSpace = "vehicle" | "camp";
 type CellPlacement<Id> =
   | { readonly placed: true; readonly id: Id }
   | { readonly placed: false };
@@ -25,7 +31,7 @@ export function placeOnCells<Id>(
   plan: {
     support: readonly Cell[];
     clear: readonly Cell[];
-    protect: readonly ProtectedSpace[];
+    refuses: readonly ProtectedSpace[];
     extraCheck?: () => boolean;
   },
   payer: Payer,
@@ -35,7 +41,7 @@ export function placeOnCells<Id>(
   const { dimension, cells, payment } = world;
   if (!plan.support.every((cell) => cells.isSolidTop?.(dimension, cell)))
     return { placed: false };
-  if (!areClear(cells, dimension, plan.clear, plan.protect))
+  if (!areClear(cells, dimension, plan.clear, plan.refuses))
     return { placed: false };
   if (plan.extraCheck?.() === false) return { placed: false };
 
@@ -66,34 +72,46 @@ function areClear(
   world: PlacementCells,
   dimension: DimensionId,
   cells: readonly Cell[],
-  protect: readonly ProtectedSpace[],
+  refuses: readonly ProtectedSpace[],
 ): boolean {
-  const vehicle = protect.includes("vehicle");
-  const camp = protect.includes("camp");
   return cells.every(
     (cell) =>
       world.isAir(dimension, cell) &&
-      (!vehicle || !world.isVehicleSpace(dimension, cell)) &&
-      (!camp || world.isCampSpace?.(dimension, cell) === false),
+      !isSpaceRefused(world, dimension, cell, refuses),
   );
 }
 
-/** Keep the item's clearance column free of blocks and vehicle space. */
+export function isSpaceRefused(
+  world: Pick<GroundCellsWorld, "isVehicleSpace" | "isCampSpace">,
+  dimension: DimensionId,
+  cell: Cell,
+  refuses: readonly ProtectedSpace[],
+): boolean {
+  return (
+    (refuses.includes("vehicle") && world.isVehicleSpace(dimension, cell)) ||
+    (refuses.includes("camp") && world.isCampSpace?.(dimension, cell) !== false)
+  );
+}
+
+/** Ovens and lanterns on a host use the camp family's vehicle-only clearance rule. */
 export function hasClearance(
   world: GroundCellsWorld,
   dimension: DimensionId,
   base: Vec3,
   clearance: number,
+  refuses: readonly ProtectedSpace[] = VEHICLE_SPACE_ONLY,
 ): boolean {
-  return areClear(world, dimension, clearanceCells(base, clearance), [
-    "vehicle",
-  ]);
+  return areClear(world, dimension, clearanceCells(base, clearance), refuses);
 }
 
 /** Check clearance and spacing before payment, then spawn with the item's yaw snap. */
 export function placeOnGround(
   world: GroundCellsWorld & ItemPayment,
-  spec: { clearance: number; yawStep: number },
+  spec: {
+    clearance: number;
+    yawStep: number;
+    refuses: readonly ProtectedSpace[];
+  },
   cmd: {
     player?: PlayerId;
     dimension: DimensionId;
@@ -113,7 +131,7 @@ export function placeOnGround(
     {
       support: [],
       clear: clearanceCells({ ...block, y: block.y + 1 }, spec.clearance),
-      protect: ["vehicle"],
+      refuses: spec.refuses,
       extraCheck: () => !item.isNear(dimension, at),
     },
     { player, slot },

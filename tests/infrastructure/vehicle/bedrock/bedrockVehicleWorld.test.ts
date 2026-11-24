@@ -26,7 +26,6 @@ import {
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   DECK_SEATS_PROPERTY,
-  DECOR_PROPERTY,
   ENTITY_TYPE,
   entityPropertyId,
   HEADLIGHTS_PROPERTY,
@@ -37,9 +36,9 @@ import {
 import type { RestoredReaders } from "../../../../src/infrastructure/vehicle/bedrock/restoredReaders";
 import { RoadPaver } from "../../../../src/infrastructure/vehicle/bedrock/roadPaver";
 import { SeatFillers } from "../../../../src/infrastructure/vehicle/bedrock/seatFillers";
-import { DockBlocks } from "../../../../src/infrastructure/vehicle/kinds/camper/dockBlocks";
 import {
   CAMPER_FLOOR_BLOCK,
+  DECOR_PROPERTY,
   isStandableRoomBlock,
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { readCamperRestored } from "../../../../src/infrastructure/vehicle/kinds/camper/restored";
@@ -49,6 +48,7 @@ import {
   bedrockVehicleGame as game,
 } from "../../../support/bedrockVehicleMocks";
 import { blockGrid } from "../../../support/blockGrid";
+import { createDockBlocks, dockCodec } from "../../../support/dockBlocks";
 
 vi.mock("@minecraft/server", async () =>
   (await import("../../../support/bedrockVehicleMocks")).bedrockVehicleEngine(),
@@ -93,7 +93,7 @@ function fixture(restoredReaders: RestoredReaders = {}) {
       inputs,
       testHeldItems,
       noCampSpace,
-      new DockBlocks(noCampSpace),
+      createDockBlocks(noCampSpace),
       restoredReaders,
       isStandableRoomBlock,
     ),
@@ -1003,7 +1003,9 @@ describe("BedrockVehicleWorld dock ports", () => {
 
 it("restores dock values and decor lazily from saved dynamic properties instead of entity properties", () => {
   vi.resetAllMocks();
-  const { world, car } = fixture({ camper: readCamperRestored });
+  const { world, car } = fixture({
+    camper: (vehicle) => readCamperRestored(vehicle, dockCodec),
+  });
   car.typeId = ENTITY_TYPE.camper;
   const decor = '[{"slot":"table","item":"potted_plant"}]';
   car.getDynamicProperty.mockImplementation((key: string) => {

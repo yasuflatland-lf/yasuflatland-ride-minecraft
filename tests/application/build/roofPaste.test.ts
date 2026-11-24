@@ -13,13 +13,13 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
-  cancel,
   chooseHeighted,
   setHeight,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
+import { cancel } from "../../../src/domain/build/flow/stepBack";
 import {
   maxRoofHeight,
   roofCells,
@@ -65,9 +65,10 @@ const face = fc.constantFrom<Face>(
 );
 const heightedKind = fc.constantFrom("gable" as const, "hip" as const);
 function setup() {
-  const repo = new FakeSessions();
-  const session = repo.getOrCreate(playerId);
   const world = new FakeWorld();
+  const structures = new FakeStructureStore(world);
+  const repo = new FakeSessions(structures);
+  const session = repo.getOrCreate(playerId);
   const feedback = new FakeFeedback();
   const jobs = new EditJobs(
     repo,
@@ -75,9 +76,7 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
-    { discard: () => {} },
   );
-  const structures = new FakeStructureStore(world);
   return { repo, session, world, feedback, jobs, structures };
 }
 function roof(

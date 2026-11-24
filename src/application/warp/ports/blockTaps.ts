@@ -1,6 +1,11 @@
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
-import type { TakeBackEffects } from "../../shared/takeBackByHits";
+
+export interface WarpBlockTapEffects {
+  drop(): void;
+  remove(): void;
+  showRemaining(left: number): void;
+}
 
 export interface WarpBlockTaps {
   /** Returns effects only while the player and warp block are still present. */
@@ -8,5 +13,5 @@ export interface WarpBlockTaps {
     playerId: PlayerId,
     dimension: DimensionId,
     cell: Cell,
-  ): TakeBackEffects | undefined;
+  ): WarpBlockTapEffects | undefined;
 }

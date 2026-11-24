@@ -94,6 +94,7 @@ export const TEST_DUTCH_OVEN_HIT_EVENT = /* @__PURE__ */ id(
 
 export const FIRE_PIT_TYPE = id("fire_pit");
 export const FIRE_PIT_ITEM = id("fire_pit_item");
+export const FIRE_PIT_IGNITER_ITEM = "minecraft:flint_and_steel";
 export const FIRE_PIT_COVERED_PROPERTY = id("covered");
 export const DUTCH_OVEN_ON_TOP_HINT = "yasu_ride.hint.dutch_oven_on_top";
 export const TEST_FIRE_PIT_HIT_EVENT = /* @__PURE__ */ id("test_fire_pit_hit");
@@ -113,6 +114,12 @@ export const TENT_FLAP_PROPERTY = Object.freeze({
 /** Whether the lantern glows, read by tent.rc.json. */
 export const TENT_LANTERN_PROPERTY = id("lantern");
 
+const TENT_BLOCK_PREFIX = id("tent_");
+
+export function isTentBlockTypeId(typeId: string | undefined): boolean {
+  return typeId?.startsWith(TENT_BLOCK_PREFIX) === true;
+}
+
 export const TENT_WALL_BLOCK = id("tent_wall");
 export const TENT_CEILING_BLOCK = id("tent_ceiling");
 export const TENT_FLAP_BLOCK = id("tent_flap");
@@ -126,7 +133,7 @@ export const TENT_MATTRESS_COMPONENT = id("tent_mattress");
 export const TENT_LANTERN_BLOCK = id("tent_lantern");
 /** Block state of tent_lantern: whether it gives the lantern's full light. */
 export const TENT_LIT_STATE = id("lit");
-/** Block state of tent_wall: the TentFace its plate sits on. */
+/** Block state of tent_wall: the numeric encoding of the plate side. */
 export const TENT_FACE_STATE = id("face");
 /** Entity dynamic property: the tent's laid cells as JSON (LaidCell<TentBlock>[]). */
 export const TENT_CELLS_PROPERTY = id("tent_cells");

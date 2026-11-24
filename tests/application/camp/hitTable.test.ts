@@ -18,8 +18,9 @@ describe("HitTable (ADR 0152)", () => {
         hit.execute({ tableId: TABLE, tick, playerId }),
       );
       expect(results).toEqual([false, false, true]);
-      expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(TABLE);
+      expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(TABLE, playerId);
       expect(world.removeTable).toHaveBeenCalledExactlyOnceWith(TABLE);
+      expect(world.dropItem).toHaveBeenCalledBefore(world.removeTable);
       expect(vi.mocked(world.showHitsLeft).mock.calls).toEqual(
         playerId === undefined
           ? []
@@ -45,12 +46,14 @@ it("leaves the table and its counter alone while either half holds an oven", () 
         vi.mocked(world.itemsOnTable).mockReturnValue(ovens);
         for (let tick = 1; tick <= hits; tick++)
           expect(hit.execute({ ...command, tick })).toBe(false);
+        expect(hit.execute({ tableId: TABLE, tick: hits + 1 })).toBe(false);
         expect(world.showOvenOnTop).toHaveBeenCalledTimes(hits);
+        expect(world.showOvenOnTop).toHaveBeenLastCalledWith(PLAYER);
         expect(world.removeTable).not.toHaveBeenCalled();
         vi.mocked(world.itemsOnTable).mockReturnValue(0);
-        expect(hit.execute({ ...command, tick: hits + 1 })).toBe(false);
+        expect(hit.execute({ ...command, tick: hits + 2 })).toBe(false);
         expect(world.showHitsLeft).toHaveBeenLastCalledWith(PLAYER, 1);
-        expect(hit.execute({ ...command, tick: hits + 2 })).toBe(true);
+        expect(hit.execute({ ...command, tick: hits + 3 })).toBe(true);
       },
     ),
   );

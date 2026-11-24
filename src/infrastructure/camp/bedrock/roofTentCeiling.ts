@@ -1,9 +1,10 @@
+import type { Entity } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import type { RoofTentId } from "../../../domain/camp/ids";
+import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
 import { roofTentCeilingCells } from "../../../domain/camp/roofTent/ceiling";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId } from "../../../domain/shared/ids";
-import { LaidBlockLayer, writeSavedCells } from "../../shared/laidBlockLayer";
+import { SingleBlockLayer } from "../../shared/laidBlockLayer";
 import {
   ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_LADDER_PROPERTY,
@@ -12,24 +13,33 @@ import {
 import { roofTentEntity } from "./bedrockRoofTentWorld";
 import type { RoofTentOccupants } from "./roofTentOccupants";
 export class RoofTentCeiling {
-  private readonly layer: LaidBlockLayer;
+  private readonly layer: SingleBlockLayer<RoofTentId>;
 
   constructor(
     private readonly occupants: RoofTentOccupants,
     isVehicleSpace: SpaceCheck,
   ) {
-    this.layer = new LaidBlockLayer(
+    this.layer = new SingleBlockLayer(
       TENT_CEILING_BLOCK,
+      ROOF_TENT_CEILING_PROPERTY,
       isVehicleSpace,
       "roof tent ceiling",
     );
+  }
+
+  remember(entity: Entity): void {
+    this.layer.remember(asRoofTentId(entity.id), entity);
+  }
+
+  forget(id: RoofTentId): void {
+    this.layer.forget(id);
   }
 
   syncCeiling(id: RoofTentId): void {
     const tent = this.occupants.record(id);
     if (!tent) return;
     if (tent.state.occupant === undefined) {
-      if (tent.ceiling.length > 0) this.clearCeiling(id);
+      this.clearCeiling(id);
       return;
     }
 
@@ -41,17 +51,11 @@ export class RoofTentCeiling {
         entity.getProperty(ROOF_TENT_LADDER_PROPERTY) === true
           ? "ladder"
           : "ground";
-      // Keep the fallback record even if saving the entity property fails.
-      const cells = this.layer.lay(
-        tent.dimension,
+      this.layer.lay(
+        id,
+        entity,
         roofTentCeilingCells(entity.location, entity.getRotation().y, variant),
-        tent.ceiling,
         warn,
-      );
-      this.occupants.setCeiling(id, cells);
-      entity.setDynamicProperty(
-        ROOF_TENT_CEILING_PROPERTY,
-        writeSavedCells(cells),
       );
     } catch (error) {
       warn(error);
@@ -59,19 +63,7 @@ export class RoofTentCeiling {
   }
 
   clearCeiling(id: RoofTentId): void {
-    const tent = this.occupants.peek(id);
-    if (!tent || tent.ceiling.length === 0) return;
-    const warn = this.layer.warning("clear");
-    const remaining = this.layer.clear(tent.dimension, tent.ceiling, warn);
-    this.occupants.setCeiling(id, remaining);
-    try {
-      roofTentEntity(id)?.setDynamicProperty(
-        ROOF_TENT_CEILING_PROPERTY,
-        writeSavedCells(remaining),
-      );
-    } catch (error) {
-      warn(error);
-    }
+    this.layer.clear(id, roofTentEntity(id));
   }
 
   ceilingOwner(
@@ -79,7 +71,6 @@ export class RoofTentCeiling {
     cell: Cell,
     typeId: string,
   ): string | undefined {
-    if (typeId !== TENT_CEILING_BLOCK) return undefined;
-    return this.occupants.ceilingOwner(dimensionId, cell);
+    return this.layer.ownerOf(dimensionId, cell, typeId);
   }
 }

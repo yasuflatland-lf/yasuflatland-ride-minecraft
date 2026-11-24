@@ -1,9 +1,6 @@
 // Exercises the same tap use cases and feedback adapter with a named player (ADR 0010, 0178).
 import { ScriptEventSource, system, world } from "@minecraft/server";
-import type { AimHeight } from "../../../application/build/aimHeight";
 import { ClearSelection } from "../../../application/build/clearSelection";
-import { ConfirmLiveHeight } from "../../../application/build/confirmLiveHeight";
-import { FixStairGoal } from "../../../application/build/fixStairGoal";
 import type { OpenSelectionMenu } from "../../../application/build/openSelectionMenu";
 import type { AimReader } from "../../../application/build/ports/aim";
 import type { BuildBlockWorld } from "../../../application/build/ports/blocks";
@@ -11,10 +8,9 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../application/build/ports/feedback";
-import { SetPoint } from "../../../application/build/setPoint";
-import { TapAir } from "../../../application/build/tapAir";
+import type { PressWand } from "../../../application/build/pressWand";
 import { sizeOf } from "../../../domain/build/box";
-import { setHeight } from "../../../domain/build/flow/flow";
+import { confirmLiveHeight } from "../../../domain/build/flow/heightFlow";
 import { routePress } from "../../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
 import { asDimensionId, asPlayerId } from "../../../domain/shared/ids";
@@ -31,7 +27,7 @@ export function registerTestTap(
   blocks: BuildBlockWorld,
   openSelectionMenu: OpenSelectionMenu,
   aim: AimReader,
-  aimHeight: AimHeight,
+  pressWand: PressWand,
 ): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
@@ -62,7 +58,7 @@ export function registerTestTap(
           input.tap !== "fixHeight")
       )
         return;
-      const { x, y, z } = input;
+      const { x, y, z, tap } = input;
       if (
         typeof x !== "number" ||
         typeof y !== "number" ||
@@ -79,25 +75,7 @@ export function registerTestTap(
       let count: number | undefined;
       const session = repo.get(playerId);
       const flow = session?.flow;
-      const press =
-        flow &&
-        (input.tap === "air" || input.tap === "block") &&
-        (flow.kind === "selected" ||
-          flow.kind === "baseHeight" ||
-          flow.kind === "stairAim" ||
-          flow.kind === "stairContents")
-          ? routePress({
-              flow,
-              role: "wand",
-              route: input.tap === "air" ? "itemUse" : "blockInteract",
-              target: input.tap,
-              sneaking: player.isSneaking,
-            })
-          : undefined;
-      const menu =
-        press?.kind === "openUtilityMenu"
-          ? openSelectionMenu.execute({ playerId })
-          : undefined;
+      let menu: ReturnType<OpenSelectionMenu["execute"]> | undefined;
       const listener = {
         onMessage: ((id, name, volume) => {
           if (id !== playerId) return;
@@ -107,30 +85,38 @@ export function registerTestTap(
       };
       feedback.listeners.add(listener);
       try {
-        if (input.tap === "clear")
+        if (tap === "clear")
           new ClearSelection(repo, feedback).execute({ playerId });
-        else if (input.tap === "fixHeight") {
+        else if (tap === "fixHeight") {
           // Edit fixtures use the supplied corners independently of the client's gaze.
           if (session && flow?.kind === "baseHeight")
-            session.setFlow(setHeight(flow, sizeOf(flow.selection.box).y));
-          new ConfirmLiveHeight(repo).execute({ playerId });
-        } else if (press?.kind === "confirmLiveHeight") {
-          const sample = aim.aim(playerId);
-          if (sample) {
-            aimHeight.execute({ playerId, ray: sample.ray });
-            new ConfirmLiveHeight(repo).execute({ playerId });
-          }
-        } else if (press?.kind === "fixStairGoal")
-          new FixStairGoal(repo, feedback, aim).execute({ playerId });
-        else if (press?.kind !== "ignore" && menu === undefined) {
-          if (input.tap === "air")
-            new TapAir(repo, feedback).execute({ playerId, end: cell });
-          else
-            new SetPoint(repo, blocks, feedback).execute({
-              playerId,
-              dimensionId,
-              cell,
-            });
+            session.setFlow(
+              confirmLiveHeight({
+                ...flow,
+                previous: sizeOf(flow.selection.box).y,
+              }),
+            );
+        } else {
+          const intent = routePress({
+            flow: flow ?? { kind: "idle" },
+            role: "wand",
+            route: tap === "air" ? "itemUse" : "blockInteract",
+            target: tap,
+            // A scripted air tap supplies the endpoint regardless of the player's stance.
+            sneaking: false,
+          }).kind;
+          const ray =
+            intent === "confirmLiveHeight" ? aim.aim(playerId)?.ray : undefined;
+          const followUp = pressWand.execute({
+            playerId,
+            dimensionId,
+            intent,
+            cell,
+            ray,
+          });
+          // The fixture reports an explicitly requested selection menu without showing a form.
+          if (flow?.kind === "selected" && followUp === "utilityMenu")
+            menu = openSelectionMenu.execute({ playerId });
         }
       } finally {
         feedback.listeners.delete(listener);

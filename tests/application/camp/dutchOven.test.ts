@@ -4,6 +4,7 @@ import {
   DutchOvenActions,
   dutchOvenHostedKind,
 } from "../../../src/application/camp/dutchOven";
+import { decodeCampHost } from "../../../src/application/camp/hostedKind";
 import type { DutchOvenWorld } from "../../../src/application/camp/ports/dutchOven";
 import { HostedItemsGuard } from "../../../src/application/shared/hostedItemsGuard";
 import { asDutchOvenId } from "../../../src/domain/camp/dutchOven";
@@ -12,14 +13,13 @@ import {
   DUTCH_OVEN_FOOTPRINT_PX,
   DUTCH_OVEN_SPEC,
   FIRE_PIT_TOP_PX,
-  TABLE_SPOTS,
 } from "../../../src/domain/camp/spec";
 import { asTableId } from "../../../src/domain/camp/table";
 import { LIGHT_SWITCH_COOLDOWN_TICKS } from "../../../src/domain/shared/debounce";
 import { snapYaw } from "../../../src/domain/shared/facing";
-import { decodeHost as decodeSharedHost } from "../../../src/domain/shared/hosted";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { TopItem } from "../../../src/domain/shared/tableTop";
+import { DUTCH_OVEN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 
 const oven = asDutchOvenId("oven");
 const player = asPlayerId("player");
@@ -66,7 +66,7 @@ function fixture(
     showHitsLeft: vi.fn(),
     ...overrides,
   } satisfies DutchOvenWorld;
-  return { actions: new DutchOvenActions(world), world };
+  return { actions: new DutchOvenActions(world, DUTCH_OVEN_ON_TOP), world };
 }
 
 it("accepts only block tops outside add-on rooms", () => {
@@ -135,8 +135,11 @@ it("returns one oven on the third hit and hints after earlier hits", () => {
     [player, 2],
     [player, 1],
   ]);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(oven);
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(oven, player);
   expect(world.removeDutchOven).toHaveBeenCalledExactlyOnceWith(oven);
+  expect(world.dropItem).toHaveBeenCalledBefore(
+    vi.mocked(world.removeDutchOven),
+  );
 });
 
 const pit = asFirePitId("pit");
@@ -204,6 +207,7 @@ it("uncovers an existing fire pit only on the oven's third hit", () => {
   expect(world.setCovered).not.toHaveBeenCalled();
   actions.hit(oven, player, 3);
   expect(world.setCovered).toHaveBeenCalledExactlyOnceWith(pit, false);
+  expect(world.setCovered).toHaveBeenCalledBefore(vi.mocked(world.dropItem));
 });
 
 it("removes an oven whose host vanished in loaded space with no drop, for either host kind", () => {
@@ -313,7 +317,7 @@ it("taking back an oven frees its place for a replacement", () => {
     host: (id) => hosts.get(id) ?? "",
     itemsOnTop: () =>
       [...hosts.values()].flatMap((text) => {
-        const host = decodeHost(text);
+        const host = decodeCampHost(text);
         return host.kind === "top" && host.hostType === "camp_table"
           ? [{ at: host.at, footprint: DUTCH_OVEN_FOOTPRINT_PX }]
           : [];
@@ -330,7 +334,7 @@ it("taking back an oven frees its place for a replacement", () => {
   expect(actions.placeOnTable(left)).toBe("overlap");
   for (let tick = 0; tick < 3; tick++)
     actions.hit(asDutchOvenId("oven0"), player, tick);
-  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("oven0");
+  expect(world.dropItem).toHaveBeenCalledExactlyOnceWith("oven0", player);
   expect(actions.placeOnTable(left)).toBe("placed");
   expect(hosts.get("oven2")).toBe("camp_table:table:@-7.5,0");
 });
@@ -390,9 +394,3 @@ it("ignores missing ovens without starting their cooldown", () => {
   expect(actions.toggleLid(oven, 1)).toBe(true);
   expect(world.setSimmering).toHaveBeenCalledExactlyOnceWith(oven, true);
 });
-
-function decodeHost(text: string) {
-  return decodeSharedHost(text, (type, spot) =>
-    type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
-  );
-}

@@ -9,7 +9,15 @@ import {
   STANDING_GEAR_IDS,
 } from "../../../../domain/vehicle/kinds/index";
 import { id } from "../../../shared/identifiers";
-import { campingGearItem } from "../../bedrock/identifiers";
+
+/** A camper's decor, as JSON [{ slot, item }] (ADR 0093). */
+export const DECOR_PROPERTY = id("decor");
+/** The item type of a camping gear id (ADR 0093). */
+export function campingGearItem(gear: string): string {
+  return id(gear);
+}
+
+export const TEST_DECOR_EVENT = /* @__PURE__ */ id("test_decor");
 
 /** Invisible room blocks of a parked camper (ADR 0063, 0068). */
 export const CAMPER_FLOOR_BLOCK = id("camper_floor");

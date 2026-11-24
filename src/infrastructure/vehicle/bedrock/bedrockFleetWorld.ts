@@ -8,12 +8,7 @@ import type { PlayerId, VehicleId } from "../../../domain/shared/ids";
 import type { FleetEntry } from "../../../domain/vehicle/fleet/fleet";
 import type { BedrockInventory } from "./bedrockInventory";
 import { type EntityIndex, loadedVehicleEntities } from "./entityIndex";
-import {
-  campingGearItem,
-  fleetEntryOf,
-  ITEM_TYPE,
-  kindOfEntity,
-} from "./identifiers";
+import { fleetEntryOf, ITEM_TYPE, kindOfEntity } from "./identifiers";
 import type { VehicleReleaser } from "./vehicleReleaser";
 
 export class BedrockFleetWorld implements LimitWorld, BreakWorld {
@@ -21,6 +16,7 @@ export class BedrockFleetWorld implements LimitWorld, BreakWorld {
     private readonly index: EntityIndex,
     private readonly releaser: VehicleReleaser,
     private readonly inventory: Pick<BedrockInventory, "giveItems">,
+    private readonly gearItemType: (item: string) => string,
   ) {}
 
   loadedFleetEntries(): FleetEntry[] {
@@ -41,7 +37,7 @@ export class BedrockFleetWorld implements LimitWorld, BreakWorld {
   }
 
   giveDecorItems(playerId: PlayerId, items: readonly string[]): void {
-    this.inventory.giveItems(playerId, items.map(campingGearItem));
+    this.inventory.giveItems(playerId, items.map(this.gearItemType));
   }
 
   removeVehicle(vehicleId: VehicleId): void {

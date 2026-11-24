@@ -11,12 +11,9 @@ import { SetPoint } from "../../../src/application/build/setPoint";
 import { TapAir } from "../../../src/application/build/tapAir";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  cancel,
-  chooseTerrain,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/flow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
+import { cancel } from "../../../src/domain/build/flow/stepBack";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -51,7 +48,6 @@ function setup() {
     feedback,
     { warn: () => {} },
     new FakeBuildPlayers(),
-    { discard: () => {} },
   );
   const session = repo.getOrCreate(playerId);
   const point = new SetPoint(repo, world, feedback);

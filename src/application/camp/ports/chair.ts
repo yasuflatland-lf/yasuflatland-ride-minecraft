@@ -30,8 +30,7 @@ export interface ChairWorld {
   /** Whether someone sits on the chair. */
   isOccupied(chairId: ChairId): boolean;
   removeChair(chairId: ChairId): void;
-  /** Drops one chair item where the chair stands. */
-  dropChairItem(chairId: ChairId): void;
+  dropChairItem(chairId: ChairId, hitter?: PlayerId): void;
   /** Tells the player how many more hits take the chair back. */
   showHitsLeft(kind: ChairKindId, playerId: PlayerId, hitsLeft: number): void;
 }

@@ -2,71 +2,56 @@ import {
   asGasLanternId,
   type GasLanternId,
 } from "../../domain/camp/gasLantern";
-import {
-  CAMP_TABLE_TOP,
-  GAS_LANTERN_FOOTPRINT_PX,
-  GAS_LANTERN_SPEC,
-  TABLE_SPOTS,
-} from "../../domain/camp/spec";
-import type { TableId } from "../../domain/camp/table";
+import { GAS_LANTERN_SPEC } from "../../domain/camp/spec";
 import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
 } from "../../domain/shared/debounce";
-import { HitCounters } from "../../domain/shared/hitCounter";
-import { decodeHost } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { LocalPoint, TopSurface } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
 import { canUseBlockTop, placeOnGround } from "../shared/groundPlacement";
-import {
-  placeOnTop,
-  type TopOutcome,
-  type TopRequest,
-} from "../shared/placeOnTop";
 import type { HostedItemKind } from "../shared/ports/hostedItem";
 import type { HostedKindPort } from "../shared/ports/hostedKind";
-import { handleHit } from "../shared/takeBackByHits";
+import { TakeBackByHits } from "../shared/takeBackByHits";
+import { campHostedKind, HostedOnTopActions } from "./hostedKind";
 import type { GasLanternWorld } from "./ports/gasLantern";
 
-const ON_TABLE: HostedItemKind = {
-  id: "gas_lantern",
-  footprint: GAS_LANTERN_FOOTPRINT_PX,
-  clearance: GAS_LANTERN_SPEC.tableClearance,
-};
-
-/**
- * The lantern as a kind the hosted items guard removes when its host is gone.
- * A removal clears the light block before the entity goes so no light is left
- * behind (ADR 0185).
- */
 export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
-  return {
-    loaded: () => world.loadedGasLanterns(),
-    host: (id) =>
-      decodeHost(world.host(asGasLanternId(id)), (type, spot) =>
-        type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
-      ),
-    isHostAreaLoaded: (id) => world.isHostAreaLoaded(asGasLanternId(id)),
-    hostExists: (hostId) => world.hostExists(hostId),
-    remove: (id) => {
-      const lantern = asGasLanternId(id);
-      world.clearLight(lantern);
-      world.removeGasLantern(lantern);
+  return campHostedKind(
+    {
+      asId: asGasLanternId,
+      loaded: () => world.loadedGasLanterns(),
+      remove: (lantern) => {
+        world.clearLight(lantern);
+        world.removeGasLantern(lantern);
+      },
     },
-  };
+    world,
+  );
 }
 
-export class GasLanternActions {
-  private readonly hits = new HitCounters<GasLanternId>(
-    GAS_LANTERN_SPEC.recovery,
-  );
+export class GasLanternActions extends HostedOnTopActions {
+  private readonly takeBack = new TakeBackByHits<GasLanternId>({
+    rule: GAS_LANTERN_SPEC.recovery,
+    release: (id) => this.world.clearLight(id),
+    giveBack: (id, player) => this.world.dropItem(id, player),
+    remove: (id) => this.world.removeGasLantern(id),
+    feedback: {
+      remaining: (_id, player, left) => this.world.showHitsLeft(player, left),
+    },
+    order: ["release", "giveBack", "remove"],
+  });
 
   private readonly switches = new Debounces<GasLanternId>(
     LIGHT_SWITCH_COOLDOWN_TICKS,
   );
 
-  constructor(private readonly world: GasLanternWorld) {}
+  constructor(
+    private readonly world: GasLanternWorld,
+    onTop: HostedItemKind,
+  ) {
+    super(world, onTop);
+  }
 
   canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
@@ -85,23 +70,6 @@ export class GasLanternActions {
     });
   }
 
-  placeOnTop(surface: TopSurface, cmd: TopRequest): TopOutcome {
-    return placeOnTop(this.world, surface, ON_TABLE, cmd);
-  }
-
-  placeOnTable(cmd: {
-    player?: PlayerId;
-    table: TableId;
-    slot: number;
-    aim?: LocalPoint;
-  }): TopOutcome {
-    return this.placeOnTop(CAMP_TABLE_TOP, {
-      ...cmd,
-      hostType: "camp_table",
-      host: cmd.table,
-    });
-  }
-
   switch(id: GasLanternId, tick: number): boolean {
     this.switches.forgetIdle(tick);
     const lit = this.world.isLit(id);
@@ -112,20 +80,6 @@ export class GasLanternActions {
   }
 
   hit(id: GasLanternId, player: PlayerId | undefined, tick: number): boolean {
-    let taken = false;
-    handleHit(this.hits, id, tick, {
-      drop: () => {
-        this.world.clearLight(id);
-        this.world.dropItem(id);
-      },
-      remove: () => {
-        this.world.removeGasLantern(id);
-        taken = true;
-      },
-      showRemaining: (left) => {
-        if (player !== undefined) this.world.showHitsLeft(player, left);
-      },
-    });
-    return taken;
+    return this.takeBack.hit(id, tick, player) === "taken";
   }
 }

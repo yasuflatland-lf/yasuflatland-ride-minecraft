@@ -1,5 +1,5 @@
 // Implements TentWorld with @minecraft/server (ADR 0012, 0131).
-import { ItemStack } from "@minecraft/server";
+
 import type { LegacyTentWorld } from "../../../application/camp/ports/legacyTent";
 import type { TentWorld } from "../../../application/camp/ports/tent";
 import type { TentFlapWorld } from "../../../application/camp/ports/tentFlap";
@@ -18,10 +18,10 @@ import type { TentEntry } from "../../../domain/camp/tentRegistry";
 import type { Cell } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
+import { giveBack } from "../../shared/gearEntity";
 import type { CellLayer } from "../../shared/laidCells";
 import {
   consumeHeld,
-  giveOrDrop,
   isCreative,
   playerById,
   showActionBar,
@@ -109,7 +109,7 @@ export class BedrockTentWorld
 
   giveTentItem(playerId: PlayerId): void {
     const player = playerById(playerId);
-    if (player) giveOrDrop(player, [new ItemStack(TENT_ITEM, 1)]);
+    if (player) giveBack(player, TENT_ITEM, player);
   }
 
   clearDecorations(dimensionId: DimensionId, cells: readonly Cell[]): void {

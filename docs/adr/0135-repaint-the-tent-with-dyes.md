@@ -33,12 +33,12 @@ same-tick, and Creative rules.
   bedroom flap, the poles, the strap, the lantern (including its alpha-0 glass slot),
   and the mattresses keep their colors. The generator refuses a cube outside the fly
   group that uses slot 0 or 1.
-- A dye hit is routed at the top of the tent handler's `hitTent`, which all three hit
-  paths reach (a block hit, a Creative break deferred with `system.run`, and a hit on
-  the entity), after the shared per-tick swing check and before `TakeDownTent`. So a
-  dye hit never counts toward taking the tent down, and it repaints even while
-  someone is inside, with no "someone is inside" message. `PaintTent` wraps one
-  `Repaint<TentId>` for the session.
+- Entity hits, owned block hits, and Creative breaks share `subscribeGearHits`.
+  It reads the swung dye first and deduplicates paint and take-down separately
+  per player per tick, so a dye hit leaves take-down available that tick.
+  It defers each accepted command through `system.run` with the original tick.
+  A dye hit can repaint even while someone is inside, without an occupied hint.
+  `PaintTent` wraps one `Repaint<TentId>` for the session.
 - The tent item stays single-color: a painted tent taken down returns the plain
   `yasu_ride:tent_item`, as a painted vehicle returns its plain item (0031).
 

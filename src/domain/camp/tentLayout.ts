@@ -7,8 +7,8 @@ export interface TentLocalCell {
   readonly layer: number;
 }
 
-/** Plate direction: 0 -z, 1 +z, 2 -x, 3 +x. Layout faces are at yaw 0; tentCells rotates them into world faces. */
-export type TentFace = 0 | 1 | 2 | 3;
+/** World-axis plate side; layout sides at yaw 0 are rotated by tentCells. */
+export type TentPlateSide = "-z" | "+z" | "-x" | "+x";
 export type FlapId = "front" | "left" | "right" | "bedroom";
 
 /** Inclusive cell bounds, starting at layer 0. */
@@ -22,7 +22,7 @@ interface TentLocalBox {
 export interface TentLayout {
   readonly walls: readonly {
     readonly cell: TentLocalCell;
-    readonly face: TentFace;
+    readonly face: TentPlateSide;
   }[];
   readonly ceilings: readonly TentLocalCell[];
   readonly flaps: Readonly<Record<FlapId, readonly TentLocalCell[]>>;
@@ -112,8 +112,12 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
   )
     throw new Error("Invalid tent cross-wall insets");
 
-  const walls: { cell: TentLocalCell; face: TentFace }[] = [];
-  const crossWall = (depth: number, face: TentFace, insetDirection = 0) => {
+  const walls: { cell: TentLocalCell; face: TentPlateSide }[] = [];
+  const crossWall = (
+    depth: number,
+    face: TentPlateSide,
+    insetDirection = 0,
+  ) => {
     const halfWidth = Math.max(...wallHalfWidths) - 1;
     for (let x = -halfWidth; x <= halfWidth; x++)
       wallHalfWidths.forEach((width, layer) => {
@@ -129,17 +133,17 @@ export function buildLayout(spec: TentLayoutSpec): TentLayout {
       });
   };
   // Preserve the saved-cell order: front, left side, right side, inner, rear.
-  crossWall(depths.front, 0, 1);
+  crossWall(depths.front, "-z", 1);
   for (const side of [1, -1])
     for (let depth = depths.front + 1; depth < depths.rear; depth++)
       wallHalfWidths.forEach((width, layer) => {
         walls.push({
           cell: { x: side * width, depth, layer },
-          face: side > 0 ? 2 : 3,
+          face: side > 0 ? "-x" : "+x",
         });
       });
-  crossWall(depths.inner, 1);
-  crossWall(depths.rear, 1, -1);
+  crossWall(depths.inner, "+z");
+  crossWall(depths.rear, "+z", -1);
 
   const ceilings: TentLocalCell[] = [];
   for (const strip of spec.ceilings) {

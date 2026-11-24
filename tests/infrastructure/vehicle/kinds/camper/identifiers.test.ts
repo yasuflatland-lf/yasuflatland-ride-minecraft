@@ -16,7 +16,6 @@ import {
 } from "../../../../../src/domain/vehicle/kinds/index";
 import { NAMESPACE } from "../../../../../src/infrastructure/shared/identifiers";
 import {
-  campingGearItem,
   DECK_FLOOR_BLOCK,
   ITEM_TYPE,
 } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
@@ -32,6 +31,7 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
+  campingGearItem,
   campingGearOfDecorBlock,
   campingGearOfItem,
   decorBlockId,

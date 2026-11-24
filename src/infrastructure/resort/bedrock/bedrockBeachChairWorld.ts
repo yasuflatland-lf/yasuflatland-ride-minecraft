@@ -29,6 +29,7 @@ import {
   gearFeedback,
   gearGroundChecks,
   giveBack,
+  giveBackReceiver,
   spawnIn,
 } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
@@ -200,7 +201,7 @@ export class BedrockBeachChairWorld
   dropItem(id: BeachChairId, player: PlayerId | undefined): void {
     const entity = this.entity(id);
     if (!entity) return;
-    const receiver = player === undefined ? undefined : playerById(player);
+    const receiver = giveBackReceiver(BEACH_CHAIR_SPEC.giveBack, player);
     giveBack(entity, BEACH_CHAIR_ITEM, receiver);
   }
 }

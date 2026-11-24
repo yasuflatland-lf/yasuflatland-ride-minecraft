@@ -6,7 +6,7 @@ import type {
   HeightedPlacement,
   HeightedVolume,
   HeightStepSpec,
-} from "./geometry";
+} from "./types";
 
 export function sideCylinderPlacement(axis: HorizontalAxis): HeightedPlacement {
   const across = axis === "x" ? "z" : "x";

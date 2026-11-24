@@ -8,8 +8,8 @@ import {
 // Use case: a player pressed a parked vehicle's storage with doors, such as the wall cabinet,
 // with an empty hand (ADR 0114, 0121).
 import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
-import type { DecorPlacingWorld } from "../ports/decor";
 import type { Clock } from "../ports/shared";
+import type { DecorPlacingWorld } from "./ports";
 
 interface PressStorageCommand {
   playerId: PlayerId;

@@ -21,7 +21,6 @@ import type { Arena } from "../arena";
 import type { Outcome } from "../outcome";
 
 export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
-  const repo = new InMemorySessionRepository();
   const playerId = asPlayerId(`warp_guard_${a.lane.index}`);
   const dimensionId = asDimensionId(a.dim.id);
   const source = cellBox(a.at(20, a.gy, 20), a.at(22, a.gy, 21));
@@ -40,6 +39,7 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
     drawPreview: () => {},
   };
   const log = { warn: (value: string) => console.warn(value) };
+  const repo = new InMemorySessionRepository(structures, log);
   const rotate = new RotateSelection(
     repo,
     new RotateBox(repo, world, players, structures, feedback, log),
@@ -102,9 +102,7 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
   } catch (error) {
     check(String(error), false);
   } finally {
-    new EndBuildSession(repo, structures, new BedrockTapTargets()).execute(
-      playerId,
-    );
+    new EndBuildSession(repo, new BedrockTapTargets()).execute(playerId);
     structures.clearEntities(dimensionId, plan.union);
     check("cleanup", structures.clearBlocks(dimensionId, plan.union));
   }

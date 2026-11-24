@@ -130,13 +130,11 @@ describe("impact reach", () => {
     );
   });
 
-  it("preserves full impact for the extracted camper identifiers", () => {
-    expect(
-      impactOfPath("src/infrastructure/vehicle/kinds/camper/identifiers.ts")
-        .impact,
-    ).toEqual(
-      impactOfPath("src/infrastructure/vehicle/bedrock/identifiers.ts").impact,
-    );
+  it.each([
+    "src/infrastructure/vehicle/kinds/camper/identifiers.ts",
+    "src/infrastructure/vehicle/testHooks/identifiers.ts",
+  ])("preserves full impact for %s after moving the decor event", (path) => {
+    expect(impactOfPath(path).impact).toBe("all");
   });
 
   it("lists every tracked pack stem explicitly or checks full impact for the shared board geometry", () => {

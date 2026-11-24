@@ -13,6 +13,7 @@ import {
   type TentEntry,
 } from "../../../src/domain/camp/tentRegistry";
 import type { Cell } from "../../../src/domain/shared/cells";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import {
   asDimensionId,
   type DimensionId,
@@ -73,7 +74,7 @@ it("isolates failures, preserves deferred tents, and converges once every legacy
             id: asTentId(`${index}`),
             layout,
             dimensionId: asDimensionId("minecraft:overworld"),
-            pose: { x: index * 50, y: 64, z: -100, yaw: 0 },
+            pose: { x: index * 50, y: 64, z: -100, yaw: snapYaw(0) },
           }),
         );
         const world = new FakeLegacyTentWorld(entries);
@@ -122,7 +123,7 @@ it("isolates failures, preserves deferred tents, and converges once every legacy
 });
 
 it("folds unversioned tunnel and version-2 trapezoid tents and preserves current and future layouts at the shipped version", () => {
-  const pose = { x: 0, y: 64, z: 0, yaw: 0 };
+  const pose = { x: 0, y: 64, z: 0, yaw: snapYaw(0) };
   const world = new FakeLegacyTentWorld(
     parseTents(
       JSON.stringify([
@@ -160,7 +161,7 @@ it.each([false, true])(
       id: asTentId("legacy"),
       layout: 1,
       dimensionId: asDimensionId("minecraft:overworld"),
-      pose: { x: 10, y: 64, z: -20, yaw: 90 },
+      pose: { x: 10, y: 64, z: -20, yaw: snapYaw(90) },
     };
     const world = new FakeLegacyTentWorld([entry]);
     if (!loaded) world.unloaded.add(entry.id);

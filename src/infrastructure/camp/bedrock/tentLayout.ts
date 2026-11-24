@@ -1,12 +1,6 @@
-import {
-  type Dimension,
-  type Entity,
-  ItemStack,
-  world,
-} from "@minecraft/server";
+import { type Dimension, type Entity, world } from "@minecraft/server";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
-import { isTentBlockTypeId } from "../../../domain/camp/legacyTent";
-import { TENT_LAYOUT_VERSION } from "../../../domain/camp/spec";
+import { TENT_LAYOUT_VERSION, TENT_SPEC } from "../../../domain/camp/spec";
 import {
   asTentId,
   type GroundReading,
@@ -35,11 +29,11 @@ import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { chunkLoadedAt, safeBlockAt } from "../../shared/blocks";
 import { dimensionById } from "../../shared/dimensions";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { AIR_BLOCK, isOwnTypeId, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
-import { giveOrDrop, playerById } from "../../shared/players";
-import { TENT_ITEM, TENT_TYPE } from "../identifiers";
+import { isTentBlockTypeId, TENT_ITEM, TENT_TYPE } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import { TENT_CELL_CODEC } from "./tentBlocks";
 import { tentEntityOf } from "./tentEntity";
@@ -189,22 +183,20 @@ export class TentLayout {
   }
 
   returnTentItem(tentId: TentId, playerId: PlayerId | undefined): void {
-    const player = playerId === undefined ? undefined : playerById(playerId);
-    const item = new ItemStack(TENT_ITEM, 1);
-    if (player) {
-      giveOrDrop(player, [item]);
+    const receiver = giveBackReceiver(TENT_SPEC.giveBack, playerId);
+    const target = receiver ?? tentEntityOf(tentId);
+    if (target) {
+      giveBack(target, TENT_ITEM, receiver);
       return;
     }
-    const tent = tentEntityOf(tentId);
-    if (tent) {
-      tent.dimension.spawnItem(item, tent.location);
-      return;
-    }
+    // Legacy folding can recover a registered tent after its entity is gone.
     const entry = this.entryOf(tentId);
-    if (entry)
-      dimensionById(entry.dimensionId)?.spawnItem(
-        item,
-        tentEntityLocation(entry.pose),
+    if (!entry) return;
+    const dimension = dimensionById(entry.dimensionId);
+    if (dimension)
+      giveBack(
+        { dimension, location: tentEntityLocation(entry.pose) },
+        TENT_ITEM,
       );
   }
 

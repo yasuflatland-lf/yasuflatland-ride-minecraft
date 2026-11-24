@@ -75,11 +75,11 @@
 ### Import checker and its self-test
 
 - Applies to: Dependency-cruiser configuration and architecture fixtures.
-- Rule: `package.json` pins dependency-cruiser and `@swc/core` and runs the configuration through `lint:deps`. The configuration selects the swc parser, counts type-only imports with `tsPreCompilationDeps: true`, uses the repository tsconfig, does not follow node_modules, excludes `src/test-pack/`, and rejects unresolved imports with `not-resolvable`. The fixture helper uses a realpath temporary directory, clears the repository tsConfig option, and passes `validate: true` with the same forbidden rules.
+- Rule: `package.json` pins dependency-cruiser and `@swc/core` and runs the configuration through `lint:deps`. The configuration selects the swc parser, counts type-only imports with `tsPreCompilationDeps: true`, uses the repository tsconfig, does not follow node_modules, excludes `src/test-pack/`, and rejects unresolved imports with `not-resolvable`. The `no-circular` rule rejects cycles within `src/domain/build/`, including type-only cycles. The fixture helper uses a realpath temporary directory, clears the repository tsConfig option, and passes `validate: true` with the same forbidden rules.
 - Agreement: Accepted
-- Basis: [0065](../adr/0065-check-import-rules-with-dependency-cruiser.md) Decision, "Count type-only imports with `tsPreCompilationDeps: true` and exclude `src/test-pack/`, which sits outside the layers."; [0065](../adr/0065-check-import-rules-with-dependency-cruiser.md) Decision, "Add an unresolved-import rule so missing targets cannot evade the boundary checks."
+- Basis: [0065](../adr/0065-check-import-rules-with-dependency-cruiser.md) Decision covers type-only imports, test-pack exclusion, unresolved imports, and build-domain cycles.
 - Implementation: `package.json`; `.dependency-cruiser.cjs`; `tests/architecture.test.ts`
-- Verification: `tests/architecture.test.ts` `it.each` title "%s" exercises the named forbidden rules, including "unresolvable import", "kind names importing a type", and "test pack excluded". Not verified: current parser execution, exit status, or the ADR's expected `missing-typescript-transpiler` warning; no dependency check was run.
+- Verification: `tests/architecture.test.ts` exercises unresolved imports, type-only imports, test-pack exclusion, and the scope of cycle detection. `pnpm lint:deps` checks the repository graph.
 
 ### Feature folders and isolation
 
@@ -105,7 +105,7 @@
 - Rule: Domain shared primitives include `facing.ts` (`snapYaw`, `facePlayer`, `quarterOf`, `QUARTER_TURN`), `cells.ts`, `laidCells.ts` (`relayCells`), `sleep.ts`, `paint.ts`, `debounce.ts`, `tapToggle.ts`, `ticks.ts` (`Ticks`, `ticks`, `seconds`), and `syncedValue.ts`; application shared contains `sleepInBed.ts`, `repaint.ts`, and `ports/`. Infrastructure shared contains `identifiers.ts` (`AIR_BLOCK`, `messageKey`, `HEADLIGHT_SWITCH_TYPE`), `lightBlocks.ts`, `laidCells.ts` (`CellLayer`), `laidBlockGuard.ts`, `bedrockBedWorld.ts`, `dyes.ts` (`paintEvent`), and `switchRouter.ts`; all these paths exist. `DockBlocks` and `createTentBlocks` construct separate `CellLayer` instances, while each feature retains its own block union, IDs, saved keys and policies such as camper door behavior and `PaintVehicle`. Dock laying rejects new camp cells but keeps cells it already owns, including saved cells recovered after reload.
 - Agreement: Accepted
 - Basis: [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "`shared/` holds kind-neutral primitives and parameterized engines only."; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Each feature keeps its own owner registry, a `CellLayer` instance per feature"; [0129](../adr/0129-share-room-primitives-between-features.md) Decision, "Room laying keeps cells the vehicle already owns if a later camp answer claims them."
-- Implementation: `src/domain/shared`; `src/application/shared`; `src/infrastructure/shared`; `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/application/vehicle/paintVehicle.ts`
+- Implementation: `src/domain/shared`; `src/application/shared`; `src/infrastructure/shared`; `src/infrastructure/vehicle/bedrock/dockBlocks.ts`; `src/infrastructure/camp/bedrock/tentBlocks.ts`; `src/application/vehicle/paintVehicle.ts`
 - Verification: `tests/infrastructure/shared/laidCells.test.ts` "reports held keys from the save before the first lay, then from the laid cells in the holder's dimension only" checks saved ownership in the primitive. Not verified: that test does not establish separate feature registries, complete module placement, or the dock's camp-filter policy; those are checked here by reading code only.
 
 ### Saved paint order
@@ -248,10 +248,10 @@
 ### Infrastructure vehicle kinds
 
 - Applies to: `src/infrastructure/vehicle/`.
-- Rule: Kind-specific adapters, handlers and identifiers live in `kinds/<kind>/`. Only the root `install.ts` imports kinds from the core. Kinds may import core contracts but never another kind. The world adapter receives `DockLayer` for ownership, laying and cleanup, plus the standable-room predicate. The root installer registers saved-state readers by kind through the shared `RestoredReaders` type. Camper installation preserves handler order through callbacks.
+- Rule: Kind-specific adapters, handlers and identifiers live in `kinds/<kind>/`. Only the root `install.ts` imports kinds from the core. Kinds may import core contracts but never another kind. The root installer composes the core deck and light codecs with `CAMPER_ROOM_CODEC`. The shared `DockBlocks` layer and the camper restored reader use this codec to read saved cells. The world adapter receives `DockLayer` for ownership, laying and cleanup, plus the standable-room predicate. The root installer registers saved-state readers by kind through the shared `RestoredReaders` type. Camper installation preserves handler order through callbacks.
 - Agreement: Accepted
 - Basis: [0221](../adr/0221-organize-infrastructure-vehicle-code-by-kind.md) Decision.
-- Implementation: `.dependency-cruiser.cjs`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/dockLayer.ts`; `src/infrastructure/vehicle/bedrock/restoredReaders.ts`; `src/infrastructure/vehicle/kinds/camper/install.ts`
+- Implementation: `.dependency-cruiser.cjs`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/dockLayer.ts`; `src/infrastructure/vehicle/bedrock/dockBlocks.ts`; `src/infrastructure/vehicle/kinds/camper/dockBlocks.ts`; `src/infrastructure/vehicle/bedrock/restoredReaders.ts`; `src/infrastructure/vehicle/kinds/camper/install.ts`
 - Verification: `tests/architecture.test.ts`; `tests/infrastructure/vehicle/install.test.ts`; `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts`
 
 ### Warp form adapters

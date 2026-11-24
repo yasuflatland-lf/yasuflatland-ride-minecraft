@@ -20,6 +20,7 @@ import {
 } from "../../../src/domain/camp/tent";
 import type { TentEntry } from "../../../src/domain/camp/tentRegistry";
 import { cellKey } from "../../../src/domain/shared/cells";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
 import { BedrockTentWorld } from "../../../src/infrastructure/camp/bedrock/bedrockTentWorld";
@@ -52,7 +53,7 @@ vi.mock("@minecraft/server", () => ({
 }));
 
 const DIM = asDimensionId("minecraft:overworld");
-const POSE: TentPose = { x: 110, y: -60, z: 46, yaw: 180 };
+const POSE: TentPose = { x: 110, y: -60, z: 46, yaw: snapYaw(180) };
 const TENT = asTentId("tent");
 
 function fixture(entries: TentEntry[] = []) {
@@ -140,7 +141,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   it("folds legacy blocks through the shared refund and removal paths without clearing replacements", () => {
     fc.assert(
       fc.property(
-        fc.constantFrom(0 as const, 90 as const, 180 as const, -90 as const),
+        fc.constantFrom(...[0, 90, 180, -90].map((yaw) => snapYaw(yaw))),
         fc.array(
           fc.oneof(
             fc.string(),
@@ -251,7 +252,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   it("ejects players across the legacy box before clearing, including mattresses and tarp cells at each yaw", () => {
     fc.assert(
       fc.property(
-        fc.constantFrom(0 as const, 90 as const, 180 as const, -90 as const),
+        fc.constantFrom(...[0, 90, 180, -90].map((yaw) => snapYaw(yaw))),
         fc.integer({ min: -3, max: 3 }),
         fc.integer({ min: 0, max: 11 }),
         fc.integer({ min: 0, max: 3 }),
@@ -356,12 +357,12 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     // corner column, which no tent cell takes at depth 0..2.
     const beside = {
       ...tentCellAt(POSE, { x: 6, depth: 0, layer: 0 }),
-      yaw: 180 as const,
+      yaw: snapYaw(180),
     };
     expect(world.survey(DIM, beside).campSpace).toBe(true);
     const apart = {
       ...tentCellAt(POSE, { x: 7, depth: 0, layer: 0 }),
-      yaw: 180 as const,
+      yaw: snapYaw(180),
     };
     expect(world.survey(DIM, apart).campSpace).toBe(false);
   });
@@ -665,7 +666,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   it.each([0, 90, 180, -90] as const)(
     "moves players in every flap cell to their side at yaw %s without changing height or facing",
     (yaw) => {
-      const pose = { ...POSE, yaw };
+      const pose = { ...POSE, yaw: snapYaw(yaw) };
       for (const flap of ["front", "bedroom", "left", "right"] as const) {
         for (const cell of flapCells(pose, flap)) {
           for (const sign of [-1, 1]) {
@@ -717,7 +718,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
   }
 
   it("moves the live bedroom position farther inside instead of refusing", () => {
-    const pose = { x: 0, y: -60, z: 5, yaw: 180 as const };
+    const pose = { x: 0, y: -60, z: 5, yaw: snapYaw(180) };
     const { world, dimension, player } = fixture([{ ...ENTRY, pose }]);
     player.location = { x: 0.67, y: -60, z: 10.74 };
     dimension.getPlayers.mockImplementation((q) =>

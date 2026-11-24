@@ -1,7 +1,9 @@
+import type { ProtectedSpace } from "../../../domain/shared/cells";
+import type { Brand } from "../../../domain/shared/ids";
 import type { TopRect } from "../../../domain/shared/tableTop";
 
-/** The kinds of item a table top can hold (ADR 0185). */
-export type HostedKindId = "dutch_oven" | "gas_lantern";
+/** The owning feature assigns this ID when it registers a hosted item kind (ADR 0129). */
+export type HostedKindId = Brand<string, "HostedKindId">;
 
 /** What the shared table top rule needs to know about one kind of item. */
 export interface HostedItemKind {
@@ -9,4 +11,5 @@ export interface HostedItemKind {
   readonly footprint: TopRect;
   /** Free air cells the item needs above the table's ground cell. */
   readonly clearance: number;
+  readonly refuses?: readonly ProtectedSpace[];
 }
