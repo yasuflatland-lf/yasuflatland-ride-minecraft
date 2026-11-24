@@ -29,9 +29,9 @@ export class SyncTapTarget {
       const end =
         flow.kind === "point1"
           ? aimedEndPoint(
-              flow.cell,
+              flow.start.cell,
               aim,
-              this.blocks.heightRange(flow.dimensionId),
+              this.blocks.heightRange(flow.start.dimensionId),
             )
           : undefined;
       const cell = tapTargetCell(flow, end);

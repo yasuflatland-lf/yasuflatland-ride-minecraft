@@ -28,7 +28,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { tapAir } from "../../support/buildSelection";
+import { tapAir, tappedSelection } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -91,7 +91,10 @@ it("shares one aim sample between the preview and tap target placement", () => {
     setup();
   blocks.heightRanges.set(nether, NETHER_RANGE);
   const clampedEnd = { ...end, y: NETHER_RANGE.maxY };
-  const flow = { kind: "point1", dimensionId: nether, cell, material } as const;
+  const flow = {
+    kind: "point1",
+    start: { dimensionId: nether, cell, material },
+  } as const;
   session.setFlow(flow);
   const sample = {
     input: "touch",
@@ -125,7 +128,10 @@ it("hides an inactive player's target without reading aim", () => {
 
 it("hides a target when the marked dimension differs from the player's dimension", () => {
   const { session, preview, aim, targets } = setup();
-  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  session.setFlow({
+    kind: "point1",
+    start: { dimensionId: overworld, cell, material },
+  });
   targets.show(alex, { dimensionId: overworld, cell: end });
   aim.mockReturnValue({
     input: "touch",
@@ -139,7 +145,10 @@ it("hides a target when the marked dimension differs from the player's dimension
 
 it("draws the marker for its owner in the flow dimension on alternate redraws", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "point1", dimensionId: nether, cell, material });
+  session.setFlow({
+    kind: "point1",
+    start: { dimensionId: nether, cell, material },
+  });
   preview.execute(0);
   preview.execute(interval);
   preview.execute(2 * interval);
@@ -156,7 +165,10 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
 
 it("follows the aimed block and falls back to the air plane without changing the flow", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  session.setFlow({
+    kind: "point1",
+    start: { dimensionId: overworld, cell, material },
+  });
   const flow = session.flow;
   const hit = { x: 4, y: 70, z: 2 };
   aim.mockReturnValue({
@@ -178,7 +190,10 @@ it("follows the aimed block and falls back to the air plane without changing the
 
 it("shows a virtual end marker beyond touch reach only for pointer aim", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  session.setFlow({
+    kind: "point1",
+    start: { dimensionId: overworld, cell, material },
+  });
   for (const input of ["touch", "pointer"] as const) {
     aim.mockReturnValue({ input, ray });
     preview.execute(0);
@@ -193,9 +208,11 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   session.setFlow({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(overworld, boxOf(cell, end), material),
-    from: cell,
-    to: end,
+    ...tappedSelection(
+      selectionOf(overworld, boxOf(cell, end), material),
+      cell,
+      end,
+    ),
   });
   holdClipboard(
     session,
@@ -214,7 +231,10 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
 
 it("draws only in build mode and on the interval, and clears the preview with the selection", () => {
   const { session, preview, feedback, repo, aim } = setup(false);
-  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
+  session.setFlow({
+    kind: "point1",
+    start: { dimensionId: overworld, cell, material },
+  });
   preview.execute(0);
   expect(aim).not.toHaveBeenCalled();
   const modes = new UpdateBuildModes(
@@ -240,13 +260,11 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   session.setFlow({
     kind: "heightStep",
     heightLocked: false,
-    dimensionId: nether,
-    from: cell,
-    to: { x: 8, y: 64, z: 4 },
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
     heightedKind: "hip",
-    previous: 3,
-    material,
+    liveHeight: 3,
+    start: { dimensionId: nether, cell, material },
+    taps: { from: cell, to: { x: 8, y: 64, z: 4 } },
   });
   const flow = session.flow;
   aim.mockReturnValue({ input: "pointer", ray });
@@ -307,8 +325,14 @@ it("keeps concurrent players and their aim targets separate", () => {
   const { session, repo, preview, feedback, aim } = setup();
   const bob = asPlayerId("bob");
   const other = repo.getOrCreate(bob);
-  session.setFlow({ kind: "point1", dimensionId: overworld, cell, material });
-  other.setFlow({ kind: "point1", dimensionId: nether, cell: end, material });
+  session.setFlow({
+    kind: "point1",
+    start: { dimensionId: overworld, cell, material },
+  });
+  other.setFlow({
+    kind: "point1",
+    start: { dimensionId: nether, cell: end, material },
+  });
   const modes = new UpdateBuildModes(
     repo,
     new LeaveBuild(repo, new FakeTapTargets()),
@@ -354,18 +378,23 @@ it("reports height-step sizes only on changes and resets each player's memo on e
     width: footprint,
     depth: footprint,
     heightLocked: fc.boolean(),
-    previous: layer,
+    liveHeight: layer,
   });
   const players = [alex, asPlayerId("bob")] as const;
   const otherFlow = fc.constantFrom(
     { kind: "idle" } as const,
-    { kind: "point1", dimensionId: overworld, cell, material } as const,
+    {
+      kind: "point1",
+      start: { dimensionId: overworld, cell, material },
+    } as const,
     {
       kind: "selected",
       menuLevel: "root",
-      selection: selectionOf(overworld, boxOf(cell, end), material),
-      from: cell,
-      to: end,
+      ...tappedSelection(
+        selectionOf(overworld, boxOf(cell, end), material),
+        cell,
+        end,
+      ),
     } as const,
     { kind: "pasteAim", manualTurn: 0 } as const,
   );
@@ -404,30 +433,31 @@ it("reports height-step sizes only on changes and resets each player's memo on e
         const session = repo.getOrCreate(id);
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           session.tickMode({ holding: true });
-        const { width, depth, heightedKind, previous, heightLocked } =
+        const { width, depth, heightedKind, liveHeight, heightLocked } =
           shapes.get(id) ?? initial;
         session.setFlow({
           kind: "heightStep",
           heightedKind,
-          previous,
+          liveHeight,
           heightLocked,
-          material,
-          dimensionId: overworld,
-          from: cell,
-          to: { ...cell, x: cell.x + width - 1, z: cell.z + depth - 1 },
           base: boxOf(cell, {
             ...cell,
             x: cell.x + width - 1,
             z: cell.z + depth - 1,
           }),
+          start: { dimensionId: overworld, cell, material },
+          taps: {
+            from: cell,
+            to: { ...cell, x: cell.x + width - 1, z: cell.z + depth - 1 },
+          },
         });
       }
       function recordExpectedSize(id: PlayerId) {
-        const { width, depth, heightLocked, previous } =
+        const { width, depth, heightLocked, liveHeight } =
           shapes.get(id) ?? initial;
         const size = {
           x: width,
-          y: heightLocked ? previous : (layers.get(id) ?? previous),
+          y: heightLocked ? liveHeight : (layers.get(id) ?? liveHeight),
           z: depth,
         };
         const last = previousSizes.get(id);
@@ -472,13 +502,11 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
   session.setFlow({
     kind: "heightStep",
     heightLocked: true,
-    dimensionId: overworld,
-    from: cell,
-    to: { x: 8, y: 64, z: 4 },
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
     heightedKind: "cylinder",
-    previous: 12,
-    material,
+    liveHeight: 12,
+    start: { dimensionId: overworld, cell, material },
+    taps: { from: cell, to: { x: 8, y: 64, z: 4 } },
   });
   preview.execute(0);
   aim.mockReturnValue({ input: "pointer", ray });
@@ -524,24 +552,27 @@ it("never shows paste hints in other flows or outside build mode", () => {
   );
   for (const flow of [
     { kind: "idle" } as const,
-    { kind: "point1", dimensionId: overworld, cell, material } as const,
+    {
+      kind: "point1",
+      start: { dimensionId: overworld, cell, material },
+    } as const,
     {
       kind: "selected",
       menuLevel: "root",
-      selection: selectionOf(overworld, boxOf(cell, end), material),
-      from: cell,
-      to: end,
+      ...tappedSelection(
+        selectionOf(overworld, boxOf(cell, end), material),
+        cell,
+        end,
+      ),
     } as const,
     {
       kind: "heightStep",
-      dimensionId: overworld,
-      from: cell,
-      to: end,
       base: boxOf(cell, end),
       heightedKind: "cube",
-      previous: 3,
+      liveHeight: 3,
       heightLocked: false,
-      material,
+      start: { dimensionId: overworld, cell, material },
+      taps: { from: cell, to: end },
     } as const,
   ]) {
     session.setFlow(flow);
@@ -780,7 +811,10 @@ it("redraws the live selection outline and retains its last height for a vertica
   const to = { x: 4, y: 64, z: 4 };
   session.setFlow(
     tapAir(
-      { kind: "point1", dimensionId: overworld, cell: from, material },
+      {
+        kind: "point1",
+        start: { dimensionId: overworld, cell: from, material },
+      },
       to,
     ),
   );
@@ -804,7 +838,7 @@ it("redraws the live selection outline and retains its last height for a vertica
   expect(
     feedback.previews.map(({ set }) => Math.max(...set.shape.map((p) => p.y))),
   ).toEqual([64.5, 67.5, 67.5]);
-  expect(session.flow).toMatchObject({ kind: "baseHeight", previous: 4 });
+  expect(session.flow).toMatchObject({ kind: "baseHeight", liveHeight: 4 });
 });
 
 it("redraws faster while the gaze sets the height and at the usual pace otherwise", () => {
@@ -818,7 +852,10 @@ it("redraws faster while the gaze sets the height and at the usual pace otherwis
   });
   session.setFlow(
     tapAir(
-      { kind: "point1", dimensionId: overworld, cell: from, material },
+      {
+        kind: "point1",
+        start: { dimensionId: overworld, cell: from, material },
+      },
       to,
     ),
   );
@@ -832,9 +869,7 @@ it("redraws faster while the gaze sets the height and at the usual pace otherwis
   feedback.previews.length = 0;
   session.setFlow({
     kind: "point1",
-    dimensionId: overworld,
-    cell: from,
-    material,
+    start: { dimensionId: overworld, cell: from, material },
   });
   preview.execute(live);
   expect(feedback.previews).toHaveLength(0);
@@ -848,7 +883,10 @@ it("shows the live size while aiming the base height, once per change", () => {
   const to = { x: 4, y: 64, z: 2 };
   session.setFlow(
     tapAir(
-      { kind: "point1", dimensionId: overworld, cell: from, material },
+      {
+        kind: "point1",
+        start: { dimensionId: overworld, cell: from, material },
+      },
       to,
     ),
   );
@@ -868,11 +906,11 @@ it("shows the live size while aiming the base height, once per change", () => {
 it("redraws the rotated outline and tap markers on the next outline tick", () => {
   const { repo, feedback, session, preview } = setup();
   const base = tapAir(
-    { kind: "point1", dimensionId: nether, cell, material },
+    { kind: "point1", start: { dimensionId: nether, cell, material } },
     end,
   );
   if (base.kind !== "baseHeight") throw new Error("Expected baseHeight");
-  session.setFlow({ ...base, previous: 7 });
+  session.setFlow({ ...base, liveHeight: 7 });
   preview.execute(0);
   const world = new FakeWorld();
   const core = new RotateBox(
@@ -895,9 +933,11 @@ it("redraws the rotated outline and tap markers on the next outline tick", () =>
       {
         kind: "selected",
         menuLevel: "root",
-        from: turned.min,
-        to: turned.max,
-        selection: selectionOf(nether, turned, material),
+        ...tappedSelection(
+          selectionOf(nether, turned, material),
+          turned.min,
+          turned.max,
+        ),
       },
       { blink: false },
     ),

@@ -25,17 +25,18 @@ export class ConfirmHeighted {
     const flow = session.flow;
     if (
       flow.kind !== "heightStep" ||
-      !Number.isInteger(flow.previous) ||
-      flow.previous < 1 ||
+      !Number.isInteger(flow.liveHeight) ||
+      flow.liveHeight < 1 ||
       !fillStylesFor(flow.heightedKind).includes(cmd.fill)
     ) {
       this.feedback.showMessage(cmd.playerId, "noSelection");
       return;
     }
+    const { dimensionId, material } = flow.start;
     const spec = {
       base: flow.base,
       kind: flow.heightedKind,
-      height: flow.previous,
+      height: flow.liveHeight,
       roofStyle: flow.roofStyle,
     };
     const count = placementOf(spec.kind).count(spec, cmd.fill);
@@ -43,19 +44,15 @@ export class ConfirmHeighted {
       flow.selectionBefore ??
       (flow.heightLocked ? heightStepBox(flow) : flow.base);
     const stair =
-      spec.roofStyle === "stair" ? stairMaterialOf(flow.material) : undefined;
+      spec.roofStyle === "stair" ? stairMaterialOf(material) : undefined;
     const pattern =
       stair && isRoofKind(spec.kind)
         ? stairRoofPattern({ ...spec, kind: spec.kind, style: "stair" }, stair)
-        : uniformPattern(flow.material);
+        : uniformPattern(material);
     // Finding the bounds of a curved solid scans its cells, so wait for the volume and busy checks.
     let selection: Selection | undefined;
     const selectedBounds = () =>
-      (selection ??= selectionOf(
-        flow.dimensionId,
-        boundingBox(spec),
-        flow.material,
-      ));
+      (selection ??= selectionOf(dimensionId, boundingBox(spec), material));
     startUndoableBuild(
       { feedback: this.feedback, jobs: this.jobs },
       {
@@ -64,7 +61,7 @@ export class ConfirmHeighted {
         count,
         plan: planHeighted(spec, cmd.fill, pattern),
         selectionBefore,
-        selectionBeforeTaps: { from: flow.from, to: flow.to },
+        selectionBeforeTaps: flow.taps,
         get after() {
           return selectedBounds();
         },

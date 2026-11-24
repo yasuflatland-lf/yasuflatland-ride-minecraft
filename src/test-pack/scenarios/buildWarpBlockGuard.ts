@@ -77,8 +77,8 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
       kind: "selected",
       menuLevel: "root",
       selection,
-      from: source.min,
-      to: source.max,
+      start: { dimensionId, cell: source.min, material: selection.material },
+      taps: { from: source.min, to: source.max },
     });
     check(
       "rotate_refused",

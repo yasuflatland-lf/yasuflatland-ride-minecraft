@@ -2,7 +2,7 @@ import { aimedEndPoint } from "../../domain/build/aim/endPoint";
 import { aimedHeight } from "../../domain/build/aim/height";
 import { sizeOf } from "../../domain/build/box";
 import { liveHeightBox } from "../../domain/build/flow/heightFlow";
-import type { BuildFlow } from "../../domain/build/flow/state";
+import { type BuildFlow, dimensionOf } from "../../domain/build/flow/state";
 import {
   type PreviewAim,
   previewPoints,
@@ -115,9 +115,9 @@ export class ShowPreview {
     const preview: PreviewAim = { blink };
     if (flow.kind === "point1" && aim)
       preview.end = aimedEndPoint(
-        flow.cell,
+        flow.start.cell,
         aim,
-        this.blocks.heightRange(flow.dimensionId),
+        this.blocks.heightRange(flow.start.dimensionId),
       );
     if (flow.kind === "heightStep") {
       preview.height =
@@ -125,9 +125,9 @@ export class ShowPreview {
           ? aimedHeight(
               flow,
               aim.ray,
-              this.blocks.heightRange(flow.dimensionId),
+              this.blocks.heightRange(flow.start.dimensionId),
             )
-          : flow.previous;
+          : flow.liveHeight;
       this.reportSize(id, volumeSize(flow.base, preview.height), false);
     }
     if (flow.kind === "baseHeight")
@@ -144,12 +144,7 @@ export class ShowPreview {
       flow.kind === "pasteAim" || aim?.input === "touch"
         ? this.aimReader.dimensionOf(id)
         : undefined;
-    const markerDimension =
-      "selection" in flow
-        ? flow.selection.dimensionId
-        : "dimensionId" in flow
-          ? flow.dimensionId
-          : playerDimension;
+    const markerDimension = dimensionOf(flow) ?? playerDimension;
     this.syncTapTarget.execute({
       playerId: id,
       inBuildMode: true,
