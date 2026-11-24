@@ -216,10 +216,8 @@ it("puts the logged Up-face press on the stove top and a saucepan on its burner,
       pose,
       decorItemId("saucepan"),
       [],
-      stoveCell,
-      point,
-      false,
-      loggedEye,
+      { cell: stoveCell, point, eye: loggedEye },
+      "nearestFree",
     )?.id,
   ).toBe("stove");
   // The reported y alone puts the point 0.875 below the top; with four burners that picked
@@ -230,10 +228,8 @@ it("puts the logged Up-face press on the stove top and a saucepan on its burner,
       pose,
       decorItemId("saucepan"),
       [],
-      stoveCell,
-      raw,
-      false,
-      loggedEye,
+      { cell: stoveCell, point: raw, eye: loggedEye },
+      "nearestFree",
     )?.id,
   ).toBe("stove");
 });
@@ -247,10 +243,8 @@ it("puts the logged west-face press on the stove on its burner (#434, ADR 0111, 
       pose,
       decorItemId("saucepan"),
       [],
-      stoveCell,
-      point,
-      false,
-      loggedEye,
+      { cell: stoveCell, point, eye: loggedEye },
+      "nearestFree",
     )?.id,
   ).toBe("stove");
 });
@@ -266,7 +260,13 @@ it("puts the logged Up-face presses on the table top and the floor top (#434, AD
   );
   expect(onTable.y).toBe(-59 + 0.75);
   expect(
-    slotForPress(pose, decorItemId("saucepan"), [], table, onTable, false)?.id,
+    slotForPress(
+      pose,
+      decorItemId("saucepan"),
+      [],
+      { cell: table, point: onTable },
+      "nearestFree",
+    )?.id,
   ).toBe("table_aisle");
   const floor = { x: 320, y: -60, z: -520 };
   const onFloor = pressAt(
@@ -303,10 +303,8 @@ it("puts a saucepan on the stove's burner for any Up-face press on it, from any 
             pose,
             decorItemId("saucepan"),
             [],
-            stoveCell,
-            point,
-            false,
-            eye,
+            { cell: stoveCell, point, eye },
+            "nearestFree",
           ),
         ).toBe(stove);
       },

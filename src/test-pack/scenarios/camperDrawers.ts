@@ -146,7 +146,11 @@ function fixture(
   };
   const place = (which: "top" | "bottom", item: string) => {
     if (!isDecorItem(item)) throw new Error(`Invalid fixture item ${item}`);
-    const slot = room.decor.decorSlotFor(item, point(which), cell, false);
+    const slot = room.decor.decorSlotFor(
+      item,
+      { cell, point: point(which) },
+      "nearestFree",
+    );
     return slot !== undefined && room.decor.placeDecor(slot, item);
   };
   const itemCode = (which: "top" | "bottom") =>
