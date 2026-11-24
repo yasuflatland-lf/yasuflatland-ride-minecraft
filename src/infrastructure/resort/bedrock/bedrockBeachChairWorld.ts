@@ -16,14 +16,8 @@ import {
 import { beachChairExit } from "../../../domain/resort/beachChairExit";
 import { asBeachChairId, type BeachChairId } from "../../../domain/resort/ids";
 import { BEACH_CHAIR_SPEC } from "../../../domain/resort/spec";
-import { cellCenter } from "../../../domain/shared/cells";
 import { snapYaw4 } from "../../../domain/shared/facing";
-import {
-  asDimensionId,
-  asPlayerId,
-  type DimensionId,
-  type PlayerId,
-} from "../../../domain/shared/ids";
+import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import {
   gearEntities,
   gearFeedback,
@@ -35,7 +29,7 @@ import {
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { NAMESPACE } from "../../shared/identifiers";
 import { playerById } from "../../shared/players";
-import { makeSafeStand, seatRider } from "../../shared/seating";
+import { playerRiderOf, seatPlayer, standBeside } from "../../shared/seating";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   BEACH_CHAIR,
@@ -106,23 +100,15 @@ export class BedrockBeachChairWorld
     );
   }
   riderOf(id: BeachChairId): PlayerId | undefined {
-    const rider = this.entity(id)
-      ?.getComponent("minecraft:rideable")
-      ?.getRiders()
-      .find((entity) => entity.typeId === "minecraft:player");
-    return rider ? asPlayerId(rider.id) : undefined;
+    return playerRiderOf(this.entity(id));
   }
   seat(id: BeachChairId, playerId: PlayerId): boolean {
-    const chair = this.entity(id);
-    const player = playerById(playerId);
-    if (!chair || !player?.isValid || player.getComponent("minecraft:riding"))
-      return false;
-    try {
-      return seatRider(chair, player, BEACH_CHAIR_SPEC.seatOffset);
-    } catch (error) {
-      console.warn(`[${NAMESPACE}] beach chair seating failed: ${error}`);
-      return false;
-    }
+    return seatPlayer(
+      this.entity(id),
+      playerId,
+      BEACH_CHAIR_SPEC.seatOffset,
+      "beach chair",
+    );
   }
   playLounge(playerId: PlayerId): void {
     try {
@@ -136,26 +122,17 @@ export class BedrockBeachChairWorld
   }
   placeBeside(id: BeachChairId, playerId: PlayerId): void {
     const chair = this.entity(id);
-    const player = playerById(playerId);
-    // Do not pull a player out of a new ride or back after a dimension change.
-    if (
-      !chair ||
-      !player?.isValid ||
-      player.dimension.id !== chair.dimension.id ||
-      player.getComponent("minecraft:riding")
-    )
-      return;
-    const dimension = chair.dimension;
-    const dimensionId = asDimensionId(dimension.id);
-    const isSafe = makeSafeStand({
-      isVehicleSpace: (cell) => this.deps.isVehicleSpace(dimensionId, cell),
-      isCampSpace: (cell) => this.deps.isCampSpace(dimensionId, cell),
-    });
-    const feet = beachChairExit(
-      beachChairPoseAt(chair.location, snapYaw4(chair.getRotation().y)),
-      (cell) => isSafe(dimension, cell),
-    );
-    if (feet) player.teleport(cellCenter(feet), { dimension });
+    if (chair)
+      standBeside(
+        playerId,
+        chair,
+        (isSafe) =>
+          beachChairExit(
+            beachChairPoseAt(chair.location, snapYaw4(chair.getRotation().y)),
+            isSafe,
+          ),
+        this.deps,
+      );
   }
   resortGearCells = resortGearCells;
   spawn(
