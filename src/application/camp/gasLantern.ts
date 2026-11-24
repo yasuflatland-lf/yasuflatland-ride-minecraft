@@ -3,6 +3,7 @@ import {
   type GasLanternId,
 } from "../../domain/camp/gasLantern";
 import { GAS_LANTERN_SPEC } from "../../domain/camp/spec";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
@@ -53,7 +54,7 @@ export class GasLanternActions extends HostedOnTopActions {
     super(world, onTop);
   }
 
-  canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
+  canUseBlock(dimension: DimensionId, block: Vec3, face: BlockFace): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
   }
 

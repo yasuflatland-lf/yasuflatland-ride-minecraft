@@ -22,6 +22,7 @@ import {
   BEACH_CHAIR_SPEC,
   PARASOL_SPEC,
 } from "../../../src/domain/resort/spec";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
@@ -227,7 +228,14 @@ it("accepts exactly the up face of a block that is not own", () => {
   fc.assert(
     fc.property(
       position,
-      fc.oneof(fc.constant("up"), fc.string()),
+      fc.constantFrom<BlockFace>(
+        "up",
+        "down",
+        "north",
+        "south",
+        "east",
+        "west",
+      ),
       fc.boolean(),
       (block, face, own) => {
         const { world, own: cells } = fixture();

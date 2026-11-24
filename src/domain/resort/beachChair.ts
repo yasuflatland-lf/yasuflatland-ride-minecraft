@@ -1,5 +1,12 @@
 import { type Cell, cellCenter, cellOf } from "../shared/cells";
 import { type Facing4, snapYaw4 } from "../shared/facing";
+import {
+  footprintCellsAt,
+  footprintClearCells,
+  footprintOffsets,
+  footprintOrigin,
+  footprintSupportCells,
+} from "../shared/gearFootprint";
 import { forward, type Vec3 } from "../shared/vec";
 import { BEACH_CHAIR_SPEC } from "./spec";
 
@@ -15,21 +22,18 @@ export interface BeachChairPose {
   readonly yaw: Facing4;
 }
 
-/** The unit step of a quarter-turn yaw, as exact integers. */
-function quarterStep(yaw: Facing4): { x: number; z: number } {
-  const f = forward(yaw);
-  return { x: Math.round(f.x), z: Math.round(f.z) };
+function chairOffsets(yaw: Facing4) {
+  return footprintOffsets(BEACH_CHAIR_SPEC.cells, forward(yaw + 180));
 }
 
-/** The pose whose middle cell is `middle`, the foot one step along `yaw`'s forward. */
-function poseAround(middle: Cell, yaw: Facing4): BeachChairPose {
-  const toFoot = quarterStep(yaw);
-  const step = (sign: number): Cell => ({
-    x: middle.x + sign * toFoot.x,
-    y: middle.y,
-    z: middle.z + sign * toFoot.z,
-  });
-  return { foot: step(1), middle, head: step(-1), yaw };
+function chairPoseFromCells(
+  cells: readonly Cell[],
+  yaw: Facing4,
+): BeachChairPose {
+  const [foot, middle, head] = cells;
+  if (!foot || !middle || !head)
+    throw new Error("Beach Chair requires three floor cells");
+  return { foot, middle, head, yaw };
 }
 
 /** `pressed` is the block whose top face was used; the chair lies along the player's facing. */
@@ -38,9 +42,9 @@ export function beachChairPose(
   playerYaw: number,
 ): BeachChairPose {
   const yaw = snapYaw4(playerYaw + 180);
-  const toFoot = quarterStep(yaw);
-  return poseAround(
-    { x: pressed.x - toFoot.x, y: pressed.y + 1, z: pressed.z - toFoot.z },
+  const offsets = chairOffsets(yaw);
+  return chairPoseFromCells(
+    footprintCellsAt(footprintOrigin(pressed, offsets), offsets),
     yaw,
   );
 }
@@ -48,7 +52,11 @@ export function beachChairPose(
 /** Rebuilds the pose of a placed chair from its origin and facing. */
 export function beachChairPoseAt(origin: Vec3, yaw: Facing4): BeachChairPose {
   // The origin sits on the floor at the middle cell's centre; half a block up keeps it inside that cell.
-  return poseAround(cellOf({ ...origin, y: origin.y + 0.5 }), yaw);
+  const middle = cellOf({ ...origin, y: origin.y + 0.5 });
+  return chairPoseFromCells(
+    footprintCellsAt(cellCenter(middle), chairOffsets(yaw)),
+    yaw,
+  );
 }
 
 /** The centre of the middle cell, at floor height. */
@@ -64,20 +72,13 @@ export function beachChairCells(
 }
 
 /** The cells below the chair, whose top faces must be solid, from the foot to the head. */
-export function beachChairSupportCells(
-  pose: BeachChairPose,
-): readonly [Cell, Cell, Cell] {
-  const below = (c: Cell): Cell => ({ x: c.x, y: c.y - 1, z: c.z });
-  return [below(pose.foot), below(pose.middle), below(pose.head)];
+export function beachChairSupportCells(pose: BeachChairPose): Cell[] {
+  return footprintSupportCells(beachChairCells(pose));
 }
 
 /** The floor cells and `headroom - 1` layers above them. All must be air and outside vehicle and camp space. */
 export function beachChairClearCells(pose: BeachChairPose): Cell[] {
-  const cells: Cell[] = [];
-  for (let up = 0; up < BEACH_CHAIR_SPEC.headroom; up++)
-    for (const c of beachChairCells(pose))
-      cells.push({ x: c.x, y: c.y + up, z: c.z });
-  return cells;
+  return footprintClearCells(beachChairCells(pose), BEACH_CHAIR_SPEC.headroom);
 }
 
 export type ChairForm = "chair" | "table";

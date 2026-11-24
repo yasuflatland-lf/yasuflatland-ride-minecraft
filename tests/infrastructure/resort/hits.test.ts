@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
-import { PaintParasol } from "../../../src/application/resort/paintParasol";
 import { TakeBackParasol } from "../../../src/application/resort/takeBackParasol";
 import { Repaint } from "../../../src/application/shared/repaint";
+import type { ParasolId } from "../../../src/domain/resort/ids";
 import { registerParasolHits } from "../../../src/infrastructure/resort/bedrock/handlers/hits";
 import { BEACH_PARASOL } from "../../../src/infrastructure/resort/identifiers";
 
@@ -50,16 +50,14 @@ it("does not count dye hits toward recovery and gates a second swing in the tick
     showTaken: vi.fn(),
     showHitsLeft: vi.fn(),
   } as never);
-  const paint = new PaintParasol(
-    new Repaint({
-      paintOf: () => "white",
-      defaultPaintOf: () => "white",
-      setPaint,
-      consumeDye: vi.fn(),
-      playPaintSound: vi.fn(),
-      isCreative: () => false,
-    }),
-  );
+  const paint = new Repaint<ParasolId>({
+    paintOf: () => "white",
+    defaultPaintOf: () => "white",
+    setPaint,
+    consumeDye: vi.fn(),
+    playPaintSound: vi.fn(),
+    isCreative: () => false,
+  });
   registerParasolHits(takeBack, paint);
   const hit = () =>
     game.hit?.({

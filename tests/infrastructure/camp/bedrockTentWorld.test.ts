@@ -915,7 +915,7 @@ describe("BedrockTentWorld (ADR 0131)", () => {
     const { container, world } = fixture();
     const id = asPlayerId("player");
     container.getItem.mockReturnValueOnce({ typeId: TENT_ITEM, amount: 2 });
-    expect(world.consumeTentItem(id, 3)).toBe(true);
+    expect(world.consumeItem(id, 3)).toBe(true);
     expect(container.getItem).toHaveBeenLastCalledWith(3);
     expect(container.setItem).toHaveBeenLastCalledWith(3, {
       typeId: TENT_ITEM,
@@ -925,16 +925,16 @@ describe("BedrockTentWorld (ADR 0131)", () => {
       typeId: "minecraft:stone",
       amount: 1,
     });
-    expect(world.consumeTentItem(id, 3)).toBe(false);
-    world.giveTentItem(id);
+    expect(world.consumeItem(id, 3)).toBe(false);
+    world.refund(id, 3);
     expect(container.addItem).toHaveBeenCalledExactlyOnceWith({
       typeId: TENT_ITEM,
       amount: 1,
     });
     // The tent entity is no player, and a missing entity is none either.
     for (const notPlayer of [asPlayerId(TENT), asPlayerId("gone")]) {
-      expect(world.consumeTentItem(notPlayer, 0)).toBe(false);
-      world.giveTentItem(notPlayer);
+      expect(world.consumeItem(notPlayer, 0)).toBe(false);
+      world.refund(notPlayer, 0);
     }
     expect(container.addItem).toHaveBeenCalledTimes(1);
     expect(container.getItem).toHaveBeenCalledTimes(2);

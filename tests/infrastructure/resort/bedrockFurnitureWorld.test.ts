@@ -190,14 +190,14 @@ describe.each(Object.keys(FURNITURE_IDS) as FurnitureKind[])("%s", (kind) => {
       entityId === player ? receiver : f.entity,
     );
     game.consumeHeld.mockReturnValue(true);
-    expect(f.adapter.consumeItem(player, kind, 2)).toBe(true);
+    expect(f.adapter.paymentFor(kind).consumeItem(player, 2)).toBe(true);
     expect(game.consumeHeld).toHaveBeenCalledExactlyOnceWith(
       receiver,
       FURNITURE_IDS[kind].item,
       2,
     );
     f.adapter.dropItem(id, player);
-    f.adapter.refund(player, kind, 2);
+    f.adapter.paymentFor(kind).refund(player, 2);
     expect(game.giveOrDrop).toHaveBeenCalledTimes(2);
     expect(game.giveOrDrop).toHaveBeenCalledWith(receiver, [
       { typeId: FURNITURE_IDS[kind].item, amount: 1 },
