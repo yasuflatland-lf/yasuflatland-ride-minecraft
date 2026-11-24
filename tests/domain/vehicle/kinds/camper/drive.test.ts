@@ -6,9 +6,8 @@ import { parkPose } from "../../../../../src/domain/vehicle/kinds/camper/parkPos
 import { AIR } from "../../../../../src/domain/vehicle/kinds/camper/roomGeometry";
 import { CAMPER_SAVED } from "../../../../../src/domain/vehicle/kinds/camper/saved";
 import {
-  CAMPER_AIR,
   CAMPER_SPEC,
-  CAMPER_WATER,
+  CAMPER_TRANSFORMING,
 } from "../../../../../src/domain/vehicle/kinds/camper/spec";
 import { MOTION } from "../../../../../src/domain/vehicle/motion/constants";
 import { dockedCommand } from "../../../../../src/domain/vehicle/motion/dockEntity";
@@ -72,8 +71,8 @@ it("keeps speed at zero when the front is against a four-block wall", () => {
 });
 
 it.each([
-  ["hover", CAMPER_AIR],
-  ["submarine", CAMPER_WATER],
+  ["hover", CAMPER_TRANSFORMING.air],
+  ["submarine", CAMPER_TRANSFORMING.water],
 ] as const)(
   "respects the camper's %s speed limit and compensates for its medium drag",
   (form, medium) => {

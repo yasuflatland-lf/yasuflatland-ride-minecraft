@@ -7,11 +7,11 @@ import type {
 } from "../../../../../src/domain/vehicle/dock/floor";
 import {
   DECK,
-  DECK_DRAFT,
   type DeckPart,
   floorCells,
   holdHeight,
 } from "../../../../../src/domain/vehicle/kinds/sportsboat/deck";
+import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsboat/spec";
 
 function deckHeight(cell: DockCell): number {
   if (cell.block.type !== "deck") throw new Error("Expected a deck cell");
@@ -218,7 +218,9 @@ describe("holdHeight (ADR 0063)", () => {
           expect(height).toBe(
             first === -1
               ? undefined
-              : Math.floor(feetY + (offsets[first] as number)) + 1 - DECK_DRAFT,
+              : Math.floor(feetY + (offsets[first] as number)) +
+                  1 -
+                  SPORTSBOAT_SPEC.deckDraft,
           );
         },
       ),

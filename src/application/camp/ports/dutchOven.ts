@@ -1,6 +1,6 @@
 import type { DutchOvenId } from "../../../domain/camp/dutchOven";
 import type { FirePitId } from "../../../domain/camp/firePit";
-import type { DimensionId } from "../../../domain/shared/ids";
+import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { TopHostWorld } from "../../shared/placeOnTop";
 import type { HitsLeftFeedback } from "../../shared/ports/hitsLeft";
@@ -26,6 +26,6 @@ export interface DutchOvenWorld extends HitsLeftFeedback, TopHostWorld {
   loadedFirePits(): readonly FirePitId[];
   hostExists(id: string): boolean;
   isHostAreaLoaded(id: DutchOvenId): boolean;
-  dropItem(id: DutchOvenId): void;
+  dropItem(id: DutchOvenId, hitter?: PlayerId): void;
   removeDutchOven(id: DutchOvenId): void;
 }

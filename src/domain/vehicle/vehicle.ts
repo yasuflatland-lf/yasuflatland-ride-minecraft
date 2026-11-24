@@ -166,7 +166,7 @@ export class Vehicle {
   private readonly toolCooldown = new Debounce(SPEC.toolSwitchCooldown);
   private readonly hitCounters = new HitCounters<PlayerId>(TAKE_BACK_RULE);
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
-  private docked = false;
+  private held = false;
   private driverSeatFree = true;
   /** The held vehicle's wheel deck seat rider when the profile enables headlights there (ADR 0149). */
   private deckDriverId: PlayerId | undefined;
@@ -244,7 +244,7 @@ export class Vehicle {
       kind: this.kind,
       offset,
       yaw: this.drive.yaw,
-      docked: this.docked,
+      isHeld: this.held,
       driverSeatFree: this.driverSeatFree,
       hasRiders: this.crew.occupied,
       dyeable: isDyeable(this.profile.paintPolicy),
@@ -317,9 +317,9 @@ export class Vehicle {
       deckSeatInputs,
     });
     const monitor = this.monitorCommands(held?.tool);
-    this.docked = step.dock !== undefined;
+    this.held = step.dock !== undefined;
     this.deckDriverId =
-      this.docked && this.profile.deckSeatDriverHeadlights
+      this.held && this.profile.deckSeatDriverHeadlights
         ? deckSeatRiders?.[DRIVER_SEAT]
         : undefined;
     const seatLayout = this.crew.layout(
@@ -417,7 +417,7 @@ export class Vehicle {
     const maxLift = hold
       ? Math.min(
           rule.maxLift ?? 0,
-          rule.parkedMaxLift ?? Number.POSITIVE_INFINITY,
+          rule.heldMaxLift ?? Number.POSITIVE_INFINITY,
         )
       : (rule.maxLift ?? 0);
     if (maxLift <= 0) return pose;

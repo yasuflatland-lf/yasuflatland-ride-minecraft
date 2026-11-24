@@ -1,5 +1,6 @@
 import type { Entity } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { HostedKindId } from "../../../src/application/shared/ports/hostedItem";
 import {
   TopHostRegistry,
   type TopHostType,
@@ -70,7 +71,7 @@ it("scans registered kinds and matches both the host type and id, including lega
   });
   const footprint = { halfX: 2, halfZ: 3 };
   registry.registerHosted({
-    kind: "gas_lantern",
+    kind: "test_item" as HostedKindId,
     entityTypeId: "test:item",
     hostProperty: "test:host",
     footprint,

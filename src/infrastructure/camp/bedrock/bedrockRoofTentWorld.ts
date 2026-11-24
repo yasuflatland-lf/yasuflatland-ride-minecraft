@@ -1,4 +1,4 @@
-import { type Entity, ItemStack, world } from "@minecraft/server";
+import { type Entity, world } from "@minecraft/server";
 import type { RoofTentWorld } from "../../../application/camp/ports/roofTent";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import { asRoofTentId, type RoofTentId } from "../../../domain/camp/ids";
@@ -6,6 +6,7 @@ import type {
   RoofTentPlan,
   RoofTentRefusal,
 } from "../../../domain/camp/roofTent/placement";
+import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import { cellCenter } from "../../../domain/shared/cells";
 import { CLEARABLE_DECORATIONS } from "../../../domain/shared/decorations";
 import { decodeHost, encodeHost } from "../../../domain/shared/hosted";
@@ -18,10 +19,10 @@ import { PAINTS, type Paint } from "../../../domain/shared/paint";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { dyeOf, paintEvent, playPaintSound } from "../../shared/dyes";
 import { entityOfType } from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { id } from "../../shared/identifiers";
 import {
   consumeHeld,
-  giveOrDrop,
   isCreative,
   playerById,
   showActionBar,
@@ -117,13 +118,10 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
     return decodeHost(typeof value === "string" ? value : "");
   }
   returnItem(id: RoofTentId, ownerId: PlayerId | undefined): void {
-    const player = ownerId === undefined ? undefined : playerById(ownerId);
-    const item = new ItemStack(ROOF_TENT_ITEM, 1);
-    if (player?.isValid) giveOrDrop(player, [item]);
-    else {
-      const tent = roofTentEntity(id);
-      tent?.dimension.spawnItem(item, tent.location);
-    }
+    const player = giveBackReceiver(ROOF_TENT_SPEC.giveBack, ownerId);
+    const receiver = player?.isValid ? player : undefined;
+    const target = receiver ?? roofTentEntity(id);
+    if (target) giveBack(target, ROOF_TENT_ITEM, receiver);
   }
   groundFree(dimensionId: DimensionId, cell: Vec3): boolean {
     try {
@@ -171,7 +169,7 @@ export class BedrockRoofTentWorld implements RoofTentWorld {
   }
   giveItem(id: PlayerId): void {
     const player = playerById(id);
-    if (player?.isValid) giveOrDrop(player, [new ItemStack(ROOF_TENT_ITEM, 1)]);
+    if (player?.isValid) giveBack(player, ROOF_TENT_ITEM, player);
   }
   showHitsLeft(id: PlayerId, hitsLeft: number): void {
     showHitsLeftHint(id, TENT_HITS_LEFT_HINT, hitsLeft);

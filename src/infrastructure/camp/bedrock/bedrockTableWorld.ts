@@ -1,9 +1,11 @@
-import { ItemStack, world } from "@minecraft/server";
+import { world } from "@minecraft/server";
 import type { TableWorld } from "../../../application/camp/ports/table";
+import { TABLE_SPEC } from "../../../domain/camp/spec";
 import { asTableId, type TableId } from "../../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showActionBar, showHitsLeftHint } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
@@ -68,12 +70,14 @@ export class BedrockTableWorld
     });
   }
 
-  dropItem(tableId: TableId): void {
+  dropItem(tableId: TableId, hitter?: PlayerId): void {
     const table = tableOf(tableId);
-    table?.dimension.spawnItem(
-      new ItemStack(CAMP_TABLE_ITEM, 1),
-      table.location,
-    );
+    if (table)
+      giveBack(
+        table,
+        CAMP_TABLE_ITEM,
+        giveBackReceiver(TABLE_SPEC.giveBack, hitter),
+      );
   }
 
   removeTable(tableId: TableId): void {

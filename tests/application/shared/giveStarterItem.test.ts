@@ -24,37 +24,42 @@ class FakeWorld implements StarterItemWorld {
 }
 const player = asPlayerId("p");
 
-describe("GiveStarterItem (ADR 0200)", () => {
-  it("gives each player once on their first Survival join across any join sequence", () => {
-    fc.assert(
-      fc.property(
-        fc.array(
-          fc.record({
-            id: fc.constantFrom("a", "b", "c"),
-            creative: fc.boolean(),
-          }),
-          { maxLength: 50 },
+describe("GiveStarterItem (ADRs 0023 and 0200)", () => {
+  it.each([undefined, { skipCreative: true }, { skipCreative: false }])(
+    "gives each player once on their first eligible join (options: %j)",
+    (options) => {
+      fc.assert(
+        fc.property(
+          fc.array(
+            fc.record({
+              id: fc.constantFrom("a", "b", "c"),
+              creative: fc.boolean(),
+            }),
+            { maxLength: 50 },
+          ),
+          (joins) => {
+            const world = new FakeWorld();
+            const starter = new GiveStarterItem(world, options);
+            const expected = new Set<string>();
+            for (const join of joins) {
+              const id = asPlayerId(join.id);
+              if (join.creative) world.creative.add(id);
+              else world.creative.delete(id);
+              const eligible =
+                !join.creative || options?.skipCreative === false;
+              const shouldGive = eligible && !expected.has(id);
+              expect(starter.execute(id)).toBe(shouldGive);
+              if (shouldGive) expected.add(id);
+              expect([...world.flags]).toEqual([...expected]);
+            }
+            expect(world.calls).toEqual(
+              [...expected].flatMap((id) => [`give:${id}`, `mark:${id}`]),
+            );
+          },
         ),
-        (joins) => {
-          const world = new FakeWorld();
-          const starter = new GiveStarterItem(world);
-          const expected = new Set<string>();
-          for (const join of joins) {
-            const id = asPlayerId(join.id);
-            if (join.creative) world.creative.add(id);
-            else world.creative.delete(id);
-            const shouldGive = !join.creative && !expected.has(id);
-            expect(starter.execute(id)).toBe(shouldGive);
-            if (shouldGive) expected.add(id);
-            expect([...world.flags]).toEqual([...expected]);
-          }
-          expect(world.calls).toEqual(
-            [...expected].flatMap((id) => [`give:${id}`, `mark:${id}`]),
-          );
-        },
-      ),
-    );
-  });
+      );
+    },
+  );
 
   it("leaves the flag unset when giving throws and retries on the next join", () => {
     const world = new FakeWorld();

@@ -1,5 +1,5 @@
 import { dyeable } from "../../../shared/paint";
-import type { MotionLimits, TyreLimits } from "../../motion/limits";
+import { motionLimitsOf, tyreLimitsOf } from "../../motion/limits";
 import {
   clearanceHeight,
   type PlacementLiquid,
@@ -45,19 +45,6 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   paintPolicy: dyeable("yellow"),
   monitor: BULLDOZER_MONITOR,
 });
-export const BULLDOZER_MOTION: MotionLimits = Object.freeze({
-  maxSpeed: BULLDOZER_SPEC.maxSpeed,
-  maxReverse: BULLDOZER_SPEC.maxReverse,
-  accel: BULLDOZER_SPEC.accel,
-  reverseAccel: BULLDOZER_SPEC.reverseAccel,
-  brake: BULLDOZER_SPEC.brake,
-  drag: BULLDOZER_SPEC.drag,
-  turnRate: BULLDOZER_SPEC.turnRate,
-  steerFullSpeed: BULLDOZER_SPEC.steerFullSpeed,
-  grip: BULLDOZER_SPEC.grip,
-});
+export const BULLDOZER_MOTION = motionLimitsOf(BULLDOZER_SPEC);
 // Read by stepMotion and stepMediumMotion but without effect: the bulldozer never creeps or handbrakes.
-export const BULLDOZER_TYRES: TyreLimits = Object.freeze({
-  handbrakeGrip: BULLDOZER_SPEC.handbrakeGrip,
-  creepSpeed: BULLDOZER_SPEC.creepSpeed,
-});
+export const BULLDOZER_TYRES = tyreLimitsOf(BULLDOZER_SPEC);

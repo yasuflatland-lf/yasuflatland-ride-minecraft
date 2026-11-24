@@ -2,7 +2,6 @@
 
 import type { BoardVehicle } from "../../../application/vehicle/boardVehicle";
 import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
-import type { GiveStarterVehicle } from "../../../application/vehicle/giveStarterVehicle";
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { OpenGift } from "../../../application/vehicle/openGift";
@@ -30,7 +29,6 @@ import { vehicleSwitchTarget } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerStandIns } from "./handlers/standIn";
-import { registerStarter } from "./handlers/starter";
 import { registerTestInput } from "./handlers/testInput";
 import { toolSwitchTarget } from "./handlers/toolSwitch";
 import { MONITOR_TOOL_TYPES } from "./identifiers";
@@ -39,7 +37,6 @@ export function registerSubscriptions(
   useCases: {
     drive: DriveVehicles;
     place: PlaceVehicle;
-    starter: GiveStarterVehicle;
     gift: OpenGift;
     hit: HitVehicle;
     limit: LimitVehicles;
@@ -82,6 +79,5 @@ export function registerSubscriptions(
   };
   registerSwitchRouter(switchRoutes);
   registerPlacement(useCases.place);
-  registerStarter(useCases.starter);
   registerHits(useCases.hit, useCases.paint);
 }
