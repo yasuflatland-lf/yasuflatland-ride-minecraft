@@ -178,7 +178,7 @@ it("refunds only a paid chair item when spawning fails", () => {
           paid ? [{ kind, playerId, slot: input.slot }] : [],
         );
         expect(world.refunded).toEqual(
-          paid && !spawnOk ? [{ kind, playerId }] : [],
+          paid && !spawnOk ? [{ kind, playerId, slot: input.slot }] : [],
         );
         expect(world.spawned).toHaveLength(placed ? 1 : 0);
         if (placed) expect(world.spawned[0]?.kind).toBe(kind);
