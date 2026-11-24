@@ -373,18 +373,37 @@ it("returns an item to an online owner and drops it at the tent when offline", (
     tent.location,
   );
 });
-it("rejects blocked and unloaded ground and occupied vehicle space", () => {
+function placeOnGround() {
+  return new PlaceRoofTent(tents, host).execute({
+    dimensionId: DIM,
+    target: { clicked: { x: 0, y: 0, z: 0 } },
+    yaw: 0,
+    slot: 0,
+  });
+}
+
+it("places on readable ground and refuses when the block or spacing query is unavailable", () => {
+  game.dimension.spawnEntity.mockImplementation(() => entity());
   game.dimension.getBlock.mockImplementation(({ y }: { y: number }) => ({
     isAir: y > 0,
     isLiquid: false,
   }));
-  expect(tents.groundFree(DIM, { x: 0, y: 0, z: 0 })).toBe(true);
+  game.dimension.getEntities.mockImplementationOnce(() => {
+    throw new Error("unloaded");
+  });
+  expect(placeOnGround()).toBe(false);
+  expect(game.dimension.getEntities).toHaveBeenCalledWith({
+    type: ids.ROOF_TENT_TYPE,
+    location: { x: 0.5, y: 1, z: 0.5 },
+    maxDistance: ROOF_TENT_SPEC.groundSpacing,
+  });
+  expect(placeOnGround()).toBe(true);
   game.dimension.getBlock.mockReturnValue(undefined);
-  expect(tents.groundFree(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
+  expect(placeOnGround()).toBe(false);
   game.dimension.getBlock.mockImplementation(() => {
     throw new Error("unloaded");
   });
-  expect(tents.groundFree(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
+  expect(placeOnGround()).toBe(false);
 });
 it("defers and deduplicates placement, leaving unsupported vehicle interactions uncancelled", () => {
   const place = new PlaceRoofTent(tents, host);
@@ -788,7 +807,8 @@ it("checks neighboring cells within the fixed ground collision box", () => {
       isLiquid: false,
     }),
   );
-  expect(tents.groundFree(DIM, { x: 0, y: 0, z: 0 })).toBe(false);
+  expect(placeOnGround()).toBe(false);
+  expect(game.dimension.spawnEntity).not.toHaveBeenCalled();
 });
 
 it("maps roof placement refusals and fold counts to existing localized tent messages", () => {

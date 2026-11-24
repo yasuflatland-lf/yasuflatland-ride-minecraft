@@ -4,7 +4,7 @@ import { asFirePitId, type FirePitId } from "../../../domain/camp/firePit";
 import { FIRE_PIT_SPEC } from "../../../domain/camp/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { spawnWithRollback } from "../../shared/entities";
+import { hasEntityNear, spawnWithRollback } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import {
@@ -37,11 +37,7 @@ export class BedrockFirePitWorld
 
   hasFirePitNear(dimension: DimensionId, at: Vec3): boolean {
     return (
-      world.getDimension(dimension).getEntities({
-        type: FIRE_PIT_TYPE,
-        location: at,
-        maxDistance: FIRE_PIT_SPEC.spacing,
-      }).length > 0
+      hasEntityNear(dimension, FIRE_PIT_TYPE, at, FIRE_PIT_SPEC.spacing) ?? true
     );
   }
 

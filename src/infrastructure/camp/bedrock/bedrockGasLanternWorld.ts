@@ -11,7 +11,11 @@ import { GAS_LANTERN_SPEC } from "../../../domain/camp/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { allDimensions } from "../../shared/dimensions";
-import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import {
+  entityOfType,
+  hasEntityNear,
+  spawnWithRollback,
+} from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import type { CellLayer } from "../../shared/laidCells";
@@ -64,11 +68,12 @@ export class BedrockGasLanternWorld
 
   hasGasLanternNear(dimension: DimensionId, at: Vec3): boolean {
     return (
-      world.getDimension(dimension).getEntities({
-        type: GAS_LANTERN_TYPE,
-        location: at,
-        maxDistance: GAS_LANTERN_SPEC.spacing,
-      }).length > 0
+      hasEntityNear(
+        dimension,
+        GAS_LANTERN_TYPE,
+        at,
+        GAS_LANTERN_SPEC.spacing,
+      ) ?? true
     );
   }
 

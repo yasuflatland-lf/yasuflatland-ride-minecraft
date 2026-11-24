@@ -1,6 +1,10 @@
 import type { Dimension, Entity } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
+import { asDimensionId } from "../../../src/domain/shared/ids";
 import * as entities from "../../../src/infrastructure/shared/entities";
+
+const game = vi.hoisted(() => ({ getDimension: vi.fn() }));
+vi.mock("@minecraft/server", () => ({ world: game }));
 
 const at = { x: 1, y: 64, z: 2 };
 
@@ -56,3 +60,34 @@ it("still returns undefined when removing the failed entity throws", () => {
   expect(result).toBeUndefined();
   expect(entity.remove).toHaveBeenCalledOnce();
 });
+
+it("filters nearby entities by dimension, type, center and radius", () => {
+  const dimension = asDimensionId("nether");
+  const getEntities = vi.fn().mockReturnValueOnce([]).mockReturnValueOnce([{}]);
+  game.getDimension.mockReturnValue({ getEntities });
+  expect(entities.hasEntityNear(dimension, "test:gear", at, 1.75)).toBe(false);
+  expect(entities.hasEntityNear(dimension, "test:gear", at, 1.75)).toBe(true);
+  expect(game.getDimension).toHaveBeenCalledWith(dimension);
+  expect(getEntities).toHaveBeenCalledWith({
+    type: "test:gear",
+    location: at,
+    maxDistance: 1.75,
+  });
+});
+
+it.each(["dimension", "query"])(
+  "reports unknown proximity when the %s lookup throws",
+  (stage) => {
+    const unavailable = () => {
+      throw new Error("unavailable");
+    };
+    game.getDimension.mockImplementation(
+      stage === "dimension"
+        ? unavailable
+        : () => ({ getEntities: unavailable }),
+    );
+    expect(
+      entities.hasEntityNear(asDimensionId("nether"), "test:gear", at, 1),
+    ).toBeUndefined();
+  },
+);

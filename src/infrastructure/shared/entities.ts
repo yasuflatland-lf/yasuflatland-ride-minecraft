@@ -1,5 +1,31 @@
-import type { Dimension, Entity, World } from "@minecraft/server";
+import {
+  type Dimension,
+  type Entity,
+  type World,
+  world,
+} from "@minecraft/server";
+import type { DimensionId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
+
+/** An unavailable dimension or chunk leaves proximity unknown. */
+export function hasEntityNear(
+  dimensionId: DimensionId,
+  typeId: string,
+  at: Vec3,
+  distance: number,
+): boolean | undefined {
+  try {
+    return (
+      world.getDimension(dimensionId).getEntities({
+        type: typeId,
+        location: at,
+        maxDistance: distance,
+      }).length > 0
+    );
+  } catch {
+    return undefined;
+  }
+}
 
 /** The entity while it is loaded and its type is one of `typeIds`. */
 export function entityOfType(

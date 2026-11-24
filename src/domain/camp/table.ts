@@ -14,11 +14,19 @@ export function tableYaw(playerYaw: number): number {
 }
 
 /** The clicked ground cell and its neighbor under the other end. */
-export function tableCells(clicked: Vec3, yaw: number): Vec3[] {
-  const alongX = Math.abs(yaw) % 180 === 0;
-  return [0, 1].map((offset) => ({
-    x: clicked.x + (alongX ? offset : 0),
-    y: clicked.y,
-    z: clicked.z + (alongX ? 0 : offset),
-  }));
+export function tableCells(clicked: Vec3, yaw: number): [Vec3, Vec3] {
+  const neighbor =
+    Math.abs(yaw) % 180 === 0
+      ? { ...clicked, x: clicked.x + 1 }
+      : { ...clicked, z: clicked.z + 1 };
+  return [clicked, neighbor];
+}
+
+export function tableOrigin(clicked: Vec3, yaw: number): Vec3 {
+  const [, neighbor] = tableCells(clicked, yaw);
+  return {
+    x: (clicked.x + neighbor.x + 1) / 2,
+    y: clicked.y + 1,
+    z: (clicked.z + neighbor.z + 1) / 2,
+  };
 }

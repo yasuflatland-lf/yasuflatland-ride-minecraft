@@ -1,5 +1,5 @@
 import { TABLE_SPEC } from "../../domain/camp/spec";
-import { tableCells, tableYaw } from "../../domain/camp/table";
+import { tableCells, tableOrigin, tableYaw } from "../../domain/camp/table";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import {
@@ -28,12 +28,7 @@ export class PlaceTable {
     const world = this.world;
     const { dimensionId: dimension, blockLocation: block } = cmd;
     const yaw = tableYaw(cmd.yaw);
-    const alongX = Math.abs(yaw) % 180 === 0;
-    const at = {
-      x: block.x + (alongX ? 1 : 0.5),
-      y: block.y + 1,
-      z: block.z + (alongX ? 0.5 : 1),
-    };
+    const at = tableOrigin(block, yaw);
     return placeOnCells(
       {
         dimension,

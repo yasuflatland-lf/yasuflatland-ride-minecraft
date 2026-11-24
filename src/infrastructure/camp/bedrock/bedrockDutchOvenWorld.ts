@@ -13,7 +13,11 @@ import {
   type PlayerId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
-import { entityOfType, spawnWithRollback } from "../../shared/entities";
+import {
+  entityOfType,
+  hasEntityNear,
+  spawnWithRollback,
+} from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockPaidGroundCells } from "../../shared/groundCells";
 import { showHitsLeftHint } from "../../shared/players";
@@ -82,10 +86,8 @@ export class BedrockDutchOvenWorld
 
   hasDutchOvenNear(dimension: DimensionId, at: Vec3): boolean {
     return (
-      world
-        .getDimension(dimension)
-        .getEntities({ type: DUTCH_OVEN_TYPE, location: at, maxDistance: 0.5 })
-        .length > 0
+      hasEntityNear(dimension, DUTCH_OVEN_TYPE, at, DUTCH_OVEN_SPEC.spacing) ??
+      true
     );
   }
 
