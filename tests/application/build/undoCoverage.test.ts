@@ -32,7 +32,6 @@ import {
 } from "../../../src/domain/build/box";
 import {
   adjustHeight,
-  chooseHeighted,
   confirmLiveHeight,
   setHeight,
   tapAir,
@@ -45,7 +44,10 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { fillStylesFor } from "../../../src/domain/build/volume/kind";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 import {
   FakeAimReader,
   FakeBuildPlayers,
@@ -231,7 +233,7 @@ it.each(builds)(
           } else {
             e.session.setFlow(
               setHeight(
-                chooseHeighted(e.session.flow, build.kind),
+                chooseHeightedFlow(e.session.flow, build.kind),
                 chosenHeight,
               ),
             );
@@ -290,7 +292,7 @@ it.each(["frame", "gable"] as const)(
     select(e, base);
     if (kind === "frame") e.shape.execute({ playerId, style: kind });
     else {
-      e.session.setFlow(setHeight(chooseHeighted(e.session.flow, kind), 3));
+      e.session.setFlow(setHeight(chooseHeightedFlow(e.session.flow, kind), 3));
       e.heighted.execute({ playerId, fill: "fill" });
     }
     e.drain();
@@ -468,7 +470,7 @@ it("Undo of a narrow sphere restores taps spanning the original footprint", () =
       const to = { x: 0, y: 60, z: 1 };
       const first = tapBlock(e.session.flow, overworld, from, stone);
       const selected = confirmEndpointHeight(tapAir(first, to));
-      e.session.setFlow(chooseHeighted(selected, "sphere"));
+      e.session.setFlow(chooseHeightedFlow(selected, "sphere"));
       e.heighted.execute({ playerId, fill: "fill" });
       e.drain();
       expect(e.pressUndo.execute({ playerId })).toBe("undone");

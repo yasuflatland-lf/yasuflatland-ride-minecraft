@@ -10,11 +10,7 @@ import {
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -24,7 +20,10 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
   FakeBuildPlayers,
@@ -79,7 +78,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
       const endpoint = confirmEndpointHeight(
         tapAir(first, { ...at, x: at.x + 2, z: at.z + 2 }),
       );
-      const height = chooseHeighted(endpoint, "gable");
+      const height = chooseHeightedFlow(endpoint, "gable");
       for (const flow of [
         { kind: "idle" } as const,
         first,
@@ -136,7 +135,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "hip"),
+        chooseHeightedFlow(endpoint, "hip"),
         beginPasteAim(),
       ]) {
         const e = setup();

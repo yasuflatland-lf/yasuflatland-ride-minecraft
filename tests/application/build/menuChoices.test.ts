@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { MenuChoices } from "../../../src/application/build/menuChoices";
 import { boxOf } from "../../../src/domain/build/box";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import {
   buildMenu,
   contentsMenu,
@@ -21,6 +20,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 import { overworld } from "./fakes";
 import {
   endpoint,
@@ -140,7 +140,7 @@ it("dispatches only entries offered by the current flow, including stale choices
 
 it("dispatches only contents offered for the selected shape", () => {
   for (const kind of ["hip", "cube"] as const) {
-    const flow = chooseHeighted(endpoint, kind);
+    const flow = chooseHeightedFlow(endpoint, kind);
     expectDispatch(
       flow,
       "chooseContents",
@@ -233,7 +233,7 @@ it("ends paste aiming and clears the clipboard and confirmed box", () => {
       material: stone,
     } as const,
     endpoint,
-    chooseHeighted(endpoint, "hip"),
+    chooseHeightedFlow(endpoint, "hip"),
   ]) {
     session.setFlow(flow);
     expect(choices.choosePaste(playerId, "endPaste")).toBe(false);

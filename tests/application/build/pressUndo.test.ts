@@ -5,7 +5,6 @@ import { StepBackSelection } from "../../../src/application/build/stepBackSelect
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   adjustHeight,
-  chooseHeighted,
   confirmLiveHeight,
   tapAir,
   tapBlock,
@@ -22,6 +21,7 @@ import {
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
 
 it("routes to edit undo exactly when the flow has no selection step to reverse", () => {
@@ -80,7 +80,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
           pasted,
           built,
           adjustHeight(selected),
-          chooseHeighted(selected, "gable"),
+          chooseHeightedFlow(selected, "gable"),
           chooseTerrain(selected, "fillBelow"),
           stairAim,
           fixStairGoal(stairAim, stairs),

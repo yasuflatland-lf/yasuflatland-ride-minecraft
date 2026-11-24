@@ -7,8 +7,8 @@ import type { BuildSessionRepository } from "../../domain/build/sessionRepositor
 import { shapeOf } from "../../domain/build/shape/shape";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import { removeAboveBox, terrainAreaOf } from "../../domain/build/terrain/area";
+import { isFillable } from "../../domain/build/terrain/fillable";
 import type { PlayerId } from "../../domain/shared/ids";
-import { isOpenBlock } from "../../domain/shared/keptBlocks";
 import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
@@ -60,14 +60,10 @@ export class ConfirmTerrain {
         ? planFillBelow(
             area,
             material,
-            (cell) => {
-              const state = this.world.stateAt(dimensionId, cell);
-              return (
-                state !== undefined &&
-                isOpenBlock(state.typeId) &&
-                this.world.mayEdit(dimensionId, cell)
-              );
-            },
+            (cell) =>
+              isFillable(this.world.stateAt(dimensionId, cell)?.typeId, () =>
+                this.world.mayEdit(dimensionId, cell),
+              ),
             BUILD_SPEC.worldBottomY,
           )
         : box

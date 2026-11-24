@@ -13,7 +13,6 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import {
-  chooseHeighted,
   setHeight,
   tapAir,
   tapBlock,
@@ -34,7 +33,10 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -481,7 +483,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
         const e = setup();
         const base = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 5 });
         const choose = (box: ReturnType<typeof boxOf>) =>
-          chooseHeighted(
+          chooseHeightedFlow(
             {
               kind: "selected",
               menuLevel: "build",
