@@ -94,6 +94,16 @@ def switch_icon(x, y):
     return (0, 0, 0, 0)
 
 
+def booster_icon(x, y):
+    if 4 <= x <= 11 and 3 <= y <= 10:
+        return (85, 96, 110, 255)
+    if 6 <= x <= 9 and 11 <= y <= 14:
+        return (255, 145 if y < 13 else 210, 40, 255)
+    if 5 <= x <= 10 and y == 2:
+        return (165, 180, 190, 255)
+    return (0, 0, 0, 0)
+
+
 def paint_textures(out, directory):
     relief_name = f"suv_{material.RELIEF_KIND}"
     out.png(directory / f"{relief_name}.png", ATLAS.width, ATLAS.height,
@@ -115,3 +125,4 @@ def paint_textures(out, directory):
 def item_icons(out, directory):
     out.png(directory / "suv_item.png", 16, 16, icon)
     out.png(directory / "headlight_switch.png", 16, 16, switch_icon)
+    out.png(directory / "booster.png", 16, 16, booster_icon)

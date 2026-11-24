@@ -26,6 +26,7 @@ packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.png
 packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.texture_set.json
 packs/yasu_ride_rp/textures/items/yasu_ride/suv_item.png
 packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png
+packs/yasu_ride_rp/textures/items/yasu_ride/booster.png
 packs/yasu_ride_rp/models/entity/yasu_ride/sportsboat.geo.json
 packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.png
 packs/yasu_ride_rp/textures/entity/yasu_ride/sportsboat*.texture_set.json
