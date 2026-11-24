@@ -6,6 +6,7 @@ import {
   virtualEndPoint,
 } from "../../../src/domain/build/aim/aim";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const coord = fc.integer({ min: -1000, max: 1000 });
 const cell = fc.record({ x: coord, y: coord, z: coord });
@@ -33,8 +34,8 @@ describe("virtualEndPoint", () => {
         fc.record({
           x: coord,
           y: fc.integer({
-            min: BUILD_SPEC.worldBottomY,
-            max: BUILD_SPEC.worldTopY - 2,
+            min: OVERWORLD_RANGE.minY,
+            max: OVERWORLD_RANGE.maxY - 2,
           }),
           z: coord,
         }),
@@ -55,7 +56,12 @@ describe("virtualEndPoint", () => {
               },
               direction: dir,
             };
-            const result = virtualEndPoint(point, ray, BUILD_SPEC.reach);
+            const result = virtualEndPoint(
+              point,
+              ray,
+              BUILD_SPEC.reach,
+              OVERWORLD_RANGE,
+            );
             expect(result).toEqual({
               x: Math.floor(hit.x),
               y: Math.floor(hit.y),
@@ -69,51 +75,51 @@ describe("virtualEndPoint", () => {
     );
   });
 
-  it("clamps height while preserving the plane and horizontal intersection", () => {
-    fc.assert(
-      fc.property(
-        fc.record({
-          x: coord,
-          y: fc.integer({
-            min: BUILD_SPEC.worldBottomY,
-            max: BUILD_SPEC.worldTopY,
+  it.each([OVERWORLD_RANGE, NETHER_RANGE])(
+    "clamps height while preserving the plane and horizontal intersection in $minY..$maxY",
+    (range) => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            x: coord,
+            y: fc.integer({
+              min: range.minY,
+              max: range.maxY,
+            }),
+            z: coord,
           }),
-          z: coord,
-        }),
-        direction,
-        coord,
-        fc.integer({ min: 1, max: 60 }),
-        (point, d, originY, distance) => {
-          const axis = Math.abs(d.x) >= Math.abs(d.z) ? "x" : "z";
-          const origin = {
-            x: point.x + 0.25 - distance * d.x,
-            y: originY,
-            z: point.z + 0.25 - distance * d.z,
-          };
-          origin[axis] = point[axis] + 0.5 - distance * d[axis];
-          const ray = { origin, direction: d };
-          const result = virtualEndPoint(point, ray, BUILD_SPEC.reach);
-          if (!result) return;
-          const other = axis === "x" ? "z" : "x";
-          const t =
-            (point[axis] + 0.5 - ray.origin[axis]) / ray.direction[axis];
-          const y = Math.floor(ray.origin.y + t * ray.direction.y);
-          expect(result.y).toBeGreaterThanOrEqual(BUILD_SPEC.worldBottomY);
-          expect(result.y).toBeLessThanOrEqual(BUILD_SPEC.worldTopY);
-          expect(result[axis]).toBe(point[axis]);
-          expect(result[other]).toBe(
-            Math.floor(ray.origin[other] + t * ray.direction[other]),
-          );
-          expect(result.y).toBe(
-            Math.max(
-              BUILD_SPEC.worldBottomY,
-              Math.min(BUILD_SPEC.worldTopY, y),
-            ),
-          );
-        },
-      ),
-    );
-  });
+          direction,
+          coord,
+          fc.integer({ min: 1, max: 60 }),
+          (point, d, originY, distance) => {
+            const axis = Math.abs(d.x) >= Math.abs(d.z) ? "x" : "z";
+            const origin = {
+              x: point.x + 0.25 - distance * d.x,
+              y: originY,
+              z: point.z + 0.25 - distance * d.z,
+            };
+            origin[axis] = point[axis] + 0.5 - distance * d[axis];
+            const ray = { origin, direction: d };
+            const result = virtualEndPoint(point, ray, BUILD_SPEC.reach, range);
+            if (!result) return;
+            const other = axis === "x" ? "z" : "x";
+            const t =
+              (point[axis] + 0.5 - ray.origin[axis]) / ray.direction[axis];
+            const y = Math.floor(ray.origin.y + t * ray.direction.y);
+            expect(result.y).toBeGreaterThanOrEqual(range.minY);
+            expect(result.y).toBeLessThanOrEqual(range.maxY);
+            expect(result[axis]).toBe(point[axis]);
+            expect(result[other]).toBe(
+              Math.floor(ray.origin[other] + t * ray.direction[other]),
+            );
+            expect(result.y).toBe(
+              Math.max(range.minY, Math.min(range.maxY, y)),
+            );
+          },
+        ),
+      );
+    },
+  );
 
   it("rejects intersections behind the origin or beyond reach", () => {
     fc.assert(
@@ -135,6 +141,7 @@ describe("virtualEndPoint", () => {
                   direction: d,
                 },
                 BUILD_SPEC.reach,
+                OVERWORLD_RANGE,
               ),
             ).toBeUndefined();
           }
@@ -157,6 +164,7 @@ describe("virtualEndPoint", () => {
                 direction: { x, y: Math.sqrt(1 - x * x), z: 0 },
               },
               BUILD_SPEC.reach,
+              OVERWORLD_RANGE,
             ),
           ).toBeUndefined();
         },
@@ -174,8 +182,8 @@ describe("virtualEndPoint", () => {
         (point, scale, t, offset) => {
           const direction = { x: 3 * scale, y: 0, z: 4 * scale };
           const y = Math.max(
-            BUILD_SPEC.worldBottomY,
-            Math.min(BUILD_SPEC.worldTopY, point.y),
+            OVERWORLD_RANGE.minY,
+            Math.min(OVERWORLD_RANGE.maxY, point.y),
           );
           const ray = {
             origin: {
@@ -191,7 +199,7 @@ describe("virtualEndPoint", () => {
             distance,
             BUILD_SPEC.reach,
           ]) {
-            expect(virtualEndPoint(point, ray, reach)).toEqual(
+            expect(virtualEndPoint(point, ray, reach, OVERWORLD_RANGE)).toEqual(
               distance <= reach ? { ...point, y } : undefined,
             );
           }
@@ -206,6 +214,7 @@ describe("virtualEndPoint", () => {
         { x: 64, y: 0, z: 0 },
         { origin: { x: 0.5, y: 0.5, z: 0.5 }, direction: { x: 1, y: 0, z: 0 } },
         BUILD_SPEC.reach,
+        OVERWORLD_RANGE,
       ),
     ).toEqual({ x: 64, y: 0, z: 0 });
     expect(
@@ -216,6 +225,7 @@ describe("virtualEndPoint", () => {
           direction: { x: Math.SQRT1_2, y: 0, z: Math.SQRT1_2 },
         },
         BUILD_SPEC.reach,
+        OVERWORLD_RANGE,
       ),
     ).toEqual({ x: 2, y: 0, z: 2 });
   });
@@ -225,11 +235,11 @@ describe("apexHeight", () => {
   it("includes the looked-at cell as the top layer within the cap and world limits", () => {
     fc.assert(
       fc.property(
-        fc.integer({ min: BUILD_SPEC.worldBottomY, max: BUILD_SPEC.worldTopY }),
+        fc.integer({ min: OVERWORLD_RANGE.minY, max: OVERWORLD_RANGE.maxY }),
         fc.nat(299),
         fc.integer({ min: 0, max: 1023 }),
         (baseY, index, fraction) => {
-          const k = Math.min(index, BUILD_SPEC.worldTopY - baseY);
+          const k = Math.min(index, OVERWORLD_RANGE.maxY - baseY);
           const lookY = baseY + k + fraction / 1024;
           const height = apexHeight({
             ...defaults,

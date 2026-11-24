@@ -97,9 +97,9 @@ describe("heighted geometry", () => {
             ]);
             expect(placement.count(spec, fill)).toBe(roofCount(spec, hollow));
           }
-          expect(volumeOf(kind).maxHeight(base, worldTopY)).toBe(
-            maxRoofHeight(base, worldTopY),
-          );
+          expect(
+            volumeOf(kind).maxHeight(base, { minY: -64, maxY: worldTopY }),
+          ).toBe(maxRoofHeight(base, { minY: -64, maxY: worldTopY }));
         }),
       );
     },
@@ -114,7 +114,10 @@ describe("heighted geometry", () => {
           const placement = placementOf(kind);
           const volume = volumeOf(kind);
           expect(
-            volume.maxHeight(base, base.min.y + height - 1),
+            volume.maxHeight(base, {
+              minY: -64,
+              maxY: base.min.y + height - 1,
+            }),
           ).toBeGreaterThanOrEqual(1);
           expect(volume.wireframe(spec, 100).length).toBeLessThanOrEqual(100);
           const bounds = cellBox(base.min, {

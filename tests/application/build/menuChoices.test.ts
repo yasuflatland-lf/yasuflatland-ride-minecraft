@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { MenuChoices } from "../../../src/application/build/menuChoices";
 import { boxOf } from "../../../src/domain/build/box";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import {
   buildMenu,
   contentsMenu,
@@ -21,6 +20,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 import { overworld } from "./fakes";
 import {
   endpoint,
@@ -39,6 +39,7 @@ const cell = fc.record({
 });
 
 const command = { playerId };
+const tick = 17;
 const shapeRoutes = {
   place: ["confirmShape", { playerId, style: "fill" }],
   fill: ["confirmShape", { playerId, style: "fill" }],
@@ -57,8 +58,8 @@ const shapeRoutes = {
   cut: ["chooseBoxStep", { playerId, kind: "cut" }],
   removeAbove: ["chooseTerrain", { playerId, op: "removeAbove" }],
   fillBelow: ["chooseTerrain", { playerId, op: "fillBelow" }],
-  buildShape: ["openBuildMenu", command],
-  back: ["closeBuildMenu", command],
+  buildShape: ["openBuildMenu", { playerId, tick }],
+  back: ["closeBuildMenu", { playerId, tick }],
   adjustHeight: ["chooseAdjustHeight", command],
   cancel: ["clear", command],
 } as const;
@@ -101,7 +102,7 @@ function expectDispatch(
     const { session, cases, choices } = setupMenuChoices();
     session.setFlow(flow);
     const available = offered.includes(id);
-    expect(choices[method](playerId, id), id).toBe(available);
+    expect(choices[method](playerId, id, tick), id).toBe(available);
     const calls = Object.entries(cases).flatMap(([action, useCase]) => {
       const spy = "execute" in useCase ? useCase.execute : useCase.backToAiming;
       return spy.mock.calls.map((args) => [action, ...args]);
@@ -140,7 +141,7 @@ it("dispatches only entries offered by the current flow, including stale choices
 
 it("dispatches only contents offered for the selected shape", () => {
   for (const kind of ["hip", "cube"] as const) {
-    const flow = chooseHeighted(endpoint, kind);
+    const flow = chooseHeightedFlow(endpoint, kind);
     expectDispatch(
       flow,
       "chooseContents",
@@ -228,12 +229,10 @@ it("ends paste aiming and clears the clipboard and confirmed box", () => {
     { kind: "idle" } as const,
     {
       kind: "point1",
-      dimensionId: overworld,
-      cell: from,
-      material: stone,
+      start: { dimensionId: overworld, cell: from, material: stone },
     } as const,
     endpoint,
-    chooseHeighted(endpoint, "hip"),
+    chooseHeightedFlow(endpoint, "hip"),
   ]) {
     session.setFlow(flow);
     expect(choices.choosePaste(playerId, "endPaste")).toBe(false);
@@ -266,7 +265,7 @@ it("offers terrain entries only during the confirmation", () => {
 it("ignores responses for players without a session", () => {
   const { choices, repo } = setupMenuChoices();
   const absent = asPlayerId("absent");
-  expect(choices.chooseShape(absent, "cut")).toBe(false);
+  expect(choices.chooseShape(absent, "cut", tick)).toBe(false);
   expect(choices.chooseContents(absent, "fill")).toBe(false);
   expect(choices.chooseStairContents(absent, "passage")).toBe(false);
   expect(choices.chooseTerrace(absent, "confirm")).toBe(false);

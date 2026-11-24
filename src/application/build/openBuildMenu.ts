@@ -8,10 +8,10 @@ export class OpenBuildMenu {
     private readonly repo: BuildSessionRepository,
     private readonly showPreview: Pick<ShowPreview, "refresh">,
   ) {}
-  execute({ playerId }: { playerId: PlayerId }): void {
+  execute({ playerId, tick }: { playerId: PlayerId; tick: number }): void {
     const session = this.repo.get(playerId);
     if (!session) return;
     session.setFlow(openBuildMenu(session.flow));
-    this.showPreview.refresh(playerId, 0);
+    this.showPreview.refresh(playerId, tick);
   }
 }

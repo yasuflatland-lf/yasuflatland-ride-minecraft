@@ -48,6 +48,50 @@ export class DriveVehicles {
     this.riders.protectFromFire(fireProtected);
   }
 
+  /**
+   * A throw skips the remaining calls for this vehicle (ADR 0055). Hold, deck seats,
+   * stand-in, dock cells and headlights are reconciled every tick so they can release
+   * what the vehicle kept on an earlier tick.
+   *
+   * 1. `stepCommands`: the drive's commands, then the cab monitor's screen (ADR 0139),
+   *    in order, before anything else that could throw,
+   *    because drives send them only on change (ADR 0055); if they fail, the vehicle
+   *    resyncs and sends every value again next tick (ADR 0127).
+   * 2. `riderPoses`: own riders' pose changes and refreshes, within the stepCommands
+   *    failure boundary so a failed send resyncs their poses too (ADR 0250).
+   * 3. `message` on the action bar of `driverId`, only when there is one.
+   * 4. `dock.hold`; with no `dock`, the hold is released (ADR 0063, 0064).
+   * 5. `clear`, when not empty, before the dock's cells are laid (ADR 0068).
+   * 6. `cut`, when not empty, right after `clear` and before the move, so the
+   *    body moves into the cleared strip on the same tick (ADR 0137).
+   * 7. `pave`, when it has cells, right after `cut` and before the move, so the
+   *    body moves onto a road laid on the same tick (ADR 0181).
+   * 8. `riders` is collected. After every vehicle has ticked, the chase
+   *    cameras are synced (ADR 0028, 0071), and water breathing is refreshed
+   *    every `SPEC.waterBreathingInterval` ticks (ADR 0040).
+   * 9. `impulse` and `yaw`, only when there is no `dock`: a docked vehicle is
+   *    held instead of moved (ADR 0063).
+   * 10. `seatLayout`: for a kind whose players choose their seat, the
+   *    vehicle's riders are laid in this order, with a seat filler for each
+   *    undefined entry, so each player sits in their seat (ADR 0120).
+   * 11. `boardDeckRiders`: the deck-seat riders move into the vehicle
+   *    (ADR 0063), before standing players are seated (ADR 0068).
+   * 12. `depart`: take any deck-seat rider the vehicle refused off their deck
+   *    seat, then seat them and the standing players, nearest first, and move
+   *    those left without a seat to the exit (ADR 0068, 0095).
+   * 13. `dock.seats` at `yaw`, after boarding and departure; with no `dock`,
+   *    the deck seats are removed.
+   * 14. `standIn`: the vehicle's one stand-in entity is kept at this pose, or
+   *     removed when there is none (ADR 0116).
+   * 15. `dock.cells`; with no `dock`, the laid cells are cleared.
+   * 16. Headlight cells along the vehicle's heading after this tick, or none
+   *     when its headlights are off (ADR 0020).
+   * 17. `hits`, credited to `driverId`.
+   * 18. `finalCommands`: the vacated seats' commands, such as the door
+   *     animation, then the taken seats' commands (ADR 0007, 0055).
+   * 19. `exits`, after `finalCommands`: each player who left a seat with an exit this tick
+   *     is moved there, unless the world's guard keeps the engine's dismount spot (ADR 0109, 0141).
+   */
   private tickVehicle(
     snap: VehicleSnapshot,
     tick: number,

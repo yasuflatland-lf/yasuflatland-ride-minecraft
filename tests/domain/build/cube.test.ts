@@ -114,7 +114,10 @@ describe("cube geometry", () => {
   it("caps height at the world top with at least one layer", () => {
     fc.assert(
       fc.property(spec, coordinate, ({ base }, worldTopY) => {
-        const height = cubeVolume.maxHeight(base, worldTopY);
+        const height = cubeVolume.maxHeight(base, {
+          minY: -64,
+          maxY: worldTopY,
+        });
         expect(height).toBeGreaterThanOrEqual(1);
         expect(height).toBe(Math.max(1, worldTopY - base.min.y + 1));
       }),

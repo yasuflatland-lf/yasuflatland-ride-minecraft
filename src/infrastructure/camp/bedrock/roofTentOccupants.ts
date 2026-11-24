@@ -13,19 +13,14 @@ import {
 } from "../../../domain/camp/roofTent/occupancy";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
-import { cellCenter } from "../../../domain/shared/cells";
 import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import { decodeHost } from "../../../domain/shared/hosted";
-import {
-  asDimensionId,
-  asPlayerId,
-  type PlayerId,
-} from "../../../domain/shared/ids";
+import { asPlayerId, type PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
 import { playerById, showActionBar } from "../../shared/players";
-import { makeSafeStand } from "../../shared/seating";
+import { ejectTo, makeSafeStand } from "../../shared/seating";
 import {
   ROOF_TENT_EXIT_PROPERTY,
   ROOF_TENT_FLAP_OPEN_PROPERTY,
@@ -195,23 +190,18 @@ export class RoofTentOccupants {
     if (!tent || !occupant?.isValid) return;
     // Search around the saved entrance at ground height, including when the host
     // has already disappeared. Never fall back to teleporting onto the roof.
-    const dimensionId = asDimensionId(tent.dimension.id);
-    const isSafe = makeSafeStand({
-      isVehicleSpace: (c) => this.isVehicleSpace(dimensionId, c),
-      isCampSpace: (c) => this.isCampSpace(dimensionId, c),
+    const isSafe = makeSafeStand(tent.dimension, {
+      isVehicleSpace: this.isVehicleSpace,
+      isCampSpace: this.isCampSpace,
     });
     const feet = searchExitCell(
       tent.state.exit,
       () => false,
       ROOF_TENT_SPEC.exitSearch,
-      (c) => isSafe(tent.dimension, c),
+      isSafe,
     );
     if (!feet) return;
-    occupant
-      .getComponent("minecraft:riding")
-      ?.entityRidingOn?.getComponent("minecraft:rideable")
-      ?.ejectRider(occupant);
-    occupant.teleport(cellCenter(feet), { dimension: tent.dimension });
+    ejectTo(occupant, feet, tent.dimension);
   }
 
   showMessage(playerId: PlayerId, name: string): void {

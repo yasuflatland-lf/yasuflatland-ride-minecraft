@@ -5,10 +5,7 @@ import { StepBackSelection } from "../../../src/application/build/stepBackSelect
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   adjustHeight,
-  chooseHeighted,
   confirmLiveHeight,
-  tapAir,
-  tapBlock,
 } from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import {
@@ -22,6 +19,12 @@ import {
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE, OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import {
+  chooseHeightedFlow,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";
 
 it("routes to edit undo exactly when the flow has no selection step to reverse", () => {
@@ -40,6 +43,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
           nether,
           cell,
           blockStateOf("minecraft:stone"),
+          NETHER_RANGE,
         );
         const base = tapAir(point, {
           ...cell,
@@ -67,7 +71,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
         // Built and pasted boxes both use confirmBox, which ends endpoint freshness.
         session.confirmBox(selected.selection, "selected", {
           from: cell,
-          to: base.to,
+          to: base.taps.to,
         });
         const built = session.flow;
         for (const flow of [
@@ -79,8 +83,8 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
           selected,
           pasted,
           built,
-          adjustHeight(selected),
-          chooseHeighted(selected, "gable"),
+          adjustHeight(selected, OVERWORLD_RANGE),
+          chooseHeightedFlow(selected, "gable"),
           chooseTerrain(selected, "fillBelow"),
           stairAim,
           fixStairGoal(stairAim, stairs),

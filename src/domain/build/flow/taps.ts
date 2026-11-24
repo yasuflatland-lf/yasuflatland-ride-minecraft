@@ -1,14 +1,7 @@
 import type { CellBox } from "../box";
-import type { BuildFlow } from "./state";
 import type { Taps } from "./tapCells";
 
 export type { Taps } from "./tapCells";
-
-/** Selected and terrain confirmation flows keep their taps for terrain heights and Cancel. */
-export function tapsOf(flow: BuildFlow): Taps | undefined {
-  if (flow.kind === "selected" || flow.kind === "terrainConfirm")
-    return { from: flow.from, to: flow.to };
-}
 
 /** Uses the minimum and maximum corners as the first and second taps. */
 export function cornerTaps(box: CellBox): Taps {

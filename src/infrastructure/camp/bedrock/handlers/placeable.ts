@@ -5,6 +5,7 @@ import {
   type Vector3,
   world,
 } from "@minecraft/server";
+import type { BlockFace } from "../../../../domain/shared/blockFace";
 import {
   asPlayerId,
   type DimensionId,
@@ -28,11 +29,7 @@ export type HitContext = {
 export function registerPlaceableEntity(opts: {
   itemId: string;
   entityTypeIds: ReadonlySet<string>;
-  canUseBlock(
-    dimension: DimensionId,
-    block: Vector3,
-    face: "up" | "other",
-  ): boolean;
+  canUseBlock(dimension: DimensionId, block: Vector3, face: BlockFace): boolean;
   place(ctx: PlaceContext): void;
   hit(ctx: HitContext): void;
   placements?: TickScopedSet<PlayerId>;

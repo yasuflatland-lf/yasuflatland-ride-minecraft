@@ -6,6 +6,7 @@
 // heading at the spot `ahead` of its location.
 import { QUARTER_TURN, quarterOf } from "../shared/facing";
 import { forward, type Vec3 } from "../shared/vec";
+import type { TickContext } from "./drive";
 
 /** The world axis a stand-in's row of boxes lies along. */
 export type StandInAxis = "x" | "z";
@@ -40,6 +41,7 @@ export interface StandInPose extends Vec3 {
 }
 
 const FULL_TURN = 360;
+const HALF_BLOCK = 0.5;
 // A yaw a whole number of quarters turned gives sines like 6e-17; rounding them away puts
 // a parked vehicle's stand-in exactly on its cell row.
 const EXACT = 1e9;
@@ -111,4 +113,42 @@ export function liftStandIn(
   let lift = 0;
   while (lift < maxLift && solidLayer(lift)) lift++;
   return lift === 0 ? pose : { ...pose, y: pose.y + lift };
+}
+
+export class StandInKeeper {
+  /** The row axis kept last tick. A rebuilt vehicle starts without one (ADR 0116). */
+  private axis: StandInAxis | undefined;
+
+  constructor(private readonly rule: StandInRule) {}
+
+  /**
+   * Uses the vehicle's heading after the step and its hold pose while held. While driving,
+   * it uses the pre-move location, so the stand-in trails the body by one tick (ADR 0116).
+   * It rises out of solid ground in its middle cell, less far while held (ADR 0119).
+   */
+  pose(
+    yaw: number,
+    hold: Vec3 | undefined,
+    sensors: Pick<TickContext, "location" | "solidAt">,
+  ): StandInPose {
+    const rule = this.rule;
+    this.axis = standInAxis(yaw, this.axis, rule.turnMargin);
+    const pose = standInPose(rule, hold ?? sensors.location, yaw, this.axis);
+    const maxLift = hold
+      ? Math.min(
+          rule.maxLift ?? 0,
+          rule.heldMaxLift ?? Number.POSITIVE_INFINITY,
+        )
+      : (rule.maxLift ?? 0);
+    if (maxLift <= 0) return pose;
+    // solidAt reads the block at an offset from the entity's location; the half block
+    // picks the middle of each layer above the stand-in's feet.
+    return liftStandIn(pose, maxLift, (layer) =>
+      sensors.solidAt({
+        x: pose.x - sensors.location.x,
+        y: pose.y - sensors.location.y + layer + HALF_BLOCK,
+        z: pose.z - sensors.location.z,
+      }),
+    );
+  }
 }

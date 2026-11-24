@@ -13,6 +13,7 @@ import {
 } from "../../../src/domain/build/volume/sphere";
 import type { HeightedSpec } from "../../../src/domain/build/volume/types";
 import { type Cell, cellKey } from "../../../src/domain/shared/cells";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 
 const coordinate = fc.integer({ min: -100, max: 100 });
 const origin = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -309,11 +310,11 @@ describe("sphere outline", () => {
 
   it("offers the same height range as the other solids", () => {
     const base = boxOf({ x: 0, y: 300, z: 0 }, { x: 3, y: 300, z: 3 });
-    expect(sphereVolume.maxHeight(base, BUILD_SPEC.worldTopY)).toBe(20);
+    expect(sphereVolume.maxHeight(base, OVERWORLD_RANGE)).toBe(20);
     expect(
       sphereVolume.maxHeight(
         boxOf({ x: 0, y: 330, z: 0 }, { x: 3, y: 330, z: 3 }),
-        BUILD_SPEC.worldTopY,
+        OVERWORLD_RANGE,
       ),
     ).toBe(1);
   });

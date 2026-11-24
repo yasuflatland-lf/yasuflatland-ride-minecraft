@@ -5,25 +5,25 @@ import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
-import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { NETHER_RANGE } from "../../helpers/buildHeightRange";
 import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
 import {
+  chooseHeightedFlow,
   confirmEndpointHeight,
   selectionFlows,
+  tapAir,
+  tapBlock,
 } from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 import {
@@ -42,7 +42,7 @@ const playerId = asPlayerId("p");
 const stone = blockStateOf("minecraft:stone");
 const coordinate = fc.integer({ min: -100, max: 100 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
-const face = fc.constantFrom<Face>(
+const face = fc.constantFrom<BlockFace>(
   "up",
   "down",
   "north",
@@ -54,7 +54,7 @@ const tick = fc.integer({ min: 0, max: 10000 });
 
 function setup(
   block: { x: number; y: number; z: number },
-  face: Face,
+  face: BlockFace,
   tick: number,
 ) {
   const world = new FakeWorld();
@@ -164,19 +164,29 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
   fc.assert(
     fc.property(cell, face, tick, (block, face, tick) => {
       const e = setup(block, face, tick);
-      const first = tapBlock({ kind: "idle" }, nether, block, stone);
+      const first = tapBlock(
+        { kind: "idle" },
+        nether,
+        block,
+        stone,
+        NETHER_RANGE,
+      );
       const endpoint = confirmEndpointHeight(
-        tapAir(first, {
-          ...block,
-          x: block.x + 2,
-          z: block.z + 2,
-        }),
+        tapAir(
+          first,
+          {
+            ...block,
+            x: block.x + 2,
+            z: block.z + 2,
+          },
+          NETHER_RANGE,
+        ),
       );
       for (const flow of [
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "hip"),
+        chooseHeightedFlow(endpoint, "hip"),
       ]) {
         e.session.setFlow(flow);
         expect(e.execute()).toBe("ignored");

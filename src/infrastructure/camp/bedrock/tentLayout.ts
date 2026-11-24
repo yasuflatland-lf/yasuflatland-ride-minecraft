@@ -19,12 +19,7 @@ import {
   tentGroundCells,
 } from "../../../domain/camp/tent";
 import type { TentEntry } from "../../../domain/camp/tentRegistry";
-import {
-  type Cell,
-  cellCenter,
-  cellKey,
-  cellOf,
-} from "../../../domain/shared/cells";
+import { type Cell, cellKey, cellOf } from "../../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { chunkLoadedAt, safeBlockAt } from "../../shared/blocks";
@@ -33,6 +28,7 @@ import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { AIR_BLOCK, isOwnTypeId, NAMESPACE } from "../../shared/identifiers";
 import type { CellLayer } from "../../shared/laidCells";
 import { isLightBlock } from "../../shared/lightBlocks";
+import { ejectTo } from "../../shared/seating";
 import { isTentBlockTypeId, TENT_ITEM, TENT_TYPE } from "../identifiers";
 import type { DynamicPropertyTentRegistry } from "../persistence/tentRegistry";
 import { TENT_CELL_CODEC } from "./tentBlocks";
@@ -229,12 +225,8 @@ export class TentLayout {
     for (const player of dimension.getPlayers()) {
       const feet = player.location;
       if (!cellKeys.has(cellKey(cellOf(feet)))) continue;
-      player
-        .getComponent("minecraft:riding")
-        ?.entityRidingOn?.getComponent("minecraft:rideable")
-        ?.ejectRider(player);
-      // Teleport also moves sleepers off the mattresses before their blocks disappear.
-      player.teleport(cellCenter(exit), { dimension });
+      // Move sleepers off the mattresses before their blocks disappear.
+      ejectTo(player, exit, dimension);
     }
   }
 

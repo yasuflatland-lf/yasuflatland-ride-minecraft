@@ -9,13 +9,13 @@ import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { tapBlock } from "../../../src/domain/build/flow/heightFlow";
+
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import { confirmEndpointHeight, tapBlock } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -178,14 +178,12 @@ describe("EditJobs properties", () => {
       ),
       heightStep: {
         kind: "heightStep",
-        dimensionId: overworld,
         base: boxOf(cell, cell),
-        from: cell,
-        to: cell,
         heightedKind: "cylinder",
-        previous: 1,
+        liveHeight: 1,
         heightLocked: false,
-        material: stone,
+        start: { dimensionId: overworld, cell, material: stone },
+        taps: { from: cell, to: cell },
       },
       idle: { kind: "idle" },
       pasteAim: beginPasteAim(),

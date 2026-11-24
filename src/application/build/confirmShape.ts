@@ -26,7 +26,7 @@ export class ConfirmShape {
       return;
     }
     const { box } = flow.selection;
-    const taps = { from: flow.from, to: flow.to };
+    const taps = flow.taps;
     const shape = shapeOf(box.min, box.max);
     if (!stylesFor(shape).includes(cmd.style)) return;
     const count = shapeCount(shape, cmd.style);

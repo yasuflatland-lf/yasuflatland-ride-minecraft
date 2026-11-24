@@ -9,6 +9,7 @@ import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tappedSelection } from "../../support/buildSelection";
 import {
   FakeBuildPlayers,
   FakeFeedback,
@@ -32,9 +33,11 @@ function setup(to = flat) {
   session.setFlow({
     kind: "selected",
     menuLevel: "root",
-    selection: selectionOf(overworld, boxOf(from, to), material),
-    from,
-    to,
+    ...tappedSelection(
+      selectionOf(overworld, boxOf(from, to), material),
+      from,
+      to,
+    ),
   });
   return { repo, feedback, world, session };
 }
@@ -69,7 +72,7 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "shows the material when choosing %s",
   (kind) => {
     const e = setup();
-    const choose = new ChooseHeighted(e.repo, e.feedback);
+    const choose = new ChooseHeighted(e.repo, e.feedback, e.world);
     choose.execute({ playerId, kind });
     choose.execute({ playerId, kind });
     expect(e.feedback.messages).toEqual([
