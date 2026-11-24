@@ -36,11 +36,11 @@ export class CamperStorage {
   private readonly storage: StorageDoors<StorageDoorId>;
   private readonly drawerItemsSync = new SyncedCommands<CamperRoomDecor>();
 
-  constructor(restored: RestoredOf<typeof CAMPER_ENTITY>, docked: boolean) {
+  constructor(restored: RestoredOf<typeof CAMPER_ENTITY>, parked: boolean) {
     this.storage = new StorageDoors(
       STORAGE_DOORS,
       (id) => restored[storageDoorProperty(id)],
-      docked,
+      parked,
     );
     for (const drawer of ["drawer_top", "drawer_bottom"] as const) {
       const slot = parseDecorSlotId(`${drawer}_0`);

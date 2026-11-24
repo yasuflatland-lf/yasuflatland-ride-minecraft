@@ -39,6 +39,12 @@
 
 ## Rules
 
+**Glossary**
+
+- **Hold** is the core mechanism represented by `HoldPose`, `heldStep`, and `holdAt`.
+- **Docked** is the saved entity state, represented by the `docked` property and the dock/undock events; these names remain unchanged for saved worlds.
+- **Parked** is the player-facing term for a held camper.
+
 ### Stable APIs and script bundles
 
 - Applies to: Main Behavior Pack and the separate in-game test pack.

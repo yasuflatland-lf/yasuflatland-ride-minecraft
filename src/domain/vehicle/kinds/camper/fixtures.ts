@@ -56,21 +56,21 @@ export class CamperFixtures {
 
   static restore(
     restored: RestoredOf<typeof CAMPER_ENTITY>,
-    docked: boolean,
+    parked: boolean,
     savedDoorOpen: unknown,
   ): CamperFixtures {
-    const doorStep = restoredDoorStep(restored.door, docked);
+    const doorStep = restoredDoorStep(restored.door, parked);
     const doorOpen =
-      docked && typeof savedDoorOpen === "boolean"
+      parked && typeof savedDoorOpen === "boolean"
         ? savedDoorOpen
         : doorStep * 2 >= DOOR_STEPS;
-    const showerDoorStep = restoredDoorStep(restored.shower_door, docked);
+    const showerDoorStep = restoredDoorStep(restored.shower_door, parked);
     return new CamperFixtures(
       doorOpen,
       doorStep,
       showerDoorStep * 2 >= DOOR_STEPS,
       showerDoorStep,
-      docked && restored.ceiling_lights === true,
+      parked && restored.ceiling_lights === true,
     );
   }
 

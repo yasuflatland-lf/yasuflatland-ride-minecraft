@@ -158,15 +158,15 @@ export class StorageDoors<Id extends string> {
   private readonly states: ReadonlyMap<Id, DoorState>;
   private readonly openings = new SyncedCommands<DoorCommand<Id>>();
 
-  /** `restoredOpen` gives a door's saved opening progress; a camper that was not `docked` starts with every door shut. */
+  /** `restoredOpen` gives a door's saved opening progress; a camper that was not `parked` starts with every door shut. */
   constructor(
     doors: readonly { readonly id: Id }[],
     restoredOpen: (id: Id) => unknown,
-    docked: boolean,
+    parked: boolean,
   ) {
     this.states = new Map(
       doors.map(({ id }) => {
-        const step = restoredDoorStep(restoredOpen(id), docked);
+        const step = restoredDoorStep(restoredOpen(id), parked);
         return [
           id,
           {

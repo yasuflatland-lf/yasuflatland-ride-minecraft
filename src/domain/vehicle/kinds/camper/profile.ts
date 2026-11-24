@@ -54,7 +54,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
       { x: 1.0, z: -1.0 },
     ]),
   }),
-  parkedSeats: CAMPER_PARKED_SEATS,
+  heldSeats: CAMPER_PARKED_SEATS,
   deckSeatDriverHeadlights: true,
   boarding: Object.freeze({
     order: "chosen",
@@ -89,7 +89,7 @@ export const CAMPER_PROFILE: VehicleProfile = Object.freeze({
     ahead: CAMPER_SPEC.bodyFront,
     turnMargin: CAMPER_SPEC.bumperTurnMargin,
     maxLift: CAMPER_SPEC.bumperMaxLift,
-    parkedMaxLift: CAMPER_SPEC.bumperParkedMaxLift,
+    heldMaxLift: CAMPER_SPEC.bumperParkedMaxLift,
   }),
   // The camper takes hits only on its bumper boxes, so players need to be told where
   // to hit it and, once it is parked, how to take the wheel (ADR 0086).

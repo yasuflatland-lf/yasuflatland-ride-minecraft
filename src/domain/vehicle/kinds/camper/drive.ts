@@ -47,24 +47,24 @@ export class CamperDrive extends TransformingDrive {
   private readonly roomDecor: CamperRoomDecor;
   private readonly room: CamperRoom;
   private readonly dockedSync = new SyncedCommands<
-    [wasParked: boolean, parked: boolean]
+    [wasHeld: boolean, parked: boolean]
   >().include(new DockedResend(), (values) => values);
 
   constructor(yaw: number, restored: CamperRestored) {
     super(yaw, restored, CAMPER_TRANSFORMING, CAMPER_MOTION, CAMPER_TYRES, {
       guard: (step, ctx, form) => guardEnds(step, ctx, CAMPER_ENDS, form),
     });
-    const docked = restored.docked === true;
+    const parked = restored.docked === true;
     this.parking = new CamperParking(
-      docked,
+      parked,
       restored[CAMPER_SAVED.laid] === true,
     );
     this.fixtures = CamperFixtures.restore(
       restored,
-      docked,
+      parked,
       restored[CAMPER_SAVED.doorOpen],
     );
-    this.storage = new CamperStorage(restored, docked);
+    this.storage = new CamperStorage(restored, parked);
     // Decor survives driving: it is restored whether or not the camper was docked (ADR 0093).
     this.roomDecor = CamperRoomDecor.restore(restored[CAMPER_SAVED.decor]);
     const ceilingLightsReachable = (feet: Vec3) =>
@@ -165,7 +165,7 @@ export class CamperDrive extends TransformingDrive {
 
   protected override alignToDriver(driverYaw: number): void {
     // A parked body keeps its snapped yaw, so its room, seats, and headlights stay put.
-    if (this.parking.pose || this.parking.recovering) return;
+    if (this.parking.pose || this.parking.resumingPark) return;
     super.alignToDriver(driverYaw);
   }
 
@@ -177,11 +177,11 @@ export class CamperDrive extends TransformingDrive {
   }
 
   override step(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    const wasParked =
-      this.parking.pose !== undefined || this.parking.recovering;
+    const wasHeld =
+      this.parking.pose !== undefined || this.parking.resumingPark;
     const step = this.stepCamper(raw, ctx);
     const resend = this.dockedSync.next([
-      wasParked,
+      wasHeld,
       this.parking.pose !== undefined,
     ]);
     return resend.length === 0
@@ -190,7 +190,7 @@ export class CamperDrive extends TransformingDrive {
   }
 
   private stepCamper(raw: RawInput | undefined, ctx: TickContext): DriveStep {
-    if (this.parking.recovering) {
+    if (this.parking.resumingPark) {
       const pose = parkPose(ctx.location, this.yaw);
       const layNow = this.parking.recover(pose, ctx);
       if (!this.parking.pose) {

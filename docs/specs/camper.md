@@ -26,6 +26,10 @@
 
 ## Rules
 
+**Glossary**
+
+A camper is **parked** when held by the dock; its room is **laid** when its room blocks have been placed.
+
 ### Interior surface materials
 
 - Applies to: The centre floor, inner side lining, backsplash and dinette table.
