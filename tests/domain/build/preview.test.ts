@@ -3,7 +3,6 @@ import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, edgePoints } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import {
   boxOutline,
@@ -17,6 +16,7 @@ import { volumeOf } from "../../../src/domain/build/volume/geometry";
 import { sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { Vec3 } from "../../../src/domain/shared/vec";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 
 const coordinate = fc.integer({ min: -10000, max: 10000 });
 const cell = fc.record({ x: coordinate, y: coordinate, z: coordinate });
@@ -305,7 +305,7 @@ it.each([
   "draws a locked stair %s wireframe at its fixed pitch",
   (kind, ridge) => {
     const box = boxOf({ x: 0, y: 10, z: 0 }, { x: 4, y: 15, z: 6 });
-    const flow = chooseHeighted(
+    const flow = chooseHeightedFlow(
       {
         kind: "selected",
         menuLevel: "build",
@@ -335,7 +335,7 @@ it("draws a locked cylinder at the box height even when another height is aimed"
       fc.integer({ min: 2, max: 30 }),
       fc.integer({ min: 1, max: 100 }),
       (height, aimed) => {
-        const flow = chooseHeighted(
+        const flow = chooseHeightedFlow(
           {
             kind: "selected",
             menuLevel: "root",

@@ -18,6 +18,7 @@ import { volumeSize } from "../../domain/build/volume/size";
 import type { PlayerId } from "../../domain/shared/ids";
 import { AimHeight } from "./aimHeight";
 import type { AimReader } from "./ports/aim";
+import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { ResolvePasteTarget } from "./resolvePasteTarget";
 import type { SyncTapTarget } from "./syncTapTarget";
@@ -38,8 +39,9 @@ export class ShowPreview {
     private readonly aimReader: AimReader,
     private readonly resolveTarget: ResolvePasteTarget,
     private readonly syncTapTarget: SyncTapTarget,
+    private readonly blocks: Pick<BuildBlockWorld, "heightRange">,
   ) {
-    this.aimHeight = new AimHeight(repo);
+    this.aimHeight = new AimHeight(repo, blocks);
   }
 
   execute(tick: number): void {
@@ -112,10 +114,20 @@ export class ShowPreview {
     const { flow } = session;
     const preview: PreviewAim = { blink };
     if (flow.kind === "point1" && aim)
-      preview.end = aimedEndPoint(flow.cell, aim);
+      preview.end = aimedEndPoint(
+        flow.cell,
+        aim,
+        this.blocks.heightRange(flow.dimensionId),
+      );
     if (flow.kind === "heightStep") {
       preview.height =
-        !flow.heightLocked && aim ? aimedHeight(flow, aim.ray) : flow.previous;
+        !flow.heightLocked && aim
+          ? aimedHeight(
+              flow,
+              aim.ray,
+              this.blocks.heightRange(flow.dimensionId),
+            )
+          : flow.previous;
       this.reportSize(id, volumeSize(flow.base, preview.height), false);
     }
     if (flow.kind === "baseHeight")

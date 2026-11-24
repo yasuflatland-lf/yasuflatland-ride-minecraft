@@ -55,8 +55,8 @@ export function sideCylinderPlacement(axis: HorizontalAxis): HeightedPlacement {
 export function sideCylinderVolume(axis: HorizontalAxis): HeightedVolume {
   const across = axis === "x" ? "z" : "x";
   return {
-    maxHeight(base, worldTopY) {
-      return Math.max(1, worldTopY - base.min.y + 1);
+    maxHeight(base, { maxY }) {
+      return Math.max(1, maxY - base.min.y + 1);
     },
     wireframe({ base: { min, max }, height }, maxPoints) {
       const center = {

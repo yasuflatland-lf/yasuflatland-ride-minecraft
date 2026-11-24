@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { add3, type Vec3 } from "../../../../../src/domain/shared/vec";
 import { DECOR_SLOTS } from "../../../../../src/domain/vehicle/kinds/camper/decor";
 import { decorSlotCell } from "../../../../../src/domain/vehicle/kinds/camper/decorCells";
 import { slotForPress } from "../../../../../src/domain/vehicle/kinds/camper/decorPlacing";
@@ -10,6 +11,7 @@ import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/index"
 import {
   type PressedShape,
   pressedHeight,
+  pressedPoint,
   pressedShape,
 } from "../../../../../src/infrastructure/vehicle/kinds/camper/faceHeight";
 import {
@@ -24,6 +26,7 @@ import {
   CAMPER_SHOWER_DOOR_BLOCK,
   CAMPER_SHOWER_TOILET_BLOCK,
   CAMPER_WALL_BLOCK,
+  DECOR_HEIGHT_STATE,
   decorBlockId,
   pairDecorBlockId,
 } from "../../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
@@ -190,21 +193,23 @@ const stove = defined(
   "stove",
 );
 const pressAt = (
-  cell: { x: number; y: number; z: number },
+  cell: Vec3,
   face: string,
-  at: { x: number; y: number; z: number },
-  s: PressedShape,
-) => ({
-  x: cell.x + at.x,
-  y: cell.y + pressedHeight(face, at.y, s),
-  z: cell.z + at.z,
-});
+  faceLocation: Vec3,
+  typeId: string,
+  height?: number,
+) =>
+  add3(
+    cell,
+    pressedPoint({ face, faceLocation, inputMode: "Touch" }, typeId, {
+      [DECOR_HEIGHT_STATE]: height,
+    }),
+  );
 
 it("puts the logged Up-face press on the stove top and a saucepan on its burner, with or without the correction (#434, ADR 0111, 0112)", () => {
   expect(decorSlotCell(pose, stove)).toEqual(stoveCell);
-  const stoveTop = pressedShape(CAMPER_FURNITURE_BLOCK, 15);
   const face = { z: 0.1502685546875, y: 0.0625, x: 0.75244140625 };
-  const point = pressAt(stoveCell, "Up", face, stoveTop);
+  const point = pressAt(stoveCell, "Up", face, CAMPER_FURNITURE_BLOCK, 15);
   expect(point.y).toBe(-59 + 15 / 16);
   expect(
     slotForPress(
@@ -219,7 +224,7 @@ it("puts the logged Up-face press on the stove top and a saucepan on its burner,
   ).toBe("stove");
   // The reported y alone puts the point 0.875 below the top; with four burners that picked
   // the wrong one (ADR 0111), and with one there is nothing else to pick.
-  const raw = { x: point.x, y: -59 + face.y, z: point.z };
+  const raw = add3(stoveCell, face);
   expect(
     slotForPress(
       pose,
@@ -235,12 +240,7 @@ it("puts the logged Up-face press on the stove top and a saucepan on its burner,
 
 it("puts the logged west-face press on the stove on its burner (#434, ADR 0111, 0112)", () => {
   const face = { z: 0.3963623046875, y: 0.20313644409179688, x: 0 };
-  const point = pressAt(
-    stoveCell,
-    "West",
-    face,
-    pressedShape(CAMPER_FURNITURE_BLOCK, 15),
-  );
+  const point = pressAt(stoveCell, "West", face, CAMPER_FURNITURE_BLOCK, 15);
   expect(point.y).toBeCloseTo(-59 + 0.797, 3);
   expect(
     slotForPress(
@@ -261,24 +261,24 @@ it("puts the logged Up-face presses on the table top and the floor top (#434, AD
     table,
     "Up",
     { z: 0.49951171875, y: 0.25, x: 0.24188232421875 },
-    pressedShape(CAMPER_FURNITURE_BLOCK, 12),
+    CAMPER_FURNITURE_BLOCK,
+    12,
   );
   expect(onTable.y).toBe(-59 + 0.75);
   expect(
     slotForPress(pose, decorItemId("saucepan"), [], table, onTable, false)?.id,
-  ).toBe("table");
+  ).toBe("table_aisle");
   const floor = { x: 320, y: -60, z: -520 };
   const onFloor = pressAt(
     floor,
     "Up",
     { z: 0.134033203125, y: 0, x: 0.30279541015625 },
-    pressedShape(CAMPER_FLOOR_BLOCK, undefined),
+    CAMPER_FLOOR_BLOCK,
   );
   expect(onFloor.y).toBe(-59);
 });
 
 it("puts a saucepan on the stove's burner for any Up-face press on it, from any eye above it (ADR 0110, 0111, 0112)", () => {
-  const top = pressedShape(CAMPER_FURNITURE_BLOCK, 15);
   fc.assert(
     fc.property(
       fraction,
@@ -290,7 +290,13 @@ it("puts a saucepan on the stove's burner for any Up-face press on it, from any 
         fc.double({ min: -3, max: 3, noNaN: true }),
       ),
       (x, y, z, [ex, ey, ez]) => {
-        const point = pressAt(stoveCell, "Up", { x, y, z }, top);
+        const point = pressAt(
+          stoveCell,
+          "Up",
+          { x, y, z },
+          CAMPER_FURNITURE_BLOCK,
+          15,
+        );
         const eye = { x: point.x + ex, y: point.y + ey, z: point.z + ez };
         expect(
           slotForPress(
@@ -382,3 +388,70 @@ it("corrects the shared drawer block side heights without embedding the door spl
     }),
   );
 });
+
+const location = fc.record({ x: fraction, y: fraction, z: fraction });
+
+const woolPress = (
+  faceLocation: { x: number; y: number; z: number },
+  inputMode: string | undefined,
+  face = "East",
+) =>
+  pressedPoint({ face, faceLocation, inputMode }, "minecraft:yellow_wool", {});
+
+it("corrects touch world-axis x and y while preserving z", () => {
+  fc.assert(
+    fc.property(location, (at) => {
+      expect(woolPress(at, "Touch")).toEqual({
+        x: 1 - at.x,
+        y: 1 - at.y,
+        z: at.z,
+      });
+    }),
+  );
+});
+it("preserves x and z and corrects height for every non-touch input mode", () => {
+  fc.assert(
+    fc.property(
+      location,
+      fc.option(
+        fc.string().filter((s) => s !== "Touch"),
+        { nil: undefined },
+      ),
+      (at, mode) => {
+        expect(woolPress(at, mode)).toEqual({ ...at, y: 1 - at.y });
+      },
+    ),
+  );
+  for (const mode of ["KeyboardAndMouse", "Gamepad", undefined]) {
+    expect(woolPress({ x: 0, y: 4.679 / 16, z: 1 }, mode)).toEqual({
+      x: 0,
+      y: 1 - 4.679 / 16,
+      z: 1,
+    });
+  }
+});
+it("reverses a touch side-face correction when applied twice within floating point precision", () => {
+  fc.assert(
+    fc.property(location, (at) => {
+      const twice = woolPress(woolPress(at, "Touch"), "Touch");
+      expect(twice.x).toBeCloseTo(at.x, 15);
+      expect(twice.y).toBeCloseTo(at.y, 15);
+      expect(twice.z).toBe(at.z);
+    }),
+  );
+});
+it.each([
+  ["t1", 0.083, 0.207, true],
+  ["t2", 0.974, 0.921, false],
+  ["t3", 0.089, 0.447, true],
+  ["t4", 0.954, 0.392, false],
+  ["t5", 0.54, 0.021, false],
+] as const)(
+  "replays wool %s at (%s,%s) with east/left half=%s when facing +z",
+  (_tap, x, z, east) => {
+    const corrected = woolPress({ x, y: 0, z }, "Touch", "Up");
+    expect(corrected.x > 0.5).toBe(east);
+    expect(corrected.y).toBe(1);
+    expect(corrected.z).toBe(z);
+  },
+);

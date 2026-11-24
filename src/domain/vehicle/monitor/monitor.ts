@@ -1,3 +1,9 @@
+import { Debounce } from "../../shared/debounce";
+import { SyncedValue } from "../../shared/syncedValue";
+import type { Drive, EngineCommand } from "../drive";
+import { MONITOR_PROPERTY_NAME } from "../entityContract";
+import { SPEC } from "../spec";
+
 /** A cab monitor tool with its states in screen order (ADR 0139). */
 interface MonitorTool {
   readonly item: string;
@@ -81,4 +87,50 @@ export function toolBindings(
       return true;
     },
   };
+}
+
+export class CabMonitor {
+  private readonly screen = new SyncedValue<number>();
+  // Tools share a cooldown separate from the headlight switch (ADR 0171).
+  private readonly toolCooldown = new Debounce(SPEC.toolSwitchCooldown);
+
+  constructor(
+    private readonly rule: MonitorRule | undefined,
+    private readonly drive: Pick<Drive, "toolState" | "setToolState">,
+  ) {}
+
+  resync(): void {
+    this.screen.resync();
+  }
+
+  commands(held: string | undefined): readonly EngineCommand[] {
+    const rule = this.rule;
+    if (!rule) return [];
+    const value = this.screen.next(
+      monitorScreen(rule, held, (item) => this.toolState(item)),
+    );
+    return value === undefined
+      ? []
+      : [{ type: "setProperty", name: MONITOR_PROPERTY_NAME, value }];
+  }
+
+  /** Only the driver may advance a monitor tool; all tools share an idle cooldown (ADR 0024, 0171). */
+  switchTool(isDriver: boolean, item: string, tick: number): boolean {
+    const tool = monitorTool(this.rule, item);
+    if (!isDriver || !tool || !this.drive.setToolState) return false;
+    if (!this.toolCooldown.press(tick)) return false;
+    return this.drive.setToolState(
+      item,
+      nextToolState(tool, this.toolState(item)),
+    );
+  }
+
+  toolState(item: string): string | undefined {
+    return this.drive.toolState?.(item);
+  }
+
+  /** Bypasses role and cooldown checks for the server-only test hook (ADR 0171). */
+  forceTool(item: string, state: string): boolean {
+    return this.drive.setToolState?.(item, state) ?? false;
+  }
 }

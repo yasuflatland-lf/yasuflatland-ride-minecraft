@@ -69,7 +69,7 @@ it.each(["gable", "hip", "cylinder", "sphere", "cube"] as const)(
   "shows the material when choosing %s",
   (kind) => {
     const e = setup();
-    const choose = new ChooseHeighted(e.repo, e.feedback);
+    const choose = new ChooseHeighted(e.repo, e.feedback, e.world);
     choose.execute({ playerId, kind });
     choose.execute({ playerId, kind });
     expect(e.feedback.messages).toEqual([

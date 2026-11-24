@@ -2,6 +2,7 @@ import { confirmTappedSpan } from "../../domain/build/flow/heightFlow";
 import { inDimension } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
+import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { RotateBox } from "./rotateBox";
 
@@ -10,6 +11,7 @@ export class RotateSelection {
     private readonly repo: BuildSessionRepository,
     private readonly rotate: Pick<RotateBox, "execute">,
     private readonly feedback: BuildFeedback,
+    private readonly world: Pick<BuildBlockWorld, "heightRange">,
   ) {}
 
   execute(cmd: {
@@ -26,7 +28,10 @@ export class RotateSelection {
       this.feedback.showMessage(cmd.playerId, "noSelection");
       return "noSelection";
     }
-    if (flow.kind === "baseHeight") session.setFlow(confirmTappedSpan(flow));
+    if (flow.kind === "baseHeight")
+      session.setFlow(
+        confirmTappedSpan(flow, this.world.heightRange(cmd.dimensionId)),
+      );
     return this.rotate.execute(cmd) === "rotated" ? "rotated" : "refused";
   }
 }

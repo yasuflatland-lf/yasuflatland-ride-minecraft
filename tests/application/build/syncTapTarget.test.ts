@@ -9,6 +9,7 @@ import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { tapTargetCell } from "../../../src/domain/build/tapTarget";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
 import { cellKey, FakeWorld, overworld } from "./fakes";
 
 const coord = fc.integer({ min: -32, max: 32 });
@@ -50,7 +51,7 @@ it("shows only a touch player's air endpoint in build mode and a known dimension
         ]) {
           const end =
             flow.kind === "point1" && aim
-              ? aimedEndPoint(flow.cell, aim)
+              ? aimedEndPoint(flow.cell, aim, OVERWORLD_RANGE)
               : undefined;
           const candidate = tapTargetCell(flow, end);
           for (const dimensionId of [overworld, undefined]) {
