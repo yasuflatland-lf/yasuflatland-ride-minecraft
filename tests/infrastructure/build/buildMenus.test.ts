@@ -3,11 +3,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import {
   buildMenu,
   contentsMenu,
@@ -39,6 +35,7 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 
 type Answer = {
   canceled?: boolean;
@@ -207,6 +204,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
     fc.asyncProperty(cell, cell, async (a, b) => {
       const { session, menus, player } = setup();
       const end: BuildFlow = selected(a, b);
+      const roofBase = selected(a, { ...a, x: a.x + 1, z: a.z + 1 });
       for (const flow of [
         { kind: "idle" } as const,
         {
@@ -216,7 +214,7 @@ it("rebuilds shape and roof entries from the live flow, including empty models",
           material: stone,
         } as const,
         end,
-        chooseHeighted(end, "hip"),
+        chooseHeightedFlow(roofBase, "hip"),
         { kind: "pasteAim", manualTurn: 0 } as const,
       ]) {
         session.setFlow(flow);
@@ -328,7 +326,7 @@ it("keeps a dismissed root selection and clears it on Cancel", async () => {
 
 it("returns to aiming on contents Cancel", async () => {
   const { session, menus, player, cases } = setup();
-  session.setFlow(chooseHeighted(endpoint, "gable"));
+  session.setFlow(chooseHeightedFlow(endpoint, "gable"));
   ui.answers.push({ selection: 2 });
   await menus.showContentsMenu(player);
   expect(cases.cancel.backToAiming).toHaveBeenCalledExactlyOnceWith({
@@ -369,7 +367,7 @@ it("bounds the fallback slider, starts at the initial roof height and applies it
         const { session, menus, player, cases } = setup(true);
         const selection = selected({ ...from, y }, { ...to, y });
         session.setFlow(selection);
-        const flow = chooseHeighted(selection, kind);
+        const flow = chooseHeightedFlow(selection, kind);
         if (flow.kind !== "heightStep") throw new Error("Expected roof");
         const max = volumeOf(kind).maxHeight(flow.base, BUILD_SPEC.worldTopY);
         ui.forms.length = 0;
@@ -464,7 +462,7 @@ it.each(["shape", "roof", "paste", "slider"] as const)(
     const { session, menus, player, cases } = setup(stage === "slider");
     let close!: (answer: Answer) => void;
     if (stage === "slider") ui.answers.push(...shapeAnswers(endpoint, "hip"));
-    if (stage === "roof") session.setFlow(chooseHeighted(endpoint, "hip"));
+    if (stage === "roof") session.setFlow(chooseHeightedFlow(endpoint, "hip"));
     if (stage === "paste") {
       holdClipboard(
         session,

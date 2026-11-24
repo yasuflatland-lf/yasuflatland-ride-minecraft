@@ -4,10 +4,10 @@ import { AimHeight } from "../../../src/application/build/aimHeight";
 import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { chooseHeighted } from "../../../src/domain/build/flow/heightFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { chooseHeightedFlow } from "../../support/buildSelection";
 import { FakeSessions, overworld } from "./fakes";
 
 it("sets only a roof flow's height and leaves other players and missing sessions alone", () => {
@@ -38,7 +38,7 @@ it("sets only a roof flow's height and leaves other players and missing sessions
         for (const flow of [
           { kind: "idle" } as const,
           endpoint,
-          chooseHeighted(endpoint, kind),
+          chooseHeightedFlow(endpoint, kind),
           { kind: "pasteAim", manualTurn: 0 } as const,
         ]) {
           session.setFlow(flow);
@@ -64,7 +64,7 @@ it("keeps locked box heights and other players unchanged for aiming and explicit
         const other = repo.getOrCreate(asPlayerId("other"));
         const otherFlow = other.flow;
         const session = repo.getOrCreate(playerId);
-        const flow = chooseHeighted(
+        const flow = chooseHeightedFlow(
           {
             kind: "selected",
             menuLevel: "root",

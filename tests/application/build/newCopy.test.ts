@@ -8,17 +8,16 @@ import { NewCopy } from "../../../src/application/build/newCopy";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { cancel } from "../../../src/domain/build/flow/stepBack";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
-import { confirmEndpointHeight } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  confirmEndpointHeight,
+} from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
 
@@ -125,7 +124,7 @@ it("acts only in paste aiming and never creates a missing session", () => {
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "hip"),
+        chooseHeightedFlow(endpoint, "hip"),
       ]) {
         e.session.setFlow(flow);
         const confirmed = e.session.confirmedBox;

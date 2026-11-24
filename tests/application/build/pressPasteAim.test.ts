@@ -9,11 +9,7 @@ import type { Face } from "../../../src/domain/build/aim/face";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import {
-  chooseHeighted,
-  tapAir,
-  tapBlock,
-} from "../../../src/domain/build/flow/heightFlow";
+import { tapAir, tapBlock } from "../../../src/domain/build/flow/heightFlow";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { asPlayerId } from "../../../src/domain/shared/ids";
@@ -22,6 +18,7 @@ import {
   structureClipboard,
 } from "../../support/buildClipboard";
 import {
+  chooseHeightedFlow,
   confirmEndpointHeight,
   selectionFlows,
 } from "../../support/buildSelection";
@@ -176,7 +173,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
         { kind: "idle" } as const,
         first,
         endpoint,
-        chooseHeighted(endpoint, "hip"),
+        chooseHeightedFlow(endpoint, "hip"),
       ]) {
         e.session.setFlow(flow);
         expect(e.execute()).toBe("ignored");
