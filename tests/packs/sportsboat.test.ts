@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PAINTS } from "../../src/domain/shared/paint";
 import { SPORTSBOAT_PROFILE } from "../../src/domain/vehicle/kinds/sportsboat/profile";
 import { paintEvent } from "../../src/infrastructure/shared/dyes";
@@ -10,6 +10,8 @@ import { defined } from "../support/defined";
 import { turnedCorners } from "../support/geometry";
 import { readRgbaPng } from "../support/png";
 import { assertOneAxis, multipleAxes } from "./oneAxis";
+
+vi.mock("@minecraft/server", () => ({}));
 
 const read = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 const RP = "packs/yasu_ride_rp";

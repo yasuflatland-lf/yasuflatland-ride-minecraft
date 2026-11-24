@@ -1,5 +1,6 @@
 import { type Cell, cellCenter, cellOf } from "./cells";
-import { localOffset, type Vec2, type Vec3 } from "./vec";
+import { LocalFrame } from "./frame";
+import type { Vec2, Vec3 } from "./vec";
 
 /** Grid offset from the pressed column in a cardinal placement direction. */
 export interface CellOffset {
@@ -11,8 +12,9 @@ export function footprintOffsets(
   cells: readonly CellOffset[],
   facing: Vec2,
 ): Vec2[] {
+  const frame = new LocalFrame({ x: 0, y: 0, z: 0 }, facing);
   return cells.map(({ ahead, left }) => {
-    const offset = localOffset(facing, ahead, -left);
+    const offset = frame.toWorldOffset({ ahead, left, up: 0 });
     return { x: Math.round(offset.x), z: Math.round(offset.z) };
   });
 }

@@ -2,9 +2,10 @@
 import { type Cell, cellCenter, cellKey, cellOf } from "../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../shared/decorations";
 import { facePlayer, type SnappedYaw } from "../shared/facing";
+import { LocalFrame } from "../shared/frame";
 import type { Brand } from "../shared/ids";
 import type { LaidCell } from "../shared/laidCells";
-import { forward, leftOf, type Vec2, type Vec3 } from "../shared/vec";
+import type { Vec2, Vec3 } from "../shared/vec";
 import { TENT_SPEC } from "./spec";
 import {
   type FlapId,
@@ -61,16 +62,6 @@ const AIR = "minecraft:air";
 const range = (from: number, to: number): number[] =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-const rounded = (v: Vec2): Vec2 => ({
-  x: Math.round(v.x) + 0,
-  z: Math.round(v.z) + 0,
-});
-
-function axes(yaw: TentYaw): { f: Vec2; l: Vec2 } {
-  const f = rounded(forward(yaw));
-  return { f, l: rounded(leftOf(f)) };
-}
-
 /**
  * The block the tent rests on when `clicked` is pressed: a snow layer, a carpet,
  * or a plant covers the ground and takes the click, so the pitch steps down
@@ -96,23 +87,20 @@ export function tentPose(clicked: Vec3, playerYaw: number): TentPose {
 }
 
 export function tentCellAt(pose: TentPose, local: TentLocalCell): Cell {
-  const { f, l } = axes(pose.yaw);
-  return {
-    x: pose.x + local.x * l.x - local.depth * f.x + 0,
-    y: pose.y + local.layer + 0,
-    z: pose.z + local.x * l.z - local.depth * f.z + 0,
-  };
+  return cellInFrame(LocalFrame.grid(pose, pose.yaw), local);
+}
+
+function cellInFrame(frame: LocalFrame, local: TentLocalCell): Cell {
+  const { x, y, z } = frame.toWorld(
+    { left: local.x, ahead: -local.depth, up: local.layer },
+    "left-first",
+  );
+  return { x: x + 0, y: y + 0, z: z + 0 };
 }
 
 function toLocal(pose: TentPose, cell: Cell): TentLocalCell {
-  const { f, l } = axes(pose.yaw);
-  const dx = cell.x - pose.x;
-  const dz = cell.z - pose.z;
-  return {
-    x: dx * l.x + dz * l.z + 0,
-    depth: -(dx * f.x + dz * f.z) + 0,
-    layer: cell.y - pose.y + 0,
-  };
+  const { left, ahead, up } = LocalFrame.grid(pose, pose.yaw).toLocal(cell);
+  return { x: left + 0, depth: -ahead + 0, layer: up + 0 };
 }
 
 function faceToward(v: Vec2): TentPlateSide {
@@ -126,13 +114,14 @@ export function tentCells(
   pose: TentPose,
   state: TentState,
 ): LaidCell<TentBlock>[] {
-  const { f, l } = axes(pose.yaw);
+  const frame = LocalFrame.grid(pose, pose.yaw);
+  const { aheadAxis: f, leftAxis: l } = frame;
   const cells: LaidCell<TentBlock>[] = [];
   const lay = (local: TentLocalCell, block: TentBlock) => {
     const flap =
       block.type === "wall" ? FLAP_BY_LOCAL.get(tentCellKey(local)) : undefined;
     cells.push({
-      ...tentCellAt(pose, local),
+      ...cellInFrame(frame, local),
       block:
         flap === undefined
           ? block
@@ -181,11 +170,12 @@ export function flapCells(pose: TentPose, flap: FlapId): Cell[] {
 }
 
 function footprintCells(pose: TentPose, layers: number[]): Cell[] {
+  const frame = LocalFrame.grid(pose, pose.yaw);
   const cells: Cell[] = [];
   for (const x of range(-LAYOUT.clear.halfWidth, LAYOUT.clear.halfWidth))
     for (const depth of range(0, LAYOUT.clear.depth - 1))
       for (const layer of layers)
-        cells.push(tentCellAt(pose, { x, depth, layer }));
+        cells.push(cellInFrame(frame, { x, depth, layer }));
   return cells;
 }
 

@@ -26,8 +26,10 @@ cannot assume either vehicle's dimensions.
   including any colons or newlines. Unknown or malformed markers decode as ground.
 - Each supported kind supplies a `RoofTentMount` through `VehicleProfile.roofTent`.
   The contract lives in `src/domain/shared/roofTent.ts`: roof height, vehicle-local
-  anchor, ladder requirement, and entrance foot point. Absence of a mount means
+  anchor, shell, ladder requirement, and entrance foot point. Absence of a mount means
   the kind does not support a roof tent. Camp never branches on vehicle kind.
+  The host's `LocalFrame` reads both the anchor and entrance as x-left and
+  z-ahead offsets in blocks.
 - Features exchange host state through `VehicleHostLookup` next to `SpaceCheck`.
   The port in `src/application/shared/ports/vehicleHost.ts` is a pure read wired
   through bootstrap; it reports presence, location, yaw, mount, driver presence,

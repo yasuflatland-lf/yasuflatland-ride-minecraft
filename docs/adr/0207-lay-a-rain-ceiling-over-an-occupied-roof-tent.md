@@ -16,9 +16,8 @@ that block while a roof tent is occupied, removing it on every exit path.
 ## Decision
 
 - While occupied, lay a ceiling over every column overlapping the yaw-rotated
-  shell footprint, at the first integer cell above the ridge. The ladder property
-  selects the SUV shell (approximately 3.9 by 2.4 blocks, ridge 1.625 above the
-  origin); otherwise use the ground/camper shell (2 by 2.5 blocks, ridge 19/16).
+  shell footprint, at the first integer cell above the ridge. The raised shell uses the SUV dimensions (approximately 3.9 by 2.4 blocks, ridge 1.625 above the
+  origin). The flat shell uses the ground/camper dimensions (2 by 2.5 blocks, ridge 19/16).
   `roofTentCeilingCells` owns this pure geometry rule.
 - Reuse `yasu_ride:tent_ceiling`. No new pack asset or manifest version is needed.
   Lay only on air and outside vehicle space; skip missing or unloaded blocks and

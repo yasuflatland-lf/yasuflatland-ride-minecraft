@@ -19,6 +19,7 @@ import {
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
 import { BedrockGroundCells, paidItem } from "../../shared/groundCells";
 import { showHitsLeftHint } from "../../shared/players";
+import { playerRiderOf } from "../../shared/seating";
 import { CHAIR_KIND_BY_TYPE, CHAIR_KINDS } from "../identifiers";
 
 function chairOf(chairId: ChairId) {
@@ -73,10 +74,7 @@ export class BedrockChairWorld
   }
 
   isOccupied(chairId: ChairId): boolean {
-    const riders = chairOf(chairId)
-      ?.getComponent("minecraft:rideable")
-      ?.getRiders();
-    return (riders?.length ?? 0) > 0;
+    return playerRiderOf(chairOf(chairId)) !== undefined;
   }
 
   removeChair(chairId: ChairId): void {

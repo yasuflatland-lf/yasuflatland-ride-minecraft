@@ -3,7 +3,7 @@ import { CLEARABLE_DECORATIONS } from "../../shared/decorations";
 import { type Facing4, snapYaw4 } from "../../shared/facing";
 import type { Host } from "../../shared/hosted";
 import type { VehicleId } from "../../shared/ids";
-import type { RoofTentMount } from "../../shared/roofTent";
+import type { RoofTentMount, RoofTentShell } from "../../shared/roofTent";
 
 export interface RoofTentBlock {
   readonly typeId: string;
@@ -40,6 +40,7 @@ export type RoofTentRefusal =
 export type RoofTentPlan = {
   readonly host: Host;
   readonly facing: Facing4;
+  readonly shell: RoofTentShell;
   readonly ladder: boolean;
 };
 
@@ -61,7 +62,7 @@ export function planRoofTent(input: {
   const facing = snapYaw4(input.yaw);
   if (target.type === "ground") {
     return target.clear
-      ? { host: { kind: "ground" }, facing, ladder: false }
+      ? { host: { kind: "ground" }, facing, shell: "flat", ladder: false }
       : "blocked";
   }
   if (!target.mount) return "unsupported_vehicle";
@@ -70,6 +71,7 @@ export function planRoofTent(input: {
   return {
     host: { kind: "vehicle", id: target.id },
     facing,
+    shell: target.mount.shell,
     ladder: target.mount.ladder,
   };
 }

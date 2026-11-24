@@ -39,6 +39,7 @@ export const SUV_SPEC = Object.freeze({
   // Align the platform right edge with the hardtop; the left overhang clears the ladder.
   roofTentAnchorX: ROOF_TENT_ANCHOR_X,
   roofTentAnchorZ: ROOF_TENT_ANCHOR_Z, // Center the platform on the hardtop span.
+  roofTentShell: "raised",
   roofTentLadder: true,
   // Profile x points left; match the model foot's pivot offset and outward run.
   roofTentEntranceX:
