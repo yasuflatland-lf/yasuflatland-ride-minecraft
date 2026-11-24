@@ -14,6 +14,7 @@ import {
   TEST_EDIT_EVENT,
   TEST_INPUT_EVENT,
   TEST_RESULT_EVENT,
+  TEST_TAP_EVENT,
 } from "../../../src/infrastructure/build/identifiers";
 import { installBuild } from "../../../src/infrastructure/build/install";
 import { installBuildTestHooks } from "../../../src/infrastructure/build/testHooks/install";
@@ -211,4 +212,63 @@ it("installs test hooks separately and clears their player state on disconnect",
     leave({ playerId, playerName: player.name });
   expect(build.aimOverrides.has(playerId)).toBe(false);
   expect(readDegrees()).toBeUndefined();
+});
+
+it("uses the supplied test corner and reports the selection menu only on a later tap", () => {
+  vi.resetAllMocks();
+  const playerId = asPlayerId("builder");
+  const dimensionId = asDimensionId("minecraft:overworld");
+  const start = { x: 0, y: 70, z: 0 };
+  const end = { x: 4, y: 70, z: 4 };
+  const player = {
+    id: playerId,
+    name: "Builder",
+    typeId: "minecraft:player",
+    isValid: true,
+    isSneaking: true,
+    dimension: { id: dimensionId },
+    getBlockFromViewDirection: () => undefined,
+    getHeadLocation: () => start,
+    getViewDirection: () => ({ x: 1, y: 0, z: 0 }),
+    onScreenDisplay: { setActionBar: vi.fn() },
+  } as unknown as Player;
+  vi.mocked(world.getAllPlayers).mockReturnValue([player]);
+  engine.getEntity.mockReturnValue(player);
+  const build = installBuild({
+    isProtected: () => false,
+    isExcludedEntityType: () => false,
+    uncopyableBlockTypes: [],
+  });
+  const session = build.repo.getOrCreate(playerId);
+  session.setFlow({
+    kind: "point1",
+    cell: start,
+    dimensionId,
+    material: blockStateOf("minecraft:stone"),
+  });
+  installBuildTestHooks(build);
+  const tap = (type: "air" | "block") => {
+    for (const [receive] of vi.mocked(
+      system.afterEvents.scriptEventReceive.subscribe,
+    ).mock.calls)
+      receive({
+        sourceType: ScriptEventSource.Server,
+        id: TEST_TAP_EVENT,
+        message: JSON.stringify({ player: player.name, tap: type, ...end }),
+      });
+    const [event, reply] =
+      vi.mocked(system.sendScriptEvent).mock.lastCall ?? [];
+    expect(event).toBe(TEST_RESULT_EVENT);
+    return JSON.parse(reply ?? "{}");
+  };
+  expect(tap("air")).toMatchObject({
+    flow: { kind: "baseHeight", to: end },
+    message: "heightAim",
+  });
+  const fixed = tap("block");
+  expect(fixed.flow.kind).toBe("selected");
+  expect(fixed.menu).toBeUndefined();
+  expect(tap("air").menu).toContainEqual(
+    expect.objectContaining({ id: "adjustHeight" }),
+  );
 });

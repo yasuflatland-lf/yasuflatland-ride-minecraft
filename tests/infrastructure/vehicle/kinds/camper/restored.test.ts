@@ -6,6 +6,7 @@ import {
   DECOR_PROPERTY,
 } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { readCamperRestored } from "../../../../../src/infrastructure/vehicle/kinds/camper/restored";
+import { dockCodec } from "../../../../support/dockBlocks";
 
 vi.mock("@minecraft/server", async () =>
   (
@@ -37,7 +38,7 @@ it.each([undefined, false, true])(
             return undefined;
           };
           const vehicle = { getDynamicProperty } as unknown as Entity;
-          expect(readCamperRestored(vehicle)).toStrictEqual({
+          expect(readCamperRestored(vehicle, dockCodec)).toStrictEqual({
             dockLaid: cells.length > 0,
             dockDoorOpen: doorOpen,
             dockDecor: decor,

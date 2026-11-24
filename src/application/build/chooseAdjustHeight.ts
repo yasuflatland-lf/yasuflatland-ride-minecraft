@@ -1,4 +1,7 @@
-import { adjustHeight, enteredBaseHeight } from "../../domain/build/flow/flow";
+import {
+  adjustHeight,
+  enteredBaseHeight,
+} from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 

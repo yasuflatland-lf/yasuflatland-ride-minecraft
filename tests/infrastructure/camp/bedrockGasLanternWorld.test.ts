@@ -4,6 +4,7 @@ import { type Cell, cellKey } from "../../../src/domain/shared/cells";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { createGasLanternLight } from "../../../src/infrastructure/camp/bedrock/gasLanternLight";
+import { GAS_LANTERN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 import {
   GAS_LANTERN_CELLS_PROPERTY,
   GAS_LANTERN_HOST_PROPERTY,
@@ -177,7 +178,7 @@ it("returns undefined and leaves no tabletop lantern when a host setter fails", 
   const host = "camp_table:table:@1,0";
   expect(
     f.world.spawnHosted(
-      "gas_lantern",
+      GAS_LANTERN_ON_TOP.id,
       asDimensionId("overworld"),
       f.entity.location,
       90,

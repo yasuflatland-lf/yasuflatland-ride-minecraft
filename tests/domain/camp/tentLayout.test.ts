@@ -47,7 +47,10 @@ describe("buildLayout", () => {
             for (const depth of [1, 4, 7]) {
               expect(
                 row
-                  .filter(({ cell, face }) => cell.depth === depth && face <= 1)
+                  .filter(
+                    ({ cell, face }) =>
+                      cell.depth === depth && (face === "-z" || face === "+z"),
+                  )
                   .map(({ cell }) => cell.x),
               ).toEqual(
                 Array.from({ length: 2 * width - 1 }, (_, i) => i - width + 1),
@@ -56,7 +59,10 @@ describe("buildLayout", () => {
             for (let depth = 2; depth <= 6; depth++)
               expect(
                 row
-                  .filter(({ cell, face }) => cell.depth === depth && face >= 2)
+                  .filter(
+                    ({ cell, face }) =>
+                      cell.depth === depth && (face === "-x" || face === "+x"),
+                  )
                   .map(({ cell }) => cell.x),
               ).toEqual([width, -width]);
           });
@@ -91,12 +97,12 @@ describe("buildLayout", () => {
             const inset = insets[layer] ?? 0;
             expect(
               row
-                .filter(({ face }) => face === 0)
+                .filter(({ face }) => face === "-z")
                 .every(({ cell }) => cell.depth === base.depths.front + inset),
             ).toBe(true);
             expect(
               row
-                .filter(({ face }) => face === 1)
+                .filter(({ face }) => face === "+z")
                 .map(({ cell }) => cell.depth),
             ).toEqual(
               Array(defined(base.wallHalfWidths[layer], "layer width") * 2 - 1)
@@ -108,7 +114,9 @@ describe("buildLayout", () => {
                 ),
             );
             expect(
-              row.filter(({ face }) => face >= 2).map(({ cell }) => cell.depth),
+              row
+                .filter(({ face }) => face === "-x" || face === "+x")
+                .map(({ cell }) => cell.depth),
             ).toEqual([2, 3, 4, 5, 6, 2, 3, 4, 5, 6]);
           }
         },

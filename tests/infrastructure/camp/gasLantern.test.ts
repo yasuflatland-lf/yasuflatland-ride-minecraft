@@ -8,6 +8,7 @@ import { asGasLanternId } from "../../../src/domain/camp/gasLantern";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 import type { BedrockGasLanternWorld } from "../../../src/infrastructure/camp/bedrock/bedrockGasLanternWorld";
 import { registerGasLantern } from "../../../src/infrastructure/camp/bedrock/handlers/gasLantern";
+import { GAS_LANTERN_ON_TOP } from "../../../src/infrastructure/camp/bedrock/topHosts";
 import {
   CAMP_TABLE_TYPE,
   GAS_LANTERN_ITEM,
@@ -102,7 +103,7 @@ function fixture() {
     isHostAreaLoaded: () => true,
     hostExists: () => true,
   };
-  const actions = new GasLanternActions(world);
+  const actions = new GasLanternActions(world, GAS_LANTERN_ON_TOP);
   const topHosts = campTopHosts();
   registerGasLantern(
     actions,

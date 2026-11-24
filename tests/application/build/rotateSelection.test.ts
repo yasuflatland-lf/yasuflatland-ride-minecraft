@@ -10,7 +10,7 @@ import {
   setHeight,
   tapAir,
   tapBlock,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import {

@@ -6,10 +6,15 @@ import {
   system,
   world,
 } from "@minecraft/server";
+import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { asDimensionId } from "../../../src/domain/shared/ids";
+import { STARTER_KINDS } from "../../../src/domain/vehicle/placement/starter";
 import { HEADLIGHT_SWITCH_TYPE } from "../../../src/infrastructure/shared/identifiers";
-import { ITEM_TYPE } from "../../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  ITEM_TYPE,
+  STARTER_RECEIVED_PROPERTY,
+} from "../../../src/infrastructure/vehicle/bedrock/identifiers";
 import { installVehicles } from "../../../src/infrastructure/vehicle/install";
 
 vi.mock("@minecraft/server", () => {
@@ -19,6 +24,12 @@ vi.mock("@minecraft/server", () => {
     EntityInitializationCause: { Loaded: "Loaded" },
     BlockVolume: class {},
     GameMode: { Creative: "Creative" },
+    ItemStack: class {
+      constructor(
+        readonly typeId: string,
+        readonly amount: number,
+      ) {}
+    },
     InputMode: { Touch: "Touch", KeyboardAndMouse: "KeyboardAndMouse" },
     world: {
       getEntity: vi.fn(),
@@ -35,7 +46,7 @@ vi.mock("@minecraft/server", () => {
         entityDie: unusedEvent,
         entityHitEntity: unusedEvent,
         itemUse: { subscribe: vi.fn() },
-        playerSpawn: unusedEvent,
+        playerSpawn: { subscribe: vi.fn() },
       },
     },
     system: {
@@ -49,6 +60,46 @@ vi.mock("@minecraft/server", () => {
 });
 
 beforeEach(() => vi.resetAllMocks());
+
+it("grants Creative players each missing starter vehicle once across joins", () => {
+  installVehicles({ isCampSpace: () => false, laterSwitchTargets: () => [] });
+  fc.assert(
+    fc.property(fc.subarray([...STARTER_KINDS]), (received) => {
+      const flags = new Map(
+        received.map((kind) => [STARTER_RECEIVED_PROPERTY[kind], true]),
+      );
+      const addItem = vi.fn();
+      const player = {
+        id: "p",
+        typeId: "minecraft:player",
+        isValid: true,
+        getGameMode: () => "Creative",
+        getComponent: () => ({ container: { addItem } }),
+        getDynamicProperty: (key: string) => flags.get(key),
+        setDynamicProperty: (key: string, value: boolean) =>
+          flags.set(key, value),
+      } as unknown as Player;
+      vi.mocked(world.getEntity).mockReturnValue(player);
+      const spawn = (initialSpawn: boolean) => {
+        for (const [onSpawn] of vi.mocked(
+          world.afterEvents.playerSpawn.subscribe,
+        ).mock.calls)
+          onSpawn({ player, initialSpawn });
+      };
+      spawn(false);
+      expect(addItem).not.toHaveBeenCalled();
+      spawn(true);
+      spawn(true);
+      expect(addItem.mock.calls).toEqual(
+        STARTER_KINDS.filter((kind) => !received.includes(kind)).map((kind) => [
+          { typeId: ITEM_TYPE[kind], amount: 1 },
+        ]),
+      );
+      for (const kind of STARTER_KINDS)
+        expect(flags.get(STARTER_RECEIVED_PROPERTY[kind])).toBe(true);
+    }),
+  );
+});
 
 it("returns the vehicles' space check for other features (ADR 0122)", () => {
   const { isVehicleSpace, vehicleHost } = installVehicles({

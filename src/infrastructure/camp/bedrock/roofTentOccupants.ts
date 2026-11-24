@@ -13,23 +13,20 @@ import {
 } from "../../../domain/camp/roofTent/occupancy";
 import { seatPosition } from "../../../domain/camp/roofTent/seat";
 import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
-import { type Cell, cellCenter, sameCell } from "../../../domain/shared/cells";
+import { cellCenter } from "../../../domain/shared/cells";
 import { searchExitCell } from "../../../domain/shared/exitSearch";
 import { snapYaw4 } from "../../../domain/shared/facing";
 import { decodeHost } from "../../../domain/shared/hosted";
 import {
   asDimensionId,
   asPlayerId,
-  type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import { messageKey, NAMESPACE } from "../../shared/identifiers";
-import { readSavedCells } from "../../shared/laidBlockLayer";
 import { playerById, showActionBar } from "../../shared/players";
 import { makeSafeStand } from "../../shared/seating";
 import {
-  ROOF_TENT_CEILING_PROPERTY,
   ROOF_TENT_EXIT_PROPERTY,
   ROOF_TENT_FLAP_OPEN_PROPERTY,
   ROOF_TENT_HOST_PROPERTY,
@@ -49,7 +46,6 @@ interface RoofTentRecord {
   state: RoofTentState;
   readonly dimension: Dimension;
   readonly location: Vec3;
-  ceiling: readonly Cell[];
 }
 
 export class RoofTentOccupants {
@@ -84,9 +80,6 @@ export class RoofTentOccupants {
       entity.getDynamicProperty(ROOF_TENT_SPAWN_SETTERS_PROPERTY),
     );
     this.records.set(asRoofTentId(entity.id), {
-      ceiling: readSavedCells(
-        entity.getDynamicProperty(ROOF_TENT_CEILING_PROPERTY),
-      ),
       dimension: entity.dimension,
       location,
       state: roofTentState({
@@ -117,22 +110,6 @@ export class RoofTentOccupants {
   ): void {
     const record = this.records.get(id);
     if (record) record.state = change(record.state);
-  }
-
-  setCeiling(id: RoofTentId, cells: readonly Cell[]): void {
-    const record = this.records.get(id);
-    if (record) record.ceiling = [...cells];
-  }
-
-  ceilingOwner(dimensionId: DimensionId, cell: Cell): RoofTentId | undefined {
-    for (const [id, tent] of this.records) {
-      if (
-        tent.dimension.id === dimensionId &&
-        tent.ceiling.some((at) => sameCell(at, cell))
-      )
-        return id;
-    }
-    return undefined;
   }
 
   forget(id: RoofTentId): void {

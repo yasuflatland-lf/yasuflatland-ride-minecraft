@@ -3,11 +3,9 @@ import type {
   PlayerId,
   VehicleId,
 } from "../../../domain/shared/ids";
-// Ports for placing a vehicle and handing out the starter item; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { PlacementGift } from "../../../domain/vehicle/placement/gift";
-import type { StarterKind } from "../../../domain/vehicle/placement/starter";
 
 /** A failed spawn is cleaned only when no entity remains in the world. */
 export type VehicleSpawnResult =
@@ -43,14 +41,6 @@ export interface PlacementWorld {
   /** Puts one `gift` item in the inventory, or at the player's feet when it is full. */
   giveGift(playerId: PlayerId, gift: PlacementGift): void;
   markGiftReceived(playerId: PlayerId, gift: PlacementGift): void;
-}
-
-export interface StarterWorld {
-  /** Whether the player has received `kind`'s starter item; undefined when the player is no longer in the world. */
-  receivedStarter(playerId: PlayerId, kind: StarterKind): boolean | undefined;
-  /** Puts one item of this kind in the inventory, or at the player's feet when it is full. */
-  giveVehicleItem(playerId: PlayerId, kind: VehicleKind): void;
-  markStarterReceived(playerId: PlayerId, kind: StarterKind): void;
 }
 
 export interface GiftBoxWorld {

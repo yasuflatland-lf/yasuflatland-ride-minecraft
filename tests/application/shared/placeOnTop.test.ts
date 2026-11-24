@@ -1,8 +1,11 @@
 import fc from "fast-check";
-import { expect, it, vi } from "vitest";
+import { expect, expectTypeOf, it, vi } from "vitest";
 import type { TopHostWorld } from "../../../src/application/shared/placeOnTop";
 import { placeOnTop } from "../../../src/application/shared/placeOnTop";
-import type { HostedItemKind } from "../../../src/application/shared/ports/hostedItem";
+import type {
+  HostedItemKind,
+  HostedKindId,
+} from "../../../src/application/shared/ports/hostedItem";
 import {
   CAMP_TABLE_TOP,
   TABLE_TOP_HALF_PX,
@@ -19,7 +22,7 @@ import { defined } from "../../support/defined";
 const player = asPlayerId("player");
 const dimension = asDimensionId("overworld");
 const kind: HostedItemKind = {
-  id: "dutch_oven",
+  id: "test_item" as HostedKindId,
   footprint: { halfX: 4, halfZ: 3 },
   clearance: 2,
   refuses: ["vehicle"],
@@ -80,6 +83,7 @@ it("stands the item at the aim clamped so its footprint stays on the top", () =>
 });
 
 it("spawns the given kind at the table's world point and yaw, with a host marker naming the table", () => {
+  expectTypeOf<string>().not.toExtend<HostedKindId>();
   const world = fixture({
     topHost: () => ({ dimension, at: { x: 10.5, y: 64, z: 20.5 }, yaw: 90 }),
   });
@@ -89,7 +93,7 @@ it("spawns the given kind at the table's world point and yaw, with a host marker
     "spawn",
   );
   expect([id, dim, yaw, host]).toEqual([
-    "dutch_oven",
+    "test_item",
     dimension,
     90,
     "camp_table:table:@8,0",

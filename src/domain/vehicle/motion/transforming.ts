@@ -1,4 +1,5 @@
 import type { Ticks } from "../../shared/ticks";
+import type { MotionLimits } from "./limits";
 import type { Medium } from "./motion";
 import type { WaterPolicy } from "./water";
 
@@ -38,4 +39,57 @@ export interface TransformingSpec {
   readonly water: Medium;
   /** Per-kind choice of diving or surface support, independent of water speed (ADR 0050). */
   readonly waterPolicy: WaterPolicy;
+}
+
+type Mediums = Pick<TransformingSpec, "air" | "water">;
+type MediumSpec = Pick<MotionLimits, "maxSpeed"> & {
+  readonly flightDrag: number;
+  readonly waterDrag: number;
+  readonly maxWaterSpeed: number;
+};
+
+export function mediumsOf(spec: MediumSpec): Mediums {
+  return {
+    air: Object.freeze({ drag: spec.flightDrag, maxSpeed: spec.maxSpeed }),
+    water: Object.freeze({
+      drag: spec.waterDrag,
+      maxSpeed: spec.maxWaterSpeed,
+    }),
+  };
+}
+
+type TransformingOptions = Pick<TransformingSpec, "bankEasing" | "waterPolicy">;
+type TransformingTuning = Pick<
+  TransformingSpec,
+  Exclude<keyof TransformingSpec, keyof Mediums | keyof TransformingOptions>
+>;
+
+export function transformingSpecOf(
+  spec: TransformingTuning & MediumSpec,
+  { bankEasing, waterPolicy }: TransformingOptions,
+): TransformingSpec {
+  return Object.freeze({
+    carHeight: spec.carHeight,
+    doubleTapTicks: spec.doubleTapTicks,
+    takeoffTicks: spec.takeoffTicks,
+    takeoffClimb: spec.takeoffClimb,
+    landingSink: spec.landingSink,
+    maxClimb: spec.maxClimb,
+    flightVerticalDrag: spec.flightVerticalDrag,
+    waterVerticalDrag: spec.waterVerticalDrag,
+    floatDraft: spec.floatDraft,
+    floatGain: spec.floatGain,
+    surfaceRise: spec.surfaceRise,
+    submarineStepProbeDrop: spec.submarineStepProbeDrop,
+    maxBank: spec.maxBank,
+    bankRate: spec.bankRate,
+    bankEasing,
+    bankSink: spec.bankSink,
+    gearDownHeight: spec.gearDownHeight,
+    gearProbeOffset: spec.gearProbeOffset,
+    hitboxFront: spec.hitboxFront,
+    stepLaneOffset: spec.stepLaneOffset,
+    ...mediumsOf(spec),
+    waterPolicy,
+  });
 }

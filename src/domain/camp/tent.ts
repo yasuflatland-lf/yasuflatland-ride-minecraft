@@ -1,7 +1,7 @@
 // Where a pitched tent stands, which cells it lays, and when it may be pitched (ADR 0130, 0131).
 import { type Cell, cellCenter, cellKey, cellOf } from "../shared/cells";
 import { CLEARABLE_DECORATIONS } from "../shared/decorations";
-import { facePlayer } from "../shared/facing";
+import { facePlayer, type SnappedYaw } from "../shared/facing";
 import type { Brand } from "../shared/ids";
 import type { LaidCell } from "../shared/laidCells";
 import { forward, leftOf, type Vec2, type Vec3 } from "../shared/vec";
@@ -9,14 +9,14 @@ import { TENT_SPEC } from "./spec";
 import {
   type FlapId,
   inTentLocalBox,
-  type TentFace,
   type TentLayout,
   type TentLocalCell,
+  type TentPlateSide,
   TRAPEZOID_LAYOUT,
   tentCellKey,
 } from "./tentLayout";
 
-export type { FlapId, TentFace, TentLocalCell } from "./tentLayout";
+export type { FlapId, TentLocalCell, TentPlateSide } from "./tentLayout";
 
 /** The Entity.id of a pitched tent. */
 export type TentId = Brand<string, "TentId">;
@@ -26,7 +26,7 @@ export function asTentId(raw: string): TentId {
   return raw as TentId;
 }
 
-export type TentYaw = 0 | 90 | 180 | -90;
+export type TentYaw = SnappedYaw;
 
 /** x, y, z: the world cell of local (0, 0, layer 0), integers. yaw: the way the tent's front faces. */
 export interface TentPose {
@@ -37,7 +37,7 @@ export interface TentPose {
 }
 
 export type TentBlock =
-  | { readonly type: "wall"; readonly face: TentFace }
+  | { readonly type: "wall"; readonly face: TentPlateSide }
   | { readonly type: "ceiling" }
   | { readonly type: "flap"; readonly id: FlapId; readonly open: boolean }
   | { readonly type: "mattress"; readonly index: 0 | 1 }
@@ -91,7 +91,7 @@ export function tentGround(
 
 /** The tent faces the player who pitches it, with its front edge on the clicked column. */
 export function tentPose(clicked: Vec3, playerYaw: number): TentPose {
-  const yaw = facePlayer(playerYaw, TENT_SPEC.yawStep) as TentYaw;
+  const yaw = facePlayer(playerYaw, TENT_SPEC.yawStep);
   return { x: clicked.x, y: clicked.y + 1, z: clicked.z, yaw };
 }
 
@@ -115,9 +115,9 @@ function toLocal(pose: TentPose, cell: Cell): TentLocalCell {
   };
 }
 
-function faceToward(v: Vec2): TentFace {
-  if (v.z !== 0) return v.z < 0 ? 0 : 1;
-  return v.x < 0 ? 2 : 3;
+function faceToward(v: Vec2): TentPlateSide {
+  if (v.z !== 0) return v.z < 0 ? "-z" : "+z";
+  return v.x < 0 ? "-x" : "+x";
 }
 
 const scaled = (v: Vec2, k: number): Vec2 => ({ x: v.x * k, z: v.z * k });
@@ -139,11 +139,11 @@ export function tentCells(
           : { type: "flap", id: flap, open: state.openFlaps.has(flap) },
     });
   };
-  const directions: Record<TentFace, Vec2> = {
-    0: scaled(f, -1),
-    1: f,
-    2: scaled(l, -1),
-    3: l,
+  const directions: Record<TentPlateSide, Vec2> = {
+    "-z": scaled(f, -1),
+    "+z": f,
+    "-x": scaled(l, -1),
+    "+x": l,
   };
   for (const { cell, face } of LAYOUT.walls)
     lay(cell, { type: "wall", face: faceToward(directions[face]) });
