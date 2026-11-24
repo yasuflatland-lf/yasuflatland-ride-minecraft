@@ -29,7 +29,11 @@ import { registerGasLantern } from "../bedrock/handlers/gasLantern";
 import { registerChairHits } from "../bedrock/handlers/hits";
 import { registerChairPlacement } from "../bedrock/handlers/placement";
 import { registerTable } from "../bedrock/handlers/table";
-import { registerCampTopHosts } from "../bedrock/topHosts";
+import {
+  DUTCH_OVEN_ON_TOP,
+  GAS_LANTERN_ON_TOP,
+  registerCampTopHosts,
+} from "../bedrock/topHosts";
 
 export function installCampGear(deps: {
   topHosts: TopHostRegistry;
@@ -46,7 +50,7 @@ export function installCampGear(deps: {
   registerTable(new PlaceTable(tables), hitTable);
   const firePits = new FirePitActions(new BedrockFirePitWorld(deps));
   const ovens = new BedrockDutchOvenWorld(deps);
-  const dutchOvens = new DutchOvenActions(ovens);
+  const dutchOvens = new DutchOvenActions(ovens, DUTCH_OVEN_ON_TOP);
   const gasLanternWorld = new BedrockGasLanternWorld(
     deps,
     createGasLanternLight(),
@@ -60,7 +64,10 @@ export function installCampGear(deps: {
     deps.topHosts,
   );
   registerFirePit(firePits);
-  const gasLanterns = new GasLanternActions(gasLanternWorld);
+  const gasLanterns = new GasLanternActions(
+    gasLanternWorld,
+    GAS_LANTERN_ON_TOP,
+  );
   const placeLanternOnTop = registerGasLantern(
     gasLanterns,
     gasLanternWorld,

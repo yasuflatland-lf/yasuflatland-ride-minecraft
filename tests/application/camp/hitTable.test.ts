@@ -18,7 +18,7 @@ describe("HitTable (ADR 0152)", () => {
         hit.execute({ tableId: TABLE, tick, playerId }),
       );
       expect(results).toEqual([false, false, true]);
-      expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(TABLE);
+      expect(world.dropItem).toHaveBeenCalledExactlyOnceWith(TABLE, playerId);
       expect(world.removeTable).toHaveBeenCalledExactlyOnceWith(TABLE);
       expect(vi.mocked(world.showHitsLeft).mock.calls).toEqual(
         playerId === undefined

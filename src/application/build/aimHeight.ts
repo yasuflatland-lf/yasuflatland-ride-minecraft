@@ -1,6 +1,6 @@
 import type { Ray } from "../../domain/build/aim/aim";
 import { aimedHeight } from "../../domain/build/aim/height";
-import { setHeight } from "../../domain/build/flow/flow";
+import { setHeight } from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 export class AimHeight {

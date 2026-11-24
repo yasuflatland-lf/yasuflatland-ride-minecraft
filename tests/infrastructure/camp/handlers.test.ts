@@ -133,20 +133,33 @@ beforeEach(() => {
 });
 
 describe("registerChairHits (ADR 0122)", () => {
-  it("passes a player's hit on a low chair to the use case", () => {
-    const { execute, hitChair } = fakeHitChair();
-    registerChairHits(hitChair);
-    subscribed(game.hit)({
-      damagingEntity: playerWithId("p"),
-      hitEntity: { id: "chair", typeId: CHAIR_KINDS.low_chair.typeId },
-    });
-    expect(execute).toHaveBeenCalledWith({
-      kind: "low_chair",
-      chairId: "chair",
-      tick: 10,
-      playerId: "p",
-    });
-  });
+  it.each(["low_chair", "noga_chair"] as const)(
+    "ignores dye and defers one recovery hit per player per tick on a %s",
+    (kind) => {
+      const { execute, hitChair } = fakeHitChair();
+      registerChairHits(hitChair);
+      const handler = subscribed(game.hit);
+      const strike = (player: string, held?: string) =>
+        handler({
+          damagingEntity: playerWithId(player, held),
+          hitEntity: { id: "chair", typeId: CHAIR_KINDS[kind].typeId },
+        });
+      strike("p", dyeOf("blue"));
+      expect(game.run).not.toHaveBeenCalled();
+      strike("p");
+      strike("p");
+      strike("q");
+      game.currentTick++;
+      strike("p");
+      expect(execute).not.toHaveBeenCalled();
+      for (const [run] of game.run.mock.calls) run();
+      expect(execute.mock.calls).toEqual([
+        [{ kind, chairId: "chair", playerId: "p", tick: 10 }],
+        [{ kind, chairId: "chair", playerId: "q", tick: 10 }],
+        [{ kind, chairId: "chair", playerId: "p", tick: 11 }],
+      ]);
+    },
+  );
 
   it("ignores a hit by something other than a player, or on another entity", () => {
     const { execute, hitChair } = fakeHitChair();
@@ -160,20 +173,12 @@ describe("registerChairHits (ADR 0122)", () => {
       damagingEntity: playerWithId("p"),
       hitEntity: { id: "car", typeId: "yasu_ride:suv" },
     });
+    expect(game.run).not.toHaveBeenCalled();
     expect(execute).not.toHaveBeenCalled();
   });
 });
 
 describe("registerChairPlacement (ADR 0122)", () => {
-  const FACES = {
-    Up: "up",
-    Down: "down",
-    North: "north",
-    South: "south",
-    East: "east",
-    West: "west",
-  } as const;
-
   function setup(cell: { x: number; y: number; z: number } | undefined) {
     const cellFor = vi.fn(() => cell);
     const execute = vi.fn(() => true);
@@ -202,37 +207,35 @@ describe("registerChairPlacement (ADR 0122)", () => {
     return { cellFor, execute, press };
   }
 
-  it("asks for the cell with the clicked face, whichever face it is", () => {
-    fc.assert(
-      fc.property(fc.constantFrom(...Object.keys(FACES)), (face) => {
-        vi.clearAllMocks();
-        const { cellFor, press } = setup(undefined);
-        press({ blockFace: face });
-        expect(cellFor).toHaveBeenCalledWith(
-          "overworld",
-          { x: 1, y: 2, z: 3 },
-          FACES[face as keyof typeof FACES],
-        );
-      }),
-    );
-  });
+  it.each(["Down", "North", "South", "East", "West"])(
+    "leaves presses on the %s face uncancelled",
+    (face) => {
+      const { press } = setup({ x: 1, y: 2, z: 3 });
+      expect(press({ blockFace: face }).cancel).toBe(false);
+      expect(game.run).not.toHaveBeenCalled();
+    },
+  );
 
-  it("cancels the press and places the chair on the next tick", () => {
-    const cell = { x: 1, y: 2, z: 3 };
-    const { execute, press } = setup(cell);
-    const ev = press();
-    expect(ev.cancel).toBe(true);
-    expect(execute).not.toHaveBeenCalled();
-    defined(game.run.mock.calls[0]?.[0], "next tick")();
-    expect(execute).toHaveBeenCalledWith({
-      playerId: "p",
-      dimensionId: "overworld",
-      kind: "low_chair",
-      blockLocation: cell,
-      yaw: 45,
-      slot: 4,
-    });
-  });
+  it.each(["low_chair", "noga_chair"] as const)(
+    "cancels the press and places the %s on the next tick",
+    (kind) => {
+      const cell = { x: 1, y: 2, z: 3 };
+      const { cellFor, execute, press } = setup(cell);
+      const ev = press({ itemStack: { typeId: CHAIR_KINDS[kind].itemId } });
+      expect(cellFor).toHaveBeenCalledExactlyOnceWith("overworld", cell, "up");
+      expect(ev.cancel).toBe(true);
+      expect(execute).not.toHaveBeenCalled();
+      defined(game.run.mock.calls[0]?.[0], "next tick")();
+      expect(execute).toHaveBeenCalledExactlyOnceWith({
+        playerId: "p",
+        dimensionId: "overworld",
+        kind,
+        blockLocation: cell,
+        yaw: 45,
+        slot: 4,
+      });
+    },
+  );
 
   it("places once per player per tick, however often the press repeats", () => {
     const { press } = setup({ x: 1, y: 2, z: 3 });
@@ -441,6 +444,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       { x: 1, y: 2, z: 3 },
       "yasu_ride:tent_wall",
     );
+    defined(game.run.mock.calls[0]?.[0], "deferred hit")();
     expect(execute).toHaveBeenCalledExactlyOnceWith({
       tentId: "tent",
       tick: 10,
@@ -459,6 +463,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       { x: 1, y: 2, z: 3 },
       "yasu_ride:tent_flap",
     );
+    defined(game.run.mock.calls[0]?.[0], "deferred hit")();
     expect(execute).toHaveBeenCalledExactlyOnceWith({
       tentId: "tent",
       tick: 10,
@@ -480,6 +485,8 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       damagingEntity: player,
       hitBlock: block("yasu_ride:tent_wall"),
     });
+    expect(game.run).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
     defined(game.run.mock.calls[0]?.[0], "deferred break")();
     expect(execute).toHaveBeenCalledTimes(1);
     game.currentTick = 11;
@@ -487,6 +494,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       damagingEntity: player,
       hitBlock: block("yasu_ride:tent_wall"),
     });
+    defined(game.run.mock.calls[1]?.[0], "next swing")();
     expect(execute).toHaveBeenCalledTimes(2);
   });
 
@@ -531,6 +539,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       damagingEntity: playerWithId("p"),
       hitEntity: { id: "t", typeId: TENT_TYPE },
     });
+    defined(game.run.mock.calls[0]?.[0], "deferred hit")();
     expect(execute).toHaveBeenCalledExactlyOnceWith({
       tentId: "t",
       tick: 10,
@@ -551,6 +560,8 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
           damagingEntity: playerWithId("p", dyeOf(paint)),
           hitBlock: block("yasu_ride:tent_wall"),
         });
+        expect(paintTent).not.toHaveBeenCalled();
+        defined(game.run.mock.calls[0]?.[0], "deferred paint")();
         expect(paintTent).toHaveBeenCalledExactlyOnceWith({
           playerId: "p",
           tentId: "tent",
@@ -571,6 +582,8 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
           damagingEntity: playerWithId("p", dyeOf(paint)),
           hitEntity: { id: "t", typeId: TENT_TYPE },
         });
+        expect(paintTent).not.toHaveBeenCalled();
+        defined(game.run.mock.calls[0]?.[0], "deferred paint")();
         expect(paintTent).toHaveBeenCalledExactlyOnceWith({
           playerId: "p",
           tentId: "t",
@@ -659,6 +672,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
         damagingEntity: playerWithId("q", held),
         hitEntity: { id: "t", typeId: TENT_TYPE },
       });
+      for (const [run] of game.run.mock.calls) run();
       expect(execute).toHaveBeenCalledTimes(2);
       expect(paint).not.toHaveBeenCalled();
     }
@@ -676,6 +690,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       damagingEntity: player,
       hitBlock: block("yasu_ride:tent_wall"),
     });
+    expect(game.run).toHaveBeenCalledTimes(1);
     defined(game.run.mock.calls[0]?.[0], "deferred break")();
     expect(paint).toHaveBeenCalledTimes(1);
   });
@@ -694,6 +709,7 @@ describe("registerTentHits (ADR 0130, 0131)", () => {
       damagingEntity: playerWithId("p"),
       hitBlock: block("yasu_ride:tent_wall"),
     });
+    for (const [run] of game.run.mock.calls) run();
     expect(paint).toHaveBeenCalledTimes(3);
     expect(execute).toHaveBeenCalledExactlyOnceWith({
       tentId: "tent",

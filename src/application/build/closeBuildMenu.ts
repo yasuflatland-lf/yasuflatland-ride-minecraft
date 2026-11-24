@@ -1,4 +1,4 @@
-import { closeBuildMenu } from "../../domain/build/flow/flow";
+import { closeBuildMenu } from "../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
 import type { ShowPreview } from "./showPreview";

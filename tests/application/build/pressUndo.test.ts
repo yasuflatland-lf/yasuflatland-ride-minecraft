@@ -6,16 +6,20 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import {
   adjustHeight,
   chooseHeighted,
-  chooseStairs,
-  chooseTerrain,
   confirmLiveHeight,
-  fixStairGoal,
   tapAir,
   tapBlock,
-  withoutStepBack,
-} from "../../../src/domain/build/flow/flow";
+} from "../../../src/domain/build/flow/heightFlow";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
-import { stepBackSelection } from "../../../src/domain/build/flow/stepBack";
+import {
+  chooseStairs,
+  fixStairGoal,
+} from "../../../src/domain/build/flow/stairFlow";
+import {
+  stepBackSelection,
+  withoutStepBack,
+} from "../../../src/domain/build/flow/stepBack";
+import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { FakeFeedback, FakeSessions, nether } from "./fakes";

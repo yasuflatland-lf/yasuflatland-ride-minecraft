@@ -2,19 +2,14 @@ import {
   asGasLanternId,
   type GasLanternId,
 } from "../../domain/camp/gasLantern";
-import {
-  CAMP_TABLE_TOP,
-  GAS_LANTERN_FOOTPRINT_PX,
-  GAS_LANTERN_SPEC,
-  TABLE_SPOTS,
-} from "../../domain/camp/spec";
+import { decodeCampHost } from "../../domain/camp/hosted";
+import { CAMP_TABLE_TOP, GAS_LANTERN_SPEC } from "../../domain/camp/spec";
 import type { TableId } from "../../domain/camp/table";
 import {
   Debounces,
   LIGHT_SWITCH_COOLDOWN_TICKS,
 } from "../../domain/shared/debounce";
 import { HitCounters } from "../../domain/shared/hitCounter";
-import { decodeHost } from "../../domain/shared/hosted";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { LocalPoint, TopSurface } from "../../domain/shared/tableTop";
 import type { Vec3 } from "../../domain/shared/vec";
@@ -29,12 +24,6 @@ import type { HostedKindPort } from "../shared/ports/hostedKind";
 import { handleHit } from "../shared/takeBackByHits";
 import type { GasLanternWorld } from "./ports/gasLantern";
 
-const ON_TABLE: HostedItemKind = {
-  id: "gas_lantern",
-  footprint: GAS_LANTERN_FOOTPRINT_PX,
-  clearance: GAS_LANTERN_SPEC.tableClearance,
-};
-
 /**
  * The lantern as a kind the hosted items guard removes when its host is gone.
  * A removal clears the light block before the entity goes so no light is left
@@ -43,10 +32,7 @@ const ON_TABLE: HostedItemKind = {
 export function gasLanternHostedKind(world: GasLanternWorld): HostedKindPort {
   return {
     loaded: () => world.loadedGasLanterns(),
-    host: (id) =>
-      decodeHost(world.host(asGasLanternId(id)), (type, spot) =>
-        type === "camp_table" ? TABLE_SPOTS[spot] : undefined,
-      ),
+    host: (id) => decodeCampHost(world.host(asGasLanternId(id))),
     isHostAreaLoaded: (id) => world.isHostAreaLoaded(asGasLanternId(id)),
     hostExists: (hostId) => world.hostExists(hostId),
     remove: (id) => {
@@ -66,7 +52,10 @@ export class GasLanternActions {
     LIGHT_SWITCH_COOLDOWN_TICKS,
   );
 
-  constructor(private readonly world: GasLanternWorld) {}
+  constructor(
+    private readonly world: GasLanternWorld,
+    private readonly onTop: HostedItemKind,
+  ) {}
 
   canUseBlock(dimension: DimensionId, block: Vec3, face: string): boolean {
     return canUseBlockTop(this.world, dimension, block, face);
@@ -86,7 +75,7 @@ export class GasLanternActions {
   }
 
   placeOnTop(surface: TopSurface, cmd: TopRequest): TopOutcome {
-    return placeOnTop(this.world, surface, ON_TABLE, cmd);
+    return placeOnTop(this.world, surface, this.onTop, cmd);
   }
 
   placeOnTable(cmd: {
@@ -116,7 +105,7 @@ export class GasLanternActions {
     handleHit(this.hits, id, tick, {
       drop: () => {
         this.world.clearLight(id);
-        this.world.dropItem(id);
+        this.world.dropItem(id, player);
       },
       remove: () => {
         this.world.removeGasLantern(id);

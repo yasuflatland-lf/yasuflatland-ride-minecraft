@@ -54,7 +54,7 @@ export class FirePitActions {
     }
     let taken = false;
     handleHit(this.hits, id, tick, {
-      drop: () => this.world.dropItem(id),
+      drop: () => this.world.dropItem(id, player),
       remove: () => {
         this.world.removeFirePit(id);
         taken = true;
