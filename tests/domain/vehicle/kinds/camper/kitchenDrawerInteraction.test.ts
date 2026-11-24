@@ -43,7 +43,7 @@ function fixture() {
       DECOR_SLOTS.find((s) => s.id === id),
       "slot",
     );
-  const command = (id: string, item = "mug_pair", exact = false) => {
+  const command = (id: string, item = "mug_pair") => {
     const s = slot(id);
     return {
       playerId: asPlayerId("p"),
@@ -51,7 +51,7 @@ function fixture() {
       cell: localCellAt(f.pose, s.cell),
       point: slotPoint(f.pose, s),
       hotbarSlot: 0,
-      exact,
+      fallback: "nearestFree" as const,
       item: decorItemId(item),
     };
   };

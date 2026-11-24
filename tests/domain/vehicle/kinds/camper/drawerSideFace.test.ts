@@ -77,10 +77,14 @@ it("uses the ray through an open upper drawer when a rerouted floor side face ha
   };
   const d = drive(true, false);
   expect(
-    camperRoom(d).storage.drawerTarget(head, direction, {
-      x: 180,
-      y: -60,
-      z: 89,
+    camperRoom(d).storage.drawerTarget({
+      cell: {
+        x: 180,
+        y: -60,
+        z: 89,
+      },
+      eye: head,
+      direction,
     }),
   ).toMatchObject({ cell });
   expect(drawerAtHeight(floorPoint.y - cell.y)).toBeUndefined();
