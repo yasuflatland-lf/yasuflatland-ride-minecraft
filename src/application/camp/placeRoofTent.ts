@@ -8,9 +8,10 @@ import {
 } from "../../domain/camp/roofTent/placement";
 import { ROOF_TENT_SPEC } from "../../domain/camp/spec";
 import { cellCenter } from "../../domain/shared/cells";
+import { LocalFrame } from "../../domain/shared/frame";
 import type { DimensionId, PlayerId, VehicleId } from "../../domain/shared/ids";
 import type { RoofTentMount } from "../../domain/shared/roofTent";
-import { forward, localOffset, type Vec3 } from "../../domain/shared/vec";
+import { add3, type Vec3 } from "../../domain/shared/vec";
 import { placePaid } from "../shared/paidPlacement";
 import type { VehicleHostLookup } from "../shared/ports/vehicleHost";
 import type { RoofTentWorld } from "./ports/roofTent";
@@ -24,12 +25,12 @@ interface PlaceRoofTentCommand {
 }
 
 function roofLocation(location: Vec3, yaw: number, mount: RoofTentMount): Vec3 {
-  const offset = localOffset(forward(yaw), mount.anchor.z, -mount.anchor.x);
-  return {
-    x: location.x + offset.x,
-    y: location.y + mount.roofHeight,
-    z: location.z + offset.z,
-  };
+  const offset = new LocalFrame(location, yaw).toWorldOffset({
+    ahead: mount.anchor.z,
+    left: mount.anchor.x,
+    up: mount.roofHeight,
+  });
+  return add3(location, offset);
 }
 
 export class PlaceRoofTent {
