@@ -1,4 +1,7 @@
-import { chooseHeighted, stairRoofFits } from "../../domain/build/flow/flow";
+import {
+  chooseHeighted,
+  stairRoofFits,
+} from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { HeightedKind } from "../../domain/build/volume/kind";
 import type { PlayerId } from "../../domain/shared/ids";

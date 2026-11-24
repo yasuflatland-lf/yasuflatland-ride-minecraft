@@ -10,8 +10,13 @@ import { SPORTSBOAT_SPEC } from "../../../../../src/domain/vehicle/kinds/sportsb
 import { expectDeclaredCommand } from "../../../../support/entityContract";
 
 it.each([
-  ["trim", trimCommand, 0, SPORTSBOAT_SPEC.maxTrim],
-  ["roll", rollCommand, -SPORTSBOAT_SPEC.maxRoll, SPORTSBOAT_SPEC.maxRoll],
+  ["trim", trimCommand, 0, SPORTSBOAT_SPEC.attitude.maxTrim],
+  [
+    "roll",
+    rollCommand,
+    -SPORTSBOAT_SPEC.attitude.maxRoll,
+    SPORTSBOAT_SPEC.attitude.maxRoll,
+  ],
 ] as const)(
   "writes the declared %s property over its range",
   (name, build, min, max) => {

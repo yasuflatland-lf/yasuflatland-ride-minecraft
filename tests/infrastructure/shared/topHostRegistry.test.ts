@@ -1,8 +1,10 @@
 import type { Entity } from "@minecraft/server";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { HostedKindId } from "../../../src/application/shared/ports/hostedItem";
 import {
   TopHostRegistry,
   type TopHostType,
+  topHostView,
 } from "../../../src/infrastructure/shared/tableTop/registry";
 
 const game = vi.hoisted(() => ({ getEntity: vi.fn() }));
@@ -32,7 +34,9 @@ function fixture() {
   const entity = {
     typeId: type.entityTypeId,
     isValid: true,
-    dimension: { getEntities },
+    dimension: { id: "minecraft:overworld", getEntities },
+    location: { x: 4, y: 60, z: -2 },
+    getRotation: () => ({ x: 0, y: 90 }),
   } as unknown as Entity;
   game.getEntity.mockReturnValue(entity);
   return { registry, entity, getEntities };
@@ -64,13 +68,14 @@ it("does not treat a registered entity as a host while isTopNow is false", () =>
 
 it("scans registered kinds and matches both the host type and id, including legacy spots", () => {
   const { registry, getEntities } = fixture();
+  const view = topHostView(registry);
   registry.registerHost({
     ...type,
     legacySpot: (spot) => (spot === 0 ? { x: -4, z: 0 } : undefined),
   });
   const footprint = { halfX: 2, halfZ: 3 };
   registry.registerHosted({
-    kind: "gas_lantern",
+    kind: "test_item" as HostedKindId,
     entityTypeId: "test:item",
     hostProperty: "test:host",
     footprint,
@@ -91,7 +96,7 @@ it("scans registered kinds and matches both the host type and id, including lega
       }) as Entity,
   );
   getEntities.mockReturnValue(entities);
-  expect(registry.itemsOnTop(type.hostType, "host")).toEqual([
+  expect(view.itemsOnTop(type.hostType, "host")).toEqual([
     { at: { x: 2, z: 3 }, footprint },
     { at: { x: -4, z: 0 }, footprint },
   ]);
@@ -99,6 +104,32 @@ it("scans registered kinds and matches both the host type and id, including lega
     entities.slice(0, 2),
   );
   expect(getEntities).toHaveBeenCalledWith({ type: "test:item" });
+});
+
+it("provides the available host pose and forwards footprint checks to the registered host", () => {
+  const { registry, entity } = fixture();
+  let available = true;
+  const blockedAt = vi.fn(() => true);
+  const view = topHostView(registry);
+  expect(view.topHost(type.hostType, "host")).toBeUndefined();
+  registry.registerHost({ ...type, isTopNow: () => available, blockedAt });
+  const host = view.topHost(type.hostType, "host");
+  expect(host).toMatchObject({
+    dimension: "minecraft:overworld",
+    at: { x: 4, y: 60, z: -2 },
+    yaw: 90,
+  });
+  const point = { x: 3, z: 2 };
+  const footprint = { halfX: 1, halfZ: 2 };
+  expect(host?.blockedAt?.(point, footprint)).toBe(true);
+  expect(blockedAt).toHaveBeenCalledExactlyOnceWith(entity, point, footprint);
+  available = false;
+  expect(view.topHost(type.hostType, "host")).toBeUndefined();
+  expect(view.itemsOnTop(type.hostType, "host")).toEqual([]);
+  registry.registerHost(type);
+  expect(
+    view.topHost(type.hostType, "host")?.blockedAt?.(point, footprint),
+  ).toBe(false);
 });
 
 it("rejects missing, invalid, and mismatched host entities", () => {

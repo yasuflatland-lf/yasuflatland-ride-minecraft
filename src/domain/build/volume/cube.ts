@@ -2,12 +2,12 @@ import type { Vec3 } from "../../shared/vec";
 import { boxWithHeight, type CellBox } from "../box";
 import { cellsOfShape, type ShapeStyle, shapeCount } from "../shape/shape";
 import { type Curve, line, outlinePoints } from "../wireframe";
+import type { FillStyle } from "./kind";
 import type {
   HeightedPlacement,
   HeightedVolume,
   HeightStepSpec,
-} from "./geometry";
-import type { FillStyle } from "./kind";
+} from "./types";
 
 const STYLES: Record<FillStyle, ShapeStyle> = {
   fill: "fill",

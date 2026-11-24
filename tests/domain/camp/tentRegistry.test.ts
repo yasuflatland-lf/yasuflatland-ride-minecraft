@@ -10,6 +10,7 @@ import {
   withoutTent,
   withTent,
 } from "../../../src/domain/camp/tentRegistry";
+import { snapYaw } from "../../../src/domain/shared/facing";
 import { asDimensionId } from "../../../src/domain/shared/ids";
 
 const arbEntry: fc.Arbitrary<TentEntry> = fc.record({
@@ -20,7 +21,9 @@ const arbEntry: fc.Arbitrary<TentEntry> = fc.record({
     x: fc.integer(),
     y: fc.integer({ min: -64, max: 320 }),
     z: fc.integer(),
-    yaw: fc.constantFrom<TentYaw>(0, 90, 180, -90),
+    yaw: fc.constantFrom<TentYaw>(
+      ...[0, 90, 180, -90].map((yaw) => snapYaw(yaw)),
+    ),
   }),
 });
 

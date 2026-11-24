@@ -30,8 +30,8 @@ reuse; the roof-tent exit depends on a separate host and saved entrance.
 
 The domain retains only `LEGACY_CLEAR_BOX = { halfWidth: 3, depth: 12, layers: 4 }`,
 layout 1's cleanup footprint, with x -3..3, depth 0..11, and layers 0..3. Transform
-these cells with `tentCellAt`. Clear only block IDs starting with
-`yasu_ride:tent_`, preserving every other block. Do not reconstruct old geometry
+these cells with `tentCellAt`. The Bedrock adapter clears a cell only when its
+block ID matches the camp infrastructure prefix `yasu_ride:tent_`. Do not reconstruct old geometry
 or use the current layout to select cleanup cells.
 
 Call the same `returnTentItem` method as `TakeDownTent`, with no player. It drops

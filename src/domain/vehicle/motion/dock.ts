@@ -1,11 +1,11 @@
-// When a stopped vehicle counts as held, and the step it takes while held,
-// shared by every kind that holds (ADR 0063, 0068).
 import { ticks } from "../../shared/ticks";
 import { forward } from "../../shared/vec";
 import type { ClearCell, Dock } from "../dock/dock";
+import type { HoldPose } from "../dock/floor";
 import type { DriveStep, EngineCommand, TickContext } from "../drive";
 import type { RawInput } from "../driveInput";
 import { DRIVER_SEAT } from "../seats";
+import { DockedResend, dockCommands, undockCommands } from "./dockEntity";
 
 export const DOCK = Object.freeze({
   /** ADR 0063: require 20 consecutive stopped ticks (1 second). */
@@ -14,7 +14,7 @@ export const DOCK = Object.freeze({
   stick: 0.1,
 });
 
-export class StillTimer {
+class StillTimer {
   private count = 0;
 
   tick(still: boolean): boolean {
@@ -24,6 +24,62 @@ export class StillTimer {
 
   reset(): void {
     this.count = 0;
+  }
+}
+
+export class Hold {
+  private pose: HoldPose | undefined;
+  private heldAtStart = false;
+  private readonly still = new StillTimer();
+  private readonly resend = new DockedResend();
+
+  constructor(private restored: boolean) {}
+
+  get held(): HoldPose | undefined {
+    return this.pose;
+  }
+
+  get wasHeld(): boolean {
+    return this.heldAtStart;
+  }
+
+  get restoring(): boolean {
+    return this.restored;
+  }
+
+  beginStep(): void {
+    // The restored entity already counts as held even if it departs on this step.
+    this.heldAtStart = this.pose !== undefined || this.restored;
+  }
+
+  adopt(pose: HoldPose): void {
+    this.pose = pose;
+    this.restored = false;
+  }
+
+  observe(still: boolean): boolean {
+    return this.still.tick(still);
+  }
+
+  enter(pose: HoldPose): EngineCommand[] {
+    this.pose = pose;
+    this.still.reset();
+    return dockCommands();
+  }
+
+  leave(): EngineCommand[] {
+    this.pose = undefined;
+    this.restored = false;
+    this.still.reset();
+    return undockCommands();
+  }
+
+  resync(): void {
+    this.resend.resync();
+  }
+
+  resendCommand(): EngineCommand | undefined {
+    return this.resend.next(this.wasHeld, this.pose !== undefined);
   }
 }
 

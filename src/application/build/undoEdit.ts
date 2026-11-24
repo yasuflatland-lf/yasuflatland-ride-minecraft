@@ -1,8 +1,8 @@
 // Use case: undo the player's last edit (ADR 0178).
-import { cellsOf, sameBox, volume } from "../../domain/build/box";
+import { sameBox, volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
-import { cornerTaps } from "../../domain/build/flow/flow";
 import { beginPasteAim } from "../../domain/build/flow/paste";
+import { cornerTaps } from "../../domain/build/flow/taps";
 import { inDimension, withBox } from "../../domain/build/selection";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -12,6 +12,7 @@ import type { EditJobs } from "./editJobs";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
 import type { BuildStructureStore } from "./ports/structures";
+import { reportEditCompletion, SnapshotEdit } from "./snapshotEdit";
 
 export class UndoEdit {
   constructor(
@@ -38,17 +39,30 @@ export class UndoEdit {
     const edit = entry.kind === "snapshot" ? entry.snapshot : entry.record;
     if (entry.kind === "snapshot") {
       const { dimensionId, box, handle } = entry.snapshot;
-      for (const cell of cellsOf(box)) {
-        if (!this.world.mayRestore(dimensionId, cell)) {
-          session.putBackUndo(entry);
-          this.feedback.showMessage(playerId, "pasteBlocked");
-          return;
-        }
-      }
-      this.structures.clearEntities(dimensionId, box);
-      const placed = this.structures.place(handle, dimensionId, box.min);
-      this.structures.discard(handle);
-      if (!placed) {
+      const snapshotEdit = new SnapshotEdit(
+        session,
+        this.structures,
+        this.feedback,
+        {
+          dimensionId,
+          playerId,
+        },
+      );
+      if (
+        snapshotEdit.preflight(
+          box,
+          {
+            allows: (cell) => this.world.mayRestore(dimensionId, cell),
+            busy: "alreadyChecked",
+          },
+          () => {
+            session.putBackUndo(entry);
+            this.feedback.showMessage(playerId, "pasteBlocked");
+          },
+        )
+      )
+        return;
+      if (!snapshotEdit.rollback(box, handle)) {
         this.log.warn(`Snapshot undo failed for ${playerId}: ${handle}`);
         this.feedback.showMessage(playerId, "undoFailed");
         return;
@@ -87,10 +101,13 @@ export class UndoEdit {
       );
     }
     if (entry.kind === "snapshot")
-      this.feedback.showMessage(
+      reportEditCompletion(
+        session,
+        this.feedback,
         playerId,
-        "undoDone",
+        "undo",
         volume(entry.snapshot.box),
+        0,
       );
   }
 }

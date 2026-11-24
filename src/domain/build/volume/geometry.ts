@@ -1,34 +1,12 @@
-import type { Cell } from "../../shared/cells";
-import type { Vec3 } from "../../shared/vec";
 import { boxWithHeight, type CellBox, cellBox } from "../box";
 import { roofPlacement, roofVolume } from "../roof/geometry";
-import { isRoofKind, type RoofStyle } from "../roof/roof";
+import { isRoofKind } from "../roof/roof";
 import { cubePlacement, cubeVolume } from "./cube";
 import { cylinderPlacement, cylinderVolume } from "./cylinder";
-import type { FillStyle, HeightedKind, HeightStepKind } from "./kind";
+import type { HeightedKind, HeightStepKind } from "./kind";
 import { sideCylinderPlacement, sideCylinderVolume } from "./sideCylinder";
 import { spherePlacement, sphereVolume } from "./sphere";
-
-export interface HeightStepSpec {
-  readonly base: CellBox;
-  readonly kind: HeightStepKind;
-  readonly height: number;
-  readonly roofStyle?: RoofStyle;
-}
-
-export interface HeightedSpec extends HeightStepSpec {
-  readonly kind: HeightedKind;
-}
-
-export interface HeightedVolume {
-  maxHeight(base: CellBox, worldTopY: number): number;
-  wireframe(spec: HeightStepSpec, maxPoints: number): Vec3[];
-}
-
-export interface HeightedPlacement {
-  cells(spec: HeightedSpec, fill: FillStyle): Iterable<Cell>;
-  count(spec: HeightedSpec, fill: FillStyle): number;
-}
+import type { HeightedPlacement, HeightedSpec, HeightedVolume } from "./types";
 
 const VOLUMES: Record<HeightStepKind, HeightedVolume> = {
   gable: roofVolume,

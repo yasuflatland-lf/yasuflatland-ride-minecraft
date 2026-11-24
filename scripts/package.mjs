@@ -13,6 +13,7 @@ import {
 import { join, resolve } from "node:path";
 import { bundleMain } from "./build.mjs";
 import { generatedStatus } from "./generated-files.mjs";
+import { checkReleaseSubscriptions } from "./release-subscriptions.mjs";
 
 const BP = "yasu_ride_bp";
 const RP = "yasu_ride_rp";
@@ -80,6 +81,9 @@ try {
     outfile: join(stage, BP, "scripts/main.js"),
     testHooks: false,
   });
+  checkReleaseSubscriptions(
+    readFileSync(join(stage, BP, "scripts/main.js"), "utf8"),
+  );
   execFileSync("zip", ["-r", "-X", "-q", archive, BP, RP, "-x", "*.DS_Store"], {
     cwd: stage,
     stdio: "inherit",

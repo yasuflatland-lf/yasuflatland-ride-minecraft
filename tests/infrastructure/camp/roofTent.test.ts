@@ -442,7 +442,9 @@ it.each(["roof_taken", "driver", "moving"] as const)(
   },
 );
 it("uses only the first top-face ground interaction and shares the per-player tick dedupe", () => {
-  registerRoofTentPlacement(new PlaceRoofTent(tents, host), host);
+  const place = new PlaceRoofTent(tents, host);
+  const execute = vi.spyOn(place, "execute").mockReturnValue(true);
+  registerRoofTentPlacement(place, host);
   const p = player();
   const ev = {
     player: p,
@@ -455,9 +457,29 @@ it("uses only the first top-face ground interaction and shares the per-player ti
   fire("before:playerInteractWithBlock", ev);
   expect(game.run).not.toHaveBeenCalled();
   ev.isFirstEvent = true;
+  ev.blockFace = "North";
   fire("before:playerInteractWithBlock", ev);
+  expect(ev.cancel).toBe(false);
+  ev.blockFace = "Up";
   fire("before:playerInteractWithBlock", ev);
+  expect(ev.cancel).toBe(true);
+  const entityPress = {
+    player: p,
+    itemStack: ev.itemStack,
+    target: { id: "host" },
+    cancel: false,
+  };
+  fire("before:playerInteractWithEntity", entityPress);
+  expect(entityPress.cancel).toBe(true);
   expect(game.run).toHaveBeenCalledOnce();
+  game.run.mock.calls[0]?.[0]();
+  expect(execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: p.id,
+    dimensionId: game.dimension.id,
+    target: { clicked: { x: 1, y: 0, z: 2 } },
+    yaw: p.getRotation().y,
+    slot: p.selectedSlotIndex,
+  });
 });
 it("routes a dye before folding and counts each swing once", () => {
   const tent = spawn();
@@ -471,6 +493,9 @@ it("routes a dye before folding and counts each swing once", () => {
   const ev = { damagingEntity: p, hitEntity: tent };
   fire("after:entityHitEntity", ev);
   fire("after:entityHitEntity", ev);
+  expect(setItem).not.toHaveBeenCalled();
+  expect(game.run).toHaveBeenCalledOnce();
+  game.run.mock.lastCall?.[0]();
   expect(setItem).toHaveBeenCalledOnce();
   expect(held.amount).toBe(2);
   expect(tent.remove).not.toHaveBeenCalled();
@@ -478,10 +503,13 @@ it("routes a dye before folding and counts each swing once", () => {
   for (let i = 0; i < 2; i++) {
     game.tick++;
     fire("after:entityHitEntity", ev);
+    game.run.mock.lastCall?.[0]();
   }
   expect(tent.remove).not.toHaveBeenCalled();
   game.tick++;
   fire("after:entityHitEntity", ev);
+  expect(tent.remove).not.toHaveBeenCalled();
+  game.run.mock.lastCall?.[0]();
   expect(tent.remove).toHaveBeenCalledOnce();
 });
 it("keeps unknown hosts and ejects, returns and clears spawn before removing a moving host's tent", () => {
@@ -1014,6 +1042,21 @@ it.each([true, false])(
     ).toBeUndefined();
   },
 );
+
+it("clears the old ceiling when an occupied roof tent moves", () => {
+  const tent = spawn();
+  const { blocks } = ceilingTerrain();
+  const id = asRoofTentId("tent");
+  occupants.setOccupant(id, PLAYER);
+  const previous = savedCeiling(tent);
+  tent.location.x += 10;
+  occupants.syncCeiling(id);
+  expect(savedCeiling(tent)).toEqual(
+    previous.map((cell) => ({ ...cell, x: cell.x + 10 })),
+  );
+  for (const cell of previous)
+    expect(blocks.get(cellKey(cell))).toBe("minecraft:air");
+});
 
 it("skips occupied, missing, unloaded and vehicle-space cells without losing successful cells", () => {
   const tent = spawn();
