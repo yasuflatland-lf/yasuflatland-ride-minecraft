@@ -1,3 +1,4 @@
+import { type BlockFace, isTopFace } from "../../domain/shared/blockFace";
 import {
   type Cell,
   cellCenter,
@@ -56,9 +57,9 @@ export function canUseBlockTop(
   world: Pick<GroundCellsWorld, "isOwnBlock">,
   dimension: DimensionId,
   block: Vec3,
-  face: string,
+  face: BlockFace,
 ): boolean {
-  return face === "up" && !world.isOwnBlock(dimension, block);
+  return isTopFace(face) && !world.isOwnBlock(dimension, block);
 }
 
 export function clearanceCells(base: Cell, clearance: number): Cell[] {

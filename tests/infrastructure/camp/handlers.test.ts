@@ -211,8 +211,13 @@ describe("registerChairPlacement (ADR 0122)", () => {
   it.each(["Down", "North", "South", "East", "West"])(
     "leaves presses on the %s face uncancelled",
     (face) => {
-      const { press } = setup({ x: 1, y: 2, z: 3 });
+      const { press, cellFor } = setup(undefined);
       expect(press({ blockFace: face }).cancel).toBe(false);
+      expect(cellFor).toHaveBeenCalledExactlyOnceWith(
+        "overworld",
+        { x: 1, y: 2, z: 3 },
+        face.toLowerCase(),
+      );
       expect(game.run).not.toHaveBeenCalled();
     },
   );
