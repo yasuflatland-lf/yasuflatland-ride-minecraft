@@ -14,7 +14,7 @@ import { UpdateBuildModes } from "../../../src/application/build/updateBuildMode
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
-import { previewPoints } from "../../../src/domain/build/preview/preview";
+import { previewModel } from "../../../src/domain/build/preview/preview";
 import {
   FACINGS,
   type Facing,
@@ -112,7 +112,7 @@ it("shares one aim sample between the preview and tap target placement", () => {
     cell: clampedEnd,
   });
   expect(feedback.previews[0]?.set).toEqual(
-    previewPoints(flow, { blink: true, end: clampedEnd }),
+    previewModel(flow, { blink: true, end: clampedEnd }).set,
   );
 });
 
@@ -178,12 +178,12 @@ it("follows the aimed block and falls back to the air plane without changing the
   });
   preview.execute(0);
   expect(feedback.previews[0]?.set).toEqual(
-    previewPoints(flow, { blink: true, end: hit }),
+    previewModel(flow, { blink: true, end: hit }).set,
   );
   aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(interval);
   expect(feedback.previews[1]?.set).toEqual(
-    previewPoints(flow, { blink: false, end }),
+    previewModel(flow, { blink: false, end }).set,
   );
   expect(session.flow).toBe(flow);
 });
@@ -221,7 +221,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews[0]?.set).toEqual(
-    previewPoints(session.flow, { blink: true }),
+    previewModel(session.flow, { blink: true }).set,
   );
   expect(feedback.previews[0]?.set.startMarker).toHaveLength(
     cornerMarkerPoints({ x: 0, y: 0, z: 0 }).length,
@@ -272,13 +272,13 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   expect(session.flow).toBe(flow);
   new AimHeight(repo, new FakeWorld()).execute({ playerId: alex, ray });
   expect(feedback.previews[0]?.set).toEqual(
-    previewPoints(session.flow, { blink: true }),
+    previewModel(session.flow, { blink: true }).set,
   );
   expect(feedback.previews[0]?.dimensionId).toBe(nether);
   aim.mockReturnValue(undefined);
   preview.execute(interval);
   expect(feedback.previews[1]?.set).toEqual(
-    previewPoints(session.flow, { blink: false }),
+    previewModel(session.flow, { blink: false }).set,
   );
 });
 
@@ -307,10 +307,10 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
   expect(feedback.previews[0]).toEqual({
     playerId: alex,
     dimensionId: nether,
-    set: previewPoints(session.flow, {
+    set: previewModel(session.flow, {
       blink: true,
       pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
-    }),
+    }).set,
   });
   const hintsBeforeAir = feedback.modes.length;
   for (const target of [{ input: "pointer" as const, ray }, undefined]) {
@@ -352,12 +352,12 @@ it("keeps concurrent players and their aim targets separate", () => {
     {
       playerId: alex,
       dimensionId: overworld,
-      set: previewPoints(session.flow, { blink: true, end }),
+      set: previewModel(session.flow, { blink: true, end }).set,
     },
     {
       playerId: bob,
       dimensionId: nether,
-      set: previewPoints(other.flow, { blink: true, end: cell }),
+      set: previewModel(other.flow, { blink: true, end: cell }).set,
     },
   ]);
 });
@@ -694,13 +694,54 @@ it("outlines the rotated paste box at each heading", () => {
       ][turn];
       if (!max) throw new Error("Missing expected corner");
       expect(feedback.previews[0]?.set).toEqual(
-        previewPoints(session.flow, {
+        previewModel(session.flow, {
           blink: true,
           pasteBox: boxOf(anchor, max),
-        }),
+        }).set,
       );
     }),
   );
+});
+
+it("tracks paste facing between redraws without drawing or reporting the HUD", () => {
+  const { session, preview, feedback, aim } = setup();
+  const box = boxOf(cell, end);
+  session.completeCopy(
+    selectionOf(overworld, box, AIR),
+    structureClipboard(box),
+  );
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { ...ray, direction: facingVector("south") },
+  });
+
+  preview.execute(interval - 1);
+
+  expect(session.flow).toMatchObject({ kind: "pasteAim", facing: "south" });
+  expect(aim).toHaveBeenCalledExactlyOnceWith(alex);
+  expect(feedback.previews).toEqual([]);
+  expect(feedback.modes).toEqual([]);
+});
+
+it("refreshes the paste display without changing the tracked facing", () => {
+  const { session, preview, feedback, aim } = setup();
+  const box = boxOf(cell, end);
+  session.completeCopy(
+    selectionOf(overworld, box, AIR),
+    structureClipboard(box),
+  );
+  const flow = session.flow;
+  aim.mockReturnValue({
+    input: "pointer",
+    ray: { ...ray, direction: facingVector("south") },
+    block: { cell, face: "up" },
+  });
+
+  preview.refresh(alex, 1);
+
+  expect(session.flow).toBe(flow);
+  expect(feedback.modes.at(-1)?.mode).toMatchObject({ degrees: 90 });
+  expect(feedback.previews).toHaveLength(1);
 });
 
 it("shows the copied orientation on resume and leaves the position prompt visible", () => {
@@ -717,12 +758,12 @@ it("shows the copied orientation on resume and leaves the position prompt visibl
     ray: { ...ray, direction: facingVector("south") },
     block: { cell, face: "up" },
   });
-  e.preview.refresh(alex, 1, "resumePaste");
+  e.preview.refreshResumedPaste(alex, 1);
   expect(e.feedback.previews[0]?.set).toEqual(
-    previewPoints(e.session.flow, {
+    previewModel(e.session.flow, {
       blink: true,
       pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 0, y: 67, z: 3 }),
-    }),
+    }).set,
   );
   expect(e.feedback.modes).toEqual([]);
   e.preview.execute(BUILD_SPEC.outlineInterval);
@@ -747,10 +788,10 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
     {
       playerId: alex,
       dimensionId: nether,
-      set: previewPoints(e.session.flow, {
+      set: previewModel(e.session.flow, {
         blink: true,
         pasteBox: boxOf({ x: 0, y: 65, z: 0 }, { x: 3, y: 67, z: 0 }),
-      }),
+      }).set,
     },
   ]);
   e.preview.refresh(asPlayerId("missing"), 1);
@@ -784,6 +825,7 @@ it("shows the effective degrees for every facing and manual turn, including air 
           ((FACINGS.indexOf(gaze) - FACINGS.indexOf(copied) + 4 + manualTurn) %
             4) *
           90;
+        e.preview.execute(1);
         const rotate = new RotatePasteAim(e.repo, e.feedback);
         for (let press = 0; press <= 4; press++) {
           e.preview.refresh(alex, 1);
@@ -829,6 +871,8 @@ it("redraws the live selection outline and retains its last height for a vertica
     ray: { origin, direction: { x: 0.8, y: 0.6, z: 0 } },
   });
   preview.execute(interval - 1);
+  expect(session.flow).toMatchObject({ kind: "baseHeight", liveHeight: 4 });
+  expect(feedback.previews).toHaveLength(1);
   preview.execute(interval);
   aim.mockReturnValue({
     input: "pointer",
@@ -929,7 +973,7 @@ it("redraws the rotated outline and tap markers on the next outline tick", () =>
   const turned = boxOf({ x: -1, y: 64, z: 1 }, { x: 2, y: 66, z: 1 });
   expect(feedback.previews).toHaveLength(2);
   expect(feedback.previews[1]?.set).toEqual(
-    previewPoints(
+    previewModel(
       {
         kind: "selected",
         menuLevel: "root",
@@ -940,6 +984,6 @@ it("redraws the rotated outline and tap markers on the next outline tick", () =>
         ),
       },
       { blink: false },
-    ),
+    ).set,
   );
 });

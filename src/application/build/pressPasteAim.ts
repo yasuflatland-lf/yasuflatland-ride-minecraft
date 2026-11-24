@@ -5,6 +5,8 @@ import type { AimResult } from "./ports/aim";
 import type { BuildFeedback } from "./ports/feedback";
 import type { ResolvePasteTarget } from "./resolvePasteTarget";
 
+import { trackPasteFacing } from "./trackGaze";
+
 export class PressPasteAim {
   constructor(
     private readonly repo: BuildSessionRepository,
@@ -25,6 +27,8 @@ export class PressPasteAim {
     const placing = cmd.intent === "place";
     if (session?.flow.kind !== "pasteAim") {
       if (placing && session?.resumePasteAim()) {
+        if (cmd.aim)
+          trackPasteFacing(session, cmd.aim, session.clipboard?.facing);
         this.feedback.showMessage(cmd.playerId, "pasteChoosePosition");
         return "aiming";
       }
@@ -42,7 +46,12 @@ export class PressPasteAim {
     // ADR 0203: use the live gaze target shared with the outline at press time.
     // A press re-probes so it never places on a snap cached by the outline.
     const result = cmd.aim
-      ? this.resolveTarget.execute({ ...cmd, aim: cmd.aim, fresh: true })
+      ? this.resolveTarget.execute({
+          ...cmd,
+          aim: cmd.aim,
+          facing: trackPasteFacing(session, cmd.aim),
+          fresh: true,
+        })
       : { kind: "noTarget" as const };
     if (result.kind === "noTarget") {
       this.feedback.showMessage(cmd.playerId, "pasteNoTarget");

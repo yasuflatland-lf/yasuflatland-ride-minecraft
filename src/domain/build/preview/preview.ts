@@ -1,9 +1,10 @@
 import { type Cell, cellCenter, sameCell } from "../../shared/cells";
+import type { DimensionId } from "../../shared/ids";
 import type { Vec3 } from "../../shared/vec";
 import { boxOf, type CellBox, edgePoints } from "../box";
 import { cornerMarkerPoints } from "../cornerMarker";
 import { liveHeightBox } from "../flow/heightFlow";
-import type { BuildFlow } from "../flow/state";
+import { type BuildFlow, dimensionOf } from "../flow/state";
 import { BUILD_SPEC } from "../spec";
 import type { Staircase } from "../stairs/staircase";
 import { endMarkerCell } from "../tapTarget";
@@ -24,6 +25,7 @@ export interface PreviewSet {
 
 export interface PreviewAim {
   blink: boolean;
+  playerDimension?: DimensionId;
   end?: Cell;
   height?: number;
   staircase?: Staircase;
@@ -87,7 +89,10 @@ export function endpointMarkers(
   };
 }
 
-export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
+export function previewModel(
+  flow: BuildFlow,
+  aim: PreviewAim,
+): { dimensionId: DimensionId | undefined; set: PreviewSet } {
   const set: PreviewSet = {
     startMarker: [],
     endMarker: [],
@@ -155,5 +160,5 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
       }
       break;
   }
-  return set;
+  return { dimensionId: dimensionOf(flow) ?? aim.playerDimension, set };
 }

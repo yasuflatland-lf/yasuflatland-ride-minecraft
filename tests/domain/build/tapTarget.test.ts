@@ -4,7 +4,7 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
-import { previewPoints } from "../../../src/domain/build/preview/preview";
+import { previewModel } from "../../../src/domain/build/preview/preview";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { tapTargetCell } from "../../../src/domain/build/tapTarget";
 import { asDimensionId } from "../../../src/domain/shared/ids";
@@ -40,10 +40,10 @@ it("follows the aimed end at point one and the fixed end at either menu level an
         for (const flow of flows) {
           const target = tapTargetCell(flow, aimedEnd);
           expect(target).toEqual(flow.kind === "point1" ? aimedEnd : to);
-          const { endMarker, sharedMarker } = previewPoints(flow, {
+          const { endMarker, sharedMarker } = previewModel(flow, {
             end: aimedEnd,
             blink: true,
-          });
+          }).set;
           expect([...endMarker, ...sharedMarker]).toEqual(
             target ? cornerMarkerPoints(target) : [],
           );
