@@ -1,7 +1,6 @@
 import { EnterRoofTent } from "../../../application/camp/enterRoofTent";
 import { FoldRoofTent } from "../../../application/camp/foldRoofTent";
 import { LeaveRoofTent } from "../../../application/camp/leaveRoofTent";
-import { PaintRoofTent } from "../../../application/camp/paintRoofTent";
 import { PlaceRoofTent } from "../../../application/camp/placeRoofTent";
 import { RoofTentHostGuard } from "../../../application/camp/roofTentHostGuard";
 import { RoofTentMenu } from "../../../application/camp/roofTentMenu";
@@ -13,9 +12,13 @@ import { SleepInRoofTent } from "../../../application/camp/sleepInRoofTent";
 import { GiveStarterItem } from "../../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../../application/shared/ports/vehicleHost";
+import { Repaint } from "../../../application/shared/repaint";
 import type { SleepInBed } from "../../../application/shared/sleepInBed";
+import type { RoofTentId } from "../../../domain/camp/ids";
+import { ROOF_TENT_SPEC } from "../../../domain/camp/spec";
 import type { BedrockBedWorld } from "../../shared/bedrockBedWorld";
 import { consoleLogger } from "../../shared/consoleLogger";
+import { BedrockVariantPaintWorld } from "../../shared/dyes";
 import {
   BedrockStarterItemWorld,
   registerStarterItem,
@@ -36,6 +39,7 @@ import { RoofTentHosts } from "../bedrock/roofTentHosts";
 import {
   ROOF_TENT_ITEM,
   ROOF_TENT_STARTER_RECEIVED_PROPERTY,
+  ROOF_TENT_TYPE,
 } from "../identifiers";
 
 export function installRoofTents(deps: {
@@ -90,7 +94,15 @@ export function installRoofTents(deps: {
     createHostedTents(roofHosts.lookup),
   );
   registerRoofTentPlacement(placeRoofTent, roofHosts.lookup);
-  registerRoofTentHits(foldRoofTent, new PaintRoofTent(roofTents));
+  registerRoofTentHits(
+    foldRoofTent,
+    new Repaint(
+      new BedrockVariantPaintWorld<RoofTentId>(
+        ROOF_TENT_TYPE,
+        ROOF_TENT_SPEC.defaultPaint,
+      ),
+    ),
+  );
   registerRoofTentLifecycle(
     roofOccupants,
     roofGuard,
