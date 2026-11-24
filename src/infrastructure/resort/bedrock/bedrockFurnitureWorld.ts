@@ -32,9 +32,9 @@ import {
   giveBackReceiver,
   spawnIn,
 } from "../../shared/gearEntity";
-import { BedrockGroundCells } from "../../shared/groundCells";
+import { BedrockGroundCells, paidItem } from "../../shared/groundCells";
 import { SingleBlockLayer } from "../../shared/laidBlockLayer";
-import { consumeHeld, playerById } from "../../shared/players";
+import { isCreative, playerById } from "../../shared/players";
 import type { TopHostRegistry } from "../../shared/tableTop/registry";
 import {
   DINING_TABLE_TOP,
@@ -106,17 +106,16 @@ export class BedrockFurnitureWorld
     );
   }
   resortGearCells = resortGearCells;
-  consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean {
-    const entity = playerById(player);
-    return (
-      entity !== undefined &&
-      consumeHeld(entity, FURNITURE_IDS[kind].item, slot)
+  protected isCreative(player: PlayerId): boolean {
+    return isCreative(playerById(player));
+  }
+
+  paymentFor(kind: FurnitureKind) {
+    return paidItem(FURNITURE_IDS[kind].item, (player) =>
+      this.isCreative(player),
     );
   }
-  refund(player: PlayerId, kind: FurnitureKind, _slot: number): void {
-    const entity = playerById(player);
-    if (entity) giveBack(entity, FURNITURE_IDS[kind].item, entity);
-  }
+
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined {
     const entity = spawnIn(
       dimension,
