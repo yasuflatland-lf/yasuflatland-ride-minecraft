@@ -181,7 +181,7 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     "refunds one %s item to the player",
     (kind) => {
       const { container, chairs } = fixture();
-      chairs.refundChairItem(kind, asPlayerId("player"));
+      chairs.paymentFor(kind).refund(asPlayerId("player"), 0);
       expect(container.addItem).toHaveBeenCalledExactlyOnceWith({
         typeId: CHAIR_KINDS[kind].itemId,
         amount: 1,
@@ -227,16 +227,18 @@ describe("BedrockChairWorld (ADR 0122)", () => {
         typeId: CHAIR_KINDS[kind].itemId,
         amount: 1,
       });
-      expect(chairs.consumeChairItem(kind, asPlayerId("player"), 4)).toBe(true);
+      expect(chairs.paymentFor(kind).consumeItem(asPlayerId("player"), 4)).toBe(
+        true,
+      );
       expect(container.setItem).toHaveBeenCalledWith(4, undefined);
       container.getItem.mockReturnValueOnce({
         typeId: "minecraft:dirt",
         amount: 1,
       });
-      expect(chairs.consumeChairItem(kind, asPlayerId("player"), 4)).toBe(
+      expect(chairs.paymentFor(kind).consumeItem(asPlayerId("player"), 4)).toBe(
         false,
       );
-      expect(chairs.consumeChairItem(kind, asPlayerId("nobody"), 4)).toBe(
+      expect(chairs.paymentFor(kind).consumeItem(asPlayerId("nobody"), 4)).toBe(
         false,
       );
     },

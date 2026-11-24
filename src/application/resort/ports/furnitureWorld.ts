@@ -14,14 +14,12 @@ import type { FurnitureTopBlocksWorld } from "./furnitureTopBlocks";
 
 export interface FurnitureWorld
   extends GroundCellsWorld,
-    Pick<ItemPayment, "isCreative">,
     Pick<FurnitureTopBlocksWorld, "layTop"> {
   isCampSpace(dimension: DimensionId, cell: Cell): boolean;
   isSolidTop(dimension: DimensionId, cell: Cell): boolean;
   resortGearCells(dimension: DimensionId, near: Vec3, radius: number): Cell[];
   spawn(dimension: DimensionId, pose: FurniturePose): FurnitureId | undefined;
-  refund(player: PlayerId, kind: FurnitureKind, slot: number): void;
-  consumeItem(player: PlayerId, kind: FurnitureKind, slot: number): boolean;
+  paymentFor(kind: FurnitureKind): ItemPayment;
   showBlocked(player: PlayerId): void;
 }
 export interface FurnitureTakeBackWorld

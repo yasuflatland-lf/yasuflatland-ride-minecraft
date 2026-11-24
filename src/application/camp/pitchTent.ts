@@ -40,11 +40,7 @@ export class PitchTent {
       return false;
     }
     const result = placePaid(
-      {
-        isCreative: (player) => this.world.isCreative(player),
-        consumeItem: (player, slot) => this.world.consumeTentItem(player, slot),
-        refund: (player) => this.world.giveTentItem(player),
-      },
+      this.world,
       { player: playerId, slot: cmd.slot },
       () => {
         this.world.clearDecorations(cmd.dimensionId, plan.clearTopFirst);
