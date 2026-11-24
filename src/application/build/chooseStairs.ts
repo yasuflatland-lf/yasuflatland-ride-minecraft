@@ -18,7 +18,7 @@ export class ChooseStairs {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    if (op === "stairs" && !isFillMaterial(next.material)) {
+    if (op === "stairs" && !isFillMaterial(next.start.material)) {
       this.feedback.showMessage(playerId, "fillMaterialRefused");
       return;
     }

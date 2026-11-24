@@ -7,7 +7,7 @@ import type { BuildFlow } from "./state";
 export function selectedStairRow(
   flow: Extract<BuildFlow, { kind: "selected" }>,
 ): StairRow | undefined {
-  const row = stairRowOf(flow);
+  const row = stairRowOf(flow.taps);
   return row && sameBox(boxOf(row.min, row.max), flow.selection.box)
     ? row
     : undefined;
@@ -15,31 +15,27 @@ export function selectedStairRow(
 
 export function chooseStairs(flow: BuildFlow, op: StairOp): BuildFlow {
   if (flow.kind !== "selected") return flow;
-  const taps = { from: flow.from, to: flow.to };
   const row = selectedStairRow(flow);
   if (!row) return flow;
-  const { dimensionId, material, box } = flow.selection;
   return Object.freeze({
     kind: "stairAim",
     op,
-    dimensionId,
+    start: flow.start,
     row,
-    taps,
-    material,
-    selectionBefore: box,
+    taps: flow.taps,
+    selectionBefore: flow.selection.box,
   });
 }
 
 export function fixStairGoal(flow: BuildFlow, staircase: Staircase): BuildFlow {
   if (flow.kind !== "stairAim") return flow;
-  const { dimensionId, taps, material, selectionBefore } = flow;
+  const { op, start, taps, selectionBefore } = flow;
   return Object.freeze({
     kind: "stairContents",
-    op: flow.op,
-    dimensionId,
+    op,
+    start,
     staircase,
     taps,
-    material,
     selectionBefore,
   });
 }

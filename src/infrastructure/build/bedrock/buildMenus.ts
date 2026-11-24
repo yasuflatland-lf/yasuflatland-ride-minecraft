@@ -170,7 +170,7 @@ export class BedrockBuildMenus implements BuildMenus {
                     stairCellCount(
                       flow.staircase,
                       TERRACE_ROLES,
-                      this.world.heightRange(flow.dimensionId),
+                      this.world.heightRange(flow.start.dimensionId),
                     ),
                   ),
                 ],
@@ -248,7 +248,11 @@ export class BedrockBuildMenus implements BuildMenus {
     const playerId = asPlayerId(player.id);
     const flow = this.repo.get(playerId)?.flow;
     if (flow?.kind !== "terrainConfirm") return;
-    const area = terrainAreaOf(flow.selection.box, flow.from, flow.to);
+    const area = terrainAreaOf(
+      flow.selection.box,
+      flow.taps.from,
+      flow.taps.to,
+    );
     const range = this.world.heightRange(flow.selection.dimensionId);
     const box =
       flow.op === "fillBelow"
@@ -306,9 +310,9 @@ export class BedrockBuildMenus implements BuildMenus {
         1,
         volumeOf(flow.heightedKind).maxHeight(
           flow.base,
-          this.world.heightRange(flow.dimensionId),
+          this.world.heightRange(flow.start.dimensionId),
         ),
-        { defaultValue: flow.previous, valueStep: 1 },
+        { defaultValue: flow.liveHeight, valueStep: 1 },
       )
       .submitButton({ translate: BUILD_FORM.submit })
       .show(player);

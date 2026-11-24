@@ -8,6 +8,7 @@ import { boxOf } from "../../../src/domain/build/box";
 import { contentsMenu } from "../../../src/domain/build/flow/menu";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { tappedSelection } from "../../support/buildSelection";
 import { FakeFeedback, FakeSessions, FakeWorld, overworld } from "./fakes";
 
 const playerId = asPlayerId("p");
@@ -25,12 +26,14 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
         session.setFlow({
           kind: "selected",
           menuLevel: "build",
-          from: { x: 0, y: 60, z: 0 },
-          to: { x: 6, y: box ? 64 : 60, z: 8 },
-          selection: selectionOf(
-            overworld,
-            boxOf({ x: 0, y: 60, z: 0 }, { x: 6, y: box ? 64 : 60, z: 8 }),
-            material,
+          ...tappedSelection(
+            selectionOf(
+              overworld,
+              boxOf({ x: 0, y: 60, z: 0 }, { x: 6, y: box ? 64 : 60, z: 8 }),
+              material,
+            ),
+            { x: 0, y: 60, z: 0 },
+            { x: 6, y: box ? 64 : 60, z: 8 },
           ),
         });
         let currentDirection = direction;
@@ -56,7 +59,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
           kind: "heightStep",
           heightedKind: kind,
           heightLocked: true,
-          previous: box ? 5 : 1,
+          liveHeight: box ? 5 : 1,
         });
         currentDirection = { x: 1000, y: 0, z: 2000 };
         new SetHeightTo(repo).execute({ playerId, height: 7 });
@@ -64,7 +67,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
         expect(aim.aim).toHaveBeenCalledTimes(1);
         expect(session.flow).toMatchObject({
           heightedKind: kind,
-          previous: box ? 5 : 1,
+          liveHeight: box ? 5 : 1,
         });
         expect(contentsMenu(session.flow).map(({ id }) => id)).toEqual([
           "fill",
@@ -82,12 +85,14 @@ it("falls back to x when aim is unavailable", () => {
   repo.getOrCreate(playerId).setFlow({
     kind: "selected",
     menuLevel: "build",
-    from: { x: 0, y: 60, z: 0 },
-    to: { x: 4, y: 64, z: 4 },
-    selection: selectionOf(
-      overworld,
-      boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
-      material,
+    ...tappedSelection(
+      selectionOf(
+        overworld,
+        boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
+        material,
+      ),
+      { x: 0, y: 60, z: 0 },
+      { x: 4, y: 64, z: 4 },
     ),
   });
   const delegate = { execute: vi.fn() };
@@ -123,12 +128,10 @@ it("does not read aim or delegate for missing selections, unsupported shapes or 
     repo.getOrCreate(playerId).setFlow({
       kind: "selected",
       menuLevel,
-      from: { x: 0, y: 60, z: 0 },
-      to,
-      selection: selectionOf(
-        overworld,
-        boxOf({ x: 0, y: 60, z: 0 }, to),
-        material,
+      ...tappedSelection(
+        selectionOf(overworld, boxOf({ x: 0, y: 60, z: 0 }, to), material),
+        { x: 0, y: 60, z: 0 },
+        to,
       ),
     });
     choose.execute({ playerId });
@@ -145,12 +148,14 @@ it.each([
   repo.getOrCreate(playerId).setFlow({
     kind: "selected",
     menuLevel: "build",
-    from: { x: 0, y: 60, z: 0 },
-    to: { x: 4, y: 64, z: 4 },
-    selection: selectionOf(
-      overworld,
-      boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
-      material,
+    ...tappedSelection(
+      selectionOf(
+        overworld,
+        boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 64, z: 4 }),
+        material,
+      ),
+      { x: 0, y: 60, z: 0 },
+      { x: 4, y: 64, z: 4 },
     ),
   });
   const delegate = { execute: vi.fn() };

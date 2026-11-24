@@ -38,7 +38,8 @@ abstract class StairEdit {
       this.feedback.showMessage(playerId, "noSelection");
       return;
     }
-    const { staircase, dimensionId, material, selectionBefore } = flow;
+    const { staircase, start, selectionBefore } = flow;
+    const { dimensionId, material } = start;
     const taps = goalRowTaps(staircase);
     const range = this.blocks.heightRange(dimensionId);
     if (

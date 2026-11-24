@@ -103,22 +103,22 @@ export function previewPoints(flow: BuildFlow, aim: PreviewAim): PreviewSet {
     case "idle":
       break;
     case "point1":
-      Object.assign(set, endpointMarkers(flow.cell, end, aim.blink));
-      if (end) set.shape = boxOutline(boxOf(flow.cell, end));
+      Object.assign(set, endpointMarkers(flow.start.cell, end, aim.blink));
+      if (end) set.shape = boxOutline(boxOf(flow.start.cell, end));
       break;
     case "baseHeight":
       set.shape = boxOutline(liveHeightBox(flow));
-      Object.assign(set, endpointMarkers(flow.from, end, false));
+      Object.assign(set, endpointMarkers(flow.taps.from, end, false));
       break;
     case "selected":
     case "terrainConfirm":
       set.shape = boxOutline(flow.selection.box);
-      Object.assign(set, endpointMarkers(flow.from, end, false));
+      Object.assign(set, endpointMarkers(flow.taps.from, end, false));
       break;
     case "heightStep": {
       const height = flow.heightLocked
-        ? flow.previous
-        : (aim.height ?? flow.previous);
+        ? flow.liveHeight
+        : (aim.height ?? flow.liveHeight);
       const wireframe = volumeOf(flow.heightedKind).wireframe(
         {
           base: flow.base,

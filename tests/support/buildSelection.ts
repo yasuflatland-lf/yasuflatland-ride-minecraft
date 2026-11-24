@@ -16,6 +16,7 @@ import type {
   HeightStepFlow,
 } from "../../src/domain/build/flow/state";
 import { chooseTerrain } from "../../src/domain/build/flow/terrainFlow";
+import type { Selection } from "../../src/domain/build/selection";
 import type { HeightStepKind } from "../../src/domain/build/volume/kind";
 import type { Cell } from "../../src/domain/shared/cells";
 import type { DimensionId } from "../../src/domain/shared/ids";
@@ -82,7 +83,16 @@ export function confirmEndpointHeight(flow: BuildFlow): BuildFlow {
   if (flow.kind !== "baseHeight") return flow;
   const original: BaseHeightFlow = {
     ...flow,
-    previous: sizeOf(flow.selection.box).y,
+    liveHeight: sizeOf(flow.selection.box).y,
   };
   return confirmLiveHeight(original);
+}
+
+export function tappedSelection(selection: Selection, from: Cell, to: Cell) {
+  const { dimensionId, material } = selection;
+  return {
+    selection,
+    start: { dimensionId, cell: from, material },
+    taps: { from, to },
+  };
 }

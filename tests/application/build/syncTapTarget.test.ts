@@ -10,6 +10,7 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { tapTargetCell } from "../../../src/domain/build/tapTarget";
 import { asPlayerId } from "../../../src/domain/shared/ids";
 import { OVERWORLD_RANGE } from "../../helpers/buildHeightRange";
+import { tappedSelection } from "../../support/buildSelection";
 import { cellKey, FakeWorld, overworld } from "./fakes";
 
 const coord = fc.integer({ min: -32, max: 32 });
@@ -21,15 +22,18 @@ it("shows only a touch player's air endpoint in build mode and a known dimension
   fc.assert(
     fc.property(cell, cell, fc.boolean(), (from, to, hitBlock) => {
       const baseBox = boxOf(from, to);
-      const fixed = {
+      const fixed = tappedSelection(
+        selectionOf(overworld, baseBox, material),
         from,
         to,
-        selection: selectionOf(overworld, baseBox, material),
-      };
+      );
       const flows: BuildFlow[] = [
         { kind: "idle" },
-        { kind: "point1", dimensionId: overworld, cell: from, material },
-        { kind: "baseHeight", ...fixed, baseBox, previous: 1 },
+        {
+          kind: "point1",
+          start: { dimensionId: overworld, cell: from, material },
+        },
+        { kind: "baseHeight", ...fixed, baseBox, liveHeight: 1 },
         { kind: "selected", ...fixed, menuLevel: "root" },
         { kind: "selected", ...fixed, menuLevel: "build" },
         { kind: "terrainConfirm", ...fixed, op: "removeAbove" },
@@ -51,7 +55,7 @@ it("shows only a touch player's air endpoint in build mode and a known dimension
         ]) {
           const end =
             flow.kind === "point1" && aim
-              ? aimedEndPoint(flow.cell, aim, OVERWORLD_RANGE)
+              ? aimedEndPoint(flow.start.cell, aim, OVERWORLD_RANGE)
               : undefined;
           const candidate = tapTargetCell(flow, end);
           for (const dimensionId of [overworld, undefined]) {
@@ -103,7 +107,10 @@ it("hides a point-one target when the aim plane is behind the player", () => {
   new SyncTapTarget(new FakeWorld(), targets).execute({
     playerId,
     inBuildMode: true,
-    flow: { kind: "point1", dimensionId: overworld, cell: from, material },
+    flow: {
+      kind: "point1",
+      start: { dimensionId: overworld, cell: from, material },
+    },
     aim: {
       input: "touch",
       ray: { origin: { ...from, x: 1 }, direction: { x: 1, y: 0, z: 0 } },

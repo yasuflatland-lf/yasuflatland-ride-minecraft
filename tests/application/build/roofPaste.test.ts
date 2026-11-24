@@ -37,6 +37,7 @@ import {
 import {
   chooseHeightedFlow,
   confirmEndpointHeight,
+  tappedSelection,
 } from "../../support/buildSelection";
 import {
   cellKey,
@@ -141,13 +142,13 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
         expect(e.session.flow).toMatchObject({
           kind: "heightStep",
           heightLocked: false,
-          previous: expected,
+          liveHeight: expected,
         });
         aim.execute({
           playerId,
           ray: { origin: min, direction: { x: 0, y: 1, z: 0 } },
         });
-        expect(e.session.flow).toMatchObject({ previous: expected });
+        expect(e.session.flow).toMatchObject({ liveHeight: expected });
         const before = e.session.flow;
         new SetPoint(e.repo, e.world, e.feedback).execute({
           playerId,
@@ -165,7 +166,7 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
     playerId,
     ray: { origin: { x: 0, y: 999, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
   });
-  expect(e.session.flow).toMatchObject({ previous: 2 });
+  expect(e.session.flow).toMatchObject({ liveHeight: 2 });
 });
 
 it("confirms roof cells and retains their bounding box for copying", () => {
@@ -285,7 +286,7 @@ it.each([
     e.world.heightRanges.set(dimensionId, range);
     const baseAt = (y: number) => boxOf({ x: 0, y, z: 0 }, { x: 4, y, z: 6 });
     roof(e, baseAt(range.maxY - 2), "gable", stairs, dimensionId);
-    expect(e.session.flow).toMatchObject({ kind: "heightStep", previous: 3 });
+    expect(e.session.flow).toMatchObject({ kind: "heightStep", liveHeight: 3 });
     const selected = roof(
       e,
       baseAt(range.maxY - 1),
@@ -506,9 +507,11 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
             {
               kind: "selected",
               menuLevel: "build",
-              selection: selectionOf(overworld, box, stone),
-              from: box.min,
-              to: box.max,
+              ...tappedSelection(
+                selectionOf(overworld, box, stone),
+                box.min,
+                box.max,
+              ),
             },
             kind,
           );
