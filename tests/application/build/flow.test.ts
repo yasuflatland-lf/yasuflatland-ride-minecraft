@@ -1,8 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { BackToAiming } from "../../../src/application/build/backToAiming";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
-import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CopySelection } from "../../../src/application/build/copySelection";
@@ -65,7 +63,7 @@ function setup() {
     { facingOf: () => "east" },
   );
   const endpoint = () =>
-    session.setFlow(
+    session.setFlowForTest(
       confirmEndpointHeight(
         tapAir(tapBlock({ kind: "idle" }, overworld, from, stone), to),
       ),
@@ -99,7 +97,7 @@ it("samples material only for a new point 1, clears the confirmed box", () => {
   e.point.execute({ playerId, dimensionId: overworld, cell: to });
   expect(material).toHaveBeenCalledTimes(1);
   expect(e.session.flow.kind).toBe("baseHeight");
-  new ConfirmLiveHeight(e.repo).execute({ playerId });
+  e.session.confirmLiveHeight();
   expect(e.session.flow).toEqual({
     kind: "selected",
     menuLevel: "root",
@@ -150,7 +148,7 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   const e = setup();
   e.air.execute({ playerId, end: to });
   expect(e.session.flow.kind).toBe("idle");
-  e.session.setFlow(tapBlock(e.session.flow, overworld, from, stone));
+  e.session.setFlowForTest(tapBlock(e.session.flow, overworld, from, stone));
   const first = e.session.flow;
   e.air.execute({ playerId });
   expect(e.session.flow).toBe(first);
@@ -158,7 +156,7 @@ it("air taps require a valid endpoint and preserve the fixed selection", () => {
   expect(e.session.flow.kind).toBe("baseHeight");
   e.air.execute({ playerId, end: to });
   expect(e.feedback.messages).toEqual([{ message: "heightAim" }]);
-  new ConfirmLiveHeight(e.repo).execute({ playerId });
+  e.session.confirmLiveHeight();
   expect(e.feedback.messages.at(-1)).toEqual({ message: "heightAim" });
   const selected = e.session.flow;
   e.air.execute({ playerId, end: { ...to, x: 3 } });
@@ -208,7 +206,7 @@ it("confirms the chosen shape with the captured material, keeping its box select
 it("refuses oversized shapes with their count, unsupported styles, and busy jobs without changing the flow", () => {
   const e = setup();
   const end = { x: 100, y: 164, z: 100 };
-  e.session.setFlow(
+  e.session.setFlowForTest(
     confirmEndpointHeight(
       tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
     ),
@@ -236,7 +234,7 @@ it("refuses oversized shapes with their count, unsupported styles, and busy jobs
 it("applies the limit to the chosen style rather than the bounding volume", () => {
   const e = setup();
   const end = { x: 49, y: 113, z: 49 };
-  e.session.setFlow(
+  e.session.setFlowForTest(
     confirmEndpointHeight(
       tapAir(tapBlock(e.session.flow, overworld, from, stone), end),
     ),
@@ -251,13 +249,13 @@ it("Cancellation and returning to aiming preserve the confirmed box until Clear"
   e.session.confirmBox(selectionOf(nether, boxOf(from, to), stone));
   e.endpoint();
   const box = e.session.confirmedBox;
-  e.session.setFlow(chooseTerrain(e.session.flow, "removeAbove"));
-  new BackToAiming(e.repo).backToAiming({ playerId });
+  e.session.setFlowForTest(chooseTerrain(e.session.flow, "removeAbove"));
+  e.session.backToAiming();
   expect(e.session.flow).toEqual({
     kind: "point1",
     start: { dimensionId: overworld, cell: from, material: stone },
   });
-  e.session.setFlow(cancel(e.session.flow));
+  e.session.setFlowForTest(cancel(e.session.flow));
   expect(e.session.flow.kind).toBe("idle");
   expect(e.session.confirmedBox).toBe(box);
   e.endpoint();

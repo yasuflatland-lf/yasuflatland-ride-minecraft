@@ -1,11 +1,14 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { ChooseBoxStep } from "../../../src/application/build/chooseBoxStep";
+import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
-import { NewCopy } from "../../../src/application/build/newCopy";
+import { MenuChoices } from "../../../src/application/build/menuChoices";
+import { SetPoint } from "../../../src/application/build/setPoint";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
 import {
@@ -16,6 +19,12 @@ import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { StructureHandle } from "../../../src/domain/build/structure/handle";
 import { asPlayerId } from "../../../src/domain/shared/ids";
+import { structureClipboard } from "../../support/buildClipboard";
+import {
+  confirmEndpointHeight,
+  tapAir,
+  tapBlock,
+} from "../../support/buildSelection";
 import {
   FakeFeedback,
   FakeSessions,
@@ -23,6 +32,7 @@ import {
   FakeWorld,
   overworld,
 } from "./fakes";
+import { menuCasesFor } from "./fakes/menuChoices";
 import { FakeStructureStore } from "./fakes/structureStore";
 
 const playerId = asPlayerId("builder");
@@ -113,7 +123,7 @@ it("refuses without changing a present session or creating an absent one, preser
             selection: selectionOf(overworld, box, AIR),
             facing: "east",
           });
-          new NewCopy(e.repo).execute(playerId);
+          e.repo.get(playerId)?.startNewCopy();
         }
         const session = e.repo.get(playerId);
         const flow = session?.flow;
@@ -293,7 +303,7 @@ it.each(["absent", "structure"] as const)(
                 sessionExists = true;
               }
             } else if (operation === "newCopy")
-              new NewCopy(e.repo).execute(playerId);
+              e.repo.get(playerId)?.startNewCopy();
             else {
               if (operation === "endPasting")
                 new EndPasting(e.repo).execute(playerId);
@@ -368,3 +378,93 @@ it.each(["absent", "structure"] as const)(
     );
   },
 );
+
+const stone = blockStateOf("minecraft:stone");
+
+function setupNewCopy(from: { x: number; y: number; z: number }) {
+  const repo = new FakeSessions();
+  const session = repo.getOrCreate(playerId);
+  const world = new FakeWorld();
+  const feedback = new FakeFeedback();
+  const box = boxOf(from, from);
+  const old = structureClipboard(box, () => stone);
+  session.completeCopy(selectionOf(overworld, box, stone), old);
+  session.setFlowForTest({
+    kind: "pasteAim",
+    manualTurn: 1,
+    facing: "north",
+  });
+  const choices = new MenuChoices(repo, menuCasesFor(repo, world), {
+    blocks: world,
+    feedback,
+    refresh: () => {},
+  });
+  const chooseBoxStep = new ChooseBoxStep(
+    repo,
+    {
+      copy: new CopyBox(repo, new FakeStructureStore(), feedback),
+      cut: new CutBox(repo, world, new FakeStructureStore(), feedback, {
+        warn: () => {},
+      }),
+    },
+    feedback,
+    { facingOf: () => "east" },
+  );
+  return { repo, session, world, feedback, old, choices, chooseBoxStep };
+}
+
+it("starts a normal selection with the old clipboard, then replaces it on Copy", () => {
+  fc.assert(
+    fc.property(cell, fc.integer({ min: 1, max: 8 }), (from, length) => {
+      const e = setupNewCopy(from);
+      expect(e.choices.choosePaste(playerId, "newCopy")).toBe(true);
+      expect(e.session.flow).toEqual({ kind: "idle" });
+      expect(e.session.confirmedBox).toBeUndefined();
+      expect(e.session.clipboard).toBe(e.old);
+      const to = { ...from, x: from.x + length };
+      e.world.put(from, stone);
+      const points = new SetPoint(e.repo, e.world, e.feedback);
+      points.execute({ playerId, dimensionId: overworld, cell: from });
+      const first = tapBlock({ kind: "idle" }, overworld, from, stone);
+      expect(e.session.flow).toEqual(first);
+      expect(e.session.clipboard).toBe(e.old);
+      points.execute({ playerId, dimensionId: overworld, cell: to });
+      expect(e.session.flow).toEqual(tapBlock(first, overworld, to, stone));
+      e.chooseBoxStep.execute({ playerId, kind: "copy" });
+      expect(e.session.clipboard).not.toBe(e.old);
+      expect(e.session.clipboard).toMatchObject({
+        size: { x: length + 1, y: 1, z: 1 },
+        blockCount: length + 1,
+        facing: "east",
+        contents: { kind: "structure" },
+      });
+      expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
+    }),
+  );
+});
+
+it("keeps the old clipboard and selection on an oversized new copy, and keeps it on cancel or clear", () => {
+  fc.assert(
+    fc.property(cell, fc.integer({ min: 1, max: 100 }), (from, extra) => {
+      const e = setupNewCopy(from);
+      expect(e.choices.choosePaste(playerId, "newCopy")).toBe(true);
+      const selected = confirmEndpointHeight(
+        tapAir(tapBlock(e.session.flow, overworld, from, stone), {
+          ...from,
+          x: from.x + BUILD_SPEC.maxCopyVolume + extra,
+        }),
+      );
+      e.session.setFlowForTest(selected);
+      e.chooseBoxStep.execute({ playerId, kind: "copy" });
+      expect(e.feedback.messages.at(-1)?.message).toBe("tooLarge");
+      expect(e.session.flow).toBe(selected);
+      expect(e.session.clipboard).toBe(e.old);
+      e.session.clearSelection();
+      expect(e.session.flow.kind).toBe("idle");
+      expect(e.session.clipboard).toBe(e.old);
+      new ClearSelection(e.repo, e.feedback).execute({ playerId });
+      expect(e.session.flow).toEqual({ kind: "idle" });
+      expect(e.session.clipboard).toBe(e.old);
+    }),
+  );
+});

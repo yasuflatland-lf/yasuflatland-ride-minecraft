@@ -88,7 +88,7 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
     blockStateOf("minecraft:stone"),
   );
   const select = () =>
-    session.setFlow({
+    session.setFlowForTest({
       kind: "selected",
       menuLevel: "root",
       selection,

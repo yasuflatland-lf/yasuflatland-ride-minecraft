@@ -241,7 +241,7 @@ it("uses the supplied test corner and reports the selection menu only on a later
     uncopyableBlockTypes: [],
   });
   const session = build.repo.getOrCreate(playerId);
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: {
       dimensionId,

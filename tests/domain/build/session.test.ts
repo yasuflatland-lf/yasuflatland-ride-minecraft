@@ -30,7 +30,11 @@ import {
   holdClipboard,
   structureClipboard,
 } from "../../support/buildClipboard";
-import { selectionFlows, tappedSelection } from "../../support/buildSelection";
+import {
+  chooseHeightedFlow,
+  selectionFlows,
+  tappedSelection,
+} from "../../support/buildSelection";
 import { undoRecord } from "../../support/undoRecord";
 
 const dim = asDimensionId("minecraft:overworld");
@@ -230,6 +234,27 @@ describe("build mode", () => {
   });
 });
 
+it("activates build mode when a wand tap fixes an endpoint", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 1, max: 20 }),
+      fc.boolean(),
+      (length, line) => {
+        const session = new BuildSession(asPlayerId("builder"));
+        const from = { x: 0, y: 60, z: 0 };
+        const to = { ...from, x: length, z: line ? 0 : length };
+        session.tapBlock(dim, from, stone, OVERWORLD_RANGE);
+        expect(session.isInBuildMode).toBe(false);
+        session.tapAir(to, OVERWORLD_RANGE);
+        expect(session.isInBuildMode).toBe(true);
+        expect(session.flow.kind).toBe(line ? "selected" : "baseHeight");
+        expect(session.confirmLiveHeight()).toBe(!line);
+        expect(session.flow.kind).toBe("selected");
+      },
+    ),
+  );
+});
+
 describe("BuildSession", () => {
   const session = () => new BuildSession(asPlayerId("p1"));
 
@@ -350,7 +375,7 @@ it("resumes only idle and selected clipboards at the copied facing", () => {
           const session = new BuildSession(asPlayerId("builder"));
           session.confirmBox(selection);
           if (held) holdClipboard(session, clipboard);
-          session.setFlow(flow);
+          session.setFlowForTest(flow);
           const allowed =
             held && (flow.kind === "idle" || flow.kind === "selected");
           expect(session.resumePasteAim()).toBe(allowed);
@@ -389,7 +414,7 @@ it("completeCopy replaces the clipboard and box and enters paste aiming from any
           session,
           structureClipboard(box, () => AIR),
         );
-        session.setFlow(flow);
+        session.setFlowForTest(flow);
         for (const record of records) session.finishEdit(record, "undoable");
         session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
         expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
@@ -419,7 +444,7 @@ it("leaveBuildMode discards the clipboard in every flow and is idempotent", () =
         if (box) session.confirmBox(selectionOf(dimensionId, box, stone));
         if (clipboard) holdClipboard(session, clipboard);
         const confirmed = session.confirmedBox;
-        session.setFlow(flow);
+        session.setFlowForTest(flow);
         session.leaveBuildMode();
         expect(session.flow).toEqual({ kind: "idle" });
         expect(session.clipboard).toBeUndefined();
@@ -446,7 +471,7 @@ it("endPasting clears every flow, clipboard and confirmed box without changing h
         const session = new BuildSession(asPlayerId("p1"));
         if (box) session.confirmBox(selectionOf(dimensionId, box, stone));
         if (clipboard) holdClipboard(session, clipboard);
-        session.setFlow(flow);
+        session.setFlowForTest(flow);
         session.finishEdit(record, "undoable");
         session.endPasting();
         expect(session.flow).toEqual({ kind: "idle" });
@@ -464,7 +489,7 @@ it("startNewCopy idles any paste aiming, clears the box, and keeps the clipboard
       const session = new BuildSession(asPlayerId("p1"));
       session.completeCopy(selectionOf(dim, box, stone), clipboard);
       session.finishEdit(record, "undoable");
-      session.setFlow({
+      session.setFlowForTest({
         kind: "pasteAim",
         manualTurn: 1,
         facing: "north",
@@ -548,7 +573,7 @@ it("uses the supplied taps even when replacing a selected box, and defaults to i
       const box = boxOf(from, to);
       const session = new BuildSession(asPlayerId("p1"));
       const selection = selectionOf(dim, box, stone);
-      session.setFlow({
+      session.setFlowForTest({
         kind: "selected",
         menuLevel: "build",
         ...tappedSelection(selection, box.min, box.max),
@@ -581,7 +606,7 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
           kind === "selected"
             ? { kind, menuLevel: "build" as const, ...fixed }
             : { kind, op: "fillBelow" as const, ...fixed };
-        session.setFlow(flow);
+        session.setFlowForTest(flow);
         const next = selectionOf(
           dim,
           boxWithHeight(selection.box, height),
@@ -602,7 +627,7 @@ it("replaces taps and bounds together only while selected or aiming height", () 
   fc.assert(
     fc.property(flowArb, boxArb, (flow, box) => {
       const session = new BuildSession(asPlayerId("p1"));
-      session.setFlow(flow);
+      session.setFlowForTest(flow);
       const selection = selectionOf(dim, box, stone);
       const taps = { from: box.max, to: box.min };
       session.replaceSelection(selection, taps, OVERWORLD_RANGE);
@@ -637,7 +662,7 @@ it("advances rotation selections and only updates confirmed boxes in the same di
           ? dim
           : asDimensionId("nether");
         session.confirmBox(selectionOf(confirmedDimension, box, stone));
-        session.setFlow({
+        session.setFlowForTest({
           kind: "selected",
           menuLevel: "root",
           ...tappedSelection(selectionOf(dim, box, stone), box.min, box.max),
@@ -675,7 +700,7 @@ it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
         const session = new BuildSession(asPlayerId("alex"));
         const box = boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 2, z: 1 });
         session.confirmBox(selectionOf(dim, box, stone));
-        session.setFlow({
+        session.setFlowForTest({
           kind: "selected",
           menuLevel: "root",
           ...tappedSelection(selectionOf(dim, box, stone), box.min, box.max),
@@ -689,3 +714,84 @@ it.each(["endPasting", "leaveBuildMode", "clearSelection"] as const)(
     );
   },
 );
+
+it("sets the form height only in an unlocked height step", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 1, max: 15 }),
+      fc.constantFrom("gable" as const, "hip" as const),
+      (height, kind) => {
+        const session = new BuildSession(asPlayerId("builder"));
+        const endpoint: BuildFlow = {
+          kind: "selected",
+          menuLevel: "root",
+          ...tappedSelection(
+            selectionOf(
+              dim,
+              boxOf({ x: 0, y: 60, z: 0 }, { x: 3, y: 60, z: 4 }),
+              blockStateOf("minecraft:stone"),
+            ),
+            { x: 0, y: 60, z: 0 },
+            { x: 3, y: 60, z: 4 },
+          ),
+        };
+        for (const flow of [
+          { kind: "idle" } as const,
+          endpoint,
+          chooseHeightedFlow(endpoint, kind),
+          { kind: "pasteAim", manualTurn: 0 } as const,
+        ]) {
+          session.setFlowForTest(flow);
+          expect(session.setHeight(height)).toBe(flow.kind === "heightStep");
+          expect(session.flow).toEqual(
+            flow.kind === "heightStep" ? { ...flow, liveHeight: height } : flow,
+          );
+        }
+      },
+    ),
+  );
+});
+
+it("keeps locked box heights unchanged for aiming and explicit heights", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 2, max: 40 }),
+      fc.integer(),
+      (height, requested) => {
+        const session = new BuildSession(asPlayerId("builder"));
+        const flow = chooseHeightedFlow(
+          {
+            kind: "selected",
+            menuLevel: "root",
+            ...tappedSelection(
+              selectionOf(
+                dim,
+                boxOf(
+                  { x: 0, y: 60, z: 0 },
+                  { x: 4, y: 60 + height - 1, z: 5 },
+                ),
+                blockStateOf("minecraft:stone"),
+              ),
+              { x: 0, y: 60, z: 0 },
+              { x: 4, y: 60 + height - 1, z: 5 },
+            ),
+          },
+          "cylinder",
+        );
+        session.setFlowForTest(flow);
+        expect(session.setHeight(requested)).toBe(false);
+        expect(session.flow).toBe(flow);
+        expect(
+          session.aimHeight(
+            {
+              origin: { x: -10, y: requested, z: 2 },
+              direction: { x: 1, y: 0, z: 0 },
+            },
+            OVERWORLD_RANGE,
+          ),
+        ).toBe(false);
+        expect(session.flow).toBe(flow);
+      },
+    ),
+  );
+});

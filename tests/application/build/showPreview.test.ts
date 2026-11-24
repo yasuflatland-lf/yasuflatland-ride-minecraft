@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ClearSelection } from "../../../src/application/build/clearSelection";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import type { AimReader } from "../../../src/application/build/ports/aim";
@@ -95,7 +94,7 @@ it("shares one aim sample between the preview and tap target placement", () => {
     kind: "point1",
     start: { dimensionId: nether, cell, material },
   } as const;
-  session.setFlow(flow);
+  session.setFlowForTest(flow);
   const sample = {
     input: "touch",
     ray: { ...ray, origin: { ...ray.origin, x: -2, y: NETHER_RANGE.maxY + 1 } },
@@ -128,7 +127,7 @@ it("hides an inactive player's target without reading aim", () => {
 
 it("hides a target when the marked dimension differs from the player's dimension", () => {
   const { session, preview, aim, targets } = setup();
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: overworld, cell, material },
   });
@@ -145,7 +144,7 @@ it("hides a target when the marked dimension differs from the player's dimension
 
 it("draws the marker for its owner in the flow dimension on alternate redraws", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: nether, cell, material },
   });
@@ -165,7 +164,7 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
 
 it("follows the aimed block and falls back to the air plane without changing the flow", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: overworld, cell, material },
   });
@@ -190,7 +189,7 @@ it("follows the aimed block and falls back to the air plane without changing the
 
 it("shows a virtual end marker beyond touch reach only for pointer aim", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: overworld, cell, material },
   });
@@ -205,7 +204,7 @@ it("shows a virtual end marker beyond touch reach only for pointer aim", () => {
 
 it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({
+  session.setFlowForTest({
     kind: "selected",
     menuLevel: "root",
     ...tappedSelection(
@@ -231,7 +230,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
 
 it("draws only in build mode and on the interval, and clears the preview with the selection", () => {
   const { session, preview, feedback, repo, aim } = setup(false);
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: overworld, cell, material },
   });
@@ -256,8 +255,8 @@ it("draws only in build mode and on the interval, and clears the preview with th
 });
 
 it("uses the confirmation height calculation for roofs without mutating the session", () => {
-  const { session, preview, feedback, repo, aim } = setup();
-  session.setFlow({
+  const { session, preview, feedback, aim, blocks } = setup();
+  session.setFlowForTest({
     kind: "heightStep",
     heightLocked: false,
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
@@ -270,7 +269,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   aim.mockReturnValue({ input: "pointer", ray });
   preview.execute(0);
   expect(session.flow).toBe(flow);
-  new AimHeight(repo, new FakeWorld()).execute({ playerId: alex, ray });
+  session.aimHeight(ray, blocks.heightRange(overworld));
   expect(feedback.previews[0]?.set).toEqual(
     previewModel(session.flow, { blink: true }).set,
   );
@@ -284,7 +283,7 @@ it("uses the confirmation height calculation for roofs without mutating the sess
 
 it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
   aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
@@ -325,11 +324,11 @@ it("keeps concurrent players and their aim targets separate", () => {
   const { session, repo, preview, feedback, aim } = setup();
   const bob = asPlayerId("bob");
   const other = repo.getOrCreate(bob);
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: overworld, cell, material },
   });
-  other.setFlow({
+  other.setFlowForTest({
     kind: "point1",
     start: { dimensionId: nether, cell: end, material },
   });
@@ -435,7 +434,7 @@ it("reports height-step sizes only on changes and resets each player's memo on e
           session.tickMode({ holding: true });
         const { width, depth, heightedKind, liveHeight, heightLocked } =
           shapes.get(id) ?? initial;
-        session.setFlow({
+        session.setFlowForTest({
           kind: "heightStep",
           heightedKind,
           liveHeight,
@@ -482,7 +481,7 @@ it("reports height-step sizes only on changes and resets each player's memo on e
         if (action.kind === "aim") layers.set(id, action.layer);
         if (action.kind === "leave" || action.kind === "remove") {
           if (action.kind === "leave")
-            repo.getOrCreate(id).setFlow(action.flow);
+            repo.getOrCreate(id).setFlowForTest(action.flow);
           else repo.remove(id);
           previousSizes.delete(id);
           if (betweenRedraws) preview.execute(tick - 1);
@@ -499,7 +498,7 @@ it("reports height-step sizes only on changes and resets each player's memo on e
 
 it("reports a locked cylinder once and ignores changes in aim", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlow({
+  session.setFlowForTest({
     kind: "heightStep",
     heightLocked: true,
     base: boxOf(cell, { x: 8, y: 64, z: 4 }),
@@ -523,7 +522,7 @@ it("reports a locked cylinder once and ignores changes in aim", () => {
 
 it("refreshes the paste hint each interval without requiring an aimed block", () => {
   const { session, preview, feedback } = setup();
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
   preview.execute(0);
   expect(feedback.modes).toEqual([]);
   const clipboard = structureClipboard(boxOf(cell, end), (at) =>
@@ -575,7 +574,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
       taps: { from: cell, to: end },
     } as const,
   ]) {
-    session.setFlow(flow);
+    session.setFlowForTest(flow);
     preview.execute(0);
     preview.execute(interval);
   }
@@ -585,7 +584,7 @@ it("never shows paste hints in other flows or outside build mode", () => {
     inactive.session,
     structureClipboard(boxOf(cell, end), () => material),
   );
-  inactive.session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  inactive.session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
   inactive.preview.execute(0);
   expect(inactive.feedback.modes).toEqual([]);
 });
@@ -598,7 +597,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
         selectionOf(overworld, boxOf(cell, end), AIR),
         structureClipboard(boxOf(cell, end), () => material),
       );
-      session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+      session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
       session.startNewCopy();
       aim.mockReturnValue(
         hit
@@ -815,7 +814,7 @@ it("shows the effective degrees for every facing and manual turn, including air 
           ...structureClipboard(box),
           facing: copied,
         });
-        e.session.setFlow({ kind: "pasteAim", manualTurn });
+        e.session.setFlowForTest({ kind: "pasteAim", manualTurn });
         e.aim.mockReturnValue({
           input: "pointer",
           ray: { ...ray, direction: facingVector(gaze) },
@@ -851,7 +850,7 @@ it("redraws the live selection outline and retains its last height for a vertica
   const { session, preview, feedback, aim } = setup(false);
   const from = { x: 0, y: 64, z: 0 };
   const to = { x: 4, y: 64, z: 4 };
-  session.setFlow(
+  session.setFlowForTest(
     tapAir(
       {
         kind: "point1",
@@ -894,7 +893,7 @@ it("redraws faster while the gaze sets the height and at the usual pace otherwis
     input: "pointer",
     ray: { origin, direction: { x: 1, y: 0, z: 0 } },
   });
-  session.setFlow(
+  session.setFlowForTest(
     tapAir(
       {
         kind: "point1",
@@ -911,7 +910,7 @@ it("redraws faster while the gaze sets the height and at the usual pace otherwis
   expect(feedback.previews).toHaveLength(2);
 
   feedback.previews.length = 0;
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: { dimensionId: overworld, cell: from, material },
   });
@@ -925,7 +924,7 @@ it("shows the live size while aiming the base height, once per change", () => {
   const { session, preview, feedback, aim } = setup(false);
   const from = { x: 0, y: 64, z: 0 };
   const to = { x: 4, y: 64, z: 2 };
-  session.setFlow(
+  session.setFlowForTest(
     tapAir(
       {
         kind: "point1",
@@ -954,7 +953,7 @@ it("redraws the rotated outline and tap markers on the next outline tick", () =>
     end,
   );
   if (base.kind !== "baseHeight") throw new Error("Expected baseHeight");
-  session.setFlow({ ...base, liveHeight: 7 });
+  session.setFlowForTest({ ...base, liveHeight: 7 });
   preview.execute(0);
   const world = new FakeWorld();
   const core = new RotateBox(

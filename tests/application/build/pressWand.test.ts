@@ -52,7 +52,7 @@ it("samples the final ray before offering the shape or roof contents menu", () =
           kind: "selected",
           selection: { box: boxOf(cell, { ...end, y: cell.y + 3 }) },
         });
-        session.setFlow(chooseHeightedFlow(session.flow, roof));
+        session.setFlowForTest(chooseHeightedFlow(session.flow, roof));
         expect(press.execute({ playerId, intent: "aimHeight" })).toBe("none");
         expect(
           press.execute({
@@ -99,7 +99,7 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
         expect(press.execute({ playerId, intent: "openUtilityMenu" })).toBe(
           "utilityMenu",
         );
-        session.setFlow(chooseStairs(session.flow, op));
+        session.setFlowForTest(chooseStairs(session.flow, op));
         expect(press.execute({ playerId, intent: "fixStairGoal" })).toBe(
           "none",
         );
@@ -133,7 +133,7 @@ it("opens paste options on a plain press and refreshes only a completed paste", 
         session,
         structureClipboard(boxOf(cell, cell), () => stone, structures),
       );
-      session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+      session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
       const paste = { ...player, intent: "pasteAim" as const };
       expect(
         press.execute({

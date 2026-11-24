@@ -201,7 +201,7 @@ it.each(["idle", "noClipboard", "busy"] as const)(
   "does not touch structures for %s",
   (reason) => {
     const e = setup();
-    if (reason === "idle") e.session.setFlow({ kind: "idle" });
+    if (reason === "idle") e.session.setFlowForTest({ kind: "idle" });
     if (reason === "noClipboard") e.session.clearClipboard();
     if (reason === "busy") e.session.beginEdit();
     const flow = e.session.flow;
@@ -333,7 +333,7 @@ it("discards the clipboard and paste snapshot before removing the session, and t
 it("discards only the oldest snapshot on the eleventh paste", () => {
   const e = setup();
   for (let i = 0; i <= BUILD_SPEC.undoDepth; i++) {
-    e.session.setFlow(beginPasteAim());
+    e.session.setFlowForTest(beginPasteAim());
     expect(e.paste.execute(e.cmd)).toBe("pasted");
     expect(e.store.calls.filter((call) => call.kind === "discard")).toEqual(
       i < BUILD_SPEC.undoDepth

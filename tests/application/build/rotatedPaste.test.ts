@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndPasting } from "../../../src/application/build/endPasting";
-import { NewCopy } from "../../../src/application/build/newCopy";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
@@ -233,7 +232,7 @@ it("resets the turn on New copy, a completed copy and End pasting", () => {
           "endPasting",
         ] as const) {
           const e = setup(block, turn);
-          if (action === "newCopy") new NewCopy(e.repo).execute(playerId);
+          if (action === "newCopy") e.repo.get(playerId)?.startNewCopy();
           if (action === "completeCopy")
             e.session.completeCopy(
               selectionOf(overworld, e.source, stone),

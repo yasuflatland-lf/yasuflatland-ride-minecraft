@@ -150,11 +150,14 @@ function snapshotHook() {
   const undoItem = vi.fn(() => "stepped" as const);
   type Args = Parameters<typeof registerTestEdit>;
   registerTestEdit(
-    new MenuChoices(repo, menuCasesFor(repo)),
-    {} as Args[1],
-    { execute } as unknown as Args[2],
-    { execute: undo } as unknown as Args[3],
-    { execute: undoItem } as unknown as Args[4],
+    new MenuChoices(repo, menuCasesFor(repo), {
+      blocks: new FakeWorld(),
+      feedback,
+      refresh: () => {},
+    }),
+    { execute } as unknown as Args[1],
+    { execute: undo } as unknown as Args[2],
+    { execute: undoItem } as unknown as Args[3],
     new DescribeBuild(repo),
     messages,
     repo,
@@ -189,7 +192,7 @@ function snapshotHook() {
 it("applies an offered paste menu command and reports it in the reply", () => {
   const e = snapshotHook();
   const session = e.repo.getOrCreate(player);
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
   e.send("menu paste endPaste");
   expect(session.flow).toEqual({ kind: "idle" });
   expect(

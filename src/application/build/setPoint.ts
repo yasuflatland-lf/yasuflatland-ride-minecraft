@@ -1,8 +1,4 @@
 import { volume } from "../../domain/build/box";
-import {
-  enteredBaseHeight,
-  tapBlock,
-} from "../../domain/build/flow/heightFlow";
 import { startOf } from "../../domain/build/flow/state";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
@@ -40,16 +36,13 @@ export class SetPoint {
       this.feedback.showMessage(cmd.playerId, "materialRefused");
       return;
     }
-    if (starting) session.clearSelection();
-    const next = tapBlock(
-      flow,
+    const next = session.tapBlock(
       cmd.dimensionId,
       cmd.cell,
       material,
       this.world.heightRange(cmd.dimensionId),
     );
-    session.setFlow(next);
-    if (enteredBaseHeight(flow, next)) {
+    if (next.kind === "baseHeight") {
       this.feedback.showMessage(cmd.playerId, "heightAim");
       return;
     }

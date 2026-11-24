@@ -1,19 +1,15 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { BackToAiming } from "../../../src/application/build/backToAiming";
-import { ChooseAdjustHeight } from "../../../src/application/build/chooseAdjustHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseStairs } from "../../../src/application/build/chooseStairs";
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
-import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { ConfirmTerrain } from "../../../src/application/build/confirmTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { FixStairGoal } from "../../../src/application/build/fixStairGoal";
-import { OpenBuildMenu } from "../../../src/application/build/openBuildMenu";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressUndo } from "../../../src/application/build/pressUndo";
 import { RotateBox } from "../../../src/application/build/rotateBox";
@@ -122,7 +118,7 @@ function seed(e: Env, box: CellBox) {
 }
 
 function select(e: Env, box: CellBox) {
-  e.session.setFlow({
+  e.session.setFlowForTest({
     kind: "selected",
     menuLevel: "build",
     ...tappedSelection(selectionOf(overworld, box, stone), box.min, box.max),
@@ -144,7 +140,7 @@ it("Build Undo restores blocks after paste selects its result", () => {
   const target = boxOf({ x: 5, y: 64, z: 0 }, { x: 7, y: 64, z: 0 });
   const before = seed(e, target);
   const point = tapBlock({ kind: "idle" }, overworld, source.min, stone);
-  e.session.setFlow(tapAir(point, source.max));
+  e.session.setFlowForTest(tapAir(point, source.max));
   for (const cell of cellsOf(source)) e.world.put(cell, stone);
   expect(
     e.copy.execute({
@@ -226,11 +222,13 @@ it.each(builds)(
             before.max,
             stone,
           );
-          e.session.setFlow(confirmEndpointHeight(tapAir(first, before.min)));
+          e.session.setFlowForTest(
+            confirmEndpointHeight(tapAir(first, before.min)),
+          );
           if ("style" in build) {
             e.shape.execute({ playerId, style: build.style });
           } else {
-            e.session.setFlow(
+            e.session.setFlowForTest(
               setHeight(
                 chooseHeightedFlow(e.session.flow, build.kind),
                 chosenHeight,
@@ -289,7 +287,9 @@ it.each(["frame", "gable"] as const)(
     select(e, base);
     if (kind === "frame") e.shape.execute({ playerId, style: kind });
     else {
-      e.session.setFlow(setHeight(chooseHeightedFlow(e.session.flow, kind), 3));
+      e.session.setFlowForTest(
+        setHeight(chooseHeightedFlow(e.session.flow, kind), 3),
+      );
       e.heighted.execute({ playerId, fill: "fill" });
     }
     e.drain();
@@ -384,7 +384,7 @@ it.each(["Remove above", "Copy"] as const)(
     e.world.put(above, stone);
     const history = e.session.hasHistory;
     if (operation === "Remove above") {
-      e.session.setFlow({
+      e.session.setFlowForTest({
         kind: "terrainConfirm",
         op: "removeAbove",
         ...tappedSelection(
@@ -434,13 +434,13 @@ it("Undo while editing height again restores the pre-turn taps and height aim", 
         const from = { x: width, y: 65, z: 0 };
         const to = { x: 0, y: 63, z: depth };
         const before = boxOf(from, to);
-        e.session.setFlow(
+        e.session.setFlowForTest(
           tapAir(tapBlock(e.session.flow, overworld, from, stone), to),
         );
         expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
           "rotated",
         );
-        e.session.setFlow(
+        e.session.setFlowForTest(
           setHeight(adjustHeight(e.session.flow, OVERWORLD_RANGE), height),
         );
         expect(e.pressUndo.execute({ playerId })).toBe("undone");
@@ -470,7 +470,7 @@ it("Undo of a narrow sphere restores taps spanning the original footprint", () =
       const to = { x: 0, y: 60, z: 1 };
       const first = tapBlock(e.session.flow, overworld, from, stone);
       const selected = confirmEndpointHeight(tapAir(first, to));
-      e.session.setFlow(chooseHeightedFlow(selected, "sphere"));
+      e.session.setFlowForTest(chooseHeightedFlow(selected, "sphere"));
       e.heighted.execute({ playerId, fill: "fill" });
       e.drain();
       expect(e.pressUndo.execute({ playerId })).toBe("undone");
@@ -533,11 +533,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         const e = setup();
         const cmd = { playerId, dimensionId: overworld };
         const tap = new SetPoint(e.repo, e.world, e.feedback);
-        const confirm = new ConfirmLiveHeight(e.repo);
-        const adjust = new ChooseAdjustHeight(e.repo, e.feedback, e.world);
-        const menu = new OpenBuildMenu(e.repo, { refresh: () => {} });
         const choose = new ChooseHeighted(e.repo, e.feedback, e.world);
-        const cancel = new BackToAiming(e.repo);
         const check = () => expectTapFootprint(e.session.flow);
         const a = { x: -2, y: 65, z: 3 };
         const b = { x: a.x + width, y: 64, z: 4 };
@@ -546,7 +542,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         tap.execute({ ...cmd, cell: from });
         tap.execute({ ...cmd, cell: to });
         check();
-        expect(confirm.execute(cmd)).toBe(true);
+        expect(e.session.confirmLiveHeight()).toBe(true);
         check();
         for (const action of actions) {
           switch (action) {
@@ -554,15 +550,15 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
               expect(e.rotate.execute(cmd)).toBe("rotated");
               break;
             case "editHeight":
-              adjust.execute(cmd);
+              e.session.adjustHeight(e.world.heightRange(overworld));
               check();
-              confirm.execute(cmd);
+              e.session.confirmLiveHeight();
               break;
             case "undo":
               e.pressUndo.execute(cmd);
               break;
             default:
-              menu.execute({ ...cmd, tick: 17 });
+              e.session.openBuildMenu();
               check();
               if (action === "fill") e.shape.execute({ ...cmd, style: "fill" });
               else {
@@ -584,7 +580,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         if (terrain.kind !== "terrainConfirm")
           throw new Error("Expected terrain menu");
         check();
-        cancel.backToAiming(cmd);
+        e.session.backToAiming();
         expect(e.session.flow).toMatchObject({
           kind: "point1",
           start: { cell: terrain.taps.from },
@@ -609,7 +605,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         const fix = new FixStairGoal(e.repo, e.feedback, gaze);
         expect(fix.execute(cmd)).toBe(true);
         check();
-        cancel.backToAiming(cmd);
+        e.session.backToAiming();
         expect(e.session.flow).toMatchObject({
           kind: "point1",
           start: { cell: aim.row.min },

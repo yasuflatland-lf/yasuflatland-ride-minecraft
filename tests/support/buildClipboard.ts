@@ -33,7 +33,7 @@ export function holdClipboard(
   );
   session.clearSelection();
   if (confirmed) session.confirmBox(confirmed);
-  session.setFlow(flow);
+  session.setFlowForTest(flow);
 }
 
 export function structureClipboard(

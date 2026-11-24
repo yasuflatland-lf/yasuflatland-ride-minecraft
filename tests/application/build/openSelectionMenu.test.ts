@@ -14,7 +14,7 @@ it("clears a line's undo target when its root menu first opens", () => {
   const point = tapBlock({ kind: "idle" }, overworld, from, AIR);
   const line = tapAir(point, { ...from, x: 2 });
   expect(line).toHaveProperty("freshEnd", true);
-  session.setFlow(line);
+  session.setFlowForTest(line);
 
   const menu = new OpenSelectionMenu(repo);
   expect(menu.execute({ playerId })).toEqual(shapeMenu(line));

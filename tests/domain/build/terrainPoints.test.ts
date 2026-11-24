@@ -58,7 +58,7 @@ it("fills the pit only up to the tapped edge even after a raised live height and
   );
   if (aimed.kind !== "baseHeight") throw new Error("expected live height");
   const selected = confirmLiveHeight(aimed);
-  session.setFlow(selected);
+  session.setFlowForTest(selected);
   expect(selected.selection.box.max.y).toBe(66);
   for (let run = 0; run < 2; run++) {
     const terrain = chooseTerrain(session.flow, "fillBelow");

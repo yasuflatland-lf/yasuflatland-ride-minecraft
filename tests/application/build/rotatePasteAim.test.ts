@@ -58,7 +58,7 @@ it("hints and preserves every inactive flow, including a missing session or clip
         ...(!hasClipboard ? [beginPasteAim()] : []),
       ];
       for (const flow of flows) {
-        session.setFlow(flow);
+        session.setFlowForTest(flow);
         expect(rotate.execute({ playerId })).toBe("ignored");
         expect(session.flow).toBe(flow);
         expect(session.clipboard).toBe(clipboard);

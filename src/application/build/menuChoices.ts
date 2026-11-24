@@ -15,25 +15,21 @@ import {
 } from "../../domain/build/flow/menu";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { PlayerId } from "../../domain/shared/ids";
-import type { BackToAiming } from "./backToAiming";
-import type { ChooseAdjustHeight } from "./chooseAdjustHeight";
 import type { ChooseBoxStep } from "./chooseBoxStep";
 import type { ChooseHeighted } from "./chooseHeighted";
 import type { ChooseSideCylinder } from "./chooseSideCylinder";
 import type { ChooseStairs } from "./chooseStairs";
 import type { ChooseTerrain } from "./chooseTerrain";
 import type { ClearSelection } from "./clearSelection";
-import type { CloseBuildMenu } from "./closeBuildMenu";
 import type { ConfirmHeighted } from "./confirmHeighted";
 import type { ConfirmShape } from "./confirmShape";
 import type { ConfirmStairs, ConfirmTerrace } from "./confirmStairs";
 import type { ConfirmTerrain } from "./confirmTerrain";
 import type { CopySelection } from "./copySelection";
 import type { EndPasting } from "./endPasting";
-import type { NewCopy } from "./newCopy";
-import type { OpenBuildMenu } from "./openBuildMenu";
 import type { OpenSelectionMenu } from "./openSelectionMenu";
-import type { SetHeightTo } from "./setHeightTo";
+import type { BuildBlockWorld } from "./ports/blocks";
+import type { BuildFeedback } from "./ports/feedback";
 import type { UndoEdit } from "./undoEdit";
 
 function isOffered<Id extends string>(
@@ -45,9 +41,6 @@ function isOffered<Id extends string>(
 
 export interface MenuCases {
   openSelectionMenu: Pick<OpenSelectionMenu, "execute">;
-  openBuildMenu: Pick<OpenBuildMenu, "execute">;
-  closeBuildMenu: Pick<CloseBuildMenu, "execute">;
-  chooseAdjustHeight: Pick<ChooseAdjustHeight, "execute">;
   chooseBoxStep: Pick<ChooseBoxStep, "execute">;
   confirmShape: Pick<ConfirmShape, "execute">;
   chooseHeighted: Pick<ChooseHeighted, "execute">;
@@ -58,25 +51,30 @@ export interface MenuCases {
   confirmStairs: Pick<ConfirmStairs, "execute">;
   chooseTerrain: Pick<ChooseTerrain, "execute">;
   confirmTerrain: Pick<ConfirmTerrain, "execute">;
-  cancel: Pick<BackToAiming, "backToAiming">;
   copy: Pick<CopySelection, "execute">;
   endPasting: Pick<EndPasting, "execute">;
-  newCopy: Pick<NewCopy, "execute">;
   undo: Pick<UndoEdit, "execute">;
   clear: Pick<ClearSelection, "execute">;
-  setHeight: Pick<SetHeightTo, "execute">;
 }
 
 export class MenuChoices {
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly cases: MenuCases,
+    private readonly ui: {
+      blocks: Pick<BuildBlockWorld, "heightRange">;
+      feedback: Pick<BuildFeedback, "showMessage">;
+      refresh(playerId: PlayerId, tick: number): void;
+    },
   ) {}
 
   openShapeMenu(playerId: PlayerId, tick: number): MenuEntry<RootEntryId>[] {
-    const flow = this.repo.get(playerId)?.flow;
-    if (flow?.kind === "selected" && flow.menuLevel === "build")
-      this.cases.closeBuildMenu.execute({ playerId, tick });
+    const session = this.repo.get(playerId);
+    const flow = session?.flow;
+    if (session && flow?.kind === "selected" && flow.menuLevel === "build") {
+      session.closeBuildMenu();
+      this.ui.refresh(playerId, tick);
+    }
     return this.cases.openSelectionMenu.execute({ playerId });
   }
 
@@ -85,8 +83,10 @@ export class MenuChoices {
     entryId: string | undefined,
     tick: number,
   ): boolean {
-    const flow = this.repo.get(playerId)?.flow;
-    if (!flow || !isOffered([...shapeMenu(flow), ...buildMenu(flow)], entryId))
+    const session = this.repo.get(playerId);
+    if (!session) return false;
+    const { flow } = session;
+    if (!isOffered([...shapeMenu(flow), ...buildMenu(flow)], entryId))
       return false;
 
     const choice = shapeChoiceOf(entryId);
@@ -95,13 +95,21 @@ export class MenuChoices {
         this.cases.chooseStairs.execute({ playerId, op: choice.op });
         break;
       case "adjustHeight":
-        this.cases.chooseAdjustHeight.execute({ playerId });
+        if (
+          flow.kind === "selected" &&
+          session.adjustHeight(
+            this.ui.blocks.heightRange(flow.selection.dimensionId),
+          )
+        )
+          this.ui.feedback.showMessage(playerId, "heightAim");
         break;
       case "openBuild":
-        this.cases.openBuildMenu.execute({ playerId, tick });
+        session.openBuildMenu();
+        this.ui.refresh(playerId, tick);
         break;
       case "closeBuild":
-        this.cases.closeBuildMenu.execute({ playerId, tick });
+        session.closeBuildMenu();
+        this.ui.refresh(playerId, tick);
         break;
       case "edit":
         this.dispatchEditEntry(choice.id, playerId);
@@ -121,9 +129,10 @@ export class MenuChoices {
   }
 
   chooseContents(playerId: PlayerId, entryId: string | undefined): boolean {
-    const flow = this.repo.get(playerId)?.flow;
-    if (!flow || !isOffered(contentsMenu(flow), entryId)) return false;
-    if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
+    const session = this.repo.get(playerId);
+    if (!session || !isOffered(contentsMenu(session.flow), entryId))
+      return false;
+    if (entryId === "cancel") session.backToAiming();
     else this.cases.confirmHeighted.execute({ playerId, fill: entryId });
     return true;
   }
@@ -132,25 +141,28 @@ export class MenuChoices {
     playerId: PlayerId,
     entryId: string | undefined,
   ): boolean {
-    const flow = this.repo.get(playerId)?.flow;
-    if (!flow || !isOffered(stairContentsMenu(flow), entryId)) return false;
-    if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
+    const session = this.repo.get(playerId);
+    if (!session || !isOffered(stairContentsMenu(session.flow), entryId))
+      return false;
+    if (entryId === "cancel") session.backToAiming();
     else this.cases.confirmStairs.execute({ playerId, contents: entryId });
     return true;
   }
 
   chooseTerrace(playerId: PlayerId, entryId: string | undefined): boolean {
-    const flow = this.repo.get(playerId)?.flow;
-    if (!flow || !isOffered(terraceMenu(flow), entryId)) return false;
-    if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
+    const session = this.repo.get(playerId);
+    if (!session || !isOffered(terraceMenu(session.flow), entryId))
+      return false;
+    if (entryId === "cancel") session.backToAiming();
     else this.cases.confirmTerrace.execute({ playerId });
     return true;
   }
 
   chooseTerrain(playerId: PlayerId, entryId: string | undefined): boolean {
-    const flow = this.repo.get(playerId)?.flow;
-    if (!flow || !isOffered(terrainMenu(flow), entryId)) return false;
-    if (entryId === "cancel") this.cases.cancel.backToAiming({ playerId });
+    const session = this.repo.get(playerId);
+    if (!session || !isOffered(terrainMenu(session.flow), entryId))
+      return false;
+    if (entryId === "cancel") session.backToAiming();
     else this.cases.confirmTerrain.execute({ playerId });
     return true;
   }
@@ -163,8 +175,8 @@ export class MenuChoices {
   }
 
   choosePaste(playerId: PlayerId, entryId: string | undefined): boolean {
-    const flow = this.repo.get(playerId)?.flow;
-    if (flow?.kind !== "pasteAim" || !isOffered(pasteMenu(), entryId))
+    const session = this.repo.get(playerId);
+    if (session?.flow.kind !== "pasteAim" || !isOffered(pasteMenu(), entryId))
       return false;
     switch (entryId) {
       case "cancel":
@@ -173,7 +185,7 @@ export class MenuChoices {
         this.cases.endPasting.execute(playerId);
         break;
       case "newCopy":
-        this.cases.newCopy.execute(playerId);
+        session.startNewCopy();
         break;
       default: {
         const exhaustive: never = entryId;
@@ -184,7 +196,7 @@ export class MenuChoices {
   }
 
   submitHeight(playerId: PlayerId, height: number): void {
-    this.cases.setHeight.execute({ playerId, height });
+    this.repo.get(playerId)?.setHeight(height);
   }
 
   private dispatchEditEntry(id: EditEntryId, playerId: PlayerId) {

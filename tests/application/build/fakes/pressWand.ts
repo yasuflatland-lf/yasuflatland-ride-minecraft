@@ -1,6 +1,4 @@
 import { vi } from "vitest";
-import { AimHeight } from "../../../../src/application/build/aimHeight";
-import { ConfirmLiveHeight } from "../../../../src/application/build/confirmLiveHeight";
 import { FixStairGoal } from "../../../../src/application/build/fixStairGoal";
 import { PasteAt } from "../../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../../src/application/build/pressPasteAim";
@@ -31,8 +29,6 @@ export function wandFixture(afterPaste?: (id: PlayerId, tick: number) => void) {
     {
       setPoint: new SetPoint(repo, world, feedback),
       tapAir: new TapAir(repo, feedback, world),
-      aimHeight: new AimHeight(repo, world),
-      confirmLiveHeight: new ConfirmLiveHeight(repo),
       fixStairGoal: new FixStairGoal(repo, feedback, aim),
       pressPasteAim: new PressPasteAim(
         repo,

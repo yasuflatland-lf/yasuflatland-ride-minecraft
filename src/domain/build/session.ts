@@ -1,14 +1,37 @@
 // Everything one player has in the build feature. Every change to the
 // selection, clipboard, history, mode, or running edit goes through here.
-import type { PlayerId } from "../shared/ids";
+import type { Cell } from "../shared/cells";
+import type { DimensionId, PlayerId } from "../shared/ids";
 import { clamp } from "../shared/vec";
-import { boxWithHeight } from "./box";
+import type { Ray } from "./aim/aim";
+import { aimedHeight } from "./aim/height";
+import type { BlockState } from "./blockState";
+import { boxWithHeight, type CellBox } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
+import { isFillMaterial } from "./edit/guard";
+import {
+  adjustHeight,
+  chooseHeighted,
+  confirmLiveHeight,
+  confirmTappedSpan,
+  enteredBaseHeight,
+  setHeight,
+  tapAir,
+  tapBlock,
+} from "./flow/heightFlow";
+import { closeBuildMenu, openBuildMenu, shapeMenu } from "./flow/menu";
 import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
+import { chooseStairs, fixStairGoal } from "./flow/stairFlow";
 import { type BuildFlow, type BuildStart, startOf } from "./flow/state";
-import { cancel } from "./flow/stepBack";
-import type { Taps } from "./flow/taps";
+import {
+  backToAiming,
+  cancel,
+  stepBackSelection,
+  withoutStepBack,
+} from "./flow/stepBack";
+import { type Taps, tapsForBox } from "./flow/taps";
+import { chooseTerrain } from "./flow/terrainFlow";
 import type { HeightRange } from "./heightRange";
 import {
   EMPTY_HISTORY,
@@ -22,9 +45,22 @@ import {
 import { type BuildMode, MODE_OFF, type ModeInput, stepMode } from "./mode";
 import { effectiveTurn, type Facing } from "./rotation/facing";
 import { NO_TURN, type QuarterTurn } from "./rotation/quarterTurn";
-import { inDimension, type Selection, selectionHeightLimit } from "./selection";
+import {
+  inDimension,
+  type Selection,
+  selectionHeightLimit,
+  withBox,
+} from "./selection";
 import { BUILD_SPEC } from "./spec";
+import type { StairOp } from "./stairs/contents";
+import { staircaseToward } from "./stairs/staircase";
 import type { StructureHandle } from "./structure/handle";
+import {
+  fitsTerrainLimit,
+  type TerrainOp,
+  terrainAreaOf,
+} from "./terrain/area";
+import type { HeightStepKind } from "./volume/kind";
 
 function selectionStart(
   flow: BuildFlow,
@@ -81,7 +117,7 @@ export class BuildSession {
   get hasHistory(): boolean {
     return this.history.entries.length > 0;
   }
-  setFlow(flow: BuildFlow): void {
+  private setFlow(flow: BuildFlow): void {
     this.currentFlow = flow;
     // Two fast taps can fix the selection base before the wand enter delay expires.
     if (
@@ -93,6 +129,166 @@ export class BuildSession {
     )
       this.currentMode = { active: true, streak: 0 };
   }
+
+  setFlowForTest(flow: BuildFlow): void {
+    this.setFlow(flow);
+  }
+
+  tapBlock(
+    dimensionId: DimensionId,
+    cell: Cell,
+    material: BlockState,
+    range: HeightRange,
+  ): BuildFlow {
+    const flow = this.currentFlow;
+    const next = tapBlock(flow, dimensionId, cell, material, range);
+    if (next !== flow && next.kind === "point1")
+      this.currentConfirmedBox = undefined;
+    this.setFlow(next);
+    return next;
+  }
+
+  tapAir(end: Cell, range: HeightRange): BuildFlow | undefined {
+    const next = tapAir(this.currentFlow, end, range);
+    if (next === this.currentFlow) return undefined;
+    this.setFlow(next);
+    return next;
+  }
+
+  confirmLiveHeight(): boolean {
+    if (this.currentFlow.kind !== "baseHeight") return false;
+    this.setFlow(confirmLiveHeight(this.currentFlow));
+    return true;
+  }
+
+  aimHeight(ray: Ray, range: HeightRange): boolean {
+    const flow = this.currentFlow;
+    if (
+      flow.kind === "baseHeight" ||
+      (flow.kind === "heightStep" && !flow.heightLocked)
+    ) {
+      this.setFlow(setHeight(flow, aimedHeight(flow, ray, range)));
+      return true;
+    }
+    return false;
+  }
+
+  setHeight(height: number): boolean {
+    if (
+      this.currentFlow.kind === "heightStep" &&
+      !this.currentFlow.heightLocked
+    ) {
+      this.setFlow(setHeight(this.currentFlow, height));
+      return true;
+    }
+    return false;
+  }
+
+  adjustHeight(range: HeightRange): boolean {
+    const flow = this.currentFlow;
+    const next = adjustHeight(flow, range);
+    this.setFlow(next);
+    return enteredBaseHeight(flow, next);
+  }
+
+  openSelectionMenu() {
+    const flow = this.currentFlow;
+    if (flow.kind !== "selected" || flow.menuLevel !== "root") return [];
+    this.setFlow(withoutStepBack(flow));
+    return shapeMenu(flow);
+  }
+
+  openBuildMenu(): boolean {
+    const flow = this.currentFlow;
+    const next = openBuildMenu(flow);
+    this.setFlow(next);
+    return next !== flow;
+  }
+
+  closeBuildMenu(): boolean {
+    const flow = this.currentFlow;
+    const next = closeBuildMenu(flow);
+    this.setFlow(next);
+    return next !== flow;
+  }
+
+  chooseHeighted(kind: HeightStepKind, range: HeightRange) {
+    const result = chooseHeighted(this.currentFlow, kind, range);
+    if ("refused" in result) {
+      if (result.refused === "shape") this.setFlow(this.currentFlow);
+      return result;
+    }
+    this.setFlow(result.flow);
+    return { material: result.flow.start.material };
+  }
+
+  chooseStairs(op: StairOp): "noSelection" | "fillMaterialRefused" | undefined {
+    const next = chooseStairs(this.currentFlow, op);
+    if (next === this.currentFlow || next.kind !== "stairAim")
+      return "noSelection";
+    if (op === "stairs" && !isFillMaterial(next.start.material))
+      return "fillMaterialRefused";
+    this.setFlow(next);
+  }
+
+  fixStairGoal(hit: Cell | undefined): StairOp | undefined {
+    const flow = this.currentFlow;
+    if (flow.kind !== "stairAim" || !hit) return undefined;
+    const staircase = staircaseToward(flow.row, hit);
+    if (!staircase) return undefined;
+    this.setFlow(fixStairGoal(flow, staircase));
+    return flow.op;
+  }
+
+  chooseTerrain(op: TerrainOp) {
+    const flow = this.currentFlow;
+    if (flow.kind !== "selected") return { refused: "noSelection" } as const;
+    if (op === "fillBelow" && !isFillMaterial(flow.selection.material))
+      return { refused: "fillMaterialRefused" } as const;
+    const area = terrainAreaOf(
+      flow.selection.box,
+      flow.taps.from,
+      flow.taps.to,
+    );
+    if (!fitsTerrainLimit(area))
+      return {
+        refused: "tooLarge",
+        area,
+        dimensionId: flow.selection.dimensionId,
+      } as const;
+    this.setFlow(chooseTerrain(flow, op));
+  }
+
+  backToAiming(): boolean {
+    const flow = this.currentFlow;
+    const next = backToAiming(flow);
+    this.setFlow(next);
+    return next !== flow;
+  }
+
+  stepBack() {
+    const step = stepBackSelection(this.currentFlow);
+    if (!step) return undefined;
+    this.setFlow(step.flow);
+    return step.cleared;
+  }
+
+  confirmSpanForRotation(range: HeightRange): void {
+    if (this.currentFlow.kind === "baseHeight")
+      this.setFlow(confirmTappedSpan(this.currentFlow, range));
+  }
+
+  retainRotatedSelection(box: CellBox, range: HeightRange): void {
+    const flow = this.currentFlow;
+    if (flow.kind !== "selected") return;
+    this.setFlow(withoutStepBack(flow));
+    this.replaceSelection(
+      withBox(flow.selection, box),
+      tapsForBox(box, flow.taps),
+      range,
+    );
+  }
+
   replaceSelection(selection: Selection, taps: Taps, range: HeightRange): void {
     const flow = this.currentFlow;
     if (flow.kind === "baseHeight") {
@@ -186,8 +382,10 @@ export class BuildSession {
       : NO_TURN;
   }
 
-  startNewCopy(): void {
+  startNewCopy(): boolean {
+    if (this.currentFlow.kind !== "pasteAim") return false;
     this.clearSelection();
+    return true;
   }
 
   clearClipboard(): void {

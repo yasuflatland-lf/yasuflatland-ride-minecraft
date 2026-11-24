@@ -4,8 +4,6 @@ import type { PressIntent } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { AimHeight } from "./aimHeight";
-import type { ConfirmLiveHeight } from "./confirmLiveHeight";
 import type { FixStairGoal } from "./fixStairGoal";
 import type { AimResult } from "./ports/aim";
 import type { BuildBlockWorld } from "./ports/blocks";
@@ -27,8 +25,6 @@ export class PressWand {
     private readonly actions: {
       setPoint: SetPoint;
       tapAir: TapAir;
-      aimHeight: AimHeight;
-      confirmLiveHeight: ConfirmLiveHeight;
       fixStairGoal: FixStairGoal;
       pressPasteAim: PressPasteAim;
       onPasted(playerId: PlayerId, tick: number): void;
@@ -51,7 +47,8 @@ export class PressWand {
     ray?: Ray;
     itemUse?: { aim: AimResult | undefined; tick: number; sneaking: boolean };
   }): FollowUp {
-    const flow = this.repo.get(playerId)?.flow;
+    const session = this.repo.get(playerId);
+    const flow = session?.flow;
     const heightRay = ray ?? itemUse?.aim?.ray;
     switch (intent) {
       case "selectPoint":
@@ -72,14 +69,21 @@ export class PressWand {
         return "none";
       }
       case "confirmLiveHeight":
-        if (flow?.kind !== "baseHeight" || !heightRay) return "none";
-        this.actions.aimHeight.execute({ playerId, ray: heightRay });
-        return this.actions.confirmLiveHeight.execute({ playerId })
-          ? "utilityMenu"
-          : "none";
+        if (!session || flow?.kind !== "baseHeight" || !heightRay)
+          return "none";
+        session.aimHeight(
+          heightRay,
+          this.blocks.heightRange(flow.start.dimensionId),
+        );
+        return session.confirmLiveHeight() ? "utilityMenu" : "none";
       case "aimHeight":
-        if (flow?.kind !== "heightStep" || !heightRay) return "none";
-        this.actions.aimHeight.execute({ playerId, ray: heightRay });
+        if (!session || flow?.kind !== "heightStep" || !heightRay)
+          return "none";
+        if (!flow.heightLocked)
+          session.aimHeight(
+            heightRay,
+            this.blocks.heightRange(flow.start.dimensionId),
+          );
         return "contentsMenu";
       case "fixStairGoal":
         if (

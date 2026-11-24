@@ -1,20 +1,15 @@
 import { vi } from "vitest";
-import { BackToAiming } from "../../../../src/application/build/backToAiming";
 import { ChooseBoxStep } from "../../../../src/application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../../src/application/build/chooseSideCylinder";
 import { ChooseStairs } from "../../../../src/application/build/chooseStairs";
 import { ChooseTerrain } from "../../../../src/application/build/chooseTerrain";
 import { ClearSelection } from "../../../../src/application/build/clearSelection";
-import { CloseBuildMenu } from "../../../../src/application/build/closeBuildMenu";
 import { CopyBox } from "../../../../src/application/build/copyBox";
 import { CutBox } from "../../../../src/application/build/cutBox";
 import { EndPasting } from "../../../../src/application/build/endPasting";
 import { MenuChoices } from "../../../../src/application/build/menuChoices";
-import { NewCopy } from "../../../../src/application/build/newCopy";
-import { OpenBuildMenu } from "../../../../src/application/build/openBuildMenu";
 import { OpenSelectionMenu } from "../../../../src/application/build/openSelectionMenu";
-import { SetHeightTo } from "../../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../../src/domain/build/blockState";
 import { boxOf } from "../../../../src/domain/build/box";
 import type { BuildFlow } from "../../../../src/domain/build/flow/state";
@@ -47,18 +42,10 @@ export function selected(
 export const endpoint = selected(from, to);
 
 export function menuCasesFor(repo: FakeSessions, world = new FakeWorld()) {
-  const preview = { refresh: vi.fn() };
   return {
     openSelectionMenu: {
       execute: vi.fn((cmd) => new OpenSelectionMenu(repo).execute(cmd)),
     },
-    openBuildMenu: {
-      execute: vi.fn((cmd) => new OpenBuildMenu(repo, preview).execute(cmd)),
-    },
-    closeBuildMenu: {
-      execute: vi.fn((cmd) => new CloseBuildMenu(repo, preview).execute(cmd)),
-    },
-    chooseAdjustHeight: { execute: vi.fn() },
     chooseBoxStep: {
       execute: vi.fn((cmd) =>
         new ChooseBoxStep(
@@ -112,11 +99,7 @@ export function menuCasesFor(repo: FakeSessions, world = new FakeWorld()) {
       ),
     },
     confirmTerrain: { execute: vi.fn() },
-    cancel: {
-      backToAiming: vi.fn((cmd) => new BackToAiming(repo).backToAiming(cmd)),
-    },
     copy: { execute: vi.fn() },
-    newCopy: { execute: vi.fn((id) => new NewCopy(repo).execute(id)) },
     endPasting: {
       execute: vi.fn((cmd) => new EndPasting(repo).execute(cmd)),
     },
@@ -126,17 +109,21 @@ export function menuCasesFor(repo: FakeSessions, world = new FakeWorld()) {
         new ClearSelection(repo, new FakeFeedback()).execute(cmd),
       ),
     },
-    setHeight: {
-      execute: vi.fn((cmd) => new SetHeightTo(repo).execute(cmd)),
-    },
   };
 }
 
 export function setupMenuChoices() {
   const repo = new FakeSessions();
   const session = repo.getOrCreate(playerId);
-  session.setFlow(endpoint);
+  session.setFlowForTest(endpoint);
   const world = new FakeWorld();
   const cases = menuCasesFor(repo, world);
-  return { repo, world, session, cases, choices: new MenuChoices(repo, cases) };
+  const refresh = vi.fn();
+  const feedback = new FakeFeedback();
+  const choices = new MenuChoices(repo, cases, {
+    blocks: world,
+    feedback,
+    refresh,
+  });
+  return { repo, world, session, cases, choices, refresh, feedback };
 }

@@ -32,7 +32,7 @@ it.each([
   const session = repo.getOrCreate(playerId);
   const flow = tapAir(point, end);
   expect(flow.kind).toBe(kind);
-  session.setFlow(flow);
+  session.setFlowForTest(flow);
   expect(stepBack.execute({ playerId })).toBe("stepped");
   expect(session.flow).toEqual(point);
   expect(feedback.messages).toEqual([
@@ -57,7 +57,7 @@ it("clears the start during a running edit and keeps all history entries", () =>
     throw new Error("Expected snapshots");
   for (const handle of [first, last])
     session.recordSnapshot({ dimensionId: nether, box, handle });
-  session.setFlow(point);
+  session.setFlowForTest(point);
   session.beginEdit();
   expect(stepBack.execute({ playerId })).toBe("stepped");
   expect(session.flow).toEqual({ kind: "idle" });
@@ -98,7 +98,7 @@ it.each([
     };
     session.finishEdit(record, "undoable");
     session.beginEdit();
-    session.setFlow(tapAir(point, end));
+    session.setFlowForTest(tapAir(point, end));
     expect(stepBack.execute({ playerId })).toBe("stepped");
     expect(session.flow).toEqual(point);
     expect(session.isEditing).toBe(true);

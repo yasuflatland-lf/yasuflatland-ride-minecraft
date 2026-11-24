@@ -182,7 +182,7 @@ it("reports the changed and skipped counts and spends the hint only on a qualify
       fc.boolean(),
       (count, skipped, kind, idle, hasHistory) => {
         const { session, feedback, edit } = setup();
-        if (!idle) session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+        if (!idle) session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
         if (hasHistory)
           edit.commit({ box, handle: structureHandle("history") });
         reportEditCompletion(session, feedback, playerId, kind, count, skipped);
@@ -204,7 +204,7 @@ it("reports the changed and skipped counts and spends the hint only on a qualify
                 count,
               },
         ]);
-        session.setFlow({ kind: "idle" });
+        session.setFlowForTest({ kind: "idle" });
         edit.commit({ box, handle: structureHandle("later") });
         reportEditCompletion(session, feedback, playerId, "undoable", 1, 0);
         reportEditCompletion(session, feedback, playerId, "undoable", 1, 0);

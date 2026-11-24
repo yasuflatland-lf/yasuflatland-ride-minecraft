@@ -1,7 +1,6 @@
 // Use case: undo the player's last edit (ADR 0178).
 import { volume } from "../../domain/build/box";
 import { undoPlan } from "../../domain/build/edit/change";
-import { beginPasteAim } from "../../domain/build/flow/paste";
 import { selectionAfterUndo } from "../../domain/build/flow/selectionAfterUndo";
 import { isEditRefusal } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -81,7 +80,7 @@ export class UndoEdit {
       session.clipboard !== undefined,
     );
     if (decision) {
-      if ("aimPaste" in decision) session.setFlow(beginPasteAim());
+      if ("aimPaste" in decision) session.resumePasteAim();
       else
         session.replaceSelection(
           decision.restore.selection,

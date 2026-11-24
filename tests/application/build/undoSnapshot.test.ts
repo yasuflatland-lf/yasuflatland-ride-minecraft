@@ -44,7 +44,7 @@ function setup(box: CellBox) {
   const handle = structures.capture(overworld, box, playerId, "exact");
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
   session.recordSnapshot({ dimensionId: overworld, box, handle });
-  session.setFlow({
+  session.setFlowForTest({
     kind: "pasteAim",
     manualTurn: 0,
   });

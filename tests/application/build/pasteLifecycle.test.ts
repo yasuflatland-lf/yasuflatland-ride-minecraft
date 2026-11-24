@@ -52,7 +52,7 @@ function setup() {
     session,
     structureClipboard(boxOf(at, at), () => stone, structures),
   );
-  session.setFlow(beginPasteAim());
+  session.setFlowForTest(beginPasteAim());
   const paste = new PasteAt(
     repo,
     world,
@@ -95,7 +95,7 @@ it("leaves any flow after the exact grace delay and does not re-trigger", () => 
         for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
           modes.execute([{ playerId, held: "wand" }]);
         e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         const clipboard = e.session.clipboard;
         const box = e.session.confirmedBox;
         // A one-tick item flicker must keep the copy (ADR 0203, Decision 5).
@@ -142,7 +142,7 @@ it("LeaveBuild twice has the same effect as once in every flow", () => {
       ]) {
         const e = setup();
         e.session.confirmBox(selectionOf(overworld, boxOf(at, at), stone));
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         const leave = new LeaveBuild(e.repo, new FakeTapTargets());
         const end = vi.spyOn(e.session, "endPasting");
         leave.execute(playerId);
@@ -233,7 +233,7 @@ it("keeps build mode and the clipboard according to held items and paste aiming"
         const clipboard = e.session.clipboard;
         let releases = 0;
         for (const { held, aiming } of steps) {
-          e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
+          e.session.setFlowForTest(aiming ? beginPasteAim() : { kind: "idle" });
           releases =
             held === "wand" ||
             held === "undo" ||
@@ -347,7 +347,7 @@ it("undo does not enter build mode in an existing inactive session", () => {
       fc.integer({ min: 1, max: 100 }),
       (aiming, count) => {
         const e = setup();
-        e.session.setFlow(aiming ? beginPasteAim() : { kind: "idle" });
+        e.session.setFlowForTest(aiming ? beginPasteAim() : { kind: "idle" });
         const modes = new UpdateBuildModes(
           e.repo,
           new LeaveBuild(e.repo, new FakeTapTargets()),
@@ -393,7 +393,7 @@ it("retains the selection across build tool swaps and resets the leave grace", (
         const selection = confirmEndpointHeight(
           tapBlock(first, overworld, b, stone),
         );
-        session.setFlow(selection);
+        session.setFlowForTest(selection);
         const tick = (held: HeldBuildItem) =>
           modes.execute([{ playerId, held }]);
         const almostLeave = () => {
@@ -430,7 +430,9 @@ it.each(["pasteRotate", "pastePlace"] as const)(
       { x: 0, y: 0, z: 0 },
       stone,
     );
-    session.setFlow(tapBlock(first, overworld, { x: 2, y: 1, z: 2 }, stone));
+    session.setFlowForTest(
+      tapBlock(first, overworld, { x: 2, y: 1, z: 2 }, stone),
+    );
     for (let i = 0; i < BUILD_SPEC.modeLeaveTicks; i++)
       modes.execute([{ playerId, held }]);
     expect(session.flow.kind).toBe(

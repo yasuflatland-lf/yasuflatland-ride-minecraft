@@ -87,7 +87,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
             },
             "undoable",
           );
-          session.setFlow(flow);
+          session.setFlowForTest(flow);
           expect(debounce.press(id, 0)).toBe(true);
           expect(pasteDebounce.press(id, 0)).toBe(true);
           expect(rotateDebounce.press(id, 0)).toBe(true);
@@ -145,7 +145,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   });
   expect(structures.live.size).toBe(2);
   const clipboard = session.clipboard;
-  session.setFlow(
+  session.setFlowForTest(
     confirmEndpointHeight(
       tapAir(tapBlock({ kind: "idle" }, overworld, at, AIR), at),
     ),

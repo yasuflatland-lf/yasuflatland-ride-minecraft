@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { AimHeight } from "../../../src/application/build/aimHeight";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ConfirmHeighted } from "../../../src/application/build/confirmHeighted";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -98,7 +97,7 @@ function roof(
       range,
     ),
   );
-  e.session.setFlow(selected);
+  e.session.setFlowForTest(selected);
   new ChooseHeighted(e.repo, e.feedback, e.world).execute({ playerId, kind });
   return selected;
 }
@@ -119,18 +118,17 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
           z: min.z + sz - 1,
         });
         roof(e, base, kind);
-        const aim = new AimHeight(e.repo, e.world);
         // The rise to the center line is a multiple of 0.375, so a 0.2 offset
         // keeps the aimed point at least 0.075 off a layer boundary, where
         // floating-point error could flip the floored layer.
         const originY = aimY + 0.2;
-        aim.execute({
-          playerId,
-          ray: {
+        e.session.aimHeight(
+          {
             origin: { x: base.min.x - 10, y: originY, z: base.min.z + sz / 2 },
             direction: { x: 0.8, y: 0.6, z: 0 },
           },
-        });
+          OVERWORLD_RANGE,
+        );
         const cap = maxRoofHeight(base, OVERWORLD_RANGE);
         const expected = Math.max(
           1,
@@ -144,10 +142,10 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
           heightLocked: false,
           liveHeight: expected,
         });
-        aim.execute({
-          playerId,
-          ray: { origin: min, direction: { x: 0, y: 1, z: 0 } },
-        });
+        e.session.aimHeight(
+          { origin: min, direction: { x: 0, y: 1, z: 0 } },
+          OVERWORLD_RANGE,
+        );
         expect(e.session.flow).toMatchObject({ liveHeight: expected });
         const before = e.session.flow;
         new SetPoint(e.repo, e.world, e.feedback).execute({
@@ -162,10 +160,10 @@ it("aims through cell centers and clamps roof layers to the side and world caps"
   );
   const e = setup();
   roof(e, boxOf({ x: 0, y: 318, z: 0 }, { x: 3, y: 318, z: 3 }), "hip");
-  new AimHeight(e.repo, e.world).execute({
-    playerId,
-    ray: { origin: { x: 0, y: 999, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
-  });
+  e.session.aimHeight(
+    { origin: { x: 0, y: 999, z: 0 }, direction: { x: 1, y: 0, z: 0 } },
+    OVERWORLD_RANGE,
+  );
   expect(e.session.flow).toMatchObject({ liveHeight: 2 });
 });
 
@@ -179,7 +177,7 @@ it("confirms roof cells and retains their bounding box for copying", () => {
         const e = setup();
         const base = boxOf({ x: 2, y: 64, z: 3 }, { x: 8, y: 64, z: 9 });
         roof(e, base, kind);
-        e.session.setFlow(setHeight(e.session.flow, height));
+        e.session.setFlowForTest(setHeight(e.session.flow, height));
         const spec = { base, kind, height, style: "stepped" as const };
         new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
           playerId,
@@ -325,7 +323,7 @@ it("refuses an invalid roof height without starting an edit", () => {
   const e = setup();
   roof(e, boxOf({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 }), "hip");
   const flow = setHeight(e.session.flow, 0);
-  e.session.setFlow(flow);
+  e.session.setFlowForTest(flow);
   new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
     playerId,
     fill: "fill",
@@ -360,7 +358,7 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           e.structures,
         );
         holdClipboard(e.session, clip);
-        e.session.setFlow(beginPasteAim());
+        e.session.setFlowForTest(beginPasteAim());
         const { anchor, box } = pasteTarget(
           clip,
           block,
@@ -448,7 +446,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   };
   paste.execute(cmd);
   expect(e.feedback.messages).toEqual([]);
-  e.session.setFlow(beginPasteAim());
+  e.session.setFlowForTest(beginPasteAim());
   const flow = e.session.flow;
   paste.execute(cmd);
   expect(e.feedback.messages.at(-1)?.message).toBe("noClipboard");
@@ -470,7 +468,7 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
   expect(e.feedback.messages.at(-1)?.message).toBe("busy");
   expect(e.session.flow).toBe(flow);
   expect(e.world.writes).toBe(0);
-  e.session.setFlow(cancel(e.session.flow));
+  e.session.setFlowForTest(cancel(e.session.flow));
   expect(e.session.flow).toEqual({ kind: "idle" });
 });
 
@@ -515,7 +513,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
             },
             kind,
           );
-        e.session.setFlow(choose(boxWithHeight(base, height)));
+        e.session.setFlowForTest(choose(boxWithHeight(base, height)));
         const spec = { base, kind, height };
         new ConfirmHeighted(e.repo, e.feedback, e.jobs).execute({
           playerId,
@@ -544,7 +542,7 @@ it("confirms solid tubes and rejects oversized solids without consuming the flow
         for (const fill of ["fill", "hollow", "tube"] as const) {
           const large = { ...base, max: { x: 100, y: 60, z: 100 } };
           const flow = choose(boxWithHeight(large, 1000));
-          e.session.setFlow(flow);
+          e.session.setFlowForTest(flow);
           const count = placementOf(kind).count(
             { base: large, kind, height: 1000 },
             fill,

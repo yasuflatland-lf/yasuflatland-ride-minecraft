@@ -67,7 +67,7 @@ it("reports every flow, clipboard presence and domain paste entries without chan
           { kind: "pasteAim", manualTurn: 0 },
         ];
         for (const flow of flows) {
-          session.setFlow(flow);
+          session.setFlowForTest(flow);
           expect(describe.execute(playerId)).toEqual({
             flow: flow.kind,
             menuLevel: flow.kind === "selected" ? flow.menuLevel : undefined,

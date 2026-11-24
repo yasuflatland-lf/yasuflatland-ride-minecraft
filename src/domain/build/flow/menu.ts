@@ -1,4 +1,4 @@
-import type { BuildSession } from "../session";
+import type { Selection } from "../selection";
 import { type Shape, shapeOf, stylesFor } from "../shape/shape";
 import type { StairContents, StairOp } from "../stairs/contents";
 import {
@@ -136,9 +136,11 @@ export function isShapeEntryOffered(
   );
 }
 
-export function utilityMenu(
-  session: BuildSession,
-): MenuEntry<UtilityEntryId>[] {
+export function utilityMenu(session: {
+  readonly flow: BuildFlow;
+  readonly confirmedBox: Selection | undefined;
+  readonly hasHistory: boolean;
+}): MenuEntry<UtilityEntryId>[] {
   const entries: MenuEntry<UtilityEntryId>[] = [];
   if (session.confirmedBox) entries.push({ id: "copy" });
   if (session.hasHistory) entries.push({ id: "undo" });

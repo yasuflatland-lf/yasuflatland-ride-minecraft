@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { ChooseHeighted } from "../../../src/application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../../src/application/build/chooseSideCylinder";
-import { SetHeightTo } from "../../../src/application/build/setHeightTo";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { contentsMenu } from "../../../src/domain/build/flow/menu";
@@ -23,7 +22,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
         const repo = new FakeSessions();
         const feedback = new FakeFeedback();
         const session = repo.getOrCreate(playerId);
-        session.setFlow({
+        session.setFlowForTest({
           kind: "selected",
           menuLevel: "build",
           ...tappedSelection(
@@ -62,7 +61,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
           liveHeight: box ? 5 : 1,
         });
         currentDirection = { x: 1000, y: 0, z: 2000 };
-        new SetHeightTo(repo).execute({ playerId, height: 7 });
+        session.setHeight(7);
         choose.execute({ playerId });
         expect(aim.aim).toHaveBeenCalledTimes(1);
         expect(session.flow).toMatchObject({
@@ -82,7 +81,7 @@ it("reads aim once at choice, ignores pitch, locks selected heights and retains 
 
 it("falls back to x when aim is unavailable", () => {
   const repo = new FakeSessions();
-  repo.getOrCreate(playerId).setFlow({
+  repo.getOrCreate(playerId).setFlowForTest({
     kind: "selected",
     menuLevel: "build",
     ...tappedSelection(
@@ -125,7 +124,7 @@ it("does not read aim or delegate for missing selections, unsupported shapes or 
     [{ x: 4, y: 60, z: 4 }, "root"],
     [{ x: 4, y: 64, z: 4 }, "root"],
   ] as const) {
-    repo.getOrCreate(playerId).setFlow({
+    repo.getOrCreate(playerId).setFlowForTest({
       kind: "selected",
       menuLevel,
       ...tappedSelection(
@@ -145,7 +144,7 @@ it.each([
   { x: 0, y: -1, z: 0 },
 ])("chooses x for a horizontal tie with direction %j", (direction) => {
   const repo = new FakeSessions();
-  repo.getOrCreate(playerId).setFlow({
+  repo.getOrCreate(playerId).setFlowForTest({
     kind: "selected",
     menuLevel: "build",
     ...tappedSelection(

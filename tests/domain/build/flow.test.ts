@@ -354,7 +354,9 @@ it("offers utility entries exactly when their prerequisites exist", () => {
             "undoable",
           );
         if (aiming)
-          session.setFlow(tapBlock(idle, dim, at, stone, OVERWORLD_RANGE));
+          session.setFlowForTest(
+            tapBlock(idle, dim, at, stone, OVERWORLD_RANGE),
+          );
         expect(utilityMenu(session).map((e) => e.id)).toEqual([
           ...(confirmed ? ["copy"] : []),
           ...(history ? ["undo"] : []),
@@ -807,7 +809,7 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
   if (!staircase) throw new Error("Expected staircase");
   const contents = fixStairGoal(aim, staircase);
   const session = new BuildSession(asPlayerId("p"));
-  session.setFlow(contents);
+  session.setFlowForTest(contents);
   expect(session.isInBuildMode).toBe(true);
   expect(fixStairGoal(chosen, staircase)).toBe(chosen);
   expect(backToAiming(aim)).toEqual(point);
@@ -904,7 +906,7 @@ it("uses the rotated row for stairs and resumes aiming from its minimum corner",
   const to = { ...from, x: 1 };
   const point = tapBlock(idle, dim, from, stone, OVERWORLD_RANGE);
   const session = new BuildSession(asPlayerId("p"));
-  session.setFlow(tapAir(point, to, OVERWORLD_RANGE));
+  session.setFlowForTest(tapAir(point, to, OVERWORLD_RANGE));
   const rotated = boxOf({ x: 2, y: 5, z: -1 }, { x: 2, y: 5, z: 1 });
   session.replaceSelection(
     selectionOf(dim, rotated, stone),
@@ -1031,7 +1033,7 @@ it("keeps the fresh endpoint through live height updates but ends it on confirma
           "freshEnd",
         );
         const session = new BuildSession(asPlayerId("p"));
-        session.setFlow(base);
+        session.setFlowForTest(base);
         session.confirmBox(confirmed.selection, "selected", base.taps);
         expect(session.flow).not.toHaveProperty("freshEnd");
         session.selectPasted(confirmed.selection);

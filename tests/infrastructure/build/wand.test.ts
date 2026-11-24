@@ -146,7 +146,10 @@ it.each(["invalid", "changed intent"] as const)(
     const f = setup();
     f.interact();
     if (reason === "invalid") f.player.isValid = false;
-    else f.repo.getOrCreate(id).setFlow({ kind: "pasteAim", manualTurn: 0 });
+    else
+      f.repo
+        .getOrCreate(id)
+        .setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
     const before = f.flow();
     f.flush();
     expect(f.flow()).toBe(before);
@@ -215,7 +218,7 @@ it.each(["air", "block"] as const)(
     f.interact(end);
     f.flush();
     f.press.execute({ playerId: id, intent: "confirmLiveHeight", ray });
-    session.setFlow(chooseHeightedFlow(session.flow, "gable"));
+    session.setFlowForTest(chooseHeightedFlow(session.flow, "gable"));
     f.player.isSneaking = true;
     f.aim.target = {
       input: "touch",
@@ -240,7 +243,7 @@ it.each(["stairs", "terrace"] as const)(
     f.interact({ ...start, x: 2 });
     f.flush();
     const session = f.repo.getOrCreate(id);
-    session.setFlow(chooseStairs(session.flow, op));
+    session.setFlowForTest(chooseStairs(session.flow, op));
     f.aim.target = {
       input: "pointer",
       ray,
@@ -264,7 +267,7 @@ it("accepts a paste immediately after its menu and suppresses repeats across the
     session,
     structureClipboard(boxOf(start, start), () => stone, f.structures),
   );
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
   expect(f.interact().cancel).toBe(true);
   expect(engine.scheduled).toHaveLength(0);
   f.use();

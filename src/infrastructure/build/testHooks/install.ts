@@ -34,7 +34,6 @@ export function installBuildTestHooks(
   registerTestPress(ctx.routes, describe, messages);
   registerTestEdit(
     ctx.menuChoices,
-    ctx.menuCases.setHeight,
     ctx.pressPasteAim,
     ctx.menuCases.undo,
     ctx.pressUndo,
