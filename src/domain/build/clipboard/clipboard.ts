@@ -1,5 +1,5 @@
+import { anchorCell, type BlockFace } from "../../shared/blockFace";
 import type { Cell } from "../../shared/cells";
-import { anchorCell, type Face } from "../aim/face";
 import type { BlockState } from "../blockState";
 import type { CellBox, Size } from "../box";
 import type { Facing } from "../rotation/facing";
@@ -31,7 +31,7 @@ export type PasteTarget = { anchor: Cell; box: CellBox; turn: QuarterTurn };
 export function pasteTarget(
   clipboard: Clipboard,
   block: Cell,
-  face: Face,
+  face: BlockFace,
   turn: QuarterTurn,
   facing: Facing,
 ): PasteTarget {
@@ -42,7 +42,7 @@ export function pasteTarget(
 
 export function aimedPasteTarget(
   clipboard: Clipboard,
-  aim: { block?: { cell: Cell; face: Face } },
+  aim: { block?: { cell: Cell; face: BlockFace } },
   turn: QuarterTurn,
   facing: Facing,
 ): PasteTarget | undefined {

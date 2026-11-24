@@ -125,11 +125,7 @@ export class PlaceRoofTent {
     }
     if (target.type === "ground") at.yaw = plan.facing;
     const result = placePaid(
-      {
-        isCreative: (player) => this.world.isCreative(player),
-        consumeItem: (player, slot) => this.world.consumeItem(player, slot),
-        refund: (player) => this.world.giveItem(player),
-      },
+      this.world,
       { player: cmd.playerId, slot: cmd.slot },
       () =>
         this.world.spawn(plan, at, cmd.playerId, ROOF_TENT_SPEC.defaultPaint),

@@ -15,6 +15,7 @@ import {
   furniturePose,
   furnitureSupportCells,
 } from "../../../src/domain/resort/furniture";
+import type { BlockFace } from "../../../src/domain/shared/blockFace";
 import { type Cell, cellKey, sameCell } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import { distance3, type Vec3 } from "../../../src/domain/shared/vec";
@@ -33,7 +34,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
       y: fc.integer({ min: 0, max: 200 }),
       z: fc.integer({ min: -1000, max: 1000 }),
     }),
-    face: fc.constant<string>("up"),
+    face: fc.constant<BlockFace>("up"),
     yaw: fc.integer({ min: -360, max: 360 }),
     slot: fc.integer({ min: 0, max: 8 }),
   });
@@ -45,7 +46,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
         if (reason === 1) world.isOwnBlock.mockReturnValue(true);
         if (reason === 2) world.isSolidTop.mockReturnValue(false);
         expect(new PlaceFurniture(world).execute(cmd)).toBe(false);
-        expect(world.consumeItem).not.toHaveBeenCalled();
+        expect(world.payment.consumeItem).not.toHaveBeenCalled();
         expect(world.spawn).not.toHaveBeenCalled();
         expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
       }),
@@ -57,16 +58,16 @@ describe.each(furnitureKinds)("%s", (kind) => {
       player: asPlayerId("p"),
       dimension: asDimensionId("overworld"),
       block: { x: 10, y: 20, z: 30 },
-      face: "up",
+      face: "up" as const,
       yaw: 0,
       slot: 2,
     };
     const world = fakeFurnitureWorld(kind);
     const place = new PlaceFurniture(world);
     expect(place.execute(cmd)).toBe(true);
-    expect(world.consumeItem).toHaveBeenCalledExactlyOnceWith(
+    expect(world.paymentFor).toHaveBeenCalledExactlyOnceWith(kind);
+    expect(world.payment.consumeItem).toHaveBeenCalledExactlyOnceWith(
       cmd.player,
-      kind,
       cmd.slot,
     );
     expect(world.spawn).toHaveBeenCalledExactlyOnceWith(
@@ -85,9 +86,8 @@ describe.each(furnitureKinds)("%s", (kind) => {
     world.layTop.mockClear();
     world.spawn.mockReturnValue(undefined);
     expect(place.execute(cmd)).toBe(false);
-    expect(world.refund).toHaveBeenCalledExactlyOnceWith(
+    expect(world.payment.refund).toHaveBeenCalledExactlyOnceWith(
       cmd.player,
-      kind,
       cmd.slot,
     );
     expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
@@ -95,7 +95,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
 
     world.showBlocked.mockClear();
     world.spawn.mockClear();
-    world.consumeItem.mockReturnValue(false);
+    world.payment.consumeItem.mockReturnValue(false);
     expect(place.execute(cmd)).toBe(false);
     expect(world.showBlocked).toHaveBeenCalledExactlyOnceWith(cmd.player);
     expect(world.spawn).not.toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
               : cellKey(cell) === cellKey(obstruction),
           );
           expect(new PlaceFurniture(world).execute(cmd)).toBe(false);
-          expect(world.consumeItem).not.toHaveBeenCalled();
+          expect(world.payment.consumeItem).not.toHaveBeenCalled();
           expect(world.spawn).not.toHaveBeenCalled();
         }
       }),
@@ -139,7 +139,7 @@ describe.each(furnitureKinds)("%s", (kind) => {
             (_dimension, cell) => cellKey(cell) !== cellKey(support),
           );
           expect(new PlaceFurniture(world).execute(cmd)).toBe(false);
-          expect(world.consumeItem).not.toHaveBeenCalled();
+          expect(world.payment.consumeItem).not.toHaveBeenCalled();
           expect(world.spawn).not.toHaveBeenCalled();
         }
       }),
@@ -171,7 +171,7 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
         const cmd = {
           player: asPlayerId("p"),
           dimension: asDimensionId("overworld"),
-          face: "up",
+          face: "up" as const,
           slot: 0,
         };
         function attempt(
@@ -188,6 +188,7 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
                 origin: beachChairOrigin(pose),
                 cells: beachChairCells(pose),
               },
+              consumeItem: world.consumeItem,
               world,
               accepted: new PlaceBeachChair(world).execute({
                 ...cmd,
@@ -200,6 +201,7 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
           const world = fakeFurnitureWorld(kind);
           world.resortGearCells.mockImplementation(occupiedNear);
           return {
+            consumeItem: world.payment.consumeItem,
             footprint: { origin: pose.origin, cells: furnitureCells(pose) },
             world,
             accepted: new PlaceFurniture(world).execute({
@@ -222,7 +224,7 @@ it("accepts a second resort placement only when its footprint is disjoint", () =
           expect(next.world.showBlocked).toHaveBeenCalledExactlyOnceWith(
             cmd.player,
           );
-          expect(next.world.consumeItem).not.toHaveBeenCalled();
+          expect(next.consumeItem).not.toHaveBeenCalled();
           expect(next.world.spawn).not.toHaveBeenCalled();
         }
       },

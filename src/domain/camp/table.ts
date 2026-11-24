@@ -1,6 +1,13 @@
+import type { Cell } from "../shared/cells";
 import { facePlayer } from "../shared/facing";
+import {
+  footprintClearCells,
+  footprintOffsets,
+  footprintOrigin,
+} from "../shared/gearFootprint";
 import type { Brand } from "../shared/ids";
-import type { Vec3 } from "../shared/vec";
+import { add3, type Vec3 } from "../shared/vec";
+import { TABLE_SPEC } from "./spec";
 
 export type TableId = Brand<string, "TableId">;
 
@@ -13,20 +20,27 @@ export function tableYaw(playerYaw: number): number {
   return facePlayer(playerYaw);
 }
 
-/** The clicked ground cell and its neighbor under the other end. */
-export function tableCells(clicked: Vec3, yaw: number): [Vec3, Vec3] {
-  const neighbor =
-    Math.abs(yaw) % 180 === 0
-      ? { ...clicked, x: clicked.x + 1 }
-      : { ...clicked, z: clicked.z + 1 };
-  return [clicked, neighbor];
+function tableOffsets(yaw: number) {
+  const alongX = Math.abs(yaw) % 180 === 0;
+  return footprintOffsets(
+    TABLE_SPEC.cells,
+    alongX ? { x: 1, z: 0 } : { x: 0, z: 1 },
+  );
 }
 
-export function tableOrigin(clicked: Vec3, yaw: number): Vec3 {
-  const [, neighbor] = tableCells(clicked, yaw);
-  return {
-    x: (clicked.x + neighbor.x + 1) / 2,
-    y: clicked.y + 1,
-    z: (clicked.z + neighbor.z + 1) / 2,
-  };
+/** The clicked ground cell and its neighbor under the other end. */
+export function tableCells(clicked: Cell, yaw: number): Cell[] {
+  return tableOffsets(yaw).map((offset) => add3(clicked, { ...offset, y: 0 }));
+}
+
+export function tableOrigin(clicked: Cell, yaw: number): Vec3 {
+  return footprintOrigin(clicked, tableOffsets(yaw));
+}
+
+export function tableClearCells(clicked: Cell, yaw: number): Cell[] {
+  const floor = tableCells(clicked, yaw).map((cell) => ({
+    ...cell,
+    y: cell.y + 1,
+  }));
+  return footprintClearCells(floor, TABLE_SPEC.clearance, "column");
 }

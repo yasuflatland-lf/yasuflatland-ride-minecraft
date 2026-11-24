@@ -12,7 +12,6 @@ import type { PressUndo } from "../../../application/build/pressUndo";
 import type { RotatePasteAim } from "../../../application/build/rotatePasteAim";
 import type { ShowPreview } from "../../../application/build/showPreview";
 import type { UndoEdit } from "../../../application/build/undoEdit";
-import { parseFace } from "../../../domain/build/aim/face";
 import { AIR } from "../../../domain/build/blockState";
 import { boxOf, sizeOf, volume } from "../../../domain/build/box";
 import {
@@ -21,6 +20,7 @@ import {
 } from "../../../domain/build/rotation/facing";
 import { selectionOf } from "../../../domain/build/selection";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
+import { parseBlockFace } from "../../../domain/shared/blockFace";
 import {
   asDimensionId,
   asPlayerId,
@@ -204,7 +204,7 @@ export function registerTestEdit(
               (args[4] === "true" || args[4] === "false"))) &&
           args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
         ) {
-          const face = parseFace(args[3] ?? "");
+          const face = parseBlockFace(args[3] ?? "");
           if (!face) {
             system.sendScriptEvent(
               TEST_RESULT_EVENT,

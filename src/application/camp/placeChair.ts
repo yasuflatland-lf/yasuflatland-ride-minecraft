@@ -1,17 +1,16 @@
 // Use case: place a chair from its item on the top of a block outside the vehicles (ADR 0122).
 import {
-  type ChairFace,
   type ChairKindId,
   canPlaceChair,
   chairCell,
   chairYaw,
 } from "../../domain/camp/chair";
 import { CHAIR_SPEC } from "../../domain/camp/spec";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import { cellCenter } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { Vec3 } from "../../domain/shared/vec";
 import { isSpaceRefused, placeOnCells } from "../shared/groundPlacement";
-import type { ItemPayment } from "../shared/ports/itemPayment";
 import type { ChairWorld } from "./ports/chair";
 
 export interface PlaceChairCommand {
@@ -44,7 +43,7 @@ export class PlaceChair {
   cellFor(
     dimensionId: DimensionId,
     clicked: Vec3,
-    face: ChairFace,
+    face: BlockFace,
   ): Vec3 | undefined {
     const cell = chairCell(clicked, face);
     if (cell === undefined || this.blockedAtSeat(dimensionId, cell))
@@ -55,13 +54,8 @@ export class PlaceChair {
   execute(cmd: PlaceChairCommand): boolean {
     const world = this.world;
     const { kind, dimensionId: dimension, blockLocation: block } = cmd;
-    const payment: ItemPayment = {
-      isCreative: (p) => world.isCreative(p),
-      consumeItem: (p, s) => world.consumeChairItem(kind, p, s),
-      refund: (p) => world.refundChairItem(kind, p),
-    };
     return placeOnCells(
-      { dimension, cells: world, payment },
+      { dimension, cells: world, payment: world.paymentFor(kind) },
       {
         support: [],
         clear: [],

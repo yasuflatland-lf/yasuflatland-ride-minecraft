@@ -17,12 +17,8 @@ import {
   spawnWithRollback,
 } from "../../shared/entities";
 import { giveBack, giveBackReceiver } from "../../shared/gearEntity";
-import { BedrockGroundCells } from "../../shared/groundCells";
-import {
-  consumeHeld,
-  playerById,
-  showHitsLeftHint,
-} from "../../shared/players";
+import { BedrockGroundCells, paidItem } from "../../shared/groundCells";
+import { showHitsLeftHint } from "../../shared/players";
 import { CHAIR_KIND_BY_TYPE, CHAIR_KINDS } from "../identifiers";
 
 function chairOf(chairId: ChairId) {
@@ -57,21 +53,8 @@ export class BedrockChairWorld
     );
   }
 
-  consumeChairItem(
-    kind: ChairKindId,
-    playerId: PlayerId,
-    slot: number,
-  ): boolean {
-    const player = playerById(playerId);
-    return (
-      player !== undefined &&
-      consumeHeld(player, CHAIR_KINDS[kind].itemId, slot)
-    );
-  }
-
-  refundChairItem(kind: ChairKindId, playerId: PlayerId): void {
-    const player = playerById(playerId);
-    if (player) giveBack(player, CHAIR_KINDS[kind].itemId, player);
+  paymentFor(kind: ChairKindId) {
+    return paidItem(CHAIR_KINDS[kind].itemId);
   }
 
   spawnChair(

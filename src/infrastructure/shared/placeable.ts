@@ -1,4 +1,5 @@
-import { Direction, system, world } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import {
   asDimensionId,
   asPlayerId,
@@ -8,7 +9,7 @@ import {
 import { TickScopedSet } from "../../domain/shared/tickScoped";
 import type { Vec3 } from "../../domain/shared/vec";
 
-type BlockFace = "up" | "other";
+import { blockFaceOf } from "./faces";
 
 export interface ItemOnBlock<K> {
   player: PlayerId;
@@ -34,7 +35,7 @@ export function subscribeItemOnBlock<K>(opts: {
     if (kind === undefined) return;
     const dimension = asDimensionId(ev.block.dimension.id);
     const block = { ...ev.block.location };
-    const face = ev.blockFace === Direction.Up ? "up" : "other";
+    const face = blockFaceOf(ev.blockFace);
     if (opts.accept && !opts.accept(dimension, block, face)) return;
 
     ev.cancel = true;

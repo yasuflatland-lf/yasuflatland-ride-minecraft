@@ -8,7 +8,11 @@ import { blockIn } from "./blocks";
 import { isOwnTypeId } from "./identifiers";
 import { consumeHeld, giveOrDrop, isCreative, playerById } from "./players";
 
-/** The block and player reads every ground-placed item shares (ADR 0122, 0129). */
+function creativePlayer(player: PlayerId): boolean {
+  return isCreative(playerById(player));
+}
+
+/** The block and space reads every ground-placed item shares (ADR 0122, 0129). */
 export class BedrockGroundCells implements GroundCellsWorld {
   constructor(private readonly vehicleSpace: SpaceCheck) {}
 
@@ -23,10 +27,6 @@ export class BedrockGroundCells implements GroundCellsWorld {
   isVehicleSpace(dimension: DimensionId, at: Vec3): boolean {
     return this.vehicleSpace(dimension, at);
   }
-
-  isCreative(player: PlayerId): boolean {
-    return isCreative(playerById(player));
-  }
 }
 
 /** Adds payment with one fixed item id (ADR 0024). */
@@ -34,20 +34,34 @@ export class BedrockPaidGroundCells
   extends BedrockGroundCells
   implements ItemPayment
 {
-  constructor(
-    isVehicleSpace: SpaceCheck,
-    private readonly itemId: string,
-  ) {
+  isCreative(player: PlayerId): boolean {
+    return creativePlayer(player);
+  }
+
+  readonly consumeItem;
+  readonly refund;
+
+  constructor(isVehicleSpace: SpaceCheck, itemId: string) {
     super(isVehicleSpace);
+    const payment = paidItem(itemId);
+    this.consumeItem = payment.consumeItem;
+    this.refund = payment.refund;
   }
+}
 
-  consumeItem(player: PlayerId, slot: number): boolean {
-    const entity = playerById(player);
-    return entity !== undefined && consumeHeld(entity, this.itemId, slot);
-  }
-
-  refund(player: PlayerId, _slot: number): void {
-    const entity = playerById(player);
-    if (entity) giveOrDrop(entity, [new ItemStack(this.itemId, 1)]);
-  }
+export function paidItem(
+  itemId: string,
+  checkCreative = creativePlayer,
+): ItemPayment {
+  return {
+    isCreative: checkCreative,
+    consumeItem(player, slot) {
+      const entity = playerById(player);
+      return entity !== undefined && consumeHeld(entity, itemId, slot);
+    },
+    refund(player) {
+      const entity = playerById(player);
+      if (entity) giveOrDrop(entity, [new ItemStack(itemId, 1)]);
+    },
+  };
 }
