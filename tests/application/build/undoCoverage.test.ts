@@ -562,7 +562,7 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
               e.pressUndo.execute(cmd);
               break;
             default:
-              menu.execute(cmd);
+              menu.execute({ ...cmd, tick: 17 });
               check();
               if (action === "fill") e.shape.execute({ ...cmd, style: "fill" });
               else {

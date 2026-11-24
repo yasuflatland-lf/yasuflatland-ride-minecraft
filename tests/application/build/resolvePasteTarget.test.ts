@@ -5,10 +5,11 @@ import type { AimResult } from "../../../src/application/build/ports/aim";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { ShowPreview } from "../../../src/application/build/showPreview";
+import { trackPasteFacing } from "../../../src/application/build/trackGaze";
 import { AIR } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import { previewPoints } from "../../../src/domain/build/preview/preview";
+import { previewModel } from "../../../src/domain/build/preview/preview";
 import {
   effectiveTurn,
   FACINGS,
@@ -201,7 +202,8 @@ it("draws the same paste box that the press sends to PasteAt", () => {
         expect(target?.box.min.y).toBeLessThanOrEqual(unsnapped.box.min.y);
         expect(feedback.previews).toHaveLength(1);
         expect(feedback.previews[0]?.set).toEqual(
-          previewPoints(session.flow, { blink: true, pasteBox: target?.box }),
+          previewModel(session.flow, { blink: true, pasteBox: target?.box })
+            .set,
         );
       },
     ),
@@ -330,17 +332,21 @@ it("keeps the previous facing for diagonal hysteresis and vertical gaze", () => 
     fc.property(fc.double({ min: 45, max: 54.9, noNaN: true }), (degrees) => {
       const { repo, session } = setup();
       const resolver = new ResolvePasteTarget(repo, new FakeGroundProbe());
-      const resolve = (direction: { x: number; y: number; z: number }) =>
-        resolver.execute({
+      const resolve = (direction: { x: number; y: number; z: number }) => {
+        const aim = {
+          input: "pointer",
+          ray: { origin: { x: 0, y: 80, z: 0 }, direction },
+          block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
+        } as const;
+        const facing = trackPasteFacing(session, aim);
+        return resolver.execute({
           playerId,
           dimensionId: nether,
           tick: 0,
-          aim: {
-            input: "pointer",
-            ray: { origin: { x: 0, y: 80, z: 0 }, direction },
-            block: { cell: { x: 0, y: 80, z: 0 }, face: "up" },
-          },
+          aim,
+          facing,
         });
+      };
       const first = resolve(facingVector("north"));
       const radians = (degrees * Math.PI) / 180;
       expect(
@@ -357,7 +363,7 @@ it("keeps the previous facing for diagonal hysteresis and vertical gaze", () => 
 it("uses the clipboard facing for an initial vertical gaze", () => {
   fc.assert(
     fc.property(facing, (facing) => {
-      const { repo, session, clipboard } = setup();
+      const { session, clipboard } = setup();
       session.completeCopy(
         selectionOf(
           nether,
@@ -366,16 +372,11 @@ it("uses the clipboard facing for an initial vertical gaze", () => {
         ),
         { ...clipboard, facing },
       );
-      new ResolvePasteTarget(repo, new FakeGroundProbe()).execute({
-        playerId,
-        dimensionId: nether,
-        tick: 0,
-        aim: {
-          input: "pointer",
-          ray: {
-            origin: { x: 0, y: 80, z: 0 },
-            direction: { x: 0, y: 1, z: 0 },
-          },
+      trackPasteFacing(session, {
+        input: "pointer",
+        ray: {
+          origin: { x: 0, y: 80, z: 0 },
+          direction: { x: 0, y: 1, z: 0 },
         },
       });
       expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0, facing });

@@ -89,12 +89,21 @@ const ui = vi.hoisted(() => {
   }
   return { answers, forms, Form };
 });
+const engine = vi.hoisted(() => ({ tick: 17 }));
+vi.mock("@minecraft/server", () => ({
+  system: {
+    get currentTick() {
+      return engine.tick;
+    },
+  },
+}));
 vi.mock("@minecraft/server-ui", () => ({
   FormCancelationReason: { UserBusy: "UserBusy", UserClosed: "UserClosed" },
   ActionFormData: ui.Form,
   ModalFormData: ui.Form,
 }));
 beforeEach(() => {
+  engine.tick = 17;
   ui.answers.length = 0;
   ui.forms.length = 0;
 });
@@ -184,6 +193,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     );
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      tick: engine.tick,
     });
     expect(session.flow).toEqual(endpoint);
   },
@@ -905,9 +915,11 @@ it.each([
     await menus.showShapeMenu(player);
     expect(cases.openBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      tick: engine.tick,
     });
     expect(cases.closeBuildMenu.execute).toHaveBeenCalledExactlyOnceWith({
       playerId,
+      tick: engine.tick,
     });
     expect(ui.forms.map((form) => form.heading)).toEqual([
       { translate: BUILD_FORM.shapeTitle },
