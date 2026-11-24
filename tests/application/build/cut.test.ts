@@ -282,7 +282,7 @@ it("restores failed cuts without changing the session or discarding prior handle
             z: 1,
           }),
         );
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         const before = structuredClone(e.session);
         e.structures.calls.length = 0;
         e.feedback.messages.length = 0;
@@ -407,7 +407,7 @@ it.each(["tooLarge", "busy"] as const)(
     const previous = boxOf(origin, origin);
     const clipboard = structureClipboard(previous, () => stone);
     e.session.completeCopy(selectionOf(overworld, previous, stone), clipboard);
-    e.session.setFlow(flow);
+    e.session.setFlowForTest(flow);
     const confirmed = e.session.confirmedBox;
     if (refusal === "busy") e.session.beginEdit();
     e.choose.execute({ playerId, kind: "cut" });
@@ -435,7 +435,7 @@ it("cuts every selected shape directly", () => {
         };
         const box = boxOf(origin, end);
         e.world.put(origin, stone);
-        e.session.setFlow(
+        e.session.setFlowForTest(
           confirmEndpointHeight(
             tapAir(tapBlock({ kind: "idle" }, overworld, origin, stone), end),
           ),

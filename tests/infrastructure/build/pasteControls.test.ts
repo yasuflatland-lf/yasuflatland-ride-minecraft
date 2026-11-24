@@ -206,7 +206,7 @@ function flush() {
 it("debounces Paste Rotate across block and item events for the selected box", () => {
   const e = setup();
   const box = boxOf({ x: 0, y: 60, z: 0 }, { x: 4, y: 60, z: 1 });
-  e.session.setFlow({
+  e.session.setFlowForTest({
     kind: "selected",
     menuLevel: "root",
     ...tappedSelection(selectionOf(nether, box, AIR), box.min, box.max),
@@ -592,7 +592,7 @@ it.each([false, true])(
       AIR,
       NETHER_RANGE,
     );
-    e.session.setFlow(tapAir(point, { x: 4, y: 60, z: 4 }));
+    e.session.setFlowForTest(tapAir(point, { x: 4, y: 60, z: 4 }));
     if (blockFirst) e.interact();
     e.use();
     if (!blockFirst) e.interact();

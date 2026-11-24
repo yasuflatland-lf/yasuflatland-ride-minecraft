@@ -40,7 +40,7 @@ function setup(liveHeight: number) {
   const session = repo.getOrCreate(playerId);
   const flow = tapAir(tapBlock(session.flow, overworld, from, material), to);
   if (flow.kind !== "baseHeight") throw new Error("Expected baseHeight");
-  session.setFlow({ ...flow, liveHeight });
+  session.setFlowForTest({ ...flow, liveHeight });
   const feedback = new FakeFeedback();
   const core = new RotateBox(
     repo,
@@ -120,13 +120,15 @@ it("turns the current footprint and confirmed height when editing height again",
         const { session, rotate, structures } = setup(height);
         const flow = session.flow;
         if (flow.kind !== "baseHeight") throw new Error("Expected baseHeight");
-        session.setFlow(confirmLiveHeight(flow));
+        session.setFlowForTest(confirmLiveHeight(flow));
         const cmd = { playerId, dimensionId: overworld };
         if (turnFirst) expect(rotate.execute(cmd)).toBe("rotated");
         const selected = session.flow;
         if (selected.kind !== "selected") throw new Error("Expected selected");
         const before = selected.selection.box;
-        session.setFlow(setHeight(adjustHeight(selected, OVERWORLD_RANGE), 1));
+        session.setFlowForTest(
+          setHeight(adjustHeight(selected, OVERWORLD_RANGE), 1),
+        );
         structures.calls.length = 0;
         expect(rotate.execute(cmd)).toBe("rotated");
         expect(structures.calls).toContainEqual({

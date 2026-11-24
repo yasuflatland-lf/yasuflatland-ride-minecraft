@@ -73,7 +73,7 @@ export async function buildWarpBlockGuard(a: Arena): Promise<Outcome> {
       "minecraft:stone_bricks",
     );
     const before = states();
-    session.setFlow({
+    session.setFlowForTest({
       kind: "selected",
       menuLevel: "root",
       selection,

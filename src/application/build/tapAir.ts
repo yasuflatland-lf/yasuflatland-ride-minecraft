@@ -1,5 +1,4 @@
 import { volume } from "../../domain/build/box";
-import { enteredBaseHeight, tapAir } from "../../domain/build/flow/heightFlow";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { Cell } from "../../domain/shared/cells";
 import type { PlayerId } from "../../domain/shared/ids";
@@ -17,16 +16,13 @@ export class TapAir {
     if (!session) return;
     const flow = session.flow;
     if (flow.kind !== "point1" || !cmd.end) return;
-    const next = tapAir(
-      flow,
+    const next = session.tapAir(
       cmd.end,
       this.world.heightRange(flow.start.dimensionId),
     );
-    if (next === flow) return;
-    session.setFlow(next);
-    if (enteredBaseHeight(flow, next))
+    if (next?.kind === "baseHeight")
       this.feedback.showMessage(cmd.playerId, "heightAim");
-    else if (next.kind === "selected")
+    else if (next?.kind === "selected")
       this.feedback.showMessage(
         cmd.playerId,
         "endSet",

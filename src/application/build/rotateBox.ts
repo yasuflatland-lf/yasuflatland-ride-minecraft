@@ -1,8 +1,6 @@
 import { volume } from "../../domain/build/box";
-import { withoutStepBack } from "../../domain/build/flow/stepBack";
-import { tapsForBox } from "../../domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../domain/build/rotation/rotateBox";
-import { inDimension, withBox } from "../../domain/build/selection";
+import { inDimension } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
@@ -84,10 +82,8 @@ export class RotateBox {
       });
     });
     this.structures.discard(source);
-    session.setFlow(withoutStepBack(flow));
-    session.replaceSelection(
-      withBox(selection, plan.target),
-      tapsForBox(plan.target, flow.taps),
+    session.retainRotatedSelection(
+      plan.target,
       this.world.heightRange(dimensionId),
     );
     unstuck(this.world, this.players, playerId, dimensionId, plan.target);

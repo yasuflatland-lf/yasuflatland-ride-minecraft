@@ -25,7 +25,7 @@ it("clears the selection on an item switch while retaining history", () => {
         ],
       };
       session.finishEdit(history, "undoable");
-      session.setFlow({
+      session.setFlowForTest({
         kind: "selected",
         menuLevel: "root",
         ...tappedSelection(
@@ -53,7 +53,7 @@ it("hides on mode exit when the flow reached idle before the next preview", () =
     modes.execute([{ playerId, held: "wand" }]);
   const session = repo.getOrCreate(playerId);
   const cell = { x: 0, y: 60, z: 0 };
-  session.setFlow({
+  session.setFlowForTest({
     kind: "point1",
     start: {
       dimensionId: overworld,

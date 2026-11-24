@@ -10,7 +10,6 @@ import type { BuildStructureStore } from "../../../application/build/ports/struc
 import type { PressPasteAim } from "../../../application/build/pressPasteAim";
 import type { PressUndo } from "../../../application/build/pressUndo";
 import type { RotatePasteAim } from "../../../application/build/rotatePasteAim";
-import type { SetHeightTo } from "../../../application/build/setHeightTo";
 import type { ShowPreview } from "../../../application/build/showPreview";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import { AIR } from "../../../domain/build/blockState";
@@ -38,7 +37,6 @@ import type { TestAimReader } from "./testAim";
 
 export function registerTestEdit(
   choices: MenuChoices,
-  height: SetHeightTo,
   paste: PressPasteAim,
   undo: UndoEdit,
   pressUndo: PressUndo,
@@ -198,7 +196,7 @@ export function registerTestEdit(
           args.length === 1 &&
           Number.isInteger(Number(args[0]))
         ) {
-          height.execute({ playerId, height: Number(args[0]) });
+          choices.submitHeight(playerId, Number(args[0]));
         } else if (
           command === "pasteat" &&
           (args.length === 4 ||

@@ -58,7 +58,7 @@ function setup(box: CellBox = wideBox) {
   const feedback = new FakeFeedback();
   const log = { warn: vi.fn() };
   const session = repo.getOrCreate(playerId);
-  session.setFlow({
+  session.setFlowForTest({
     kind: "selected",
     menuLevel: "root",
     ...tappedSelection(selectionOf(overworld, box, stone), box.min, box.max),
@@ -203,7 +203,7 @@ it("reports no selection outside selected flow or in a different dimension", () 
   expect(e.rotateSelection.execute({ playerId, dimensionId: nether })).toBe(
     "noSelection",
   );
-  e.session.setFlow({ kind: "idle" });
+  e.session.setFlowForTest({ kind: "idle" });
   expect(e.rotateSelection.execute({ playerId, dimensionId: overworld })).toBe(
     "noSelection",
   );
@@ -354,7 +354,7 @@ it("ignores idle, incomplete and other-dimension selections", () => {
   ];
   for (const flow of flows) {
     const e = setup();
-    e.session.setFlow(flow);
+    e.session.setFlowForTest(flow);
     const before = structuredClone(e.session);
     expect(e.rotate.execute({ playerId, dimensionId: overworld })).toBe(
       "ignored",
@@ -482,7 +482,7 @@ it.each([false, true])(
     const e = setup(box);
     const point = tapBlock({ kind: "idle" }, overworld, origin, stone);
     const fresh = tapAir(point, end);
-    e.session.setFlow(fresh);
+    e.session.setFlowForTest(fresh);
     for (const cell of cellsOf(box)) e.world.put(cell, stone);
     const union = planRotationAboutCenter(box).union;
     const original = [...cellsOf(union)].map((cell) =>

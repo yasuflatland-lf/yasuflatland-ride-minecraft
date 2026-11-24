@@ -36,7 +36,7 @@ it("captures the selected layers and choice facing immediately for Copy and Cut"
             .mockReturnValueOnce(facing)
             .mockReturnValue(FACINGS[(FACINGS.indexOf(facing) + 1) % 4]),
         };
-        session.setFlow({
+        session.setFlowForTest({
           kind: "selected",
           menuLevel: "root",
           ...tappedSelection(

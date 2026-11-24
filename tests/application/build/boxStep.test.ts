@@ -79,7 +79,9 @@ it("copies every selected shape directly and confirms their bounding box", () =>
         y: from.y + delta.y,
         z: from.z + delta.z,
       };
-      e.session.setFlow(endpoint(reverse ? to : from, reverse ? from : to));
+      e.session.setFlowForTest(
+        endpoint(reverse ? to : from, reverse ? from : to),
+      );
       const begin = vi.spyOn(e.session, "beginEdit");
       e.choose.execute({ playerId, kind: "copy" });
       const box = boxOf(from, to);
@@ -116,7 +118,7 @@ it("preserves the clipboard, confirmed box, and flow on every over-limit copy pa
         const box = boxOf(from, { ...from, x: from.x + size - 1 });
         if (path === "selection")
           e.session.confirmBox(selectionOf(overworld, box, stone));
-        else e.session.setFlow(endpoint(box.min, box.max));
+        else e.session.setFlowForTest(endpoint(box.min, box.max));
         const flow = e.session.flow;
         const confirmed = e.session.confirmedBox;
         const read = vi.spyOn(e.world, "stateAt");
@@ -156,7 +158,7 @@ it("refuses Copy when the selection is not confirmed", () => {
         roof,
         { kind: "pasteAim", manualTurn: 0 },
       ] as BuildFlow[]) {
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         e.choose.execute({ playerId, kind: "copy" });
         expect(e.feedback.messages.at(-1)?.message).toBe("noSelection");
         expect(e.session.flow).toBe(flow);
@@ -193,7 +195,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
       for (const flow of flows) {
         e.session.confirmBox(selectionOf(overworld, box, stone));
         holdClipboard(e.session, old);
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         copy.execute({ playerId });
         expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
         expect(e.session.clipboard).not.toBe(old);
@@ -208,7 +210,7 @@ it("utility Copy enters paste aiming from every prior flow and an oversized copy
           x: from.x + BUILD_SPEC.maxCopyVolume,
         });
         e.session.confirmBox(selectionOf(overworld, oversized, stone));
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         const clipboard = e.session.clipboard;
         const confirmed = e.session.confirmedBox;
         copy.execute({ playerId });

@@ -1,6 +1,5 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
-import { BackToAiming } from "../../../src/application/build/backToAiming";
 import { ChooseStairs } from "../../../src/application/build/chooseStairs";
 import {
   ConfirmStairs,
@@ -47,7 +46,6 @@ function fixture() {
   const fix = new FixStairGoal(repo, feedback, aim);
   const confirm = new ConfirmStairs(repo, feedback, jobs, world);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
-  const cancel = new BackToAiming(repo);
   const preview = new ShowPreview(
     repo,
     feedback,
@@ -58,7 +56,7 @@ function fixture() {
   );
   const session = repo.getOrCreate(playerId);
   const select = (material = stone, end = to) => {
-    session.setFlow(
+    session.setFlowForTest(
       tapAir(tapBlock({ kind: "idle" }, overworld, from, material), end),
     );
   };
@@ -75,7 +73,6 @@ function fixture() {
     confirm,
     terrace: new ConfirmTerrace(repo, feedback, jobs, world),
     undo,
-    cancel,
     preview,
     session,
     select,
@@ -207,7 +204,7 @@ it("keeps the last valid preview while aiming and uses the fixed goal in content
   f.aimAt();
   f.preview.refresh(playerId, 4);
   expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(latest);
-  f.cancel.backToAiming(command);
+  f.session.backToAiming();
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
   f.aim.target = undefined;

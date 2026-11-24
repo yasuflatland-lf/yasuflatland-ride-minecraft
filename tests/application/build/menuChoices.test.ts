@@ -12,6 +12,7 @@ import {
   fixStairGoal,
 } from "../../../src/domain/build/flow/stairFlow";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
+import { backToAiming } from "../../../src/domain/build/flow/stepBack";
 import { chooseTerrain } from "../../../src/domain/build/flow/terrainFlow";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { staircaseToward } from "../../../src/domain/build/stairs/staircase";
@@ -58,30 +59,30 @@ const shapeRoutes = {
   cut: ["chooseBoxStep", { playerId, kind: "cut" }],
   removeAbove: ["chooseTerrain", { playerId, op: "removeAbove" }],
   fillBelow: ["chooseTerrain", { playerId, op: "fillBelow" }],
-  buildShape: ["openBuildMenu", { playerId, tick }],
-  back: ["closeBuildMenu", { playerId, tick }],
-  adjustHeight: ["chooseAdjustHeight", command],
+  buildShape: undefined,
+  back: undefined,
+  adjustHeight: undefined,
   cancel: ["clear", command],
 } as const;
 const contentsRoutes = {
   fill: ["confirmHeighted", { playerId, fill: "fill" }],
   hollow: ["confirmHeighted", { playerId, fill: "hollow" }],
   tube: ["confirmHeighted", { playerId, fill: "tube" }],
-  cancel: ["cancel", command],
+  cancel: undefined,
 } as const;
 const stairRoutes = {
   passage: ["confirmStairs", { playerId, contents: "passage" }],
   fillBelow: ["confirmStairs", { playerId, contents: "fillBelow" }],
   stepsOnly: ["confirmStairs", { playerId, contents: "stepsOnly" }],
-  cancel: ["cancel", command],
+  cancel: undefined,
 } as const;
 const terraceRoutes = {
   confirm: ["confirmTerrace", command],
-  cancel: ["cancel", command],
+  cancel: undefined,
 } as const;
 const terrainRoutes = {
   confirm: ["confirmTerrain", command],
-  cancel: ["cancel", command],
+  cancel: undefined,
 } as const;
 
 function expectDispatch(
@@ -100,14 +101,16 @@ function expectDispatch(
     invalid: undefined,
   })) {
     const { session, cases, choices } = setupMenuChoices();
-    session.setFlow(flow);
+    session.setFlowForTest(flow);
     const available = offered.includes(id);
     expect(choices[method](playerId, id, tick), id).toBe(available);
     const calls = Object.entries(cases).flatMap(([action, useCase]) => {
-      const spy = "execute" in useCase ? useCase.execute : useCase.backToAiming;
-      return spy.mock.calls.map((args) => [action, ...args]);
+      return useCase.execute.mock.calls.map((args) => [action, ...args]);
     });
-    expect(calls, id).toEqual(available ? [expected] : []);
+    expect(calls, id).toEqual(available && expected ? [expected] : []);
+    if (!available) expect(session.flow).toBe(flow);
+    else if (id === "cancel" && method !== "chooseShape")
+      expect(session.flow).toEqual(backToAiming(flow));
   }
 }
 
@@ -190,7 +193,7 @@ it("validates utility availability before dispatching", () => {
       fc.boolean(),
       (confirmed, clipboard, history) => {
         const { session, cases, choices } = setupMenuChoices();
-        session.setFlow({ kind: "idle" });
+        session.setFlowForTest({ kind: "idle" });
         const box = boxOf(from, to);
         if (confirmed) session.confirmBox(selectionOf(overworld, box, stone));
         if (clipboard)
@@ -234,7 +237,7 @@ it("ends paste aiming and clears the clipboard and confirmed box", () => {
     endpoint,
     chooseHeightedFlow(endpoint, "hip"),
   ]) {
-    session.setFlow(flow);
+    session.setFlowForTest(flow);
     expect(choices.choosePaste(playerId, "endPaste")).toBe(false);
   }
   expect(cases.endPasting.execute).not.toHaveBeenCalled();
@@ -242,7 +245,7 @@ it("ends paste aiming and clears the clipboard and confirmed box", () => {
     selectionOf(overworld, boxOf(from, to), stone),
     structureClipboard(boxOf(from, to), () => stone),
   );
-  session.setFlow({ kind: "pasteAim", manualTurn: 0 });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
   expect(choices.choosePaste(playerId, "endPaste")).toBe(true);
   expect(cases.endPasting.execute).toHaveBeenCalledExactlyOnceWith(playerId);
   expect(session.flow.kind).toBe("idle");
@@ -263,8 +266,9 @@ it("offers terrain entries only during the confirmation", () => {
 });
 
 it("ignores responses for players without a session", () => {
-  const { choices, repo } = setupMenuChoices();
+  const { choices, repo, refresh } = setupMenuChoices();
   const absent = asPlayerId("absent");
+  expect(choices.openShapeMenu(absent, tick)).toEqual([]);
   expect(choices.chooseShape(absent, "cut", tick)).toBe(false);
   expect(choices.chooseContents(absent, "fill")).toBe(false);
   expect(choices.chooseStairContents(absent, "passage")).toBe(false);
@@ -272,7 +276,10 @@ it("ignores responses for players without a session", () => {
   expect(choices.chooseTerrain(absent, "confirm")).toBe(false);
   expect(choices.chooseUtility(absent, "clear")).toBe(false);
   expect(choices.choosePaste(absent, "endPaste")).toBe(false);
+  expect(choices.choosePaste(absent, "newCopy")).toBe(false);
+  choices.submitHeight(absent, 3);
   expect(repo.get(absent)).toBeUndefined();
+  expect(refresh).not.toHaveBeenCalled();
 });
 
 it("dispatches each offered paste entry exactly once and ignores all unoffered ids", () => {
@@ -294,7 +301,7 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
       ),
       (history, aiming, entryId) => {
         const { session, choices, cases } = setupMenuChoices();
-        session.setFlow(
+        session.setFlowForTest(
           aiming ? { kind: "pasteAim", manualTurn: 0 } : { kind: "idle" },
         );
         if (history)
@@ -311,19 +318,63 @@ it("dispatches each offered paste entry exactly once and ignores all unoffered i
             entryId === "endPaste" ||
             entryId === "cancel");
         expect(choices.choosePaste(playerId, entryId)).toBe(offered);
-        const routes = new Map([
-          ["newCopy", cases.newCopy.execute],
-          ["endPaste", cases.endPasting.execute],
-        ]);
-        const expected = offered && entryId ? routes.get(entryId) : undefined;
         for (const useCase of Object.values(cases)) {
-          const call =
-            "execute" in useCase ? useCase.execute : useCase.backToAiming;
-          expect(call.mock.calls).toEqual(
-            call === expected ? [[playerId]] : [],
+          expect(useCase.execute.mock.calls).toEqual(
+            offered && entryId === "endPaste" && useCase === cases.endPasting
+              ? [[playerId]]
+              : [],
           );
         }
+        expect(session.flow.kind).toBe(
+          aiming && entryId !== "newCopy" && entryId !== "endPaste"
+            ? "pasteAim"
+            : "idle",
+        );
       },
     ),
+  );
+});
+
+it("refreshes the preview at the current tick after changing menu levels", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: -100, max: 100 }), (x) => {
+      const { session, choices, refresh } = setupMenuChoices();
+      const initial = selected({ ...from, x }, { ...to, x: x + 3 });
+      session.setFlowForTest(initial);
+      const levels: unknown[] = [];
+      refresh.mockImplementation(() => {
+        levels.push(session.flow.kind === "selected" && session.flow.menuLevel);
+      });
+      expect(choices.chooseShape(playerId, "buildShape", tick)).toBe(true);
+      expect(session.flow).toEqual({ ...initial, menuLevel: "build" });
+      expect(choices.chooseShape(playerId, "back", tick)).toBe(true);
+      expect(session.flow).toEqual(initial);
+      expect(levels).toEqual(["build", "root"]);
+      expect(refresh.mock.calls).toEqual([
+        [playerId, tick],
+        [playerId, tick],
+      ]);
+      expect(session.hasHistory).toBe(false);
+      expect(session.clipboard).toBeUndefined();
+    }),
+  );
+});
+
+it("reopens height aiming from the selected height and reports the change once", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 1, max: 40 }), (height) => {
+      const { session, choices, feedback } = setupMenuChoices();
+      const initial = selected(from, { ...to, y: from.y + height - 1 });
+      session.setFlowForTest(initial);
+      expect(choices.chooseShape(playerId, "adjustHeight", tick)).toBe(true);
+      expect(choices.chooseShape(playerId, "adjustHeight", tick)).toBe(false);
+      expect(feedback.messages).toEqual([{ message: "heightAim" }]);
+      const flow = session.flow;
+      if (flow.kind !== "baseHeight") throw new Error("Expected live height");
+      expect(flow.liveHeight).toBe(height);
+      expect(flow.baseBox.max.y).toBe(from.y);
+      expect(session.confirmLiveHeight()).toBe(true);
+      expect(session.flow).toEqual(initial);
+    }),
   );
 });

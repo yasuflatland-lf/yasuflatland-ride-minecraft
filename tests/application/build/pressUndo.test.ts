@@ -91,7 +91,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
           beginPasteAim(),
         ]) {
           undo.execute.mockClear();
-          session.setFlow(flow);
+          session.setFlowForTest(flow);
           const expected = stepBackSelection(flow);
           expect(press.execute({ playerId })).toBe(
             expected ? "stepped" : "undone",

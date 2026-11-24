@@ -18,7 +18,6 @@ import {
 } from "../../domain/build/stairs/staircase";
 import { volumeSize } from "../../domain/build/volume/size";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import { AimHeight } from "./aimHeight";
 import type { AimReader, AimResult } from "./ports/aim";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
@@ -54,7 +53,7 @@ export class ShowPreview {
     private readonly syncTapTarget: SyncTapTarget,
     private readonly blocks: Pick<BuildBlockWorld, "heightRange">,
   ) {
-    this.trackGaze = new TrackGaze(new AimHeight(repo, blocks));
+    this.trackGaze = new TrackGaze(blocks);
   }
 
   execute(tick: number): void {

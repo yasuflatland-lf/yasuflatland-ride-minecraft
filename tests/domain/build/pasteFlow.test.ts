@@ -77,7 +77,7 @@ it("offers ordered paste entries independent of history and never paste or endPa
           height,
           beginPasteAim(),
         ]) {
-          session.setFlow(flow);
+          session.setFlowForTest(flow);
           const entries = utilityMenu(session).map(({ id }) => id);
           expect(entries).not.toContain("endPaste");
           expect(entries).not.toContain("paste");
@@ -105,7 +105,7 @@ it("derives the session turn from copy and paste facings, and ignores following 
         session.followPasteFacing(currentFacing);
         expect(session.flow).toBe(idle);
         expect(session.pasteTurn).toBe(0);
-        session.setFlow(beginPasteAim());
+        session.setFlowForTest(beginPasteAim());
         session.followPasteFacing(currentFacing);
         expect(session.pasteTurn).toBe(0);
         const box = boxOf(at, at);
@@ -206,7 +206,7 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           endpoint,
           chooseHeightedFlow(endpoint, "hip"),
         ]) {
-          session.setFlow(flow);
+          session.setFlowForTest(flow);
           expect(session.rotatePaste()).toBe(false);
           expect(session.flow).toBe(flow);
         }

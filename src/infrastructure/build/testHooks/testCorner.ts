@@ -90,7 +90,7 @@ export function registerTestTap(
         else if (tap === "fixHeight") {
           // Edit fixtures use the supplied corners independently of the client's gaze.
           if (session && flow?.kind === "baseHeight")
-            session.setFlow(
+            session.setFlowForTest(
               confirmLiveHeight({
                 ...flow,
                 liveHeight: sizeOf(flow.selection.box).y,

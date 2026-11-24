@@ -89,7 +89,7 @@ function setup(
     structures,
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", manualTurn: 0, facing: "east" });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0, facing: "east" });
   const aim = new FakeAimReader();
   aim.target = {
     input: "pointer",
@@ -188,7 +188,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
         endpoint,
         chooseHeightedFlow(endpoint, "hip"),
       ]) {
-        e.session.setFlow(flow);
+        e.session.setFlowForTest(flow);
         expect(e.execute()).toBe("ignored");
         expect(e.session.flow).toEqual(flow);
       }
@@ -196,7 +196,7 @@ it("ignores every selection flow and preserves noClipboard feedback in paste aim
       expect(e.execute()).toBe("ignored");
       expect(e.repo.get(playerId)).toBeUndefined();
       const empty = e.repo.getOrCreate(playerId);
-      empty.setFlow({ kind: "pasteAim", manualTurn: 0 });
+      empty.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
       expect(e.execute()).toBe("ignored");
       expect(e.feedback.messages).toEqual([{ message: "noClipboard" }]);
       expect(e.start).not.toHaveBeenCalled();
@@ -343,7 +343,7 @@ it("reports a missing target for a sneak press", () => {
 it("resumes a selected clipboard on the first Place and pastes on the next press", () => {
   const block = { x: 3, y: 60, z: 1 };
   const e = setup(block, "up", 0);
-  e.session.setFlow(selectionFlows(block, nether, stone).selected);
+  e.session.setFlowForTest(selectionFlows(block, nether, stone).selected);
   expect(e.execute(false, "place")).toBe("aiming");
   expect(e.feedback.messages).toEqual([{ message: "pasteChoosePosition" }]);
   expect(e.start).not.toHaveBeenCalled();
@@ -362,13 +362,13 @@ it("place hints without starting a paste during selection work or without a clip
         const e = setup(block, face, tick);
         const { selected, inProgress } = selectionFlows(block, nether, stone);
         for (const flow of inProgress) {
-          e.session.setFlow(flow);
+          e.session.setFlowForTest(flow);
           expect(e.execute(sneaking, "place")).toBe("ignored");
           expect(e.session.flow).toBe(flow);
           expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
         }
         e.session.clearClipboard();
-        e.session.setFlow(selected);
+        e.session.setFlowForTest(selected);
         expect(e.execute(sneaking, "place")).toBe("ignored");
         expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
         e.repo.remove(playerId);
@@ -376,7 +376,7 @@ it("place hints without starting a paste during selection work or without a clip
         expect(e.repo.get(playerId)).toBeUndefined();
         expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
         const empty = e.repo.getOrCreate(playerId);
-        empty.setFlow({ kind: "pasteAim", manualTurn: 0 });
+        empty.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
         expect(e.execute(sneaking, "place")).toBe("ignored");
         expect(e.feedback.messages.at(-1)?.message).toBe("pasteInactive");
         expect(e.start).not.toHaveBeenCalled();

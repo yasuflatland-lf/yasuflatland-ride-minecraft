@@ -1,7 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { ChooseTerrain } from "../../../src/application/build/chooseTerrain";
-import { ConfirmLiveHeight } from "../../../src/application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../../src/application/build/confirmShape";
 import { ConfirmTerrain } from "../../../src/application/build/confirmTerrain";
 import { EditJobs } from "../../../src/application/build/editJobs";
@@ -47,7 +46,7 @@ function setup(dimensionId = overworld) {
   const session = repo.getOrCreate(playerId);
   const range = world.heightRange(dimensionId);
   const select = (from: Cell, to: Cell) => {
-    session.setFlow(
+    session.setFlowForTest(
       confirmEndpointHeight(
         tapAir(
           tapBlock({ kind: "idle" }, dimensionId, from, stone, range),
@@ -293,7 +292,7 @@ it("reports no selection and changes nothing outside its own flow state", () => 
   ];
   for (const flow of flows) {
     const e = setup();
-    e.session.setFlow(flow);
+    e.session.setFlowForTest(flow);
     e.choose.execute({ playerId, op: "removeAbove" });
     e.confirm.execute({ playerId });
     expect(e.session.flow).toBe(flow);
@@ -375,7 +374,7 @@ it("stops terrain edits at both Nether height limits", () => {
 
 it("refuses an unstable material at menu choice without changing flow", () => {
   const e = setup();
-  e.session.setFlow(
+  e.session.setFlowForTest(
     confirmEndpointHeight(
       tapAir(
         tapBlock(
@@ -486,8 +485,8 @@ it("keeps the confirmed box for Copy while Fill below uses the original corners"
       const to = { x: 2, y: 60, z: 2 };
       const above = { ...from, y: from.y + 1 };
       const point = tapBlock({ kind: "idle" }, overworld, from, stone);
-      e.session.setFlow(setHeight(tapAir(point, to), height));
-      new ConfirmLiveHeight(e.repo).execute({ playerId });
+      e.session.setFlowForTest(setHeight(tapAir(point, to), height));
+      e.session.confirmLiveHeight();
       e.choose.execute({ playerId, op: "fillBelow" });
       e.confirm.execute({ playerId });
       e.drain();

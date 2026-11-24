@@ -30,7 +30,7 @@ function setup(to = flat) {
   const feedback = new FakeFeedback();
   const world = new FakeWorld();
   const session = repo.getOrCreate(playerId);
-  session.setFlow({
+  session.setFlowForTest({
     kind: "selected",
     menuLevel: "root",
     ...tappedSelection(

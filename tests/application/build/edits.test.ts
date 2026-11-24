@@ -74,8 +74,8 @@ type Env = ReturnType<typeof setup>;
 
 function select(env: Env, player: typeof alex, size: number, y = 64) {
   const s = env.repo.getOrCreate(player);
-  s.setFlow(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
-  s.setFlow(
+  s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
+  s.setFlowForTest(
     confirmEndpointHeight(
       tapBlock(s.flow, overworld, { x: size - 1, y, z: size - 1 }, stone),
     ),
@@ -193,7 +193,7 @@ describe("EditJobs properties", () => {
       const env = setup();
       select(env, alex, 2);
       env.fill.execute({ playerId: alex, style: "fill" });
-      env.repo.getOrCreate(alex).setFlow(flow);
+      env.repo.getOrCreate(alex).setFlowForTest(flow);
       runAll(env);
       expect(env.feedback.messages.at(-1), name).toEqual({
         message: promises ? "editDone" : "editDoneCount",
@@ -201,7 +201,7 @@ describe("EditJobs properties", () => {
       });
       expect(env.feedback.undoHints, name).toEqual(promises ? [alex] : []);
       if (!promises) {
-        env.repo.getOrCreate(alex).setFlow({ kind: "idle" });
+        env.repo.getOrCreate(alex).setFlowForTest({ kind: "idle" });
         select(env, alex, 2, 70);
         fillAndClearBeforeCompletion(env, alex);
         expect(env.feedback.undoHints, name).toEqual([alex]);
@@ -278,8 +278,8 @@ describe("EditJobs properties", () => {
   it("applies at most blocksPerTick changes per step", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
-    s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(
+    s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
+    s.setFlowForTest(
       confirmEndpointHeight(
         tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
       ),
@@ -301,8 +301,8 @@ describe("EditJobs properties", () => {
     for (const p of [alex, blake]) {
       const s = env.repo.getOrCreate(p);
       const y = p === alex ? 0 : 100;
-      s.setFlow(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
-      s.setFlow(
+      s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y, z: 0 }, stone));
+      s.setFlowForTest(
         confirmEndpointHeight(
           tapBlock(s.flow, overworld, { x: 63, y: y + 3, z: 63 }, stone),
         ),
@@ -321,7 +321,7 @@ describe("edit use cases", () => {
     const env = setup();
     env.fill.execute({ playerId: alex, style: "fill" });
     env.copy.execute({ playerId: alex });
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim());
+    env.repo.getOrCreate(alex).setFlowForTest(beginPasteAim());
     env.paste.execute({
       playerId: alex,
       dimensionId: overworld,
@@ -353,7 +353,7 @@ describe("edit use cases", () => {
       "noClipboard",
       "nothingToUndo",
     ]);
-    env.repo.getOrCreate(alex).setFlow({ kind: "idle" });
+    env.repo.getOrCreate(alex).setFlowForTest({ kind: "idle" });
     env.feedback.messages = [];
     select(env, alex, 2);
     env.fill.execute({ playerId: alex, style: "fill" });
@@ -370,8 +370,8 @@ describe("edit use cases", () => {
   it("refuses a selection larger than the edit limit", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
-    s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(
+    s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
+    s.setFlowForTest(
       confirmEndpointHeight(
         tapBlock(s.flow, overworld, { x: 99, y: 99, z: 99 }, stone),
       ),
@@ -399,7 +399,7 @@ describe("edit use cases", () => {
     env.copy.execute({ playerId: alex });
     expect(env.feedback.messages.at(-1)?.message).toBe("copied");
     env.world.protectedCells.add(cellKey({ x: 1, y: 64, z: 1 }));
-    env.repo.getOrCreate(alex).setFlow(beginPasteAim());
+    env.repo.getOrCreate(alex).setFlowForTest(beginPasteAim());
     env.paste.execute({
       playerId: alex,
       dimensionId: overworld,
@@ -432,8 +432,8 @@ describe("edit use cases", () => {
   it("drops a job whose session was removed", () => {
     const env = setup();
     const s = env.repo.getOrCreate(alex);
-    s.setFlow(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
-    s.setFlow(
+    s.setFlowForTest(tapBlock(s.flow, overworld, { x: 0, y: 0, z: 0 }, stone));
+    s.setFlowForTest(
       confirmEndpointHeight(
         tapBlock(s.flow, overworld, { x: 63, y: 3, z: 63 }, stone),
       ),

@@ -1,16 +1,11 @@
 import { system } from "@minecraft/server";
-import { AimHeight } from "../../application/build/aimHeight";
-import { BackToAiming } from "../../application/build/backToAiming";
-import { ChooseAdjustHeight } from "../../application/build/chooseAdjustHeight";
 import { ChooseBoxStep } from "../../application/build/chooseBoxStep";
 import { ChooseHeighted } from "../../application/build/chooseHeighted";
 import { ChooseSideCylinder } from "../../application/build/chooseSideCylinder";
 import { ChooseStairs } from "../../application/build/chooseStairs";
 import { ChooseTerrain } from "../../application/build/chooseTerrain";
 import { ClearSelection } from "../../application/build/clearSelection";
-import { CloseBuildMenu } from "../../application/build/closeBuildMenu";
 import { ConfirmHeighted } from "../../application/build/confirmHeighted";
-import { ConfirmLiveHeight } from "../../application/build/confirmLiveHeight";
 import { ConfirmShape } from "../../application/build/confirmShape";
 import {
   ConfirmStairs,
@@ -29,8 +24,6 @@ import {
   type MenuCases,
   MenuChoices,
 } from "../../application/build/menuChoices";
-import { NewCopy } from "../../application/build/newCopy";
-import { OpenBuildMenu } from "../../application/build/openBuildMenu";
 import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
 import { PasteAt } from "../../application/build/pasteAt";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
@@ -40,7 +33,6 @@ import { ResolvePasteTarget } from "../../application/build/resolvePasteTarget";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotatePasteAim } from "../../application/build/rotatePasteAim";
 import { RotateSelection } from "../../application/build/rotateSelection";
-import { SetHeightTo } from "../../application/build/setHeightTo";
 import { SetPoint } from "../../application/build/setPoint";
 import { ShowPreview } from "../../application/build/showPreview";
 import { StepBackSelection } from "../../application/build/stepBackSelection";
@@ -92,7 +84,6 @@ export function installBuild(deps: {
   const tapTargets = new BedrockTapTargets();
   system.run(() => tapTargets.sweep());
   const resolveTarget = new ResolvePasteTarget(repo, new BedrockGroundProbe());
-  const cancel = new BackToAiming(repo);
   const pasteDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const rotateDebounce = new Debounces<PlayerId>(
@@ -131,7 +122,6 @@ export function installBuild(deps: {
     fill: new ConfirmShape(repo, feedback, jobs),
     copy: new CopySelection(repo, copyBox, feedback, facing),
     endPasting: new EndPasting(repo),
-    newCopy: new NewCopy(repo),
     pasteAt: new PasteAt(repo, blocks, feedback, ports.structures, players),
     chooseHeighted,
     chooseSideCylinder: new ChooseSideCylinder(
@@ -165,16 +155,15 @@ export function installBuild(deps: {
     blocks,
   );
   const menuCases = {
-    chooseAdjustHeight: new ChooseAdjustHeight(repo, feedback, blocks),
     openSelectionMenu: new OpenSelectionMenu(repo),
-    openBuildMenu: new OpenBuildMenu(repo, preview),
-    closeBuildMenu: new CloseBuildMenu(repo, preview),
     ...cases,
     confirmShape: cases.fill,
-    cancel,
-    setHeight: new SetHeightTo(repo),
   } satisfies MenuCases;
-  const menuChoices = new MenuChoices(repo, menuCases);
+  const menuChoices = new MenuChoices(repo, menuCases, {
+    blocks,
+    feedback,
+    refresh: (id, tick) => preview.refresh(id, tick),
+  });
   const menus = new BedrockBuildMenus(repo, menuChoices, blocks);
   const pressPasteAim = new PressPasteAim(
     repo,
@@ -205,8 +194,6 @@ export function installBuild(deps: {
     {
       setPoint: new SetPoint(repo, blocks, feedback),
       tapAir: new TapAir(repo, feedback, blocks),
-      aimHeight: new AimHeight(repo, blocks),
-      confirmLiveHeight: new ConfirmLiveHeight(repo),
       fixStairGoal: new FixStairGoal(repo, feedback, aim),
       pressPasteAim,
       onPasted: (id, tick) => {

@@ -64,7 +64,7 @@ function setup(facing?: Facing) {
     boxOf({ x: 0, y: 0, z: 0 }, { x: 1, y: 2, z: 3 }),
   );
   holdClipboard(session, clipboard);
-  session.setFlow({ kind: "pasteAim", manualTurn: 0, facing });
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0, facing });
   return { repo, session, clipboard };
 }
 

@@ -22,4 +22,4 @@ A root menu entry to re-pick the endpoint would add a menu interaction before co
 
 ## Consequences
 
-The player can correct an end tap without losing the start or material. A second Undo clears the start. Selection correction consumes no history entry, while confirming height or opening the line menu ends that correction window. This freshness boundary must stay explicit when adding new selection constructors or edits. Revisit the gesture if device checks show that players cannot predict whether Undo will reverse a selection step or an edit.
+The player can correct an end tap without losing the start or material. A second Undo clears the start. Selection correction consumes no history entry, while confirming height or opening the line menu ends that correction window. `BuildSession` applies the freshness rules when opening the root menu, retaining the rotated selection, and stepping back. Revisit the gesture if device checks show that players cannot predict whether Undo will reverse a selection step or an edit.

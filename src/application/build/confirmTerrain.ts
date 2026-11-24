@@ -1,7 +1,6 @@
 import { AIR } from "../../domain/build/blockState";
 import { uniformPattern } from "../../domain/build/edit/pattern";
 import { planFillBelow, planShape } from "../../domain/build/edit/plan";
-import { backToAiming } from "../../domain/build/flow/stepBack";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { shapeOf } from "../../domain/build/shape/shape";
 import { removeAboveBox, terrainAreaOf } from "../../domain/build/terrain/area";
@@ -28,7 +27,7 @@ export class ConfirmTerrain {
     }
     if (session.isEditing) {
       // The form has closed and taps do nothing in terrainConfirm, so do not stay there.
-      session.setFlow(backToAiming(flow));
+      session.backToAiming();
       this.feedback.showMessage(playerId, "busy");
       return;
     }
