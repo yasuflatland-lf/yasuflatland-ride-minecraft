@@ -94,14 +94,29 @@ describe("beachChairPose", () => {
     );
   });
 
-  it("restores the pose from its origin and yaw at all four facings", () => {
+  it("restores the pose from an origin within half a block of its center", () => {
     fc.assert(
-      fc.property(cellArb, facingArb, (pressed, facing) => {
-        const pose = beachChairPose(pressed, facing);
-        expect(beachChairPoseAt(beachChairOrigin(pose), pose.yaw)).toEqual(
-          pose,
-        );
-      }),
+      fc.property(
+        poseArb,
+        fc.record({
+          x: fc.double({ min: -0.49, max: 0.49, noNaN: true }),
+          y: fc.double({ min: -0.49, max: 0.49, noNaN: true }),
+          z: fc.double({ min: -0.49, max: 0.49, noNaN: true }),
+        }),
+        (pose, drift) => {
+          const origin = beachChairOrigin(pose);
+          expect(
+            beachChairPoseAt(
+              {
+                x: origin.x + drift.x,
+                y: origin.y + drift.y,
+                z: origin.z + drift.z,
+              },
+              pose.yaw,
+            ),
+          ).toEqual(pose);
+        },
+      ),
     );
   });
 
@@ -122,13 +137,11 @@ describe("beach chair cells", () => {
   it("clear cells are the three floor cells times the headroom, exactly", () => {
     fc.assert(
       fc.property(poseArb, (pose) => {
-        const clear = beachChairClearCells(pose);
-        expect(clear).toHaveLength(3 * BEACH_CHAIR_SPEC.headroom);
-        const keys = new Set(clear.map((c) => `${c.x},${c.y},${c.z}`));
-        expect(keys.size).toBe(clear.length);
-        for (const f of beachChairCells(pose))
-          for (let up = 0; up < BEACH_CHAIR_SPEC.headroom; up++)
-            expect(keys.has(`${f.x},${f.y + up},${f.z}`)).toBe(true);
+        expect(beachChairClearCells(pose)).toEqual(
+          Array.from({ length: BEACH_CHAIR_SPEC.headroom }, (_, up) =>
+            beachChairCells(pose).map((cell) => ({ ...cell, y: cell.y + up })),
+          ).flat(),
+        );
       }),
     );
   });
