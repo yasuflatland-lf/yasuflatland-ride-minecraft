@@ -189,10 +189,12 @@ describe("BedrockChairWorld (ADR 0122)", () => {
     },
   );
 
-  it("is occupied while it has a rider", () => {
+  it("is occupied only while a player is riding", () => {
     const { chairs, riders } = fixture();
     expect(chairs.isOccupied(asChairId("chair"))).toBe(false);
-    riders.push({});
+    riders.push({ id: "mob", typeId: "minecraft:pig" });
+    expect(chairs.isOccupied(asChairId("chair"))).toBe(false);
+    riders.push({ id: "player", typeId: "minecraft:player" });
     expect(chairs.isOccupied(asChairId("chair"))).toBe(true);
   });
 
