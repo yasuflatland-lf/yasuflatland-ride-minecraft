@@ -14,6 +14,7 @@ const destinationOf = (path: string) =>
   basename(path, ".json").slice("nav_".length);
 
 it("ships exactly one loot table for each menu destination", () => {
+  expect(NAV_DESTINATIONS).toHaveLength(10);
   expect([...new Set(tables)].sort()).toEqual(
     NAV_DESTINATIONS.map(navLootTableFile).sort(),
   );
@@ -70,19 +71,21 @@ for (const path of tables) {
     expect(`yasu_ride_bp/${path}`.length).toBeLessThanOrEqual(80);
     const table = JSON.parse(readFileSync(`${bp}/${path}`, "utf8"));
     expect(table.pools).toEqual([
-      expect.objectContaining({
+      {
+        rolls: 1,
         entries: [
-          expect.objectContaining({
-            name: "minecraft:empty_map",
-            functions: expect.arrayContaining([
-              expect.objectContaining({
+          {
+            type: "item",
+            name: "minecraft:map",
+            functions: [
+              {
                 function: "exploration_map",
                 destination: destinationOf(path),
-              }),
-            ]),
-          }),
+              },
+            ],
+          },
         ],
-      }),
+      },
     ]);
   });
 }

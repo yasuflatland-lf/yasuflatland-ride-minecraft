@@ -316,6 +316,16 @@ yasu_ride.message.boost_off=ブースト OFF
 yasu_ride.message.boost_unavailable=この乗り物ではブースターを使えません。
 
 yasu_ride.nav.title=ナビ
+yasu_ride.nav.destination.buriedtreasure=埋もれた宝
+yasu_ride.nav.destination.mansion=森の洋館
+yasu_ride.nav.destination.monument=海底神殿
+yasu_ride.nav.destination.village=村
+yasu_ride.nav.destination.jungle_temple=ジャングルの寺院
+yasu_ride.nav.destination.swamp_hut=スワンプハット(沼地の小屋)
+yasu_ride.nav.destination.trial_chambers=試練の間
+yasu_ride.nav.destination.pillager_outpost=略奪者の前哨基地
+yasu_ride.nav.destination.shipwreck=難破船
+yasu_ride.nav.destination.ruins=海底遺跡
 yasu_ride.message.nav_driver_only=運転席でナビを使ってください。
 yasu_ride.message.nav_overworld_only=ナビはオーバーワールドでのみ使えます。
 yasu_ride.message.nav_nothing_found=近くには何も見つかりませんでした。

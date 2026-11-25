@@ -18,7 +18,7 @@
 ### Menu and map delivery
 
 - Applies to: The destinations offered to an eligible driver.
-- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The list is currently empty and no form opens. The command adapter has inventory and feet-drop paths. The adapter verifies inventory delivery by comparing the total number of filled maps before and after the loot command, while a feet-drop for a full inventory leaves delivery unverified.
+- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The form opens with these destinations in order: `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`. The command adapter has inventory and feet-drop paths. The adapter verifies inventory delivery by comparing the total number of filled maps before and after the loot command, while a feet-drop for a full inventory leaves delivery unverified.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.
 - Implementation: `src/domain/vehicle/navigation/destinations.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`, `src/infrastructure/shared/choiceForm.ts`.
@@ -44,7 +44,6 @@
 
 ## Open issues
 
-- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain; successful search cost and the remaining human checks still need verification before enabling the menu.
-- First-person off-hand rendering while driving remains to be checked on PC and touch.
+- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for the seven markers other than monument, village, and jungle temple, the result when no structure is found, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.
