@@ -44,7 +44,6 @@
 
 ## Open issues
 
-- ADR 0261 calls for maps to the nearest unexplored destination. The [natural-terrain spike re-run](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2496) yielded filled maps for all ten destinations using `minecraft:map`. Markers for the seven destinations other than monument, village, and jungle temple, the no-structure result, and the Locator Bar still need human checks.
-- First-person off-hand rendering while driving remains to be checked on PC and touch.
+- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for the seven markers other than monument, village, and jungle temple, the result when no structure is found, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.

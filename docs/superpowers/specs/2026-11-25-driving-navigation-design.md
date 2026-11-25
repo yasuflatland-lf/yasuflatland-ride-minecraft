@@ -37,7 +37,7 @@ The second need is already met by the vanilla Player Locator Bar (Bedrock, since
 ## Constraints
 
 - Stable Script API `@minecraft/server` 2.11 has no structure-locating call. `runCommand("locate ...")` returns only a `CommandResult` with a success count, so the script cannot read structure coordinates. `Dimension.getBiome` only reads loaded positions.
-- Explorer maps come from the loot table function `exploration_map` with a `destination`. The script can run it through the stable `LootTableManager.generateLootFromTable` or through a `/loot` command executed at the driver. Which path searches from the correct origin is unknown and must be checked in game (see Spike).
+- Explorer maps come from the loot table function `exploration_map` with a `destination`. A `/loot` command executed at the driver searches from the player's position; the origin used by the stable `LootTableManager.generateLootFromTable` remains unverified (see Spike results).
 - Bedrock's list of valid `destination` values is not documented in full. Microsoft's example uses `buriedtreasure`; community lists mention mansion, monument, jungle temple, swamp hut, village variants and trial chambers. The menu offers only values confirmed in game.
 - Layer, feature and kind rules (ADR 0012, 0046, 0055, 0072, 0090) hold and are checked by `pnpm lint:deps`. Per-kind values follow ADR 0050; the radar range and timing are shared values in one spec constant, not per kind, unless a kind needs a different value.
 - Pack changes need a Resource Pack manifest bump (ADR 0015) and paths within the ADR 0047 layout and 80-character limit.
@@ -113,25 +113,11 @@ These were settled by the designer, not the owner. The owner can overturn any of
 
 ## Spike results
 
-**Confirmed menu order (`NavDestination`): `[]`.** On 2026-11-25, BDS 1.26.66.1 produced one `minecraft:empty_map` for each of the ten candidates through both tested paths. No filled map or destination marker appeared. The dev Overworld was newly generated with `LEVEL_TYPE=FLAT`, and the server reported zero connected players.
+On 2026-11-25, a re-run on dev BDS 1.26.66.1 with natural terrain and a connected player produced a `minecraft:filled_map` for each destination below. Each loot table had one pool and one `minecraft:map` item entry with the `exploration_map` function and its `destination`, without decoration or zoom. The earlier flat-world spike found no filled maps because its entries used `minecraft:empty_map`, which yields a blank map.
 
-The test pack supplied one single-roll table per candidate, with `exploration_map` on `minecraft:empty_map`, zoom 2, and decoration `mansion`, `monument`, or `red_x` for the other eight. The script timed each synchronous call with `Date.now()`. It inspected the manager's returned item stacks and the new item entities at the command's drop point two ticks later. Each spawn returned a success count of 1. Elapsed times below are from one complete run using quoted table paths.
+**Confirmed menu order (`NavDestination`):** `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, `ruins`.
 
-| Candidate | Loot manager (ms) | Loot spawn at 8, 80, 8 (ms) |
-| --- | ---: | ---: |
-| `buriedtreasure` | 2 | 38 |
-| `mansion` | 1 | 1 |
-| `monument` | 1 | 2 |
-| `village` | 1 | 2 |
-| `jungle_temple` | 0 | 1 |
-| `swamp_hut` | 1 | 1 |
-| `trial_chambers` | 1 | 1 |
-| `pillager_outpost` | 1 | 1 |
-| `shipwreck` | 1 | 1 |
-| `ruins` | 1 | 1 |
-
-- **Give path and scope.** No player-origin path is confirmed. The manager took only the loot table, and the dimension command supplied a drop position. Neither observation establishes where a successful search starts. Running `loot give @s` as a driver at two distinct positions and checking the resulting markers is **pending human check**. Issues 5/7 and 6/7 remain blocked. Call 2 cancels them only if neither path searches from the player.
-- **20-tick cutoff.** No destination exceeded 1,000 ms in this run. The 1 ms mansion result measured an empty map on flat terrain. The cost of a successful distant search remains unknown.
-- **Nothing found.** At the drop coordinates, a separate console `locate structure monument` reported “No valid structure found within a reasonable distance”. Both loot paths still yielded one empty map. The item type identifies the blank result. The command's success count cannot identify it, and the blank alone cannot distinguish a search miss from a table that never produced a filled map.
-- **Off-hand map while riding an SUV in first person.** PC: **pending human check**. iPad: **pending human check**.
-- **Player Locator Bar.** On the fresh world, the console's `gamerule` listing reported `locatorbar = true` and `playerWaypoints = everyone`. Default on-screen visibility while riding with another player online is **pending human check**.
+- **Search origin and delivery.** `execute as <player> at @s run loot give @s loot "yasu_ride/<table>"` searched from the player's position: the map center moved with the player, and the monument map pointed the right way. The table name omits `loot_tables/` and `.json`; quote the path containing a slash. The prefixed file form (`loot_tables/yasu_ride/<table>.json`) and the loot manager's search origin were not verified. The item arrives as `minecraft:filled_map`, with the map ID as its data value, so inventory queries must ignore data.
+- **Markers and search scope.** Markers were seen for monument, village, and jungle temple on PC and iPad. The other seven maps were filled, but their markers were not inspected. The search skips already generated chunks and finds the nearest unexplored place. Setting `skip_existing_chunks:false` showed no visible change, so keep the default.
+- **Search cost.** The earlier timings measured blank maps from `empty_map` entries, not successful searches. The cost of a successful distant search and the 20-tick cutoff remain to be checked.
+- **Remaining human checks.** Inspect the seven remaining markers, the result when no structure is found, the off-hand map while riding an SUV in first person on PC and iPad, and the Locator Bar with a second player online. The earlier fresh-world console listing reported `locatorbar = true` and `playerWaypoints = everyone`.
