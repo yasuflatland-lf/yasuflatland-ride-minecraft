@@ -20,11 +20,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PaintVehicle } from "../../../../src/application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
+import { SwitchBoost } from "../../../../src/application/vehicle/switchBoost";
+import { SwitchFeedback } from "../../../../src/application/vehicle/switchFeedback";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { drawerAtHeight } from "../../../../src/domain/vehicle/kinds/camper/furniture";
 import { COUNTER_HEIGHT } from "../../../../src/domain/vehicle/kinds/camper/spec";
+import {
+  profileOf,
+  rebuildVehicle,
+} from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import type { VehicleRepository } from "../../../../src/domain/vehicle/vehicleRepository";
 import { PAINT_BY_DYE } from "../../../../src/infrastructure/shared/dyes";
@@ -32,6 +38,7 @@ import { HEADLIGHT_SWITCH_TYPE } from "../../../../src/infrastructure/shared/ide
 import type { SwitchTarget } from "../../../../src/infrastructure/shared/switchRouter";
 import { registerDockGuard } from "../../../../src/infrastructure/vehicle/bedrock/handlers/dockGuard";
 import {
+  BOOSTER_TYPE,
   DECK_FLOOR_BLOCK,
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
@@ -61,8 +68,13 @@ import {
 } from "../../../../src/infrastructure/vehicle/kinds/camper/identifiers";
 import { registerCamperHandlers } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
 import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInput/vehicleTestStore";
-import { FakeClock, FakeWorld } from "../../../application/vehicle/fakes";
+import {
+  FakeClock,
+  FakeWorld,
+  InMemoryRepo,
+} from "../../../application/vehicle/fakes";
 import { defined } from "../../../support/defined";
+import { riderView } from "../../../support/riders";
 
 type UseCases = Parameters<typeof registerCoreSubscriptions>[0] &
   Parameters<typeof registerCamperHandlers>[0];
@@ -2028,7 +2040,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
   });
 });
 
-describe("equipment switch (ADR 0171)", () => {
+describe("vehicle item switch routes", () => {
   const bladeSwitchType = "yasu_ride:blade_switch";
   const location = { x: 2.5, y: 64, z: 3.5 };
   function fixture(
@@ -2037,9 +2049,10 @@ describe("equipment switch (ADR 0171)", () => {
       typeId: ENTITY_TYPE.bulldozer,
     },
     result = true,
+    boost?: SwitchBoost,
   ) {
     const playSound = vi.fn();
-    const vehicle = mount
+    let vehicle = mount
       ? { ...mount, dimension: { playSound }, location }
       : undefined;
     const equipment = { execute: vi.fn(() => result), force: vi.fn() };
@@ -2059,6 +2072,7 @@ describe("equipment switch (ADR 0171)", () => {
     register({
       useCases: {
         equipment,
+        boost,
         headlights,
         ceilingLights,
         board: { execute: vi.fn(() => false) },
@@ -2095,6 +2109,14 @@ describe("equipment switch (ADR 0171)", () => {
       ceilingLights,
       later,
       playSound,
+      changeMount(id: string) {
+        vehicle = {
+          id,
+          typeId: ENTITY_TYPE.bulldozer,
+          dimension: { playSound },
+          location,
+        };
+      },
       send(
         kind: "item" | "entity" | "block",
         typeId: string | undefined,
@@ -2107,7 +2129,7 @@ describe("equipment switch (ADR 0171)", () => {
           player,
           source: player,
           itemStack,
-          target: { ...target, location },
+          target: { ...target, location, isValid: true },
           isFirstEvent,
           cancel: false,
         };
@@ -2126,6 +2148,115 @@ describe("equipment switch (ADR 0171)", () => {
       },
     };
   }
+
+  function booster() {
+    const repo = new InMemoryRepo();
+    const clock = new FakeClock();
+    const messages = { showMessage: vi.fn() };
+    const feedback = new SwitchFeedback(messages, {
+      isThirdPerson: () => true,
+    });
+    return {
+      clock,
+      messages,
+      useCase: new SwitchBoost(repo, clock, feedback, messages),
+      addVehicle(id: string, kind: "bulldozer" | "sportsboat" = "bulldozer") {
+        const driver = riderView("player", {
+          offset: defined(profileOf(kind).seats.positions[0], "driver seat"),
+        });
+        repo.save(rebuildVehicle(kind, asVehicleId(id), 0, [driver], {}));
+      },
+    };
+  }
+
+  it("claims booster uses only while riding and entity presses only on the ridden vehicle", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom("item", "entity", "block"),
+        fc.constantFrom("vehicle", "pig", "on foot"),
+        fc.boolean(),
+        (event, mount, ownVehicle) => {
+          const boost = booster();
+          boost.addVehicle("dozer");
+          const f = fixture(
+            mount === "vehicle"
+              ? { id: "dozer", typeId: ENTITY_TYPE.bulldozer }
+              : mount === "pig"
+                ? { id: "pig", typeId: "minecraft:pig" }
+                : null,
+            true,
+            boost.useCase,
+          );
+          const target = {
+            id: ownVehicle ? "dozer" : "other",
+            typeId: ENTITY_TYPE.bulldozer,
+          };
+          const ev = f.send(event, BOOSTER_TYPE, target);
+          const entityClaimed =
+            event === "entity" && mount === "vehicle" && ownVehicle;
+          expect(ev.cancel).toBe(entityClaimed);
+          expect(f.playSound).toHaveBeenCalledTimes(
+            event === "item" && mount === "vehicle" ? 1 : 0,
+          );
+          f.nextTick();
+          const switched =
+            entityClaimed || (event === "item" && mount === "vehicle");
+          expect(f.playSound.mock.calls).toEqual(
+            switched ? [["random.click", location]] : [],
+          );
+          expect(f.headlights.execute).not.toHaveBeenCalled();
+          expect(f.equipment.execute).not.toHaveBeenCalled();
+          expect(f.later.switchFor).not.toHaveBeenCalled();
+        },
+      ),
+    );
+  });
+
+  it("shares the booster cooldown across item uses and cancelled entity presses", () => {
+    const boost = booster();
+    boost.addVehicle("dozer");
+    const f = fixture(undefined, true, boost.useCase);
+    f.send("item", BOOSTER_TYPE);
+    expect(f.send("entity", BOOSTER_TYPE).cancel).toBe(true);
+    boost.clock.tick++;
+    f.nextTick();
+    expect(f.playSound).toHaveBeenCalledTimes(1);
+    boost.clock.tick += SPEC.boosterSwitchCooldown;
+    f.send("item", BOOSTER_TYPE);
+    expect(f.playSound).toHaveBeenCalledTimes(2);
+    expect(boost.messages.showMessage.mock.calls).toEqual([
+      ["player", "boost_on"],
+      ["player", "boost_off"],
+    ]);
+  });
+
+  it("does not toggle a different mount after a cancelled entity press", () => {
+    const boost = booster();
+    boost.addVehicle("dozer");
+    boost.addVehicle("other");
+    const f = fixture(undefined, true, boost.useCase);
+    expect(f.send("entity", BOOSTER_TYPE).cancel).toBe(true);
+    f.changeMount("other");
+    f.nextTick();
+    expect(f.playSound).not.toHaveBeenCalled();
+  });
+
+  it("shows the sports boat refusal without playing the switch click", () => {
+    const boost = booster();
+    boost.addVehicle("boat", "sportsboat");
+    const f = fixture(
+      { id: "boat", typeId: ENTITY_TYPE.sportsboat },
+      true,
+      boost.useCase,
+    );
+    f.send("item", BOOSTER_TYPE);
+    expect(boost.messages.showMessage).toHaveBeenCalledExactlyOnceWith(
+      "player",
+      "boost_unavailable",
+    );
+    expect(f.playSound).not.toHaveBeenCalled();
+  });
+
   it("routes each switch item to its own targets only", () => {
     fc.assert(
       fc.property(

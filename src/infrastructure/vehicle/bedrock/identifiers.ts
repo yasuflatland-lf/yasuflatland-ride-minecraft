@@ -171,6 +171,7 @@ export const TEST_INPUT_EVENT = id("test_input");
 
 /** Item routes for every kind's equipment switches (ADR 0171). */
 export const EQUIPMENT_SWITCH_TYPES = EQUIPMENT_SWITCH_ITEMS.map(id);
+export const BOOSTER_TYPE = id("booster");
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
  * behind, as F5 does (ADR 0028), and the pack's presets pulled back from it (ADR 0071, 0170).
