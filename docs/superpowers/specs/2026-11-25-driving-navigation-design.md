@@ -58,7 +58,7 @@ For obtaining maps, the owner chose a nav item used from the driver's seat (A) o
 1. The nav item joins the held-item switch route table in `src/infrastructure/vehicle/bedrock/subscriptions.ts`, as the booster does (`boosterSwitchTarget`). Only the driver in seat 0 gets the menu; a passenger or a player on foot gets an action-bar message such as "Use the nav from the driver's seat".
 2. The menu is an `ActionFormData` built like the warp menus (`src/infrastructure/shared/choiceForm.ts`), one button per confirmed destination type, with translated labels in `texts/*.lang`.
 3. Each destination type maps to one loot table in the Behavior Pack (`loot_tables/yasu_ride/nav_<type>.json`, one `exploration_map` entry). The domain holds the list of destination types as data; the infrastructure maps each to its loot table path.
-4. If the search finds nothing (for example monument in a world without ocean nearby), the driver gets "Nothing found nearby" and no item.
+4. If the engine finds no structure of the selected type, the driver gets "Nothing found nearby" and no item.
 
 ### Radar
 
@@ -120,4 +120,4 @@ On 2026-11-25, a re-run on dev BDS 1.26.66.1 with natural terrain and a connecte
 - **Search origin and delivery.** `execute as <player> at @s run loot give @s loot "yasu_ride/<table>"` searched from the player's position: the map center moved with the player, and the monument map pointed the right way. The table name omits `loot_tables/` and `.json`; quote the path containing a slash. The prefixed file form (`loot_tables/yasu_ride/<table>.json`) and the loot manager's search origin were not verified. The item arrives as `minecraft:filled_map`, with the map ID as its data value, so inventory queries must ignore data.
 - **Markers and search scope.** Markers were seen for monument, village, and jungle temple on PC and iPad. The other seven maps were filled, but their markers were not inspected. The search skips already generated chunks and finds the nearest unexplored place. Setting `skip_existing_chunks:false` showed no visible change, so keep the default.
 - **Search cost.** The earlier timings measured blank maps from `empty_map` entries, not successful searches. The cost of a successful distant search and the 20-tick cutoff remain to be checked.
-- **Remaining human checks.** Inspect the seven remaining markers, the result when no structure is found, the off-hand map while riding an SUV in first person on PC and iPad, and the Locator Bar with a second player online. The earlier fresh-world console listing reported `locatorbar = true` and `playerWaypoints = everyone`.
+- **Remaining human checks.** Check full-inventory delivery and menu cancellation on natural terrain, the off-hand map while riding an SUV in first person on PC and iPad, and the Locator Bar with a second player online. The earlier fresh-world console listing reported `locatorbar = true` and `playerWaypoints = everyone`.
