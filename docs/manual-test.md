@@ -81,6 +81,8 @@ Run the server-side scenarios `nav_map_delivery` and `nav_map_full_inventory` on
 2. Connect a player in the Overworld. Leave an inventory slot free for `nav_map_delivery`.
 3. Run `GAME_TEST_FEATURES=vehicle:nav pnpm test:game` and record the tick count printed for each scenario on both world types. CI skips these two scenarios because no player joins.
 
+In two flat-world runs on dev BDS 1.26.66.1 with one player on 2026-11-25, `nav_map_delivery` took 3 ticks and `nav_map_full_inventory` took 1 tick, with natural-terrain timings still unmeasured.
+
 Repeated searches from the same position in one world skip already generated chunks, so later searches can reach farther and take longer. Use fresh terrain when comparing search timings.
 
 To sweep all ten destinations manually, run `scriptevent yasu_ride:test_nav_map <playerId>,<destination>` from the dev server console. Use the connected player's Script API `Player.id` and run the command once each for `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`.

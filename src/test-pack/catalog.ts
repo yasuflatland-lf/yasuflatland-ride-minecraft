@@ -31,8 +31,9 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "nav_map_delivery",
     file: "navMap",
-    // Estimated from three 40-tick probe deadlines. Timing on BDS is pending.
-    ticks: 120,
+    // Flat dev BDS, 2026-11-25, one player: all three destinations returned given.
+    // Natural terrain remains unmeasured.
+    ticks: 3,
     features: ["vehicle:nav"],
     isolation: "exclusive",
     needsPlayer: true,
@@ -41,8 +42,9 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "nav_map_full_inventory",
     file: "navMap",
-    // Allows for the 40-tick probe deadline and inventory setup and cleanup.
-    ticks: 50,
+    // Flat dev BDS, 2026-11-25, one player: the spawn path returned unknown.
+    // Natural terrain remains unmeasured.
+    ticks: 1,
     features: ["vehicle:nav"],
     isolation: "exclusive",
     needsPlayer: true,
