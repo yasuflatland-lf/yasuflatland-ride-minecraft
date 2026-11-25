@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEV_EPOCH_MS,
   DEV_PATCH_BASE,
+  DEV_PATCH_MAX,
   devPackVersion,
   RESOURCE_PACK_UUID,
   readCounter,
@@ -51,9 +52,9 @@ const behaviorPack = fc.record({
 });
 
 describe("dev pack version", () => {
-  it("floors elapsed minutes and keeps a minimum of one", () => {
-    expect(timeFloor(DEV_EPOCH_MS - 60_000)).toBe(1);
-    expect(timeFloor(DEV_EPOCH_MS + 179_999)).toBe(2);
+  it("floors elapsed hours and keeps a minimum of one", () => {
+    expect(timeFloor(DEV_EPOCH_MS - 3_600_000)).toBe(1);
+    expect(timeFloor(DEV_EPOCH_MS + 3 * 3_600_000 - 1)).toBe(2);
   });
   it("keeps the committed major and minor and puts the patch at or above the dev base", () => {
     fc.assert(
@@ -112,7 +113,7 @@ describe("dev pack version", () => {
 
   it("reads back a positive counter", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 1, max: 1_000_000 }), (value) => {
+      fc.property(fc.integer({ min: 1, max: 20_000 }), (value) => {
         expect(readCounter(JSON.stringify({ counter: value }))).toBe(value);
       }),
     );
@@ -210,11 +211,22 @@ describe("writing the dev manifests", () => {
         writeDevManifests({
           packsDir,
           dataDir: dir,
-          now: Date.UTC(2026, 0, 1) + 42 * 60_000 + 59_999,
+          now: Date.UTC(2026, 0, 1) + 42 * 3_600_000 + 3_599_999,
         }).version[2],
       ).toBe(DEV_PATCH_BASE + 42);
     },
   );
+
+  it("refuses a patch above the cap Bedrock accepts", () => {
+    const dir = dataDir();
+    writeFileSync(
+      join(dir, "dev-pack-version.json"),
+      JSON.stringify({ counter: DEV_PATCH_MAX - DEV_PATCH_BASE }),
+    );
+    expect(() =>
+      writeDevManifests({ packsDir, dataDir: dir, now: DEV_EPOCH_MS }),
+    ).toThrow(/Bedrock rejects/);
+  });
 
   it("increments a counter above the time floor", () => {
     const dir = dataDir();
@@ -226,7 +238,7 @@ describe("writing the dev manifests", () => {
       writeDevManifests({
         packsDir,
         dataDir: dir,
-        now: Date.UTC(2026, 0, 1) + 42 * 60_000,
+        now: Date.UTC(2026, 0, 1) + 42 * 3_600_000,
       }).version[2],
     ).toBe(DEV_PATCH_BASE + 101);
   });
@@ -234,9 +246,9 @@ describe("writing the dev manifests", () => {
   it("increases the patch on successive starts with retained state", () => {
     fc.assert(
       fc.property(
-        fc.option(fc.integer({ min: 1, max: 1_000_000 }), { nil: undefined }),
-        fc.nat({ max: 600_000_000 }),
-        fc.nat({ max: 600_000_000 }),
+        fc.option(fc.integer({ min: 1, max: 20_000 }), { nil: undefined }),
+        fc.nat({ max: 15_000 * 3_600_000 }),
+        fc.nat({ max: 15_000 * 3_600_000 }),
         (previous, start, elapsed) => {
           const dir = dataDir();
           if (previous !== undefined)
@@ -255,6 +267,7 @@ describe("writing the dev manifests", () => {
             now: Date.UTC(2026, 0, 1) + start + elapsed,
           }).version[2];
           expect(second).toBeGreaterThan(first ?? Number.POSITIVE_INFINITY);
+          expect(second).toBeLessThanOrEqual(DEV_PATCH_MAX);
         },
       ),
     );

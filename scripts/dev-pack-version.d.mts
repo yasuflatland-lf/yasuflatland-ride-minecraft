@@ -8,6 +8,7 @@ interface Manifest {
 }
 
 export const DEV_PATCH_BASE: number;
+export const DEV_PATCH_MAX: number;
 export const DEV_EPOCH_MS: number;
 export const RESOURCE_PACK_UUID: string;
 
