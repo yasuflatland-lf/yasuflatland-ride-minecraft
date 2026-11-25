@@ -1,4 +1,5 @@
 item.yasu_ride:booster.name=ブースター
+item.yasu_ride:nav.name=ナビ
 item.yasu_ride:suv_item.name=SUV
 entity.yasu_ride:suv.name=SUV
 item.yasu_ride:headlight_switch.name=ヘッドライトスイッチ
@@ -313,3 +314,7 @@ action.interact.yasu_build.tap_target=タップ
 yasu_ride.message.boost_on=ブースト ON
 yasu_ride.message.boost_off=ブースト OFF
 yasu_ride.message.boost_unavailable=この乗り物ではブースターを使えません。
+yasu_ride.nav.title=ナビ
+yasu_ride.message.nav_driver_only=運転席でナビを使ってください。
+yasu_ride.message.nav_overworld_only=ナビはオーバーワールドでのみ使えます。
+yasu_ride.message.nav_nothing_found=近くには何も見つかりませんでした。
