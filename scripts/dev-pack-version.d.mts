@@ -8,8 +8,11 @@ interface Manifest {
 }
 
 export const DEV_PATCH_BASE: number;
+export const DEV_PATCH_MAX: number;
+export const DEV_EPOCH_MS: number;
 export const RESOURCE_PACK_UUID: string;
 
+export function timeFloor(nowMs: number): number;
 export function readCounter(stateText: string | undefined): number;
 
 export function devPackVersion(
@@ -30,4 +33,5 @@ export function rewriteBehaviorPack<T extends Manifest>(
 export function writeDevManifests(options: {
   packsDir: string;
   dataDir: string;
+  now?: number;
 }): { version: number[]; resourcePack: Manifest; behaviorPack: Manifest };
