@@ -9,7 +9,7 @@ import { chooseFromForm } from "../../shared/choiceForm";
 import { messageKey } from "../../shared/identifiers";
 import type { ActionBarLog } from "./actionBarLog";
 import type { EntityIndex } from "./entityIndex";
-import { navLootTable } from "./identifiers";
+import { navDestinationLabelKey, navLootTableId } from "./identifiers";
 
 export class BedrockNavWorld implements NavWorld {
   constructor(
@@ -31,7 +31,7 @@ export class BedrockNavWorld implements NavWorld {
     const choice = await chooseFromForm(
       player,
       "yasu_ride.nav.title",
-      options.map((id) => ({ id, textKey: `yasu_ride.nav.destination.${id}` })),
+      options.map((id) => ({ id, textKey: navDestinationLabelKey(id) })),
     );
     return choice === "cancel" ? undefined : choice;
   }
@@ -42,7 +42,7 @@ export class BedrockNavWorld implements NavWorld {
     const inventory = player.getComponent("minecraft:inventory")?.container;
     const target = inventory?.emptySlotsCount === 0 ? "spawn ~ ~ ~" : "give @s";
     player.runCommand(
-      `execute at @s run loot ${target} loot "${navLootTable(destination)}"`,
+      `execute at @s run loot ${target} loot "${navLootTableId(destination)}"`,
     );
     // Bedrock's success count cannot distinguish an explorer map from a blank map.
     return "unknown";
