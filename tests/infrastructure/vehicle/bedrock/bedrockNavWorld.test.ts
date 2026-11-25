@@ -6,6 +6,7 @@ import { chooseFromForm } from "../../../../src/infrastructure/shared/choiceForm
 import { ActionBarLog } from "../../../../src/infrastructure/vehicle/bedrock/actionBarLog";
 import { BedrockNavWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockNavWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
+import { giveExplorerMap } from "../../../../src/infrastructure/vehicle/bedrock/navMapDelivery";
 
 vi.mock("@minecraft/server", () => ({ world: {} }));
 
@@ -35,6 +36,21 @@ function setup(
   const nav = new BedrockNavWorld(index, new ActionBarLog(index, () => 0));
   return { nav, player, index };
 }
+
+it("returns the give path and the filled map counts around the loot command", () => {
+  const stack = { typeId: "minecraft:filled_map", amount: 3 };
+  const { player } = setup([stack, undefined]);
+  player.runCommand.mockImplementationOnce(() => {
+    stack.amount++;
+    return { successCount: 1 };
+  });
+  expect(giveExplorerMap(player as unknown as Player, destination)).toEqual({
+    path: "give",
+    result: "given",
+    before: 3,
+    after: 4,
+  });
+});
 
 it.each([destination, "cancel", undefined] as const)(
   "maps the form answer %s",
