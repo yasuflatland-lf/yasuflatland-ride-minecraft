@@ -1,4 +1,5 @@
 import type { Ticks } from "../../shared/ticks";
+import { BoostRule } from "./boost";
 import type { MotionLimits } from "./limits";
 import type { Medium } from "./motion";
 import type { WaterPolicy } from "./water";
@@ -18,6 +19,7 @@ export interface TransformingSpec {
   readonly takeoffClimb: number;
   readonly landingSink: number;
   readonly maxClimb: number;
+  readonly boost?: BoostRule;
   readonly flightVerticalDrag: number;
   readonly waterVerticalDrag: number;
   readonly floatDraft: number;
@@ -58,7 +60,10 @@ export function mediumsOf(spec: MediumSpec): Mediums {
   };
 }
 
-type TransformingOptions = Pick<TransformingSpec, "bankEasing" | "waterPolicy">;
+type TransformingOptions = Pick<
+  TransformingSpec,
+  "bankEasing" | "boost" | "waterPolicy"
+>;
 type TransformingTuning = Pick<
   TransformingSpec,
   Exclude<keyof TransformingSpec, keyof Mediums | keyof TransformingOptions>
@@ -66,7 +71,7 @@ type TransformingTuning = Pick<
 
 export function transformingSpecOf(
   spec: TransformingTuning & MediumSpec,
-  { bankEasing, waterPolicy }: TransformingOptions,
+  { bankEasing, boost, waterPolicy }: TransformingOptions,
 ): TransformingSpec {
   return Object.freeze({
     carHeight: spec.carHeight,
@@ -75,6 +80,7 @@ export function transformingSpecOf(
     takeoffClimb: spec.takeoffClimb,
     landingSink: spec.landingSink,
     maxClimb: spec.maxClimb,
+    ...(boost && { boost: new BoostRule(boost.flightScale) }),
     flightVerticalDrag: spec.flightVerticalDrag,
     waterVerticalDrag: spec.waterVerticalDrag,
     floatDraft: spec.floatDraft,

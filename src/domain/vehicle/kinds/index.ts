@@ -25,6 +25,9 @@ import { SuvDrive } from "./suv/drive";
 import { SUV_ENTITY } from "./suv/entity";
 import { SUV_PROFILE } from "./suv/profile";
 
+/** @public Flight boost control for the vehicle item use case. */
+export { BOOST_CONTROL } from "../boost";
+
 export {
   asCampingGear,
   CAMPING_GEAR_IDS,

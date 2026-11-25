@@ -85,7 +85,11 @@ export function updateSpeed(
   creepSpeed: number,
 ): number {
   if (creep) {
-    if (speed >= creepSpeed) return Math.max(creepSpeed, speed - limits.drag);
+    if (speed >= creepSpeed)
+      return Math.min(
+        limits.maxSpeed,
+        Math.max(creepSpeed, speed - limits.drag),
+      );
     return Math.min(
       creepSpeed,
       speed + (speed < 0 ? limits.brake : limits.accel),

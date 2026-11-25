@@ -132,8 +132,8 @@ export class CamperDrive extends TransformingDrive {
     });
   }
 
-  capability<T>(key: CapabilityKey<T>): T | undefined {
-    return offer(key, CAMPER_ROOM, this.room);
+  override capability<T>(key: CapabilityKey<T>): T | undefined {
+    return offer(key, CAMPER_ROOM, this.room) ?? super.capability(key);
   }
 
   cargo(): readonly CampingGearId[] {

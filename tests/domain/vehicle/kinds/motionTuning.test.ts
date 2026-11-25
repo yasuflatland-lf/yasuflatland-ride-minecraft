@@ -26,6 +26,9 @@ import {
   SUV_TYRES,
 } from "../../../../src/domain/vehicle/kinds/suv/profile";
 import { SUV_TRANSFORMING } from "../../../../src/domain/vehicle/kinds/suv/spec";
+import { BoostRule } from "../../../../src/domain/vehicle/motion/boost";
+
+const flightBoost = new BoostRule(3);
 
 // Captured from the kind mappings before issue #2344.
 it.each([
@@ -54,6 +57,7 @@ it.each([
       },
       transforming: {
         carHeight: 2.36,
+        boost: flightBoost,
         doubleTapTicks: 8,
         takeoffTicks: 20,
         takeoffClimb: 0.075,
@@ -110,6 +114,7 @@ it.each([
       },
       transforming: {
         carHeight: 1.5625,
+        boost: flightBoost,
         doubleTapTicks: 8,
         takeoffTicks: 20,
         takeoffClimb: 0.075,
@@ -166,6 +171,7 @@ it.each([
       },
       transforming: {
         carHeight: 4,
+        boost: flightBoost,
         doubleTapTicks: 8,
         takeoffTicks: 20,
         takeoffClimb: 0.075,
@@ -222,6 +228,7 @@ it.each([
       },
       transforming: {
         carHeight: 2.9,
+        boost: flightBoost,
         doubleTapTicks: 8,
         takeoffTicks: 20,
         takeoffClimb: 0.075,
