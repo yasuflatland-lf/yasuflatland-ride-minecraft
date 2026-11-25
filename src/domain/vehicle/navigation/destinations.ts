@@ -1,3 +1,13 @@
-// ADR 0261 requires a filled map and a verified player origin before enabling a destination.
-export const NAV_DESTINATIONS = [] as const;
+export const NAV_DESTINATIONS = [
+  "buriedtreasure",
+  "mansion",
+  "monument",
+  "village",
+  "jungle_temple",
+  "swamp_hut",
+  "trial_chambers",
+  "pillager_outpost",
+  "shipwreck",
+  "ruins",
+] as const;
 export type NavDestination = (typeof NAV_DESTINATIONS)[number];

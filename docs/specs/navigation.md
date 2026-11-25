@@ -18,7 +18,7 @@
 ### Menu and map delivery
 
 - Applies to: The destinations offered to an eligible driver.
-- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The list is currently empty and no form opens. The command adapter has inventory and feet-drop paths. A command success count cannot distinguish a blank map from a filled explorer map.
+- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The form opens with these destinations in order: `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`. The command adapter has inventory and feet-drop paths. A command success count cannot distinguish a blank map from a filled explorer map.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.
 - Implementation: `src/domain/vehicle/navigation/destinations.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`, `src/infrastructure/shared/choiceForm.ts`.
@@ -44,7 +44,7 @@
 
 ## Open issues
 
-- ADR 0261 calls for maps to the nearest unexplored destination. The [recorded spike](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) found no filled maps in the flat test world. Confirm destinations, search cost, and player origin in natural terrain before enabling the menu.
+- ADR 0261 calls for maps to the nearest unexplored destination. The [natural-terrain spike re-run](https://github.com/yasuflatland-lf/yasuflatland-ride-minecraft/issues/2496) yielded filled maps for all ten destinations using `minecraft:map`. Markers for the seven destinations other than monument, village, and jungle temple, the no-structure result, and the Locator Bar still need human checks.
 - First-person off-hand rendering while driving remains to be checked on PC and touch.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.

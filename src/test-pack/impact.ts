@@ -1,4 +1,5 @@
 import { CAMPING_GEAR_IDS } from "../domain/vehicle/kinds/camper/campingGear.ts";
+import { NAV_DESTINATIONS } from "../domain/vehicle/navigation/destinations.ts";
 import type { ScenarioSpec } from "./catalog.ts";
 import { CATALOG } from "./catalog.ts";
 import type { FeatureTag } from "./features.ts";
@@ -265,6 +266,9 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   headlight_switch: ["vehicle", "camp"],
   booster: ["vehicle"],
   nav: ["vehicle"],
+  ...Object.fromEntries(
+    NAV_DESTINATIONS.map((destination) => [`nav_${destination}`, ["vehicle"]]),
+  ),
   icebreaker_switch: ["vehicle:sportsboat"],
   low_chair: ["camp"],
   low_chair_item: ["camp"],

@@ -316,6 +316,16 @@ yasu_ride.message.boost_off=Boost OFF
 yasu_ride.message.boost_unavailable=This vehicle cannot use a booster.
 
 yasu_ride.nav.title=Nav
+yasu_ride.nav.destination.buriedtreasure=Buried treasure
+yasu_ride.nav.destination.mansion=Woodland mansion
+yasu_ride.nav.destination.monument=Ocean monument
+yasu_ride.nav.destination.village=Village
+yasu_ride.nav.destination.jungle_temple=Jungle temple
+yasu_ride.nav.destination.swamp_hut=Swamp hut
+yasu_ride.nav.destination.trial_chambers=Trial chambers
+yasu_ride.nav.destination.pillager_outpost=Pillager outpost
+yasu_ride.nav.destination.shipwreck=Shipwreck
+yasu_ride.nav.destination.ruins=Ocean ruins
 yasu_ride.message.nav_driver_only=Use the nav from the driver's seat.
 yasu_ride.message.nav_overworld_only=The nav only works in the Overworld.
 yasu_ride.message.nav_nothing_found=Nothing found nearby.
