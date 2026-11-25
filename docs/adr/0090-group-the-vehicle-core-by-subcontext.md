@@ -21,7 +21,7 @@ The dependency-cruiser rule that keeps the core away from `motion/` (0055, 0065)
   - `dock/`: `dock.ts` and `floor.ts`
   - `equipment/`: `equipment.ts`
   - `monitor/`: `monitor.ts`
-  - `navigation/`: `destinations.ts`
+  - `navigation/`: `compass.ts`, `destinations.ts`, `radar.ts`, and `radarTargets.ts`
 - Every file under `src/domain/vehicle/` outside `kinds/` and `motion/` is core. The rules of 0055 apply to all of them: the core never imports `kinds/` or `motion/`. `core-imports-motion` matches `^src/domain/vehicle/` with `pathNot` `^src/domain/vehicle/(?:kinds|motion)/`
 - Subfolders of the core may import each other and the flat core files. No rule separates them; they are folders for reading, not features (0046)
 - No barrel `index.ts` in the new subfolders; importers name the file

@@ -14,6 +14,7 @@ import { OpenNav } from "../../application/vehicle/openNav";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { RiderEffects } from "../../application/vehicle/riderEffects";
+import { ScanForPlaces } from "../../application/vehicle/scanForPlaces";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
 import { SwitchBoost } from "../../application/vehicle/switchBoost";
 import { SwitchEquipment } from "../../application/vehicle/switchEquipment";
@@ -37,6 +38,7 @@ import { BedrockInventory } from "./bedrock/bedrockInventory";
 import { BedrockNavWorld } from "./bedrock/bedrockNavWorld";
 import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
+import { BedrockRadarWorld } from "./bedrock/bedrockRadarWorld";
 import { BedrockVehicleWorld } from "./bedrock/bedrockVehicleWorld";
 import {
   composeDockCodec,
@@ -150,6 +152,7 @@ export function installVehicles(deps: {
         repo,
         systemClock,
       ),
+      radar: new ScanForPlaces(new BedrockRadarWorld(index, actionBar), repo),
       board: new BoardVehicle(repo),
     },
     testInputs,

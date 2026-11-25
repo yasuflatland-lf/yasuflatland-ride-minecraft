@@ -27,6 +27,7 @@ import type {
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { NavDestination } from "../../../domain/vehicle/navigation/destinations";
+import type { RadarReport } from "../../../domain/vehicle/navigation/radar";
 import type { Pave } from "../../../domain/vehicle/pave";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
@@ -222,4 +223,18 @@ export interface NavWorld {
     destination: NavDestination,
   ): "given" | "nothing" | "unknown";
   showMessage(playerId: PlayerId, name: string): void;
+}
+
+export interface RadarWorld {
+  position(
+    vehicleId: VehicleId,
+  ): { dimensionId: DimensionId; location: Vec3 } | undefined;
+  mobsNear(
+    dimensionId: DimensionId,
+    center: Vec3,
+    radius: number,
+    types: readonly string[],
+  ): readonly { typeId: string; location: Vec3 }[];
+  isQuiet(playerId: PlayerId): boolean;
+  showReport(playerId: PlayerId, report: RadarReport): void;
 }
