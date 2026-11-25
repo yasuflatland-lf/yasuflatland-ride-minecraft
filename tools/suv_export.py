@@ -86,21 +86,47 @@ def icon(x, y):
 
 
 def switch_icon(x, y):
-    # 16x16 headlight switch icon: a glowing round lamp on a dark switch plate
-    if (x - 7.5) ** 2 + (y - 6.5) ** 2 <= 16:
-        return (*PALETTE["light"], 255)
-    if 3 <= x <= 12 and 11 <= y <= 14:
-        return (*PALETTE["trim"], 255)
+    # 16x16 headlight switch icon: the white high-beam symbol, a D-shaped lamp with light bars.
+    blue, light = (248, 248, 250, 255), (196, 202, 214, 255)
+    if y in (3, 5, 7, 9, 11) and 0 <= x <= (3 if y in (3, 11) else 4):
+        return blue
+    reach = abs(y - 7)
+    if reach <= 5:
+        width = (10, 10, 10, 9, 7, 5)[reach]
+        if 6 <= x < 6 + width:
+            return light if (x, y) in ((7, 4), (7, 5), (8, 4)) else blue
     return (0, 0, 0, 0)
 
 
 def booster_icon(x, y):
-    if 4 <= x <= 11 and 3 <= y <= 10:
-        return (85, 96, 110, 255)
-    if 6 <= x <= 9 and 11 <= y <= 14:
-        return (255, 145 if y < 13 else 210, 40, 255)
-    if 5 <= x <= 10 and y == 2:
-        return (165, 180, 190, 255)
+    # 16x16 booster icon: a red and white rocket climbing to the upper right with a flame trail.
+    # u runs along the rocket toward its nose, v across it toward the lower right.
+    root = 2 ** 0.5
+    dx, dy = x + 0.5 - 8, 8 - (y + 0.5)
+    u, v = (dx + dy) / root + 1.2, (dx - dy) / root
+    reach = abs(v)
+    if -3.4 <= u <= 5.6:
+        half = 2.3 if u <= 2.6 else 2.3 * ((5.8 - u) / 3.2) ** 0.5
+        if reach <= half:
+            if u >= 5.0:
+                return (45, 45, 52, 255)
+            if u > 2.6:
+                return (150, 25, 28, 255) if v > 0.6 else (215, 45, 38, 255)
+            if (u - 0.4) ** 2 + v ** 2 <= 1.1:
+                return (70, 120, 160, 255) if v < 0.2 else (45, 80, 115, 255)
+            return (165, 172, 184, 255) if v > 0.9 else (240, 240, 244, 255)
+    if -4.4 <= u <= -0.6 and 2.3 < reach <= 4.2 and u <= -0.6 - (reach - 2.3) * 1.3:
+        return (150, 25, 28, 255) if v > 0 else (215, 45, 38, 255)
+    if -4.4 <= u < -3.4 and reach <= 1.3:
+        return (70, 72, 80, 255)
+    if -9 <= u < -4.4:
+        taper = 1 - (-4.4 - u) / 4.6
+        if reach <= 1.9 * taper:
+            if reach <= 0.7 * taper or u > -5.6:
+                return (255, 248, 215, 255)
+            return (255, 214, 55, 255)
+        if reach <= 2.5 * taper:
+            return (255, 130, 30, 255)
     return (0, 0, 0, 0)
 
 

@@ -105,6 +105,13 @@
       ]
     },
     {
+      "script": "gen_vehicle_switch_docs.py",
+      "args": ["docs/images/items/vehicle-switches"],
+      "outputs": ["docs/images/items/vehicle-switches/*.png"],
+      "trackedOutputs": ["docs/images/items/vehicle-switches/*.png"],
+      "reads": []
+    },
+    {
       "script": "gen_build_tools.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [
