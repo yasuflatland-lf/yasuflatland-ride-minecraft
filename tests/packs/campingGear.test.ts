@@ -1090,6 +1090,7 @@ print(json.dumps(result.geometry["bones"][0]["cubes"]))
       "yasu_ride_sportsboat_item",
       "yasu_ride_camper_item",
       "yasu_ride_headlight_switch",
+      "yasu_ride_booster",
     ])
       expect(data).toHaveProperty([key]);
     for (const g of SPEC) {

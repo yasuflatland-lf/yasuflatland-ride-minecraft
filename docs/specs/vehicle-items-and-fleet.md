@@ -22,6 +22,15 @@
 
 ## Rules
 
+### Booster item
+
+- Applies to: the booster item.
+- Rule: The single-stack `yasu_ride:booster` is available in the Creative Items category alongside the headlight switch. It has no recipe and currently has no behavior. Both locales provide its name and boost status messages.
+- Agreement: Accepted
+- Basis: [0008](../adr/0008-vehicle-item-and-breaking.md) establishes vehicle-related items.
+- Implementation: `packs/yasu_ride_bp/items/yasu_ride/booster.item.json`; `tools/suv_export.py`; `packs/yasu_ride_rp/texts/`.
+- Verification: `tests/packs/booster.test.ts` checks the item and locale entries.
+
 ### Crafted vehicle items
 
 - Applies to: SUV, camper, sports boat, bulldozer, and scooter items.
