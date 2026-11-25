@@ -48,3 +48,24 @@ describe("ActionBarLog", () => {
     expect(() => log.write(asPlayerId("player"), "message")).not.toThrow();
   });
 });
+
+it("counts the quiet period from the last successful write to that player", () => {
+  const player = asPlayerId("player");
+  const setActionBar = vi.fn();
+  game.getEntity.mockReturnValue({
+    typeId: "minecraft:player",
+    onScreenDisplay: { setActionBar },
+  });
+  let tick = 42;
+  const log = new ActionBarLog(new EntityIndex(), () => tick);
+  expect(log.quietSince(player, tick)).toBe(true);
+  log.write(player, "message");
+  tick += 10;
+  setActionBar.mockImplementationOnce(() => {
+    throw new Error("Player left");
+  });
+  log.write(player, "failed");
+  expect(log.quietSince(asPlayerId("another"), tick)).toBe(true);
+  expect(log.quietSince(player, 101)).toBe(false);
+  expect(log.quietSince(player, 102)).toBe(true);
+});
