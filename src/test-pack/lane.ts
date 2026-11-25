@@ -69,8 +69,14 @@ export function inside(b: Bounds, p: XZ, halfWidth: number): boolean {
   );
 }
 
+export function runwayArea(lane: Lane): string {
+  return `${lane.tickingArea}_runway`;
+}
+
 export const UNLOAD_AREA = "yasu_ride_unload_spike";
 export const SERIES_AREAS: readonly string[] = [
-  ...Array.from({ length: MAX_LANES }, (_, index) => laneOf(index).tickingArea),
+  ...Array.from({ length: MAX_LANES }, (_, index) => laneOf(index)).flatMap(
+    (lane) => [lane.tickingArea, runwayArea(lane)],
+  ),
   UNLOAD_AREA,
 ];

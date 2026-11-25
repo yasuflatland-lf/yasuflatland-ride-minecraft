@@ -360,7 +360,7 @@ export class TransformingDrive implements Drive {
       ctx,
       controlled,
       waterDepth,
-      boostedNow ? scale : 1,
+      speedScale,
     );
     this.gearDown = nextGearDown(this.gearDown, form, () =>
       groundNear(ctx, step.forward, this.spec),

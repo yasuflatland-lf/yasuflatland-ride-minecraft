@@ -14,6 +14,11 @@ const playerDecorScenarios = new Set([
   "build_structure_rotation_decor",
   "build_paste_structure_decor",
 ]);
+const longCamperFlights = new Set([
+  "camper_boost_release",
+  "camper_boost_wall",
+  "camper_boost_landing",
+]);
 const scenarios = new URL("../../src/test-pack/scenarios/", import.meta.url);
 const registry = readFileSync(new URL("index.ts", scenarios), "utf8");
 const entries = [
@@ -48,7 +53,9 @@ describe("scenario catalog", () => {
     const budget =
       playerDecorScenarios.has(spec.name) && spec.needsPlayer
         ? 1300
-        : MAX_SCENARIO_TICKS;
+        : longCamperFlights.has(spec.name)
+          ? 350
+          : MAX_SCENARIO_TICKS;
     expect(spec.ticks).toBeLessThanOrEqual(budget);
     expect(spec.features.length).toBeGreaterThan(0);
     expect(new Set(spec.features).size).toBe(spec.features.length);

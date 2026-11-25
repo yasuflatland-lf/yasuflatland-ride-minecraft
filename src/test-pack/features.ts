@@ -4,6 +4,7 @@ export const FEATURE_TAGS = [
   "camp",
   "resort",
   "vehicle",
+  "vehicle:booster",
   "vehicle:suv",
   "vehicle:camper",
   "vehicle:sportsboat",

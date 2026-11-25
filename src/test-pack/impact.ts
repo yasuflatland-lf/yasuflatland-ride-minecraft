@@ -39,6 +39,7 @@ const transforming: readonly FeatureTag[] = [
   "vehicle:scooter",
 ];
 export const MOTION_TAGS: Readonly<Record<string, readonly FeatureTag[]>> = {
+  boost: transforming,
   pivot: ["vehicle:bulldozer"],
   dock: ["vehicle:camper", "vehicle:sportsboat"],
   dockEntity: ["vehicle:camper", "vehicle:sportsboat"],

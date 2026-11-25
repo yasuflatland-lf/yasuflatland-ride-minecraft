@@ -6,6 +6,7 @@ import {
 } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { BOOST_CONTROL } from "../../../../src/domain/vehicle/boost";
 import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { createVehicle } from "../../../../src/domain/vehicle/kinds/index";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
@@ -72,6 +73,16 @@ function fixture() {
 
 it.each([
   {
+    id: "yasu_ride:test_boost",
+    set: "dozer,on",
+    reset: "dozer,off",
+    read: ({ dozer }: ReturnType<typeof fixture>) =>
+      dozer.capability(BOOST_CONTROL)?.isOn(),
+    initial: false,
+    expected: true,
+    final: false,
+  },
+  {
     id: "yasu_ride:test_tool",
     set: "dozer,blade_switch,down",
     reset: "dozer,blade_switch,up",
@@ -111,6 +122,8 @@ it.each([
     parts.send(id, set, ScriptEventSource.Entity);
     parts.send("yasu_ride:other", set);
     expect(read(parts)).toEqual(initial);
+    parts.send(id, set);
+    expect(read(parts)).toEqual(expected);
     parts.send(id, set);
     expect(read(parts)).toEqual(expected);
     using warn = vi.spyOn(console, "warn").mockImplementation(() => {});
