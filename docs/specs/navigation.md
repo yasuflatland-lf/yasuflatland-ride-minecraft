@@ -44,7 +44,7 @@
 
 ## Open issues
 
-- ADR 0261 calls for maps to the nearest unexplored destination. The [recorded spike](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) found no filled maps in the flat test world. Confirm destinations, search cost, and player origin in natural terrain before enabling the menu.
+- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain; successful search cost and the remaining human checks still need verification before enabling the menu.
 - First-person off-hand rendering while driving remains to be checked on PC and touch.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.
