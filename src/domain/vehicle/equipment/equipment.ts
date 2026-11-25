@@ -5,18 +5,30 @@ import { SPEC } from "../spec";
 declare const equipmentItemIdBrand: unique symbol;
 type EquipmentItemId = string & { readonly [equipmentItemIdBrand]: true };
 
+export interface SwitchMessages {
+  messageFor(state: string): string | undefined;
+}
+
 /** A held switch with its states in cycle and screen order (ADR 0139). */
-export interface EquipmentSwitch<S extends string = string> {
+export interface EquipmentSwitch<S extends string = string>
+  extends SwitchMessages {
   readonly item: EquipmentItemId;
   readonly states: readonly [S, ...S[]];
   /** Prefix of the action-bar message name, before the state suffix (ADR 0224). */
   readonly feedback?: string;
 }
 
+function messageFor(this: EquipmentSwitch, state: string): string | undefined {
+  return this.feedback !== undefined && this.states.includes(state)
+    ? `${this.feedback}_${state}`
+    : undefined;
+}
+
 export function defineEquipmentSwitch<
   const T extends readonly [string, ...string[]],
 >(item: string, states: T, feedback?: string) {
   return Object.freeze({
+    messageFor,
     item: item as EquipmentItemId,
     states: Object.freeze(states),
     ...(feedback === undefined ? {} : { feedback }),

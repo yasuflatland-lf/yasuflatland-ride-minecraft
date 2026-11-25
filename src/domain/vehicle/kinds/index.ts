@@ -112,20 +112,6 @@ export function equipmentSwitchOf(item: string): EquipmentSwitch | undefined {
   return EQUIPMENT_SWITCH_BY_ITEM.get(item);
 }
 
-export function equipmentFeedback(
-  item: string,
-  state: string,
-): string | undefined {
-  for (const equipmentSwitch of EQUIPMENT_SWITCHES)
-    if (
-      equipmentSwitch.item === item &&
-      equipmentSwitch.feedback !== undefined &&
-      equipmentSwitch.states.includes(state)
-    )
-      return `${equipmentSwitch.feedback}_${state}`;
-  return undefined;
-}
-
 export const fleetLimitOf: FleetLimitOf = (kind) =>
   KINDS[kind].profile.fleetLimit;
 
