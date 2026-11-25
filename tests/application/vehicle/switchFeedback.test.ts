@@ -8,6 +8,7 @@ import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback"
 import { SwitchHeadlights } from "../../../src/application/vehicle/switchHeadlights";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
+import { WIDE_BLADE_SWITCH } from "../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import {
   equipmentFeedback,
   profileOf,
@@ -145,7 +146,7 @@ it("uses the same applied camera state for driving and switch feedback", () => {
           feedback,
         ).execute({
           ...cmd,
-          item: "wide_blade_switch",
+          switch: WIDE_BLADE_SWITCH,
         });
         expect(toolSucceeded).toBe(kind === "bulldozer");
         expect(world.messages.map(({ name }) => name)).toEqual(

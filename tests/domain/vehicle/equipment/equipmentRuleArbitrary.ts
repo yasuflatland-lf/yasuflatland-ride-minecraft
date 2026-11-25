@@ -1,5 +1,8 @@
 import fc from "fast-check";
-import type { EquipmentRule } from "../../../../src/domain/vehicle/equipment/equipment";
+import {
+  defineEquipmentSwitch,
+  type EquipmentRule,
+} from "../../../../src/domain/vehicle/equipment/equipment";
 
 export const equipmentRuleArbitrary = fc
   .uniqueArray(
@@ -15,4 +18,10 @@ export const equipmentRuleArbitrary = fc
       maxLength: 5,
     },
   )
-  .map((switches): EquipmentRule => ({ switches }));
+  .map(
+    (switches): EquipmentRule => ({
+      switches: switches.map(({ item, states }) =>
+        defineEquipmentSwitch(item, states),
+      ),
+    }),
+  );

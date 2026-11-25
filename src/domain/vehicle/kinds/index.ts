@@ -2,6 +2,7 @@
 import type { VehicleId } from "../../shared/ids";
 import type { Drive, RestoredValues } from "../drive";
 import type { EntityContract } from "../entityContract";
+import type { EquipmentSwitch } from "../equipment/equipment";
 import type { FleetLimitOf } from "../fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../kind";
 import type { VehicleProfile } from "../profile";
@@ -96,9 +97,20 @@ const EQUIPMENT_SWITCHES = VEHICLE_KINDS.flatMap(
   (kind) => KINDS[kind].profile.equipment?.switches ?? [],
 );
 
+const EQUIPMENT_SWITCH_BY_ITEM = new Map<string, EquipmentSwitch>(
+  EQUIPMENT_SWITCHES.map((equipmentSwitch) => [
+    equipmentSwitch.item,
+    equipmentSwitch,
+  ]),
+);
+
 export const EQUIPMENT_SWITCH_ITEMS: readonly string[] = Object.freeze([
-  ...new Set(EQUIPMENT_SWITCHES.map((equipmentSwitch) => equipmentSwitch.item)),
+  ...EQUIPMENT_SWITCH_BY_ITEM.keys(),
 ]);
+
+export function equipmentSwitchOf(item: string): EquipmentSwitch | undefined {
+  return EQUIPMENT_SWITCH_BY_ITEM.get(item);
+}
 
 export function equipmentFeedback(
   item: string,

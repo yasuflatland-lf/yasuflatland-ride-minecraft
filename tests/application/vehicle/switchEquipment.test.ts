@@ -5,6 +5,7 @@ import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback"
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
+  equipmentSwitchOf,
   profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
@@ -68,23 +69,38 @@ it("reports the new tool state only for successful chase-camera switches", () =>
           { isThirdPerson: () => thirdPerson },
         );
         const use = new SwitchEquipment(repo, clock, feedback);
-        const cmd = { playerId: driver.id, vehicleId, item };
+        const equipmentSwitch = defined(equipmentSwitchOf(item), item);
+        const cmd = { playerId: driver.id, vehicleId, switch: equipmentSwitch };
         expect(use.execute({ ...cmd, playerId: asPlayerId("passenger") })).toBe(
           false,
         );
         expect(use.execute({ ...cmd, vehicleId: asVehicleId("missing") })).toBe(
           false,
         );
-        expect(use.execute({ ...cmd, item: "unsupported" })).toBe(false);
+        expect(
+          use.execute({
+            ...cmd,
+            switch: defined(
+              equipmentSwitchOf(
+                kind === "bulldozer" ? "icebreaker_switch" : "blade_switch",
+              ),
+              "switch of a different kind",
+            ),
+          }),
+        ).toBe(false);
         expect(messages).toEqual([]);
         expect(use.execute(cmd)).toBe(true);
-        expect(repo.get(vehicleId)?.equipmentState(item)).toBe(first);
+        expect(repo.get(vehicleId)?.equipmentState(equipmentSwitch)).toBe(
+          first,
+        );
         expect(messages).toEqual(thirdPerson ? [firstKey] : []);
         expect(use.execute(cmd)).toBe(false);
         expect(messages).toEqual(thirdPerson ? [firstKey] : []);
         clock.tick += SPEC.equipmentSwitchCooldown;
         expect(use.execute(cmd)).toBe(true);
-        expect(repo.get(vehicleId)?.equipmentState(item)).toBe(second);
+        expect(repo.get(vehicleId)?.equipmentState(equipmentSwitch)).toBe(
+          second,
+        );
         expect(messages).toEqual(thirdPerson ? [firstKey, secondKey] : []);
       },
     ),

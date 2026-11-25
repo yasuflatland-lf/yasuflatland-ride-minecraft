@@ -2,17 +2,31 @@ import { Debounce } from "../../shared/debounce";
 import type { Drive } from "../drive";
 import { SPEC } from "../spec";
 
+declare const equipmentItemIdBrand: unique symbol;
+type EquipmentItemId = string & { readonly [equipmentItemIdBrand]: true };
+
 /** A held switch with its states in cycle and screen order (ADR 0139). */
-interface EquipmentSwitch {
-  readonly item: string;
-  readonly states: readonly [string, ...string[]];
+export interface EquipmentSwitch<S extends string = string> {
+  readonly item: EquipmentItemId;
+  readonly states: readonly [S, ...S[]];
   /** Prefix of the action-bar message name, before the state suffix (ADR 0224). */
   readonly feedback?: string;
 }
 
-interface EquipmentBinding {
-  readonly get: () => string;
-  readonly set: (state: string) => void;
+export function defineEquipmentSwitch<
+  const T extends readonly [string, ...string[]],
+>(item: string, states: T, feedback?: string) {
+  return Object.freeze({
+    item: item as EquipmentItemId,
+    states: Object.freeze(states),
+    ...(feedback === undefined ? {} : { feedback }),
+  });
+}
+
+interface EquipmentBinding<S extends string> {
+  readonly switch: EquipmentSwitch<S>;
+  readonly get: () => NoInfer<S>;
+  readonly set: (state: NoInfer<S>) => void;
 }
 
 /** The equipment switches available on a vehicle kind (ADR 0171). */
@@ -20,47 +34,49 @@ export interface EquipmentRule {
   readonly switches: readonly EquipmentSwitch[];
 }
 
-export function nextEquipmentState(
-  equipmentSwitch: EquipmentSwitch,
+export function isEquipmentState<S extends string>(
+  equipmentSwitch: EquipmentSwitch<S>,
+  state: string | undefined,
+): state is S {
+  const states: readonly string[] = equipmentSwitch.states;
+  return state !== undefined && states.includes(state);
+}
+
+export function nextEquipmentState<S extends string>(
+  equipmentSwitch: EquipmentSwitch<S>,
   current: string | undefined,
-): string {
-  const index =
-    current === undefined ? -1 : equipmentSwitch.states.indexOf(current);
-  // The tuple type guarantees at least one state, so the index is always in range.
-  return equipmentSwitch.states[
-    (index + 1) % equipmentSwitch.states.length
-  ] as string;
+): S {
+  const { states } = equipmentSwitch;
+  const names: readonly string[] = states;
+  const index = current === undefined ? -1 : names.indexOf(current);
+  return states[(index + 1) % states.length] ?? states[0];
 }
 
-export function equipmentSwitchOf(
-  rule: EquipmentRule | undefined,
-  item: string,
-): EquipmentSwitch | undefined {
-  return rule?.switches.find(
-    (equipmentSwitch) => equipmentSwitch.item === item,
-  );
-}
-
-export function equipmentBindings(
+export function equipmentBindings<const States extends readonly string[]>(
   rule: EquipmentRule,
-  bindings: Readonly<Partial<Record<string, EquipmentBinding>>>,
+  bindings: { readonly [K in keyof States]: EquipmentBinding<States[K]> },
 ) {
-  const bindingFor = (item: string) =>
-    Object.hasOwn(bindings, item) ? bindings[item] : undefined;
+  const bindingFor = (equipmentSwitch: EquipmentSwitch) =>
+    rule.switches.includes(equipmentSwitch)
+      ? bindings.find((binding) => binding.switch === equipmentSwitch)
+      : undefined;
 
   return {
-    equipmentState(item: string): string | undefined {
-      const equipmentSwitch = equipmentSwitchOf(rule, item);
-      if (!equipmentSwitch) return undefined;
-      const state = bindingFor(item)?.get();
-      return state !== undefined && equipmentSwitch.states.includes(state)
-        ? state
-        : undefined;
+    equipmentState<S extends string>(
+      equipmentSwitch: EquipmentSwitch<S>,
+    ): S | undefined {
+      const state = bindingFor(equipmentSwitch)?.get();
+      return isEquipmentState(equipmentSwitch, state) ? state : undefined;
     },
-    setEquipmentState(item: string, state: string): boolean {
-      if (!equipmentSwitchOf(rule, item)?.states.includes(state)) return false;
-      const binding = bindingFor(item);
+    cycleEquipment(equipmentSwitch: EquipmentSwitch): boolean {
+      const binding = bindingFor(equipmentSwitch);
       if (!binding) return false;
+      binding.set(nextEquipmentState(binding.switch, binding.get()));
+      return true;
+    },
+    forceEquipment(equipmentSwitch: EquipmentSwitch, state: string): boolean {
+      const binding = bindingFor(equipmentSwitch);
+      if (!binding || !isEquipmentState(binding.switch, state)) return false;
       binding.set(state);
       return true;
     },
@@ -73,27 +89,37 @@ export class EquipmentSwitchboard {
 
   constructor(
     private readonly rule: EquipmentRule | undefined,
-    private readonly drive: Pick<Drive, "equipmentState" | "setEquipmentState">,
+    private readonly drive: Pick<
+      Drive,
+      "equipmentState" | "cycleEquipment" | "forceEquipment"
+    >,
   ) {}
 
   /** Only the driver may advance an equipment switch; all equipment switches share an idle cooldown (ADR 0024, 0171). */
-  switchEquipment(isDriver: boolean, item: string, tick: number): boolean {
-    const equipmentSwitch = equipmentSwitchOf(this.rule, item);
-    if (!isDriver || !equipmentSwitch || !this.drive.setEquipmentState)
+  switchEquipment(
+    isDriver: boolean,
+    equipmentSwitch: EquipmentSwitch,
+    tick: number,
+  ): boolean {
+    if (
+      !isDriver ||
+      !this.rule?.switches.includes(equipmentSwitch) ||
+      !this.drive.cycleEquipment
+    )
       return false;
-    if (!this.cooldown.press(tick)) return false;
-    return this.drive.setEquipmentState(
-      item,
-      nextEquipmentState(equipmentSwitch, this.equipmentState(item)),
+    return (
+      this.cooldown.press(tick) && this.drive.cycleEquipment(equipmentSwitch)
     );
   }
 
-  equipmentState(item: string): string | undefined {
-    return this.drive.equipmentState?.(item);
+  equipmentState<S extends string>(
+    equipmentSwitch: EquipmentSwitch<S>,
+  ): S | undefined {
+    return this.drive.equipmentState?.(equipmentSwitch);
   }
 
   /** Bypasses role and cooldown checks for the server-only test hook (ADR 0171). */
-  forceEquipment(item: string, state: string): boolean {
-    return this.drive.setEquipmentState?.(item, state) ?? false;
+  forceEquipment(equipmentSwitch: EquipmentSwitch, state: string): boolean {
+    return this.drive.forceEquipment?.(equipmentSwitch, state) ?? false;
   }
 }

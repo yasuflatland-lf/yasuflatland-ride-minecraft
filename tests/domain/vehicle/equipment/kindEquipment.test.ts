@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { defineEquipmentSwitch } from "../../../../src/domain/vehicle/equipment/equipment";
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import { KINDS, profileOf } from "../../../../src/domain/vehicle/kinds/index";
 import { defined } from "../../../support/defined";
@@ -14,7 +15,7 @@ it.each(VEHICLE_KINDS)(
       drive,
     );
     for (const equipmentSwitch of rule.switches)
-      expect(equipmentSwitch.states).toContain(stateOf(equipmentSwitch.item));
+      expect(equipmentSwitch.states).toContain(stateOf(equipmentSwitch));
     const unknown = fc
       .oneof(fc.string(), fc.constantFrom("constructor", "__proto__"))
       .filter(
@@ -25,7 +26,7 @@ it.each(VEHICLE_KINDS)(
       );
     fc.assert(
       fc.property(unknown, (item) => {
-        expect(stateOf(item)).toBeUndefined();
+        expect(stateOf(defineEquipmentSwitch(item, ["off"]))).toBeUndefined();
       }),
     );
   },

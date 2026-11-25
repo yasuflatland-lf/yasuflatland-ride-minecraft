@@ -1,9 +1,8 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import {
-  type EquipmentRule,
+  defineEquipmentSwitch,
   equipmentBindings,
-  equipmentSwitchOf,
   nextEquipmentState,
 } from "../../../../src/domain/vehicle/equipment/equipment";
 import { equipmentRuleArbitrary } from "./equipmentRuleArbitrary";
@@ -13,36 +12,39 @@ describe("equipment switch state", () => {
     fc.assert(
       fc.property(fc.string(), fc.string(), (on, off) => {
         fc.pre(on !== off);
-        const invalid = `${on}${off}invalid`;
-        const states = [off, on] as const;
-        const rule: EquipmentRule = {
-          switches: [
-            { item: "switch", states },
-            { item: "unbound", states },
-            { item: "constructor", states },
+        const equipmentSwitch = defineEquipmentSwitch("switch", [off, on]);
+        const unbound = defineEquipmentSwitch("unbound", [off, on]);
+        const extra = defineEquipmentSwitch("extra", [off, on]);
+        let current = off;
+        const switches = equipmentBindings(
+          { switches: [equipmentSwitch, unbound] },
+          [
+            {
+              switch: equipmentSwitch,
+              get: () => current,
+              set: (state) => {
+                current = state;
+              },
+            },
+            { switch: extra, get: () => off, set: () => {} },
           ],
-        };
-        let current = invalid;
-        const binding = {
-          get: () => current,
-          set: (state: string) => {
-            current = state;
-          },
-        };
-        const switches = equipmentBindings(rule, {
-          switch: binding,
-          extra: binding,
-        });
-        expect(switches.equipmentState("switch")).toBeUndefined();
-        for (const state of states) {
-          expect(switches.setEquipmentState("switch", state)).toBe(true);
-          expect(switches.equipmentState("switch")).toBe(state);
-          expect(switches.setEquipmentState("switch", invalid)).toBe(false);
-          for (const item of ["extra", "unbound", "constructor", "__proto__"]) {
-            expect(switches.equipmentState(item)).toBeUndefined();
-            expect(switches.setEquipmentState(item, state)).toBe(false);
-          }
+        );
+        const invalid = `${on}${off}invalid`;
+        for (const [state, next] of [
+          [off, on],
+          [on, off],
+        ] as const) {
+          expect(switches.forceEquipment(equipmentSwitch, state)).toBe(true);
+          expect(switches.equipmentState(equipmentSwitch)).toBe(state);
+          expect(switches.forceEquipment(equipmentSwitch, invalid)).toBe(false);
           expect(current).toBe(state);
+          for (const unsupported of [unbound, extra]) {
+            expect(switches.equipmentState(unsupported)).toBeUndefined();
+            expect(switches.forceEquipment(unsupported, state)).toBe(false);
+            expect(switches.cycleEquipment(unsupported)).toBe(false);
+          }
+          expect(switches.cycleEquipment(equipmentSwitch)).toBe(true);
+          expect(current).toBe(next);
         }
       }),
     );
@@ -64,8 +66,12 @@ describe("equipment switch state", () => {
           );
           for (const start of equipmentSwitch.states) {
             let state = start;
-            for (let i = 0; i < equipmentSwitch.states.length; i++)
+            const visited = new Set<string>();
+            for (const _ of equipmentSwitch.states) {
+              visited.add(state);
               state = nextEquipmentState(equipmentSwitch, state);
+            }
+            expect(visited).toEqual(new Set(equipmentSwitch.states));
             expect(state).toBe(start);
           }
           equipmentSwitch.states.forEach((state, index) => {
@@ -80,27 +86,29 @@ describe("equipment switch state", () => {
     );
   });
 
-  it("finds exactly the declared switch and ignores unknown items or a missing rule", () => {
-    fc.assert(
-      fc.property(equipmentRuleArbitrary, fc.string(), (rule, item) => {
-        for (const equipmentSwitch of rule.switches)
-          expect(equipmentSwitchOf(rule, equipmentSwitch.item)).toBe(
-            equipmentSwitch,
-          );
-        const found = equipmentSwitchOf(rule, item);
-        expect(found !== undefined).toBe(
-          rule.switches.some(
-            (equipmentSwitch) => equipmentSwitch.item === item,
-          ),
-        );
-        expect(
-          equipmentSwitchOf(
-            rule,
-            `${rule.switches.map((equipmentSwitch) => equipmentSwitch.item).join("")}unknown`,
-          ),
-        ).toBeUndefined();
-        expect(equipmentSwitchOf(undefined, item)).toBeUndefined();
-      }),
-    );
+  it("infers each binding's state type from its own switch", () => {
+    const power = defineEquipmentSwitch("power", ["off", "on"]);
+    const blade = defineEquipmentSwitch("blade", ["down", "up"]);
+    const switches = equipmentBindings({ switches: [power, blade] }, [
+      {
+        switch: power,
+        get: () => "off",
+        set: (state) => {
+          expectTypeOf(state).toEqualTypeOf<"off" | "on">();
+        },
+      },
+      {
+        switch: blade,
+        get: () => "down",
+        set: (state) => {
+          expectTypeOf(state).toEqualTypeOf<"down" | "up">();
+        },
+      },
+    ]);
+    expectTypeOf(switches.equipmentState(blade)).toEqualTypeOf<
+      "down" | "up" | undefined
+    >();
+    expect(switches.cycleEquipment(power)).toBe(true);
+    expect(switches.cycleEquipment(blade)).toBe(true);
   });
 });

@@ -4,7 +4,10 @@ import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import { type RawInput, toDriveInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import { equipmentBindings } from "../../equipment/equipment";
+import {
+  type EquipmentSwitch,
+  equipmentBindings,
+} from "../../equipment/equipment";
 import { climbInput, type Form } from "../../motion/forms";
 import type { GroundInput, MotionResult } from "../../motion/motion";
 import { pivotGroundStep, pivotMediumStep } from "../../motion/pivot";
@@ -26,10 +29,10 @@ import {
   wideBladeCommand,
 } from "./entity";
 import {
-  BLADE_SWITCH_ITEM,
+  BLADE_SWITCH,
   BULLDOZER_EQUIPMENT,
-  ROAD_PAVER_SWITCH_ITEM,
-  WIDE_BLADE_SWITCH_ITEM,
+  ROAD_PAVER_SWITCH,
+  WIDE_BLADE_SWITCH,
 } from "./equipment";
 import { type CellClass, paveStep } from "./paver";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
@@ -113,11 +116,15 @@ export function cutReach(form: Form, onGround: boolean): CutReach | undefined {
   return onGround ? { kind: "run" } : undefined;
 }
 
+const [BLADE_DOWN, BLADE_UP] = BLADE_SWITCH.states;
+const [PAVER_OFF, PAVER_ON] = ROAD_PAVER_SWITCH.states;
+const [BLADE_NORMAL, BLADE_WIDE] = WIDE_BLADE_SWITCH.states;
+
 export class BulldozerDrive extends TransformingDrive {
   private travel: TrackTravel = { r: 0, l: 0 };
   private doorTimer = 0;
   private doorSteps = 0;
-  /** The blade's target: the saved property or the spawn default, then whatever setEquipmentState last set. The shown height travels toward it (ADR 0138). */
+  /** The blade's target: the saved property or the spawn default, then the current blade switch state. The shown height travels toward it (ADR 0138). */
   private bladeTargetRaised: boolean;
   /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
   private bladeSteps: number;
@@ -132,27 +139,30 @@ export class BulldozerDrive extends TransformingDrive {
     )
     .add((drive) => drive.wideBlade, wideBladeCommand)
     .add((drive) => drive.roadPaverOn, roadPaverCommand);
-  private readonly equipment = equipmentBindings(BULLDOZER_EQUIPMENT, {
-    [BLADE_SWITCH_ITEM]: {
+  private readonly equipment = equipmentBindings(BULLDOZER_EQUIPMENT, [
+    {
+      switch: BLADE_SWITCH,
       // The monitor shows the target before the blade finishes easing (ADR 0139).
-      get: () => (this.bladeTargetRaised ? "up" : "down"),
+      get: () => (this.bladeTargetRaised ? BLADE_UP : BLADE_DOWN),
       set: (state) => {
-        this.bladeTargetRaised = state === "up";
+        this.bladeTargetRaised = state === BLADE_UP;
       },
     },
-    [ROAD_PAVER_SWITCH_ITEM]: {
-      get: () => (this.roadPaverOn ? "on" : "off"),
+    {
+      switch: ROAD_PAVER_SWITCH,
+      get: () => (this.roadPaverOn ? PAVER_ON : PAVER_OFF),
       set: (state) => {
-        this.roadPaverOn = state === "on";
+        this.roadPaverOn = state === PAVER_ON;
       },
     },
-    [WIDE_BLADE_SWITCH_ITEM]: {
-      get: () => (this.wideBlade ? "wide" : "normal"),
+    {
+      switch: WIDE_BLADE_SWITCH,
+      get: () => (this.wideBlade ? BLADE_WIDE : BLADE_NORMAL),
       set: (state) => {
-        this.wideBlade = state === "wide";
+        this.wideBlade = state === BLADE_WIDE;
       },
     },
-  });
+  ]);
 
   constructor(yaw: number, restored: RestoredOf<typeof BULLDOZER_ENTITY>) {
     super(
@@ -192,12 +202,18 @@ export class BulldozerDrive extends TransformingDrive {
     this.resync();
   }
 
-  equipmentState(item: string): string | undefined {
-    return this.equipment.equipmentState(item);
+  equipmentState<S extends string>(
+    equipmentSwitch: EquipmentSwitch<S>,
+  ): S | undefined {
+    return this.equipment.equipmentState(equipmentSwitch);
   }
 
-  setEquipmentState(item: string, state: string): boolean {
-    return this.equipment.setEquipmentState(item, state);
+  cycleEquipment(equipmentSwitch: EquipmentSwitch): boolean {
+    return this.equipment.cycleEquipment(equipmentSwitch);
+  }
+
+  forceEquipment(equipmentSwitch: EquipmentSwitch, state: string): boolean {
+    return this.equipment.forceEquipment(equipmentSwitch, state);
   }
 
   private bladeTargetSteps(): number {

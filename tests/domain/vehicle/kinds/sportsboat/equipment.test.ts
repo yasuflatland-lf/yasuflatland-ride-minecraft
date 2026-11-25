@@ -2,8 +2,9 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
 import type { TickContext } from "../../../../../src/domain/vehicle/drive";
+import { BLADE_SWITCH } from "../../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { SportsboatDrive } from "../../../../../src/domain/vehicle/kinds/sportsboat/drive";
-import { ICEBREAKER_SWITCH_ITEM as ITEM } from "../../../../../src/domain/vehicle/kinds/sportsboat/equipment";
+import { ICEBREAKER_SWITCH } from "../../../../../src/domain/vehicle/kinds/sportsboat/equipment";
 import { SPORTSBOAT_PROFILE } from "../../../../../src/domain/vehicle/kinds/sportsboat/profile";
 import { SPEC } from "../../../../../src/domain/vehicle/spec";
 import { Vehicle } from "../../../../../src/domain/vehicle/vehicle";
@@ -35,11 +36,17 @@ it("restores only literal true and round trips state changes with one command pe
       (restored, changes, docked) => {
         const drive = new SportsboatDrive(0, { icebreaker: restored, docked });
         let previous = restored === true;
-        expect(drive.equipmentState(ITEM)).toBe(previous ? "on" : "off");
+        expect(drive.equipmentState(ICEBREAKER_SWITCH)).toBe(
+          previous ? "on" : "off",
+        );
         expect(step(drive)).toEqual([]);
         for (const on of changes) {
-          expect(drive.setEquipmentState(ITEM, on ? "on" : "off")).toBe(true);
-          expect(drive.equipmentState(ITEM)).toBe(on ? "on" : "off");
+          expect(
+            drive.forceEquipment(ICEBREAKER_SWITCH, on ? "on" : "off"),
+          ).toBe(true);
+          expect(drive.equipmentState(ICEBREAKER_SWITCH)).toBe(
+            on ? "on" : "off",
+          );
           expect(step(drive)).toEqual(
             on === previous
               ? []
@@ -60,14 +67,22 @@ it("restores only literal true and round trips state changes with one command pe
 
 it("rejects unrelated items and invalid states without changing the mode", () => {
   fc.assert(
-    fc.property(fc.string(), fc.string(), fc.boolean(), (item, state, on) => {
-      fc.pre(item !== ITEM || (state !== "off" && state !== "on"));
-      const drive = new SportsboatDrive(0, { icebreaker: on });
-      expect(drive.setEquipmentState(item, state)).toBe(false);
-      if (item !== ITEM) expect(drive.equipmentState(item)).toBeUndefined();
-      expect(drive.equipmentState(ITEM)).toBe(on ? "on" : "off");
-      expect(step(drive)).toEqual([]);
-    }),
+    fc.property(
+      fc.constantFrom(ICEBREAKER_SWITCH, BLADE_SWITCH),
+      fc.oneof(fc.string(), fc.constantFrom("up", "down")),
+      fc.boolean(),
+      (item, state, on) => {
+        fc.pre(
+          item !== ICEBREAKER_SWITCH || (state !== "off" && state !== "on"),
+        );
+        const drive = new SportsboatDrive(0, { icebreaker: on });
+        expect(drive.forceEquipment(item, state)).toBe(false);
+        if (item !== ICEBREAKER_SWITCH)
+          expect(drive.equipmentState(item)).toBeUndefined();
+        expect(drive.equipmentState(ICEBREAKER_SWITCH)).toBe(on ? "on" : "off");
+        expect(step(drive)).toEqual([]);
+      },
+    ),
   );
 });
 
@@ -93,11 +108,15 @@ it("lets only the boat driver toggle through off, on and off", () => {
         riders,
         0,
       );
-      expect(drive.equipmentState(ITEM)).toBe("off");
+      expect(drive.equipmentState(ICEBREAKER_SWITCH)).toBe("off");
       for (const state of ["on", "off"]) {
-        expect(vehicle.switchEquipment(passenger.id, ITEM, tick)).toBe(false);
-        expect(vehicle.switchEquipment(driver.id, ITEM, tick)).toBe(true);
-        expect(drive.equipmentState(ITEM)).toBe(state);
+        expect(
+          vehicle.switchEquipment(passenger.id, ICEBREAKER_SWITCH, tick),
+        ).toBe(false);
+        expect(
+          vehicle.switchEquipment(driver.id, ICEBREAKER_SWITCH, tick),
+        ).toBe(true);
+        expect(drive.equipmentState(ICEBREAKER_SWITCH)).toBe(state);
         tick += SPEC.equipmentSwitchCooldown + 1;
       }
     }),
