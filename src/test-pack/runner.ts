@@ -9,12 +9,13 @@ import "./renderBench";
 import { type Arena, prepareRun, removeVehicles } from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
-import { laneOf } from "./lane";
+import { BOOST_RUNWAYS, laneOf } from "./lane";
 import { type Outcome, stepLines } from "./outcome";
 import { coverageGaps, planOf } from "./plan";
 import {
   CANCEL_EVENT,
   LOG_TAG,
+  MAX_LANES,
   parseRunRequest,
   type RunRequest,
   TEST_EVENT,
@@ -89,13 +90,30 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     playerConnected: world.getAllPlayers().length > 0,
   });
   const laneCount = plan.lanes.length;
+  const runwayTicks = plan.runs
+    .filter(
+      ({ file, name }) =>
+        file === "booster" ||
+        file === "boosterObstacles" ||
+        (file === "boosterRiders" && name.endsWith("_boost_landing")),
+    )
+    .reduce((ticks, spec) => ticks + spec.ticks, 0);
+  // The unloaded warp probe can add a ticking area while other lanes are live.
+  const reserveWarpArea =
+    laneCount === MAX_LANES &&
+    plan.runs.some(({ name }) => name === "warp_engine_probes");
+  const boostRunwayCount =
+    runwayTicks > 0
+      ? Math.min(laneCount, BOOST_RUNWAYS.length - Number(reserveWarpArea))
+      : 0;
   log(
     runId,
     formatPlan({
       runs: plan.runs.length,
       skipped: plan.skipped.length,
       unselected: plan.unselected,
-      ticks: plan.makespanTicks,
+      // The lower-capacity fallback can serialize all scenarios using the runway.
+      ticks: Math.max(plan.makespanTicks, runwayTicks),
       lanes: laneCount,
     }),
   );
@@ -106,9 +124,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     laneCount === 1
       ? [laneOf(request.at)]
       : plan.lanes.map((_, i) => laneOf(i));
-  const arenas = await prepareRun(dim, lanes);
-  if (state.cancelled) return;
-  log(runId, READY);
+  const arenas = await prepareRun(dim, lanes, boostRunwayCount);
 
   // A throw is a FAIL of that scenario only, so one lane never stops another.
   async function runScenario(
@@ -155,13 +171,20 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     }
   }
 
-  await Promise.all(
-    plan.lanes.map((specs, i) => {
-      const arena = arenas[i];
-      if (!arena) throw new Error(`arena ${i} not prepared`);
-      return runLane(arena, specs, i);
-    }),
-  );
+  try {
+    if (state.cancelled) return;
+    log(runId, READY);
+    await Promise.all(
+      plan.lanes.map((specs, i) => {
+        const arena = arenas[i];
+        if (!arena) throw new Error(`arena ${i} not prepared`);
+        return runLane(arena, specs, i);
+      }),
+    );
+  } finally {
+    for (const runway of arenas[0]?.boostRunways ?? [])
+      dim.runCommand(`tickingarea remove ${runway.lane.tickingArea}`);
+  }
   if (plan.exclusive.length > 0 && !state.cancelled) {
     await removeVehicles(dim);
     const arena = arenas[0];

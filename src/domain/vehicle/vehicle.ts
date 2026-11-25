@@ -257,6 +257,7 @@ export class Vehicle {
   tick(input: VehicleTickInput): TickOutcome {
     const { riders, testInput, testHeld, deckSeatRiders, targets, ...sensors } =
       input;
+    const previousDriver = this.crew.driver;
     const seated = this.crew.update(riders, forward(this.drive.yaw));
     const vacatedCommands = seated.left.flatMap(({ seat }) =>
       this.drive.onSeatVacated(seat),
@@ -265,6 +266,8 @@ export class Vehicle {
       (seat) => this.drive.onSeatTaken?.(seat) ?? [],
     );
     const driver = seated.driver;
+    if (previousDriver !== undefined && driver === undefined)
+      this.drive.onDriverLeft?.();
     if (seated.mounted && driver) this.drive.onDriverMounted(driver.yaw);
 
     const held = driver ? driver.held : testHeld;

@@ -85,7 +85,7 @@ function pivotOrDriveStep(h: HorizontalStepInput): MotionResult {
     return pivotGroundStep(
       h.state,
       h.input.steer,
-      { velocity, onGround: h.ctx.onGround },
+      { velocity, onGround: h.ctx.onGround, boostTouchdown: h.boostTouchdown },
       h.probe,
       h.limits,
       h.tyres,

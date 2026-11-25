@@ -595,7 +595,7 @@ describe("Vehicle booster switch", () => {
     );
   });
 
-  it("starts the next driver's boost off", () => {
+  it("clears boost on departure and starts the next driver with boost off", () => {
     const sim = new Sim();
     const vehicle = createVehicle("suv", asVehicleId("v"), 0);
     sim.riders = [
@@ -606,6 +606,7 @@ describe("Vehicle booster switch", () => {
     expect(vehicle.switchBoost(asPlayerId("driver"), 0)).toBe("on");
     sim.riders = [{ id: "passenger", seat: 1, yaw: 0, raw: IDLE }];
     sim.run(vehicle, 1, 1);
+    expect(vehicle.capability(BOOST_CONTROL)?.isOn()).toBe(false);
     expect(vehicle.switchBoost(asPlayerId("passenger"), 1)).toBe("denied");
     sim.riders = [{ id: "passenger", seat: 0, yaw: 0, raw: IDLE }];
     sim.run(vehicle, 1, 2);
@@ -613,6 +614,9 @@ describe("Vehicle booster switch", () => {
     expect(
       vehicle.switchBoost(asPlayerId("passenger"), SPEC.boosterSwitchCooldown),
     ).toBe("on");
+    sim.riders = [];
+    sim.run(vehicle, 1, SPEC.boosterSwitchCooldown + 1);
+    expect(vehicle.capability(BOOST_CONTROL)?.isOn()).toBe(false);
   });
 });
 

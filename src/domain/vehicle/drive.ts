@@ -97,6 +97,8 @@ export interface Drive {
   readonly yaw: number;
   /** Called when a new driver takes seat 0. */
   onDriverMounted(driverYaw: number): void;
+  /** Called when seat 0 loses its driver without an immediate replacement. */
+  onDriverLeft?(): void;
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
   onSeatTaken?(seat: number): readonly EngineCommand[];

@@ -19,7 +19,7 @@ function boostedWall(
   kind: FlyingKind,
   onStep?: StepSink,
 ): Promise<Outcome> {
-  return withBoostRunway(a, () =>
+  return withBoostRunway(a, (a) =>
     withCar(
       a,
       TRACK_X,
@@ -87,7 +87,7 @@ export const scooterBoostWall = (a: Arena) => boostedWall(a, "scooter");
 export const bulldozerBoostWall = (a: Arena) => boostedWall(a, "bulldozer");
 
 export function bulldozerBoostTools(a: Arena): Promise<Outcome> {
-  return withBoostRunway(a, () =>
+  return withBoostRunway(a, (a) =>
     withCar(
       a,
       TRACK_X,

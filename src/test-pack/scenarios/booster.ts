@@ -20,7 +20,7 @@ function boostRelease(
   const spec = boostSpecs[kind];
   const peak = spec.maxSpeed * MOTION.boostFlightScale;
   const duration = Math.ceil((MOTION.boostFlightScale - 1) / MOTION.boostBleed);
-  return withBoostRunway(a, () =>
+  return withBoostRunway(a, (a) =>
     withCar(
       a,
       32.5,
