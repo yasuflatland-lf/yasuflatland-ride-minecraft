@@ -60,6 +60,11 @@ export function areaBounds(lane: Lane): Bounds {
   };
 }
 
+export function addAreaCommand(lane: Lane): string {
+  const b = areaBounds(lane);
+  return `tickingarea add ${b.minX} -64 ${b.minZ} ${b.maxX} 0 ${b.maxZ} ${lane.tickingArea} true`;
+}
+
 export function inside(b: Bounds, p: XZ, halfWidth: number): boolean {
   return (
     p.x >= b.minX + halfWidth &&

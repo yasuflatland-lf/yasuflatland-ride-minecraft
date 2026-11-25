@@ -20,11 +20,10 @@ Booster runways are dedicated ticking areas outside the lane arenas. Load up to 
 Once per run, perform setup in this order:
 
 1. Remove the series' own named areas. Never use `remove_all`, so the owner's areas survive.
-2. Add all eight lane areas.
-3. Wait, up to a bound, until every lane's corners have loaded.
+2. Add and keep the areas for the lanes the run uses.
+3. Wait, up to a bound, until the used lanes' corners have loaded.
 4. Run the world-wide entity kills.
-5. Remove the areas of lanes this run does not use.
-6. Fill the used lanes one lane per tick, and assert that every fill changed blocks.
+5. Fill the used lanes one lane per tick, and assert that every fill changed blocks.
 
 Apply filters in this order: features, player, shard, then lanes. Pack lane scenarios into K lanes by declared ticks, using the same longest-processing-time-first (LPT) rule as `shardsOf` (0054). Scenarios sharing a group are packed as one unit. The only group is `tent`, because the world allows four tents.
 

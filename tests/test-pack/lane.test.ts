@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   AREA_MARGIN,
+  addAreaCommand,
   areaBounds,
   BOOST_RUNWAY_BOUNDS,
   BOOST_RUNWAYS,
@@ -60,6 +61,22 @@ function overlaps(a: Bounds, b: Bounds): boolean {
 }
 
 describe("lane frame", () => {
+  it("builds distinct ticking-area commands with each lane's bounds and name", () => {
+    fc.assert(
+      fc.property(lane, (l) => {
+        const { minX, minZ, maxX, maxZ } = areaBounds(l);
+        expect(addAreaCommand(l)).toBe(
+          `tickingarea add ${minX} -64 ${minZ} ${maxX} 0 ${maxZ} ${l.tickingArea} true`,
+        );
+      }),
+    );
+    fc.assert(
+      fc.property(distinctLanes, ([a, b]) => {
+        expect(addAreaCommand(a)).not.toBe(addAreaCommand(b));
+      }),
+    );
+  });
+
   it("round trips positions and preserves height and extra fields", () => {
     fc.assert(
       fc.property(lane, position, (l, p) => {
