@@ -6,6 +6,7 @@ import type { CapabilityKey } from "./capability";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { RawInput } from "./driveInput";
+import type { EquipmentSwitch } from "./equipment/equipment";
 import type { Pave } from "./pave";
 
 /** Sensors and inputs from auxiliary seats. Riders, the test input and the ram query stay with the core (ADR 0083). */
@@ -99,9 +100,13 @@ export interface Drive {
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
   onSeatTaken?(seat: number): readonly EngineCommand[];
-  /** Sets a monitor tool's state; false for an unknown item or state (ADR 0171). */
-  setToolState?(item: string, state: string): boolean;
-  /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */
-  toolState?(item: string): string | undefined;
+  /** Advances a switch of this kind in its declared state order (ADR 0171). */
+  cycleEquipment?(equipmentSwitch: EquipmentSwitch): boolean;
+  /** Sets a declared state for the server-only test hook (ADR 0171). */
+  forceEquipment?(equipmentSwitch: EquipmentSwitch, state: string): boolean;
+  /** The current state of a supported switch (ADR 0139). */
+  equipmentState?<S extends string>(
+    equipmentSwitch: EquipmentSwitch<S>,
+  ): S | undefined;
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep;
 }

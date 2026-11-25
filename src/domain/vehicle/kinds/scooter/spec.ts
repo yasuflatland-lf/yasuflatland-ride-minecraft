@@ -1,4 +1,5 @@
 import { ticks } from "../../../shared/ticks";
+import { MOTION } from "../../motion/constants";
 import { transformingSpecOf } from "../../motion/transforming";
 
 // The scooter's own tuning values (ADR 0055); ground speeds are copies of the SUV's numbers, not imports (ADR 0050).
@@ -60,6 +61,7 @@ export const SCOOTER_SPEC = Object.freeze({
 } as const);
 
 export const SCOOTER_TRANSFORMING = transformingSpecOf(SCOOTER_SPEC, {
+  boost: Object.freeze({ flightScale: MOTION.boostFlightScale }),
   bankEasing: "smooth",
   waterPolicy: "surface",
 });

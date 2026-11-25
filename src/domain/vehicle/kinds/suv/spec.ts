@@ -1,4 +1,5 @@
 import { ticks } from "../../../shared/ticks";
+import { MOTION } from "../../motion/constants";
 import { transformingSpecOf } from "../../motion/transforming";
 
 const HITBOX_FRONT = 1.34;
@@ -81,6 +82,7 @@ export const SUV_SPEC = Object.freeze({
 } as const);
 
 export const SUV_TRANSFORMING = transformingSpecOf(SUV_SPEC, {
+  boost: Object.freeze({ flightScale: MOTION.boostFlightScale }),
   bankEasing: "smooth",
   waterPolicy: "submerge",
 });

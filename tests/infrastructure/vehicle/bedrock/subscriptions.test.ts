@@ -22,6 +22,7 @@ import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { drawerAtHeight } from "../../../../src/domain/vehicle/kinds/camper/furniture";
 import { COUNTER_HEIGHT } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
@@ -35,9 +36,9 @@ import {
   DECK_SEAT_OF_PROPERTY,
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
+  EQUIPMENT_SWITCH_TYPES,
   GIFT_ITEM,
   ITEM_TYPE,
-  MONITOR_TOOL_TYPES,
   OWNER_PROPERTY,
   STAND_IN_OF_PROPERTY,
   STAND_IN_PROPERTY,
@@ -2027,7 +2028,7 @@ describe("camper bumper stand-in (ADR 0116)", () => {
   });
 });
 
-describe("monitor tool switch (ADR 0171)", () => {
+describe("equipment switch (ADR 0171)", () => {
   const bladeSwitchType = "yasu_ride:blade_switch";
   const location = { x: 2.5, y: 64, z: 3.5 };
   function fixture(
@@ -2041,7 +2042,7 @@ describe("monitor tool switch (ADR 0171)", () => {
     const vehicle = mount
       ? { ...mount, dimension: { playSound }, location }
       : undefined;
-    const tool = { execute: vi.fn(() => result), force: vi.fn() };
+    const equipment = { execute: vi.fn(() => result), force: vi.fn() };
     const headlights = { execute: vi.fn(() => false) };
     const ceilingLights = { execute: vi.fn(), canSwitch: vi.fn(() => false) };
     const later = {
@@ -2057,7 +2058,7 @@ describe("monitor tool switch (ADR 0171)", () => {
     const entitiesBefore = entities.mock.calls.length;
     register({
       useCases: {
-        tool,
+        equipment,
         headlights,
         ceilingLights,
         board: { execute: vi.fn(() => false) },
@@ -2089,7 +2090,7 @@ describe("monitor tool switch (ADR 0171)", () => {
             : undefined,
     };
     return {
-      tool,
+      equipment,
       headlights,
       ceilingLights,
       later,
@@ -2130,7 +2131,7 @@ describe("monitor tool switch (ADR 0171)", () => {
       fc.property(
         fc.constantFrom(
           HEADLIGHT_SWITCH_TYPE,
-          ...MONITOR_TOOL_TYPES,
+          ...EQUIPMENT_SWITCH_TYPES,
           "minecraft:stick",
           undefined,
         ),
@@ -2139,16 +2140,17 @@ describe("monitor tool switch (ADR 0171)", () => {
           fc.pre(type !== undefined || kind !== "item");
           const f = fixture();
           const ev = f.send(kind, type);
-          if (kind === "entity") expect(f.tool.execute).not.toHaveBeenCalled();
+          if (kind === "entity")
+            expect(f.equipment.execute).not.toHaveBeenCalled();
           f.nextTick();
-          expect(f.tool.execute).toHaveBeenCalledTimes(
+          expect(f.equipment.execute).toHaveBeenCalledTimes(
             type !== undefined &&
-              MONITOR_TOOL_TYPES.includes(type) &&
+              EQUIPMENT_SWITCH_TYPES.includes(type) &&
               kind !== "block"
               ? 1
               : 0,
           );
-          if (type !== undefined && MONITOR_TOOL_TYPES.includes(type)) {
+          if (type !== undefined && EQUIPMENT_SWITCH_TYPES.includes(type)) {
             expect(f.headlights.execute).not.toHaveBeenCalled();
             expect(f.ceilingLights.execute).not.toHaveBeenCalled();
             expect(f.later.switchFor).not.toHaveBeenCalled();
@@ -2158,21 +2160,21 @@ describe("monitor tool switch (ADR 0171)", () => {
       ),
     );
   });
-  it("switches the ridden bulldozer's tool on item use and clicks only when it switched", () => {
+  it("switches the ridden bulldozer's equipment on item use and clicks only when it switched", () => {
     for (const result of [true, false]) {
       const f = fixture({ id: "dozer", typeId: ENTITY_TYPE.bulldozer }, result);
       f.send("item", bladeSwitchType);
-      expect(f.tool.execute).toHaveBeenCalledExactlyOnceWith({
+      expect(f.equipment.execute).toHaveBeenCalledExactlyOnceWith({
         playerId: "player",
         vehicleId: "dozer",
-        item: "blade_switch",
+        switch: BLADE_SWITCH,
       });
       expect(f.playSound).toHaveBeenCalledTimes(result ? 1 : 0);
       if (result)
         expect(f.playSound).toHaveBeenCalledWith("random.click", location);
     }
   });
-  it("ignores the tool switch on foot or on another mount", () => {
+  it("ignores the equipment switch on foot or on another mount", () => {
     fc.assert(
       fc.property(
         fc.constantFrom(undefined, { id: "pig", typeId: "minecraft:pig" }),
@@ -2185,7 +2187,7 @@ describe("monitor tool switch (ADR 0171)", () => {
           const f = fixture(mount ?? null);
           expect(f.send(kind, bladeSwitchType, target).cancel).toBe(false);
           expect(game.run).not.toHaveBeenCalled();
-          expect(f.tool.execute).not.toHaveBeenCalled();
+          expect(f.equipment.execute).not.toHaveBeenCalled();
           expect(f.playSound).not.toHaveBeenCalled();
         },
       ),
@@ -2204,9 +2206,9 @@ describe("monitor tool switch (ADR 0171)", () => {
     ] as const) {
       const f = fixture();
       expect(f.send("entity", item, target).cancel).toBe(claimed);
-      expect(f.tool.execute).not.toHaveBeenCalled();
+      expect(f.equipment.execute).not.toHaveBeenCalled();
       f.nextTick();
-      expect(f.tool.execute).toHaveBeenCalledTimes(claimed ? 1 : 0);
+      expect(f.equipment.execute).toHaveBeenCalledTimes(claimed ? 1 : 0);
     }
   });
   it("never takes a block press", () => {
@@ -2218,7 +2220,7 @@ describe("monitor tool switch (ADR 0171)", () => {
         expect(
           f.send("block", bladeSwitchType, undefined, isFirst).cancel,
         ).toBe(false);
-        expect(f.tool.execute).not.toHaveBeenCalled();
+        expect(f.equipment.execute).not.toHaveBeenCalled();
       }),
     );
   });

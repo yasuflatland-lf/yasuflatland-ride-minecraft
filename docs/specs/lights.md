@@ -25,10 +25,10 @@
 ### Third-person headlight confirmation
 
 - Applies to: Successful headlight switches by chase-camera drivers, including SUV, camper and bulldozer.
-- Rule: After setting the headlights, show translated Headlights ON/OFF for the new state on the switching player's action bar only when the shared `RiderEffects` tracks that player's chase camera. First-person and grounded riders receive no extra message under current camera routing. Unauthorized, missing-vehicle and cooldown-rejected switches show nothing. Ceiling lights and tent lanterns receive no new feedback. Existing routing and light behavior stay unchanged.
+- Rule: The lighting domain maps the new state to `headlights_on` or `headlights_off` through `HEADLIGHT_MESSAGES.messageFor`. After setting the headlights, show translated Headlights ON/OFF for the new state on the switching player's action bar only when the shared `RiderEffects` tracks that player's chase camera. First-person and grounded riders receive no extra message under current camera routing. Unauthorized, missing-vehicle and cooldown-rejected switches show nothing. Ceiling lights and tent lanterns receive no new feedback. Existing routing and light behavior stay unchanged.
 - Agreement: Accepted
 - Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
-- Implementation: `src/application/vehicle/switchHeadlights.ts`; `src/application/vehicle/switchFeedback.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleRiders.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
+- Implementation: `src/domain/vehicle/lighting/headlights.ts`; `src/application/vehicle/switchHeadlights.ts`; `src/application/vehicle/switchFeedback.ts`; `src/application/vehicle/riderEffects.ts`; `src/infrastructure/vehicle/install.ts`; `src/infrastructure/vehicle/bedrock/bedrockVehicleRiders.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/application/vehicle/switchHeadlights.test.ts` covers vehicle kinds, both states, camera gating and failed switches. `switchFeedback.test.ts` checks message mappings and both locale entries. Actual client rendering remains unverified.
 
 ### Headlight switch item and who may switch

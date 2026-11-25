@@ -10,7 +10,10 @@ import {
   toDriveInput,
 } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import { toolBindings } from "../../monitor/monitor";
+import {
+  type EquipmentSwitch,
+  equipmentBindings,
+} from "../../equipment/equipment";
 import { MOTION } from "../../motion/constants";
 import { Hold, heldStep, pushesStick } from "../../motion/dock";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
@@ -38,12 +41,7 @@ import {
   type SPORTSBOAT_ENTITY,
   trimCommand,
 } from "./entity";
-import {
-  ICEBREAKER_OFF,
-  ICEBREAKER_ON,
-  ICEBREAKER_SWITCH_ITEM,
-  SPORTSBOAT_MONITOR,
-} from "./equipment";
+import { ICEBREAKER_SWITCH, SPORTSBOAT_EQUIPMENT } from "./equipment";
 import {
   bowBlocked,
   icebreakerColumns,
@@ -135,6 +133,8 @@ interface SyncedValues {
   icebreaker?: boolean;
 }
 
+const [ICEBREAKER_OFF, ICEBREAKER_ON] = ICEBREAKER_SWITCH.states;
+
 export class SportsboatDrive implements Drive {
   private icebreakerOn: boolean;
   private readonly synced: SyncedCommands<SyncedValues>;
@@ -145,14 +145,15 @@ export class SportsboatDrive implements Drive {
   private roll = 0;
   private readonly hold: Hold;
   private lastCut: LastCut | undefined;
-  private readonly tools = toolBindings(SPORTSBOAT_MONITOR, {
-    [ICEBREAKER_SWITCH_ITEM]: {
+  private readonly equipment = equipmentBindings(SPORTSBOAT_EQUIPMENT, [
+    {
+      switch: ICEBREAKER_SWITCH,
       get: () => (this.icebreakerOn ? ICEBREAKER_ON : ICEBREAKER_OFF),
       set: (state) => {
         this.icebreakerOn = state === ICEBREAKER_ON;
       },
     },
-  });
+  ]);
 
   constructor(
     yaw: number,
@@ -213,12 +214,18 @@ export class SportsboatDrive implements Drive {
     return [];
   }
 
-  toolState(item: string): string | undefined {
-    return this.tools.toolState(item);
+  equipmentState<S extends string>(
+    equipmentSwitch: EquipmentSwitch<S>,
+  ): S | undefined {
+    return this.equipment.equipmentState(equipmentSwitch);
   }
 
-  setToolState(item: string, state: string): boolean {
-    return this.tools.setToolState(item, state);
+  cycleEquipment(equipmentSwitch: EquipmentSwitch): boolean {
+    return this.equipment.cycleEquipment(equipmentSwitch);
+  }
+
+  forceEquipment(equipmentSwitch: EquipmentSwitch, state: string): boolean {
+    return this.equipment.forceEquipment(equipmentSwitch, state);
   }
 
   resync(): void {
