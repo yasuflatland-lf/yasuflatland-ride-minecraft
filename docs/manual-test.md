@@ -97,6 +97,8 @@ To sweep all ten destinations manually, run `scriptevent yasu_ride:test_nav_map 
 | NAV6 | Inspect maps for buried treasure, mansion, swamp hut, trial chambers, pillager outpost, shipwreck, and ruins.                                                                                    | Record whether each map shows its destination marker.                                                                                                                |
 | NAV7 | Generate a map when no structure of the selected type can be found.                                                                                                                              | Record the resulting item and its appearance.                                                                                                                        |
 
+**Recorded results.** On 2026-11-25, one player tested on an iPad in a natural-terrain world on dev BDS 1.26.66.1. The NAV2 village map arrived within a few seconds. All seven NAV6 markers were OK. NAV7 was reported as OK (item and appearance not recorded). NAV3 was not run on natural terrain. No results were reported for NAV1, NAV4, or NAV5.
+
 ## Sports boat
 
 Setup: craft the "Sports Boat" item from 5 iron ingots and an oak boat, or use `/give @s yasu_ride:sportsboat_item`. Use a pool or lake at least 3 blocks deep for water checks and a Nether lava sea for lava checks.

@@ -22,7 +22,7 @@
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.
 - Implementation: `src/domain/vehicle/navigation/destinations.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`, `src/infrastructure/shared/choiceForm.ts`.
-- Verification: `tests/packs/nav.test.ts` checks that the shipped tables match the destination list and have labels. `tests/infrastructure/vehicle/bedrock/bedrockNavWorld.test.ts` checks form answers and both command paths with test data. The `nav_map_delivery` scenario checks inventory delivery for three sampled destinations. The `nav_map_full_inventory` scenario checks that a full inventory selects the spawn path and reports delivery as unknown. Player-origin and rendering checks are in [Manual test](../manual-test.md#nav-explorer-maps).
+- Verification: `tests/packs/nav.test.ts` checks that the shipped tables match the destination list and have labels. `tests/infrastructure/vehicle/bedrock/bedrockNavWorld.test.ts` checks form answers and both command paths with test data. The `nav_map_delivery` scenario checks inventory delivery for three sampled destinations. On flat terrain it returned `given` for `village`, `monument`, and `buriedtreasure`. The `nav_map_full_inventory` scenario checks that a full inventory selects the spawn path and reports delivery as unknown. Both scenarios require a connected player, so CI skips them. Player-origin and rendering checks are in [Manual test](../manual-test.md#nav-explorer-maps).
 
 ### Radar scanning and clustering
 
@@ -44,6 +44,6 @@
 
 ## Open issues
 
-- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for the seven markers other than monument, village, and jungle temple, the result when no structure is found, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
+- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for full-inventory delivery and menu cancellation on natural terrain, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.
