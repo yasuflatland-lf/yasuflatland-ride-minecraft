@@ -135,6 +135,7 @@ export interface HorizontalStepInput {
   readonly spec: TransformingSpec;
   readonly limits: MotionLimits;
   readonly tyres: TyreLimits;
+  readonly boostTouchdown?: "contact" | "grounded";
 }
 
 export type HorizontalStep = (h: HorizontalStepInput) => MotionResult;
@@ -150,6 +151,7 @@ export function transformingHorizontalStep(
       h.input,
       {
         velocity,
+        boostTouchdown: h.boostTouchdown,
         onGround:
           h.ctx.onGround ||
           (h.spec.waterPolicy === "surface" && !isDry(h.waterDepth)),
@@ -207,6 +209,7 @@ export class TransformingDrive implements Drive {
   private readonly guard: StepGuard | undefined;
   private readonly ceiling: SpeedCeiling;
   private boostOn = false;
+  private boostedContact = false;
   private readonly boostControl: BoostControl = {
     isOn: () => this.boostOn,
     toggle: () => {
@@ -292,6 +295,10 @@ export class TransformingDrive implements Drive {
     this.alignToDriver(driverYaw);
   }
 
+  onDriverLeft(): void {
+    this.boostOn = false;
+  }
+
   capability<T>(key: CapabilityKey<T>): T | undefined {
     if (this.spec.boost) return offer(key, BOOST_CONTROL, this.boostControl);
   }
@@ -322,6 +329,7 @@ export class TransformingDrive implements Drive {
       this.spec.carHeight,
     );
     const jumpTapped = (raw?.jump ?? false) && !this.formState.jumpHeld;
+    const previousForm = this.formState.form;
     const form = this.advanceForm(raw, ctx, controlled, waterDepth);
     const flight = form !== "car" && form !== "submarine";
     const boostedNow =
@@ -340,6 +348,7 @@ export class TransformingDrive implements Drive {
       input,
       ctx,
       form,
+      previousForm,
       jumpTapped,
       waterDepth,
       speedScale,
@@ -398,10 +407,21 @@ export class TransformingDrive implements Drive {
     input: GroundInput,
     ctx: TickContext,
     form: Form,
+    previousForm: Form,
     jumpTapped: boolean,
     waterDepth: number,
     speedScale: number,
   ): MotionResult {
+    const boostedGround =
+      form === "car" && ctx.onGround && isDry(waterDepth) && speedScale > 1;
+    const contact =
+      boostedGround && previousForm !== "car" && previousForm !== "submarine";
+    const boostTouchdown = contact
+      ? "contact"
+      : boostedGround && this.boostedContact
+        ? "grounded"
+        : undefined;
+    this.boostedContact = contact;
     const spec =
       form !== "car" && speedScale > 1
         ? { ...this.spec, air: boostedMedium(this.spec.air, speedScale) }
@@ -418,6 +438,7 @@ export class TransformingDrive implements Drive {
       limits:
         speedScale > 1 ? boostedLimits(this.limits, speedScale) : this.limits,
       tyres: this.tyres,
+      boostTouchdown,
     });
     return this.guard ? this.guard(moved, ctx, form) : moved;
   }

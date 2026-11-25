@@ -66,6 +66,7 @@ export function alignOnMount(
 export interface Observation {
   velocity: Vec2;
   onGround: boolean;
+  boostTouchdown?: "contact" | "grounded";
 }
 /** Height of the step to jump onto now: 0 for none (ADR 0004, 0035). */
 export type StepProbe = (f: Vec2, speed: number) => 0 | 1 | 2;
@@ -246,7 +247,9 @@ export function stepMotion(
 
   // Distinguish friction from wall collisions by how much of the previous
   // tick's given velocity remains (ADR 0003, 0082).
-  let friction = prev.friction;
+  // The last ground estimate can be from a different surface or a launch
+  // under acceleration, so start estimating again after a boosted landing.
+  let friction = obs.boostTouchdown === "contact" ? undefined : prev.friction;
   let blocked = false;
   if (prev.expected && obs.onGround) {
     const e = prev.expected;
@@ -298,19 +301,30 @@ export function stepMotion(
   // friction this tick is the target.
   const given = { x: target.x / applied, z: target.z / applied };
   const control = obs.onGround || stepping ? 1 : MOTION.airControl;
+  // Bedrock drags the observed velocity before adding the impulse. At
+  // boosted touchdown, use air retention for the contact tick and derive
+  // ground retention from the steady-speed estimate for the next tick.
+  const retention =
+    obs.boostTouchdown === "contact"
+      ? MOTION.airFriction
+      : clamp(2 - 1 / applied, 0, 1);
+  const impulse = obs.boostTouchdown
+    ? { x: target.x - v.x * retention, z: target.z - v.z * retention }
+    : { x: (given.x - v.x) * control, z: (given.z - v.z) * control };
   return {
     state: {
       ...prev,
       speed,
       yaw,
-      ...(friction === undefined ? {} : { friction }),
-      expected: obs.onGround ? given : undefined,
+      friction,
+      expected:
+        obs.onGround && obs.boostTouchdown !== "contact" ? given : undefined,
       mediumExpected: undefined,
       stepTicks,
     },
     forward: f,
     jumpVelocity,
-    impulse: { x: (given.x - v.x) * control, z: (given.z - v.z) * control },
+    impulse,
   };
 }
 
