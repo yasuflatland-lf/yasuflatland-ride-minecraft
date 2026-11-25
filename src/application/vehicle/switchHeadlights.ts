@@ -1,4 +1,5 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
+import { HEADLIGHT_MESSAGES } from "../../domain/vehicle/lighting/headlights";
 // Use case: a player uses the headlight switch while riding a vehicle (ADR 0020).
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { HeadlightWorld } from "./ports/headlights";
@@ -25,7 +26,7 @@ export class SwitchHeadlights {
     const on = this.world.headlightsOn(cmd.vehicleId);
     if (on === undefined) return false;
     this.world.setHeadlights(cmd.vehicleId, !on);
-    this.feedback?.show(cmd.playerId, "headlight_switch", on ? "off" : "on");
+    this.feedback?.show(cmd.playerId, HEADLIGHT_MESSAGES, on ? "off" : "on");
     return true;
   }
 }

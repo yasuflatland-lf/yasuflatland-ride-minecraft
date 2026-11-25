@@ -38,7 +38,7 @@
 ### Switch feedback in the chase camera
 
 - Applies to: Successful tool and headlight switches while the script-managed chase camera is active.
-- Rule: The camera state used for feedback comes from `RiderEffects.isThirdPerson`, shared with the driving use case. It reflects successful camera application, including retry behavior, rather than a separate flight condition. The switching player receives a localized action-bar message with the new supported tool or headlight state. First-person and grounded riders receive no message under current routing. The bulldozer selects the existing 8-block `mid` preset; SUV remains mid and camper remains 12-block far.
+- Rule: The camera state used for feedback comes from `RiderEffects.isThirdPerson`, shared with the driving use case. It reflects successful camera application, including retry behavior, rather than a separate flight condition. Equipment and headlight switches supply the message name for the new state through `SwitchMessages.messageFor`. The switching player receives a localized action-bar message with the new supported tool or headlight state. First-person and grounded riders receive no message under current routing. The bulldozer selects the existing 8-block `mid` preset; SUV remains mid and camper remains 12-block far.
 - Agreement: Accepted
 - Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
 - Implementation: `src/application/vehicle/riderEffects.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/switchFeedback.ts`; `src/infrastructure/vehicle/install.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`

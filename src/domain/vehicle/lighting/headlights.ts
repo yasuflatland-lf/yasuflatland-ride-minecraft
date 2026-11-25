@@ -1,7 +1,16 @@
 // Where a vehicle with its headlights on puts light blocks (ADR 0020).
 import { type Cell, cellKey, cellOf } from "../../shared/cells";
 import { forward, localPoint, type Vec3 } from "../../shared/vec";
+import type { SwitchMessages } from "../equipment/equipment";
 import type { BeamPattern } from "../profile";
+
+export const HEADLIGHT_MESSAGES: SwitchMessages = Object.freeze({
+  messageFor(state: string) {
+    if (state === "off") return "headlights_off";
+    if (state === "on") return "headlights_on";
+    return undefined;
+  },
+});
 
 export const FULL_LIGHT_LEVEL = 15;
 export type LitCell = Cell & { readonly level: number };

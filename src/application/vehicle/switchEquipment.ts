@@ -23,7 +23,7 @@ export class SwitchEquipment {
       return false;
     this.feedback?.show(
       cmd.playerId,
-      cmd.switch.item,
+      cmd.switch,
       vehicle.equipmentState(cmd.switch),
     );
     return true;

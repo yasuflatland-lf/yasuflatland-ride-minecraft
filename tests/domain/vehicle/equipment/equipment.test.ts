@@ -8,6 +8,19 @@ import {
 import { equipmentRuleArbitrary } from "./equipmentRuleArbitrary";
 
 describe("equipment switch state", () => {
+  it("reports a prefixed message only for a declared state with feedback", () => {
+    fc.assert(
+      fc.property(fc.string(), fc.string(), (prefix, state) => {
+        const labeled = defineEquipmentSwitch("switch", [state], prefix);
+        expect(labeled.messageFor(state)).toBe(`${prefix}_${state}`);
+        expect(labeled.messageFor(`${state}!`)).toBeUndefined();
+        expect(
+          defineEquipmentSwitch("switch", [state]).messageFor(state),
+        ).toBeUndefined();
+      }),
+    );
+  });
+
   it("reads and writes only declared states through their own bindings", () => {
     fc.assert(
       fc.property(fc.string(), fc.string(), (on, off) => {

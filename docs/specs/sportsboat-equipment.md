@@ -83,7 +83,7 @@
 - Rule: The action bar displays the new mode using `yasu_ride.message.icebreaker_off` or `yasu_ride.message.icebreaker_on`. The sports boat drive does not request a chase camera during normal operation. Feedback follows the last camera successfully applied by `RiderEffects`.
 - Agreement: Accepted
 - Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
-- Implementation: `src/domain/vehicle/kinds/sportsboat/equipment.ts` (`SPORTSBOAT_EQUIPMENT`); `src/domain/vehicle/kinds/index.ts` (`equipmentFeedback`); `src/application/vehicle/switchFeedback.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
+- Implementation: `src/domain/vehicle/kinds/sportsboat/equipment.ts` (`SPORTSBOAT_EQUIPMENT`); `src/domain/vehicle/equipment/equipment.ts` (`EquipmentSwitch.messageFor`); `src/application/vehicle/switchFeedback.ts`; `packs/yasu_ride_rp/texts/en_US.lang`; `packs/yasu_ride_rp/texts/ja_JP.lang`
 - Verification: `tests/application/vehicle/switchEquipment.test.ts` checks both states and successful-switch gating. `tests/application/vehicle/switchFeedback.test.ts` checks the keys in every pack locale. On-device action-bar rendering remains unverified.
 
 ### Cut trigger, probe strip and recut limit
