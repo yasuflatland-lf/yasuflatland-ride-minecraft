@@ -1,6 +1,8 @@
 // Tuning values the shared motion functions read (ADR 0055). See docs/adr/0002-0008 for the rationale.
 import { ticks } from "../../shared/ticks";
 export const MOTION = Object.freeze({
+  boostFlightScale: 3,
+  boostBleed: 0.1, // Share of normal top speed lost per tick while the cap falls.
   // The positive floor makes smooth banking settle instead of approaching forever (ADR 0213).
   bankSmooth: Object.freeze({
     minStep: 0.75,

@@ -1,6 +1,8 @@
 // Shared transforming drivetrain: forms, landing gear, bank, and vertical motion, with a per-kind control mapping, horizontal step, and per-tick step-up hook (ADR 0050, 0089).
 
 import { clamp, localOffset, type Vec2 } from "../../shared/vec";
+import { BOOST_CONTROL, type BoostControl } from "../boost";
+import { type CapabilityKey, offer } from "../capability";
 import type {
   Drive,
   DriveStep,
@@ -11,6 +13,7 @@ import type {
 import { NEUTRAL_CONTROL, type RawInput, toDriveInput } from "../driveInput";
 import { SyncedCommands } from "../syncedCommands";
 import { bankSink, stepBank } from "./bank";
+import { boostedLimits, boostedMedium, SpeedCeiling } from "./boost";
 import { MOTION } from "./constants";
 import {
   climbInput,
@@ -202,6 +205,15 @@ export class TransformingDrive implements Drive {
   private readonly horizontal: HorizontalStep;
   private readonly stepUp: boolean;
   private readonly guard: StepGuard | undefined;
+  private readonly ceiling: SpeedCeiling;
+  private boostOn = false;
+  private readonly boostControl: BoostControl = {
+    isOn: () => this.boostOn,
+    toggle: () => {
+      this.boostOn = !this.boostOn;
+      return this.boostOn;
+    },
+  };
 
   constructor(
     yaw: number,
@@ -215,6 +227,7 @@ export class TransformingDrive implements Drive {
     this.horizontal = options.horizontal ?? transformingHorizontalStep;
     this.stepUp = options.stepUp ?? true;
     this.guard = options.guard;
+    this.ceiling = new SpeedCeiling(limits.maxSpeed);
     const form = isForm(restored.form) ? restored.form : "car";
     this.motion = initialMotion(yaw);
     this.formState = initialForm(form);
@@ -274,8 +287,13 @@ export class TransformingDrive implements Drive {
   }
 
   onDriverMounted(driverYaw: number): void {
+    this.boostOn = false;
     this.formState = forgetTap(this.formState);
     this.alignToDriver(driverYaw);
+  }
+
+  capability<T>(key: CapabilityKey<T>): T | undefined {
+    if (this.spec.boost) return offer(key, BOOST_CONTROL, this.boostControl);
   }
 
   /** Turns the drive to a newly mounted driver's view; kinds that hold their heading override this. */
@@ -305,6 +323,16 @@ export class TransformingDrive implements Drive {
     );
     const jumpTapped = (raw?.jump ?? false) && !this.formState.jumpHeld;
     const form = this.advanceForm(raw, ctx, controlled, waterDepth);
+    const flight = form !== "car" && form !== "submarine";
+    const boostedNow =
+      this.boostOn && flight && raw !== undefined && !ctx.awaitingDriver;
+    const scale = this.spec.boost?.flightScale ?? 1;
+    const speedCap = this.ceiling.next(boostedNow, scale);
+    const normalSpeed = this.limits.maxSpeed;
+    const speedScale =
+      form !== "submarine" && speedCap > normalSpeed
+        ? speedCap / normalSpeed
+        : 1;
     const input = this.inputFor(raw, form);
     this.stepReadings = { input, waterDepth };
     const yawBefore = this.motion.yaw;
@@ -314,6 +342,7 @@ export class TransformingDrive implements Drive {
       form,
       jumpTapped,
       waterDepth,
+      speedScale,
     );
     this.bank = stepBank(
       this.bank,
@@ -331,6 +360,7 @@ export class TransformingDrive implements Drive {
       ctx,
       controlled,
       waterDepth,
+      boostedNow ? scale : 1,
     );
     this.gearDown = nextGearDown(this.gearDown, form, () =>
       groundNear(ctx, step.forward, this.spec),
@@ -370,7 +400,12 @@ export class TransformingDrive implements Drive {
     form: Form,
     jumpTapped: boolean,
     waterDepth: number,
+    speedScale: number,
   ): MotionResult {
+    const spec =
+      form !== "car" && speedScale > 1
+        ? { ...this.spec, air: boostedMedium(this.spec.air, speedScale) }
+        : this.spec;
     const moved = this.horizontal({
       state: this.motion,
       input,
@@ -379,8 +414,9 @@ export class TransformingDrive implements Drive {
       jumpTapped,
       waterDepth,
       probe: this.stepUpEnabled() ? stepProbe(ctx, this.spec) : NO_STEP,
-      spec: this.spec,
-      limits: this.limits,
+      spec,
+      limits:
+        speedScale > 1 ? boostedLimits(this.limits, speedScale) : this.limits,
       tyres: this.tyres,
     });
     return this.guard ? this.guard(moved, ctx, form) : moved;
@@ -394,6 +430,7 @@ export class TransformingDrive implements Drive {
     ctx: TickContext,
     controlled: boolean,
     waterDepth: number,
+    climbScale: number,
   ): number {
     if (form === "car") {
       if (this.spec.waterPolicy === "surface" && !isDry(waterDepth)) {
@@ -420,7 +457,7 @@ export class TransformingDrive implements Drive {
         controlled,
         waterDepth,
       );
-    return this.airImpulse(form, raw, ctx);
+    return this.airImpulse(form, raw, ctx, climbScale);
   }
 
   private submarineImpulse(
@@ -465,12 +502,17 @@ export class TransformingDrive implements Drive {
     form: Form,
     raw: RawInput | undefined,
     ctx: TickContext,
+    climbScale: number,
   ): number {
+    const maxClimb = this.spec.maxClimb * climbScale;
     const targetVy = clamp(
-      verticalSpeed(form, climbInput(raw), this.spec) -
-        bankSink(form, this.bank, this.spec),
-      -this.spec.maxClimb,
-      this.spec.maxClimb,
+      verticalSpeed(form, climbInput(raw), {
+        takeoffClimb: this.spec.takeoffClimb,
+        landingSink: this.spec.landingSink,
+        maxClimb,
+      }) - bankSink(form, this.bank, this.spec),
+      -maxClimb,
+      maxClimb,
     );
     return verticalImpulse(
       targetVy,

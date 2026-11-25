@@ -116,6 +116,7 @@ export const BULLDOZER_WIDE_BLADE: BladeRule = Object.freeze({
   halfWidth: 2 * BULLDOZER_SPEC.blade.halfWidth,
 });
 export const BULLDOZER_TRANSFORMING = transformingSpecOf(BULLDOZER_SPEC, {
+  boost: Object.freeze({ flightScale: MOTION.boostFlightScale }),
   bankEasing: "constant",
   waterPolicy: "submerge",
 });
