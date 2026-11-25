@@ -87,7 +87,7 @@ export class BedrockLoadedVehicles implements LoadedVehicleWorld {
         yaw: vehicle.getRotation().y,
         velocity: v,
         onGround: vehicle.isOnGround,
-        riders: this.riders(vehicle, profileOf(kind).monitor !== undefined),
+        riders: this.riders(vehicle, profileOf(kind).equipment !== undefined),
         deckSeatInputs: deckRiders.map((player) =>
           player ? rawInputOf(player) : undefined,
         ),

@@ -11,8 +11,8 @@ import { HEADLIGHT_SWITCH_TYPE } from "../../src/infrastructure/shared/identifie
 import {
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
+  EQUIPMENT_SWITCH_TYPES,
   ITEM_TYPE,
-  MONITOR_TOOL_TYPES,
   VEHICLE_FAMILY,
 } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 import { readLang } from "../support/lang";
@@ -209,7 +209,7 @@ describe("Resource Pack and Behavior Pack references", () => {
       expect.arrayContaining([
         ...Object.values(ITEM_TYPE),
         HEADLIGHT_SWITCH_TYPE,
-        ...MONITOR_TOOL_TYPES,
+        ...EQUIPMENT_SWITCH_TYPES,
       ]),
     );
   });

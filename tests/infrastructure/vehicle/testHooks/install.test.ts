@@ -75,7 +75,7 @@ it.each([
     set: "dozer,blade_switch,down",
     reset: "dozer,blade_switch,up",
     read: ({ dozer }: ReturnType<typeof fixture>) =>
-      dozer.toolState("blade_switch"),
+      dozer.equipmentState("blade_switch"),
     initial: "up",
     expected: "down",
     final: "up",
@@ -125,6 +125,6 @@ it("ignores tool commands for a missing vehicle or a vehicle without that tool",
   const { camper, dozer, send } = fixture();
   send("yasu_ride:test_tool", "missing,blade_switch,down");
   send("yasu_ride:test_tool", "camper,blade_switch,down");
-  expect(camper.toolState("blade_switch")).toBeUndefined();
-  expect(dozer.toolState("blade_switch")).toBe("up");
+  expect(camper.equipmentState("blade_switch")).toBeUndefined();
+  expect(dozer.equipmentState("blade_switch")).toBe("up");
 });

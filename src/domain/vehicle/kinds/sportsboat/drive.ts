@@ -10,7 +10,7 @@ import {
   toDriveInput,
 } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import { toolBindings } from "../../monitor/monitor";
+import { equipmentBindings } from "../../equipment/equipment";
 import { MOTION } from "../../motion/constants";
 import { Hold, heldStep, pushesStick } from "../../motion/dock";
 import type { MotionLimits, TyreLimits } from "../../motion/limits";
@@ -42,7 +42,7 @@ import {
   ICEBREAKER_OFF,
   ICEBREAKER_ON,
   ICEBREAKER_SWITCH_ITEM,
-  SPORTSBOAT_MONITOR,
+  SPORTSBOAT_EQUIPMENT,
 } from "./equipment";
 import {
   bowBlocked,
@@ -145,7 +145,7 @@ export class SportsboatDrive implements Drive {
   private roll = 0;
   private readonly hold: Hold;
   private lastCut: LastCut | undefined;
-  private readonly tools = toolBindings(SPORTSBOAT_MONITOR, {
+  private readonly equipment = equipmentBindings(SPORTSBOAT_EQUIPMENT, {
     [ICEBREAKER_SWITCH_ITEM]: {
       get: () => (this.icebreakerOn ? ICEBREAKER_ON : ICEBREAKER_OFF),
       set: (state) => {
@@ -213,12 +213,12 @@ export class SportsboatDrive implements Drive {
     return [];
   }
 
-  toolState(item: string): string | undefined {
-    return this.tools.toolState(item);
+  equipmentState(item: string): string | undefined {
+    return this.equipment.equipmentState(item);
   }
 
-  setToolState(item: string, state: string): boolean {
-    return this.tools.setToolState(item, state);
+  setEquipmentState(item: string, state: string): boolean {
+    return this.equipment.setEquipmentState(item, state);
   }
 
   resync(): void {

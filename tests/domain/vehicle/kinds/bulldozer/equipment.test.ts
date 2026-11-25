@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { BulldozerDrive } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import {
   BLADE_SWITCH_ITEM,
-  BULLDOZER_MONITOR,
+  BULLDOZER_EQUIPMENT,
   ROAD_PAVER_SWITCH_ITEM,
-} from "../../../../../src/domain/vehicle/kinds/bulldozer/monitor";
+} from "../../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { NAMESPACE } from "../../../../../src/infrastructure/shared/identifiers";
 import { BULLDOZER_PACK_CONTRACT } from "../../../../support/packContract";
 
@@ -36,16 +36,16 @@ function groupItems(qualifiedName: string): string[] {
   );
 }
 
-describe("bulldozer cab monitor rule (ADR 0139)", () => {
+describe("bulldozer equipment rule (ADR 0139)", () => {
   it("shows only items of its creative group", () => {
     const items = groupItems(BULLDOZER_PACK_CONTRACT.monitorGroup);
-    expect(BULLDOZER_MONITOR.tools).toContainEqual(
+    expect(BULLDOZER_EQUIPMENT.switches).toContainEqual(
       expect.objectContaining({
         item: ROAD_PAVER_SWITCH_ITEM,
         states: ["off", "on"],
       }),
     );
-    for (const { item } of BULLDOZER_MONITOR.tools)
+    for (const { item } of BULLDOZER_EQUIPMENT.switches)
       expect(items).toContain(`${NAMESPACE}:${item}`);
   });
 
@@ -54,57 +54,71 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
       fc.property(fc.array(fc.boolean(), { maxLength: 20 }), (switches) => {
         const drive = new BulldozerDrive(0, {});
         for (const raised of switches)
-          drive.setToolState(BLADE_SWITCH_ITEM, raised ? "up" : "down");
-        expect(drive.toolState(BLADE_SWITCH_ITEM)).toBe(
+          drive.setEquipmentState(BLADE_SWITCH_ITEM, raised ? "up" : "down");
+        expect(drive.equipmentState(BLADE_SWITCH_ITEM)).toBe(
           switches.at(-1) === false ? "down" : "up",
         );
       }),
     );
   });
 
-  it("binds every monitor tool and accepts every declared state", () => {
-    for (const { item, states } of BULLDOZER_MONITOR.tools)
+  it("binds every equipment switch and accepts every declared state", () => {
+    for (const { item, states } of BULLDOZER_EQUIPMENT.switches)
       fc.assert(
         fc.property(fc.array(fc.constantFrom(...states)), (changes) => {
           const drive = new BulldozerDrive(0, {});
-          expect(drive.toolState(item)).toBeDefined();
+          expect(drive.equipmentState(item)).toBeDefined();
           for (const state of [...states, ...changes]) {
-            expect(drive.setToolState(item, state)).toBe(true);
-            expect(drive.toolState(item)).toBe(state);
+            expect(drive.setEquipmentState(item, state)).toBe(true);
+            expect(drive.equipmentState(item)).toBe(state);
           }
         }),
       );
   });
 
-  it("leaves every tool unchanged after an invalid state or unknown item", () => {
-    const tools = BULLDOZER_MONITOR.tools;
+  it("leaves every switch unchanged after an invalid state or unknown item", () => {
+    const switches = BULLDOZER_EQUIPMENT.switches;
     const statesOf = (drive: BulldozerDrive) =>
-      tools.map(({ item }) => drive.toolState(item));
+      switches.map(({ item }) => drive.equipmentState(item));
     fc.assert(
       fc.property(
-        fc.tuple(...tools.map((tool) => fc.constantFrom(...tool.states))),
+        fc.tuple(
+          ...switches.map((equipmentSwitch) =>
+            fc.constantFrom(...equipmentSwitch.states),
+          ),
+        ),
         fc
           .oneof(fc.string(), fc.constantFrom("", "toString"))
           .filter(
-            (state) => !tools.some((tool) => tool.states.includes(state)),
+            (state) =>
+              !switches.some((equipmentSwitch) =>
+                equipmentSwitch.states.includes(state),
+              ),
           ),
-        fc.string().filter((item) => !tools.some((tool) => tool.item === item)),
+        fc
+          .string()
+          .filter(
+            (item) =>
+              !switches.some(
+                (equipmentSwitch) => equipmentSwitch.item === item,
+              ),
+          ),
         (initial, invalidState, unknownItem) => {
           const drive = new BulldozerDrive(0, {});
-          tools.forEach(({ item }, i) => {
+          switches.forEach(({ item }, i) => {
             const state = initial[i];
-            if (state !== undefined) drive.setToolState(item, state);
+            if (state !== undefined) drive.setEquipmentState(item, state);
           });
           const before = statesOf(drive);
-          for (const { item } of tools) {
-            expect(drive.setToolState(item, invalidState)).toBe(false);
+          for (const { item } of switches) {
+            expect(drive.setEquipmentState(item, invalidState)).toBe(false);
             expect(statesOf(drive)).toEqual(before);
           }
           for (const state of [
             invalidState,
-            ...tools.flatMap((tool) => tool.states),
+            ...switches.flatMap((equipmentSwitch) => equipmentSwitch.states),
           ]) {
-            expect(drive.setToolState(unknownItem, state)).toBe(false);
+            expect(drive.setEquipmentState(unknownItem, state)).toBe(false);
             expect(statesOf(drive)).toEqual(before);
           }
         },
@@ -112,14 +126,14 @@ describe("bulldozer cab monitor rule (ADR 0139)", () => {
     );
   });
 
-  it("reports no state for an item that is not one of its tools", () => {
+  it("reports no state for an item that is not one of its switches", () => {
     const drive = new BulldozerDrive(0, {});
     for (const item of ["stone", "toString", "constructor", ""])
-      expect(drive.toolState(item)).toBeUndefined();
+      expect(drive.equipmentState(item)).toBeUndefined();
   });
 });
 
-it("rejects unknown tools or states without changing the blade target", () => {
+it("rejects unknown switches or states without changing the blade target", () => {
   fc.assert(
     fc.property(
       fc.string(),
@@ -129,8 +143,8 @@ it("rejects unknown tools or states without changing the blade target", () => {
         const drive = new BulldozerDrive(0, { blade: raised ? 1 : 0 });
         const valid =
           item === BLADE_SWITCH_ITEM && (state === "up" || state === "down");
-        expect(drive.setToolState(item, state)).toBe(valid);
-        expect(drive.toolState(BLADE_SWITCH_ITEM)).toBe(
+        expect(drive.setEquipmentState(item, state)).toBe(valid);
+        expect(drive.equipmentState(BLADE_SWITCH_ITEM)).toBe(
           valid ? state : raised ? "up" : "down",
         );
       },

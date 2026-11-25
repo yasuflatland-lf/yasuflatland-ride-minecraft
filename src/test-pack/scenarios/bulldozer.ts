@@ -11,7 +11,7 @@ import {
   BLADE_SWITCH_ITEM,
   ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
-} from "../../domain/vehicle/kinds/bulldozer/monitor";
+} from "../../domain/vehicle/kinds/bulldozer/equipment";
 import {
   type BladeRule,
   BULLDOZER_SPEC,
@@ -23,8 +23,8 @@ import {
   entityPropertyId,
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import {
+  TEST_EQUIPMENT_EVENT,
   TEST_HELD_ITEM_EVENT,
-  TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/testHooks/identifiers";
 import { type Arena, drive, wait, withCar } from "../arena";
 import { type Outcome, runCourse, type StepSink } from "../outcome";
@@ -47,7 +47,7 @@ async function sendToolState(
   state: string,
 ): Promise<void> {
   await wait(2); // the main pack builds the aggregate of a freshly summoned bulldozer first
-  system.sendScriptEvent(TEST_TOOL_EVENT, `${car.id},${item},${state}`);
+  system.sendScriptEvent(TEST_EQUIPMENT_EVENT, `${car.id},${item},${state}`);
 }
 /** Sets the blade through the server-only test hook and waits until it has finished moving (ADR 0138). */
 async function setBlade(car: Entity, raised: boolean): Promise<void> {

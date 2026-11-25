@@ -1,4 +1,4 @@
-import type { SwitchTool } from "../../../../application/vehicle/switchTool";
+import type { SwitchEquipment } from "../../../../application/vehicle/switchEquipment";
 import { asPlayerId, asVehicleId } from "../../../../domain/shared/ids";
 import { heldTypeId } from "../../../shared/heldItem";
 import { bareId } from "../../../shared/identifiers";
@@ -9,7 +9,9 @@ import { vehicleOfTarget } from "../standIns";
 // The headlight switch's click (bedrockHeadlightWorld.ts)
 const TOOL_SWITCH_SOUND = "random.click";
 
-export function toolSwitchTarget(switchTool: SwitchTool): SwitchTarget {
+export function equipmentSwitchTarget(
+  switchEquipment: SwitchEquipment,
+): SwitchTarget {
   return {
     claimsItemUse: (player) => riddenVehicle(player) !== undefined,
     claimsEntityPress: (player, target) => {
@@ -23,7 +25,7 @@ export function toolSwitchTarget(switchTool: SwitchTool): SwitchTarget {
       const typeId = heldTypeId(player);
       const item = typeId === undefined ? undefined : bareId(typeId);
       if (item === undefined) return;
-      const switched = switchTool.execute({
+      const switched = switchEquipment.execute({
         item,
         playerId: asPlayerId(player.id),
         vehicleId: asVehicleId(vehicle.id),

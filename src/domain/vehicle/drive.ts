@@ -99,9 +99,9 @@ export interface Drive {
   onSeatVacated(seat: number): readonly EngineCommand[];
   /** Called before `step` for each seat a newly boarded rider takes this tick, ascending; its commands go into `finalCommands` after the vacated seats' commands. Absent means none. */
   onSeatTaken?(seat: number): readonly EngineCommand[];
-  /** Sets a monitor tool's state; false for an unknown item or state (ADR 0171). */
-  setToolState?(item: string, state: string): boolean;
-  /** The state name of one of the kind's monitor tools; undefined when `item` is not one of them (ADR 0139). */
-  toolState?(item: string): string | undefined;
+  /** Sets an equipment switch's state; false for an unknown item or state (ADR 0171). */
+  setEquipmentState?(item: string, state: string): boolean;
+  /** The state name of one of the kind's equipment switches; undefined when `item` is not one of them (ADR 0139). */
+  equipmentState?(item: string): string | undefined;
   step(raw: RawInput | undefined, ctx: TickContext): DriveStep;
 }

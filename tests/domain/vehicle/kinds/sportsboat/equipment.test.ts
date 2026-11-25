@@ -35,11 +35,11 @@ it("restores only literal true and round trips state changes with one command pe
       (restored, changes, docked) => {
         const drive = new SportsboatDrive(0, { icebreaker: restored, docked });
         let previous = restored === true;
-        expect(drive.toolState(ITEM)).toBe(previous ? "on" : "off");
+        expect(drive.equipmentState(ITEM)).toBe(previous ? "on" : "off");
         expect(step(drive)).toEqual([]);
         for (const on of changes) {
-          expect(drive.setToolState(ITEM, on ? "on" : "off")).toBe(true);
-          expect(drive.toolState(ITEM)).toBe(on ? "on" : "off");
+          expect(drive.setEquipmentState(ITEM, on ? "on" : "off")).toBe(true);
+          expect(drive.equipmentState(ITEM)).toBe(on ? "on" : "off");
           expect(step(drive)).toEqual(
             on === previous
               ? []
@@ -63,9 +63,9 @@ it("rejects unrelated items and invalid states without changing the mode", () =>
     fc.property(fc.string(), fc.string(), fc.boolean(), (item, state, on) => {
       fc.pre(item !== ITEM || (state !== "off" && state !== "on"));
       const drive = new SportsboatDrive(0, { icebreaker: on });
-      expect(drive.setToolState(item, state)).toBe(false);
-      if (item !== ITEM) expect(drive.toolState(item)).toBeUndefined();
-      expect(drive.toolState(ITEM)).toBe(on ? "on" : "off");
+      expect(drive.setEquipmentState(item, state)).toBe(false);
+      if (item !== ITEM) expect(drive.equipmentState(item)).toBeUndefined();
+      expect(drive.equipmentState(ITEM)).toBe(on ? "on" : "off");
       expect(step(drive)).toEqual([]);
     }),
   );
@@ -93,12 +93,12 @@ it("lets only the boat driver toggle through off, on and off", () => {
         riders,
         0,
       );
-      expect(drive.toolState(ITEM)).toBe("off");
+      expect(drive.equipmentState(ITEM)).toBe("off");
       for (const state of ["on", "off"]) {
-        expect(vehicle.switchTool(passenger.id, ITEM, tick)).toBe(false);
-        expect(vehicle.switchTool(driver.id, ITEM, tick)).toBe(true);
-        expect(drive.toolState(ITEM)).toBe(state);
-        tick += SPEC.toolSwitchCooldown + 1;
+        expect(vehicle.switchEquipment(passenger.id, ITEM, tick)).toBe(false);
+        expect(vehicle.switchEquipment(driver.id, ITEM, tick)).toBe(true);
+        expect(drive.equipmentState(ITEM)).toBe(state);
+        tick += SPEC.equipmentSwitchCooldown + 1;
       }
     }),
   );

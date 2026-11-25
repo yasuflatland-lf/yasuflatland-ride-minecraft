@@ -1,4 +1,4 @@
-import type { MonitorRule } from "../../monitor/monitor";
+import type { EquipmentRule } from "../../equipment/equipment";
 
 export const ICEBREAKER_SWITCH_ITEM = "icebreaker_switch";
 export const ICEBREAKER_OFF = "off";
@@ -9,8 +9,8 @@ export const SPORTSBOAT_EQUIPMENT_IDS: readonly string[] = Object.freeze([
   ICEBREAKER_SWITCH_ITEM,
 ]);
 
-export const SPORTSBOAT_MONITOR: MonitorRule = Object.freeze({
-  tools: Object.freeze([
+export const SPORTSBOAT_EQUIPMENT: EquipmentRule = Object.freeze({
+  switches: Object.freeze([
     Object.freeze({
       item: ICEBREAKER_SWITCH_ITEM,
       states: Object.freeze([ICEBREAKER_OFF, ICEBREAKER_ON] as const),

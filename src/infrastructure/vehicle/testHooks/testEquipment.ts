@@ -1,24 +1,24 @@
 import { ScriptEventSource, system } from "@minecraft/server";
 import type { VehicleRepository } from "../../../domain/vehicle/vehicleRepository";
 import { NAMESPACE } from "../../shared/identifiers";
-import { TEST_TOOL_EVENT } from "./identifiers";
-import { parseTestToolMessage } from "./testToolMessage";
+import { TEST_EQUIPMENT_EVENT } from "./identifiers";
+import { parseTestEquipmentMessage } from "./testEquipmentMessage";
 
-// Lets in-game tests set a monitor tool without a player (ADR 0171).
-export function registerTestTool(repo: VehicleRepository): void {
+// Lets in-game tests set an equipment switch without a player (ADR 0171).
+export function registerTestEquipment(repo: VehicleRepository): void {
   system.afterEvents.scriptEventReceive.subscribe(
     (ev) => {
       if (
-        ev.id !== TEST_TOOL_EVENT ||
+        ev.id !== TEST_EQUIPMENT_EVENT ||
         ev.sourceType !== ScriptEventSource.Server
       )
         return;
-      const cmd = parseTestToolMessage(ev.message);
+      const cmd = parseTestEquipmentMessage(ev.message);
       if (!cmd) {
         console.warn(`[${NAMESPACE}] ignored test tool: ${ev.message}`);
         return;
       }
-      repo.get(cmd.vehicleId)?.forceTool(cmd.item, cmd.state);
+      repo.get(cmd.vehicleId)?.forceEquipment(cmd.item, cmd.state);
     },
     { namespaces: [NAMESPACE] },
   );

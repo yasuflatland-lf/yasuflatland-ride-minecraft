@@ -26,8 +26,8 @@ function checkPhaseCommand(value: number | boolean): void {
 describe("expectDeclaredCommand", () => {
   const profile: VehicleProfile = {
     ...profileOf("suv"),
-    monitor: {
-      tools: [{ item: "switch", states: ["down", "up"] }],
+    equipment: {
+      switches: [{ item: "switch", states: ["down", "up"] }],
     },
   };
   function checkMonitor(

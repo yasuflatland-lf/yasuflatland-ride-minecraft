@@ -3,14 +3,14 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { DriveVehicles } from "../../../src/application/vehicle/driveVehicles";
 import { RiderEffects } from "../../../src/application/vehicle/riderEffects";
+import { SwitchEquipment } from "../../../src/application/vehicle/switchEquipment";
 import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback";
 import { SwitchHeadlights } from "../../../src/application/vehicle/switchHeadlights";
-import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { VEHICLE_KINDS } from "../../../src/domain/vehicle/kind";
 import {
+  equipmentFeedback,
   profileOf,
-  toolFeedback,
 } from "../../../src/domain/vehicle/kinds/index";
 import { readLang } from "../../support/lang";
 import { riderView } from "../../support/riders";
@@ -63,9 +63,10 @@ it.each(locales)(
   (locale) => {
     const lang = readLang(`${texts}/${locale}.lang`);
     for (const kind of VEHICLE_KINDS) {
-      for (const { item, states } of profileOf(kind).monitor?.tools ?? []) {
+      for (const { item, states } of profileOf(kind).equipment?.switches ??
+        []) {
         for (const state of states) {
-          const message = toolFeedback(item, state);
+          const message = equipmentFeedback(item, state);
           expect(message, `${kind}: ${item} ${state}`).toBeDefined();
           expect(lang.get(`yasu_ride.message.${message}`)).toBeTruthy();
         }
@@ -138,7 +139,11 @@ it("uses the same applied camera state for driving and switch feedback", () => {
         expect(
           new SwitchHeadlights(world, repo, clock, feedback).execute(cmd),
         ).toBe(true);
-        const toolSucceeded = new SwitchTool(repo, clock, feedback).execute({
+        const toolSucceeded = new SwitchEquipment(
+          repo,
+          clock,
+          feedback,
+        ).execute({
           ...cmd,
           item: "wide_blade_switch",
         });

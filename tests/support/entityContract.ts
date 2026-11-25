@@ -23,7 +23,7 @@ function declaredSpec(
   profile: VehicleProfile,
 ): PropertySpec | undefined {
   if (name !== MONITOR_PROPERTY_NAME) return contract.properties[name];
-  return profile.monitor && monitorPropertySpec(profile.monitor);
+  return profile.equipment && monitorPropertySpec(profile.equipment);
 }
 
 /** Fails unless the contract (or, for the monitor, the profile's rule) declares `command` and its value fits the declared type and range. Contracts declare no sounds, so only a sound's name is checked. */

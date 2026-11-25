@@ -11,6 +11,7 @@ import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
 import type { Drive, EngineCommand, RiderState, TickContext } from "./drive";
 import type { RawInput } from "./driveInput";
+import { EquipmentSwitchboard } from "./equipment/equipment";
 import {
   type HeldItem,
   type Hint,
@@ -103,6 +104,7 @@ export interface TickOutcome {
 export class Vehicle {
   private crew: Crew;
   private readonly riderPoses = new RiderPoseState();
+  private readonly equipment: EquipmentSwitchboard;
   private readonly monitor: CabMonitor;
   private readonly ram: RamSensor;
   private readonly standIn: StandInKeeper | undefined;
@@ -121,7 +123,10 @@ export class Vehicle {
     private readonly drive: Drive,
   ) {
     this.crew = new Crew(profile);
-    this.monitor = new CabMonitor(profile.monitor, drive);
+    this.equipment = new EquipmentSwitchboard(profile.equipment, drive);
+    this.monitor = new CabMonitor(profile.equipment, (item) =>
+      this.equipment.equipmentState(item),
+    );
     this.ram = new RamSensor(profile);
     this.standIn = profile.standIn
       ? new StandInKeeper(profile.standIn)
@@ -352,16 +357,20 @@ export class Vehicle {
     return this.atTheWheel(playerId) && this.switchCooldown.press(tick);
   }
 
-  switchTool(playerId: PlayerId, item: string, tick: number): boolean {
-    return this.monitor.switchTool(playerId === this.crew.driver, item, tick);
+  switchEquipment(playerId: PlayerId, item: string, tick: number): boolean {
+    return this.equipment.switchEquipment(
+      playerId === this.crew.driver,
+      item,
+      tick,
+    );
   }
 
-  toolState(item: string): string | undefined {
-    return this.monitor.toolState(item);
+  equipmentState(item: string): string | undefined {
+    return this.equipment.equipmentState(item);
   }
 
-  forceTool(item: string, state: string): boolean {
-    return this.monitor.forceTool(item, state);
+  forceEquipment(item: string, state: string): boolean {
+    return this.equipment.forceEquipment(item, state);
   }
 
   /** Hit by a player. Returns whether the vehicle breaks (ADR 0008). */
