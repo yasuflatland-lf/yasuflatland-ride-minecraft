@@ -8,6 +8,7 @@ import {
   LANE_STRIDE,
   LOCAL_ARENA,
   laneOf,
+  runwayArea,
   SERIES_AREAS,
   toLocal,
   toWorld,
@@ -148,9 +149,12 @@ describe("lane frame", () => {
     const lanes = Array.from({ length: MAX_LANES }, (_, i) => laneOf(i));
     expect(lanes[0]?.tickingArea).toBe("yasu_ride_arena");
     expect(new Set(lanes.map((l) => l.tickingArea)).size).toBe(MAX_LANES);
-    expect(SERIES_AREAS).toHaveLength(MAX_LANES + 1);
-    expect(new Set(SERIES_AREAS).size).toBe(MAX_LANES + 1);
-    for (const l of lanes) expect(SERIES_AREAS).toContain(l.tickingArea);
+    expect(SERIES_AREAS).toHaveLength(MAX_LANES * 2 + 1);
+    expect(new Set(SERIES_AREAS).size).toBe(MAX_LANES * 2 + 1);
+    for (const l of lanes) {
+      expect(SERIES_AREAS).toContain(l.tickingArea);
+      expect(SERIES_AREAS).toContain(runwayArea(l));
+    }
     expect(SERIES_AREAS).toContain("yasu_ride_unload_spike");
     fc.assert(
       fc.property(lane, (l) => {

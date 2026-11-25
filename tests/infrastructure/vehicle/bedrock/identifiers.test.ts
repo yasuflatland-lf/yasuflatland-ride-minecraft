@@ -10,6 +10,7 @@ import {
   NAMESPACE,
 } from "../../../../src/infrastructure/shared/identifiers";
 import {
+  BOOSTER_TYPE,
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
   EQUIPMENT_SWITCH_TYPES,
@@ -34,6 +35,10 @@ import { CORE_PROPERTY_NAMES } from "../../../support/coreContract";
 vi.mock("@minecraft/server", () => ({}));
 
 describe("identifiers (ADR 0047)", () => {
+  it("reserves the booster item type", () => {
+    expect(BOOSTER_TYPE).toBe("yasu_ride:booster");
+  });
+
   it("reserves the property identifiers the core writes (ADR 0055)", () => {
     expect(HEADLIGHTS_PROPERTY).toBe(
       entityPropertyId(HEADLIGHTS_PROPERTY_NAME),
@@ -64,6 +69,7 @@ describe("identifiers (ADR 0047)", () => {
     "yasu_ride:unknown",
     "toString",
     HEADLIGHT_SWITCH_TYPE,
+    BOOSTER_TYPE,
     ...EQUIPMENT_SWITCH_TYPES,
   ])("does not recognize an unrelated type %s", (typeId) => {
     expect(kindOfEntity(typeId)).toBeUndefined();

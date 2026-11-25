@@ -2,6 +2,7 @@
 
 - Scope: SUV, camper, bulldozer, and scooter transforming forms, water policy, motion, gravity, landing gear, rider effects, and the SUV transformation model.
 - Verified at: 5ed1f579
+- Source: [0260](../adr/0260-toggle-flight-boost-with-a-booster.md)
 - Source: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md)
 - Source: [0021](../adr/0021-flight-mode.md)
 - Source: [0022](../adr/0022-fold-wheels-and-glow-in-flight.md)
@@ -37,10 +38,10 @@
 
 ### Switch feedback in the chase camera
 
-- Applies to: Successful tool and headlight switches while the script-managed chase camera is active.
-- Rule: The camera state used for feedback comes from `RiderEffects.isThirdPerson`, shared with the driving use case. It reflects successful camera application, including retry behavior, rather than a separate flight condition. Equipment and headlight switches supply the message name for the new state through `SwitchMessages.messageFor`. The switching player receives a localized action-bar message with the new supported tool or headlight state. First-person and grounded riders receive no message under current routing. The bulldozer selects the existing 8-block `mid` preset; SUV remains mid and camper remains 12-block far.
+- Applies to: Successful equipment, headlight and booster switches while the script-managed chase camera is active.
+- Rule: The camera state used for feedback comes from `RiderEffects.isThirdPerson`, shared with the driving use case. It reflects successful camera application, including camera retries. Equipment switches, headlights and the booster supply their localized action-bar message through `SwitchMessages.messageFor` when that camera is active. The bulldozer and SUV use the 8-block `mid` preset. The camper uses the 12-block `far` preset.
 - Agreement: Accepted
-- Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision.
+- Basis: [0224](../adr/0224-third-person-switch-feedback-and-bulldozer-camera.md) Decision and [0260](../adr/0260-toggle-flight-boost-with-a-booster.md) Decision.
 - Implementation: `src/application/vehicle/riderEffects.ts`; `src/application/vehicle/driveVehicles.ts`; `src/application/vehicle/switchFeedback.ts`; `src/infrastructure/vehicle/install.ts`; `src/domain/vehicle/kinds/bulldozer/profile.ts`
 - Verification: `tests/application/vehicle/riderEffects.test.ts` covers successful sets, clears and failures; switch use-case property tests cover gating and new states. `tests/packs/chaseCamera.test.ts` checks profile choices and existing preset radii. Visible framing and feedback require a client check.
 
@@ -73,12 +74,21 @@
 
 ### Air motion
 
-- Applies to: SUV and camper in takeoff, hover, and landing; SUV tuning names below have camper equivalents.
-- Rule: Takeoff maps all controls to neutral. Hover and landing retain steering and forward throttle, omit the handbrake and drop negative horizontal throttle. Sideways input steers and creeps. `stepMediumMotion` uses the kind's air medium: for the SUV, `SUV_SPEC.flightDrag` and `SUV_SPEC.maxSpeed`, with `SUV_MOTION` handling. It pre-divides horizontal target velocity by medium drag and vertical target velocity by `flightVerticalDrag`, then subtracts observed velocity to obtain the impulse. Ground friction estimation and step jumps are absent from the medium step. The per-axis wall check remains, using medium drag and `MOTION.blockedRatio`; it lowers internal speed and preserves motion along a free wall axis. Takeoff targets `takeoffClimb`, hover targets climb command times `maxClimb` less hover bank sink, and landing targets negative `landingSink`; the result is capped to plus or minus `maxClimb`. Ram selection remains enabled by the vehicle core and uses resulting speed.
+- Applies to: SUV, camper, scooter and bulldozer in takeoff, hover and landing. Each kind supplies its own tuning.
+- Rule: Takeoff maps all controls to neutral. Hover and landing retain steering and forward throttle, omit the handbrake and drop negative horizontal throttle. Sideways input steers and creeps. `stepMediumMotion` uses the kind's air medium: for the SUV, baseline values are `SUV_SPEC.flightDrag` and `SUV_SPEC.maxSpeed`, with `SUV_MOTION` handling. It pre-divides horizontal target velocity by medium drag and vertical target velocity by `flightVerticalDrag`, then subtracts observed velocity to obtain the impulse. Ground friction estimation and step jumps are absent from the medium step. The per-axis wall check remains, using medium drag and `MOTION.blockedRatio`; it lowers internal speed and preserves motion along a free wall axis. Takeoff targets `takeoffClimb`, hover targets climb command times the active climb limit less hover bank sink, and landing targets negative `landingSink`; the result is capped to plus or minus the active climb limit. [Flight boost](#flight-boost) adjusts the horizontal speed cap and the vertical limit from their normal values. Ram selection remains enabled by the vehicle core and uses resulting speed.
 - Agreement: Accepted
 - Basis: [0021](../adr/0021-flight-mode.md) Decision, "Step climbing (0004) and the ground friction estimate (0003) are off while airborne."; [0021](../adr/0021-flight-mode.md) Decision, "Ram damage (0006) stays on"; [0032](../adr/0032-climb-with-jump-and-sink-with-the-stick.md) Decision, "Takeoff and landing keep their fixed vertical speeds (0021)"
 - Implementation: `src/domain/vehicle/motion/transformingDrive.ts`; `src/domain/vehicle/motion/motion.ts` (`stepMediumMotion`); `src/domain/vehicle/kinds/suv/spec.ts`; `src/domain/vehicle/vehicle.ts`
 - Verification: `tests/domain/vehicle/vehicleFlight.test.ts` "ignores the controls during takeoff", "holds altitude while cruising with a level view and reaches max speed", "rams a target at most once when it flies into a wall with the throttle held"; `tests/domain/vehicle/motion/forms.test.ts` "leaves the target vertical velocity after the engine's vertical drag". Catalog: `flight_course` includes its `cruise` and `climb_descend` steps. Not verified: motion on a current BDS or measured drag in this documentation task.
+
+### Flight boost
+
+- Applies to: SUV, camper, scooter and bulldozer. The sports boat has no boost control.
+- Rule: Using the booster while riding as the driver toggles boost after a 10-tick idle cooldown independent of headlights and equipment. Changing held items preserves boost. A new driver, including a passenger who takes over, starts with boost off. Boost is inactive without a driver or during handover, and its state is never saved. The toggle is available in car and submarine forms, with the boost effect limited to flight. Flight boost triples the horizontal top speed and vertical climb limit. Acceleration, braking, drag, takeoff climb and landing sink keep their usual values. On release, the horizontal cap falls by 10% of normal top speed per tick toward its normal value. Air and car motion use this falling cap. In flight, the vertical limit follows the same scale, falling by 10% of normal climb speed each tick. Submarine motion keeps its normal limit. Ramming uses its existing formulas, so near boosted top speed a ram deals about three times the damage and push. The sports boat driver receives the unavailable message in any camera.
+- Agreement: Accepted
+- Basis: [0260](../adr/0260-toggle-flight-boost-with-a-booster.md) Decision and Consequences.
+- Implementation: `src/domain/vehicle/vehicle.ts` (`switchBoost`), `src/domain/vehicle/motion/boost.ts`, `src/domain/vehicle/motion/transformingDrive.ts`, and `src/application/vehicle/switchBoost.ts`.
+- Verification: `tests/domain/vehicle/vehicle.test.ts` covers driver access, cooldown and handover. `tests/domain/vehicle/motion/boost.test.ts` and `tests/domain/vehicle/motion/transformingBoost.test.ts` cover speed and climb limits, the falling cap and flight-only behavior.
 
 ### Climb command
 
@@ -199,6 +209,9 @@
 - Verification: `tests/packs/model.test.ts` "has four blades 90 degrees apart, each swept further toward the tip", "fits inside the tire's inner radius in the wheel's plane", "is mounted on the outer face of the hub cap", "covers the window above each door", "fills its opening from frame to frame"; `tests/packs/resourcePack.test.ts` "turns each rear hub to face the rear, with the prop behind its wheel", "slides the rear wheels and props out, then turns them, and reverses that on surfacing", "times the dive and surface like the gear transforms and loops the submerged pose". Not verified: visible propeller spin, sealing while banking, and client transformation appearance. Manual row 34 has empty result cells.
 
 ## Open issues
+
+- In the booster landing scenarios, all four kinds reach normal ground speed after about 20 ticks, but the first ground ticks overshoot and then drop sharply. The SUV, camper, and scooter report about 2.72, 3.54, then 1.09 blocks/tick across touchdown. The bulldozer reports 1.36, 1.77, then 0.54. Position samples confirm the same changes in distance traveled per tick. The mounted damageable probes retained full health throughout landing.
+- The crew scenarios verify a passenger taking over starts with boost off. When the last driver leaves, the live vehicle still reports boost on even after its crew is empty. `TransformingDrive` suppresses the effect without input and clears the toggle on the next driver mount. Issue #2466 calls for clearing it on departure.
 
 - ADR 0021, 0022, 0026, 0028, 0033, 0034, 0039, and 0040 use the former namespace; the implementation uses `yasu_ride:form`, `yasu_ride:bank`, `yasu_ride:gear_down`, `yasu_ride:weightless` / `yasu_ride:weighted`, `yasu_ride:gravity_off` / `yasu_ride:gravity_on`, and `controller.animation.yasu_ride.suv.form` (`packs/yasu_ride_bp/entities/yasu_ride/suv.se.json`, `packs/yasu_ride_rp/animation_controllers/yasu_ride/suv.ac.json`). ADR 0021 also names hover/land events and hovering/grounded groups, renamed by 0039; 0026 and 0028 still refer to the old flight property where the current property is form. The ADRs need an edit or a superseding ADR for the remaining namespace references.
 - ADR 0021 says the `flight_cruise` in-game test reports the measured horizontal drag; the implementation has no scenario of that name and the `cruise` step of `flight_course` does that work (`src/test-pack/catalog.ts`, `src/test-pack/scenarios/suv.ts`); the ADR needs an edit or a superseding ADR.

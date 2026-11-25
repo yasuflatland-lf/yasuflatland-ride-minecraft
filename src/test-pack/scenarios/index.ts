@@ -5,6 +5,36 @@ import { beachChairEmptyRefresh, beachChairFold } from "./beachChairForm";
 import { beachChairLantern, beachChairOven } from "./beachChairHosting";
 import { bladeCutColumn, bladeCutDrops, bladeCutKeptIds } from "./bladeCut";
 import {
+  bulldozerBoostRelease,
+  camperBoostRelease,
+  scooterBoostRelease,
+  suvBoostRelease,
+} from "./booster";
+import {
+  bulldozerBoostTools,
+  bulldozerBoostWall,
+  camperBoostWall,
+  scooterBoostWall,
+  suvBoostWall,
+} from "./boosterObstacles";
+import {
+  bulldozerBoostCrew,
+  bulldozerBoostLanding,
+  camperBoostCrew,
+  camperBoostLanding,
+  scooterBoostCrew,
+  scooterBoostLanding,
+  suvBoostCrew,
+  suvBoostLanding,
+} from "./boosterRiders";
+import {
+  bulldozerBoostSurface,
+  camperBoostSurface,
+  scooterBoostSurface,
+  sportsboatBoostUnavailable,
+  suvBoostSurface,
+} from "./boosterSurface";
+import {
   buildAimedPaste,
   buildCopyEntersPasteAim,
   buildCopyShapes,
@@ -264,6 +294,29 @@ import { washstandPlaceTakeBack, washstandRunTiming } from "./washstand";
 export type ScenarioRun = (a: Arena, onStep: StepSink) => Promise<Outcome>;
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
+  suv_boost_wall: suvBoostWall,
+  camper_boost_wall: camperBoostWall,
+  scooter_boost_wall: scooterBoostWall,
+  bulldozer_boost_wall: bulldozerBoostWall,
+  bulldozer_boost_tools: bulldozerBoostTools,
+  suv_boost_surface: suvBoostSurface,
+  camper_boost_surface: camperBoostSurface,
+  scooter_boost_surface: scooterBoostSurface,
+  bulldozer_boost_surface: bulldozerBoostSurface,
+  sportsboat_boost_unavailable: sportsboatBoostUnavailable,
+  suv_boost_crew: suvBoostCrew,
+  camper_boost_crew: camperBoostCrew,
+  scooter_boost_crew: scooterBoostCrew,
+  bulldozer_boost_crew: bulldozerBoostCrew,
+  suv_boost_landing: suvBoostLanding,
+  camper_boost_landing: camperBoostLanding,
+  scooter_boost_landing: scooterBoostLanding,
+  bulldozer_boost_landing: bulldozerBoostLanding,
+  suv_boost_release: suvBoostRelease,
+  camper_boost_release: camperBoostRelease,
+  scooter_boost_release: scooterBoostRelease,
+  bulldozer_boost_release: bulldozerBoostRelease,
+
   scooter_accel: scooterAccel,
   scooter_water_surface: scooterWaterSurface,
   scooter_water_float: scooterWaterFloat,
