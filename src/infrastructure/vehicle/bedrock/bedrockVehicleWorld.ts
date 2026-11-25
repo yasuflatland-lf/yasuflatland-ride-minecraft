@@ -31,6 +31,7 @@ import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
+import type { ActionBarLog } from "./actionBarLog";
 import { BedrockLoadedVehicles } from "./bedrockLoadedVehicles";
 import { BedrockRiderEffects } from "./bedrockRiderEffects";
 import { BedrockRiderPose } from "./bedrockRiderPose";
@@ -72,6 +73,7 @@ export class BedrockVehicleWorld implements DriveWorld {
     dockBlocks: DockLayer,
     restoredReaders: RestoredReaders,
     isStandableRoomBlock: (typeId: string) => boolean,
+    actionBar: ActionBarLog,
   ) {
     const standIns = new StandIns();
     const seatFillers = new SeatFillers();
@@ -115,6 +117,7 @@ export class BedrockVehicleWorld implements DriveWorld {
       deckSeats,
       seatFillers,
       standIns,
+      actionBar,
     );
     this.effects = new BedrockRiderEffects(index);
     this.poses = new BedrockRiderPose(index);

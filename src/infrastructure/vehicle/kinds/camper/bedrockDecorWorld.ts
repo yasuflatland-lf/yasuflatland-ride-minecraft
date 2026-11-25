@@ -8,6 +8,7 @@ import {
   serializeDecor,
 } from "../../../../domain/vehicle/kinds/index";
 import { messageKey } from "../../../shared/identifiers";
+import type { ActionBarLog } from "../../bedrock/actionBarLog";
 import type { BedrockInventory } from "../../bedrock/bedrockInventory";
 import { isCreativePlayer } from "../../bedrock/bedrockPlacementWorld";
 import type { EntityIndex } from "../../bedrock/entityIndex";
@@ -28,6 +29,7 @@ export class BedrockDecorWorld implements DecorPlacingWorld {
       BedrockInventory,
       "consumeHeld" | "giveItems"
     >,
+    private readonly actionBar: ActionBarLog,
   ) {}
 
   saveDecor(vehicleId: VehicleId, decor: readonly DecorPlacement[]): void {
@@ -57,7 +59,7 @@ export class BedrockDecorWorld implements DecorPlacingWorld {
   }
 
   showMessage(playerId: PlayerId, name: string): void {
-    this.index.player(playerId)?.onScreenDisplay.setActionBar({
+    this.actionBar.write(playerId, {
       translate: messageKey(name),
     });
   }

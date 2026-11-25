@@ -21,6 +21,7 @@ import type { Vec3 } from "../../../../domain/shared/vec";
 import type { VehicleRepository } from "../../../../domain/vehicle/vehicleRepository";
 import { registerBedBlock } from "../../../shared/bedBlock";
 import { BedrockBedWorld } from "../../../shared/bedrockBedWorld";
+import type { ActionBarLog } from "../../bedrock/actionBarLog";
 import type { BedrockInventory } from "../../bedrock/bedrockInventory";
 import { BedrockPaintWorld } from "../../bedrock/bedrockPaintWorld";
 import type { EntityIndex } from "../../bedrock/entityIndex";
@@ -86,17 +87,19 @@ export function installCamper(
     index,
     inventory,
     clock,
+    actionBar,
   }: {
     repo: VehicleRepository;
     index: EntityIndex;
     inventory: BedrockInventory;
     clock: Clock;
+    actionBar: ActionBarLog;
   },
   dockDoorOwner: DockOwner,
   dockCellOwner: DockOwner,
   registerDockGuard: () => void,
 ) {
-  const decorWorld = new BedrockDecorWorld(index, inventory);
+  const decorWorld = new BedrockDecorWorld(index, inventory, actionBar);
   return {
     ceilingLights: new SwitchCeilingLights(repo, clock),
     registerHandlers: () =>

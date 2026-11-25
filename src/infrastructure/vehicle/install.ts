@@ -1,6 +1,7 @@
 // Wires the vehicle feature's repositories, port implementations, and use cases
 // together.
 
+import { system } from "@minecraft/server";
 import { GiveStarterItem } from "../../application/shared/giveStarterItem";
 import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
@@ -27,6 +28,7 @@ import {
   registerStarterItem,
 } from "../shared/starterItem";
 import type { SwitchTarget } from "../shared/switchRouter";
+import { ActionBarLog } from "./bedrock/actionBarLog";
 import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
 import { BedrockHintWorld } from "./bedrock/bedrockHintWorld";
@@ -78,6 +80,7 @@ export function installVehicles(deps: {
   const testInputs = new VehicleTestStore<RawInput>();
   const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
+  const actionBar = new ActionBarLog(index, () => system.currentTick);
   const inventory = new BedrockInventory(index);
   const dockCodec = composeDockCodec({
     ...DECK_CODEC,
@@ -95,6 +98,7 @@ export function installVehicles(deps: {
       camper: (vehicle) => readCamperRestored(vehicle, docks.restore(vehicle)),
     },
     isStandableRoomBlock,
+    actionBar,
   );
   const fleetWorld = new BedrockFleetWorld(
     index,
@@ -106,7 +110,7 @@ export function installVehicles(deps: {
   const riders = new RiderEffects(bedrock, log);
   const feedback = new SwitchFeedback(bedrock, riders);
   const camper = installCamper(
-    { repo, index, inventory, clock: systemClock },
+    { repo, index, inventory, clock: systemClock, actionBar },
     (dimensionId, cell) => bedrock.dockDoorOwner(dimensionId, cell),
     (dimensionId, cell) => bedrock.dockCellOwner(dimensionId, cell),
     () =>
@@ -139,7 +143,7 @@ export function installVehicles(deps: {
       equipment: new SwitchEquipment(repo, systemClock, feedback),
       boost: new SwitchBoost(repo, systemClock, feedback, bedrock),
       hints: new ShowVehicleHints(
-        new BedrockHintWorld(index),
+        new BedrockHintWorld(index, actionBar),
         repo,
         systemClock,
       ),

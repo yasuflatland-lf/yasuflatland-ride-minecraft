@@ -5,6 +5,7 @@ import { cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId, asVehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
 import { id } from "../../../../src/infrastructure/shared/identifiers";
+import { ActionBarLog } from "../../../../src/infrastructure/vehicle/bedrock/actionBarLog";
 import { BedrockFleetWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockFleetWorld";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -42,6 +43,7 @@ function fixture(gearItemType = id) {
     createDockBlocks(noCampSpace),
     {},
     isStandableRoomBlock,
+    new ActionBarLog(index, () => 0),
   );
   const inventory = { giveItems: vi.fn() };
   return {
