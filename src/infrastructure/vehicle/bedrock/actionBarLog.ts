@@ -1,13 +1,20 @@
 import type { PlayerId } from "../../../domain/shared/ids";
 import { SPEC } from "../../../domain/vehicle/spec";
 import type { ActionBarMessage } from "../../shared/players";
-import type { EntityIndex } from "./entityIndex";
+
+interface ActionBarPlayers {
+  player(
+    id: PlayerId,
+  ):
+    | { onScreenDisplay: { setActionBar(text: ActionBarMessage): void } }
+    | undefined;
+}
 
 export class ActionBarLog {
   private readonly writtenAt = new Map<PlayerId, number>();
 
   constructor(
-    private readonly index: EntityIndex,
+    private readonly index: ActionBarPlayers,
     private readonly now: () => number,
   ) {}
 

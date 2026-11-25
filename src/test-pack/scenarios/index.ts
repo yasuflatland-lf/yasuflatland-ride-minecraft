@@ -211,6 +211,11 @@ import {
   parasolPlaceTakeBack,
   parasolRainCeiling,
 } from "./parasol";
+import {
+  sportsboatRadarMonument,
+  suvRadarQuiet,
+  suvRadarVillage,
+} from "./radar";
 import { resortGearOverlap } from "./resortGearOverlap";
 import {
   bulldozerPaveCourse,
@@ -314,6 +319,9 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   camper_boost_landing: camperBoostLanding,
   scooter_boost_landing: scooterBoostLanding,
   bulldozer_boost_landing: bulldozerBoostLanding,
+  suv_radar_village: suvRadarVillage,
+  sportsboat_radar_monument: sportsboatRadarMonument,
+  suv_radar_quiet: suvRadarQuiet,
   suv_boost_release: suvBoostRelease,
   camper_boost_release: camperBoostRelease,
   scooter_boost_release: scooterBoostRelease,

@@ -30,8 +30,8 @@
 - Rule: Every 20 ticks, after the vehicle hints interval, the radar takes the next driven vehicle in repository order. It queries loaded mobs within 128 blocks of the vehicle in its current dimension, once per mob type. A missing vehicle position skips the scan. A failed query contributes no hits. Villagers and iron golems indicate villages, pillagers indicate outposts, guardians and elder guardians indicate ocean monuments, vindicators and evokers indicate woodland mansions, and witches indicate witch huts. The radar infers places from mobs, so mobs elsewhere can trigger reports. Same-type hits linked by horizontal gaps of at most 48 blocks form a cluster whose center is the mean position of its hits.
 - Agreement: Accepted
 - Basis: [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md) Decision, the `navigation/` subfolder for the kind-neutral radar.
-- Implementation: `src/domain/vehicle/navigation/radarTargets.ts`, `src/domain/vehicle/navigation/radar.ts`, `src/domain/vehicle/spec.ts`, `src/application/vehicle/scanForPlaces.ts`, `src/infrastructure/vehicle/bedrock/bedrockRadarWorld.ts`, `src/infrastructure/vehicle/bedrock/handlers/drive.ts`.
-- Verification: Property tests in `tests/domain/vehicle/navigation/radar.test.ts` cover clustering. Application and adapter tests cover scan rotation, missing positions, and per-type queries. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks interval order.
+- Implementation: `src/domain/vehicle/navigation/radarTargets.ts`, `src/domain/vehicle/navigation/radar.ts`, `src/domain/vehicle/spec.ts`, `src/application/vehicle/scanForPlaces.ts`, `src/infrastructure/vehicle/bedrock/bedrockRadarWorld.ts`, `src/infrastructure/vehicle/bedrock/handlers/drive.ts`. The development hook in `src/infrastructure/vehicle/testHooks/testRadar.ts` forwards the synthetic driver's reports to `src/test-pack/scenarios/radar.ts`.
+- Verification: Property tests in `tests/domain/vehicle/navigation/radar.test.ts` cover clustering. Application and adapter tests cover scan rotation, missing positions, and per-type queries. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks interval order. The BDS scenarios `suv_radar_village` and `sportsboat_radar_monument` summon mobs and check the place and direction reported to a test driver.
 
 ### Radar reports and drive memory
 
@@ -40,7 +40,7 @@
 - Agreement: Accepted
 - Basis: [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md) Decision, the `navigation/` subfolder for the kind-neutral radar.
 - Implementation: `src/domain/vehicle/navigation/compass.ts`, `src/domain/vehicle/navigation/radar.ts`, `src/application/vehicle/scanForPlaces.ts`, `src/infrastructure/vehicle/bedrock/actionBarLog.ts`, `src/infrastructure/vehicle/bedrock/bedrockRadarWorld.ts`, `packs/yasu_ride_rp/texts/en_US.lang`, `packs/yasu_ride_rp/texts/ja_JP.lang`.
-- Verification: Domain properties check compass sectors, distance rounding, center drift, reporting once, re-measurement, and retention outside the radius. Application tests cover quiet timing, driver changes, removal, and dimension changes. Adapter and pack tests cover raw message arguments and the locale keys.
+- Verification: Domain properties check compass sectors, distance rounding, center drift, reporting once, re-measurement, and retention outside the radius. Application tests cover quiet timing, driver changes, removal, and dimension changes. Adapter and pack tests cover raw message arguments and the locale keys. The BDS scenario `suv_radar_quiet` writes a vehicle message before summoning villagers and checks the tick of the first report. All three scenarios continue listening for duplicates.
 
 ## Open issues
 
