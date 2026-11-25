@@ -6,11 +6,16 @@ import "./loungeProbe";
 import "./scooterPoseProbe";
 import "./manualProbes";
 import "./renderBench";
-import { type Arena, prepareRun, removeVehicles } from "./arena";
+import {
+  type Arena,
+  prepareNoArena,
+  prepareRun,
+  removeVehicles,
+} from "./arena";
 import { CATALOG, type ScenarioSpec } from "./catalog";
 import { isFeatureTag } from "./features";
 import { BOOST_RUNWAYS, laneOf } from "./lane";
-import { type Outcome, stepLines } from "./outcome";
+import { type Outcome, type StepSink, stepLines } from "./outcome";
 import { coverageGaps, planOf } from "./plan";
 import {
   CANCEL_EVENT,
@@ -27,7 +32,7 @@ import {
   linePrefix,
   READY,
 } from "./resultLog";
-import { SCENARIOS } from "./scenarios/index";
+import { NO_ARENA_SCENARIOS, SCENARIOS } from "./scenarios/index";
 
 function log(runId: string, msg: string): void {
   console.warn(`${linePrefix(runId)}${msg}`);
@@ -65,13 +70,21 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
   const { shard, features } = request;
   const { missing, extra, duplicates } = coverageGaps(
     CATALOG.map((spec) => spec.name),
-    Object.keys(SCENARIOS),
+    [...Object.keys(SCENARIOS), ...Object.keys(NO_ARENA_SCENARIOS)],
   );
-  if (missing.length > 0 || extra.length > 0 || duplicates.length > 0) {
+  const misplaced = CATALOG.filter(({ name, needsArena }) =>
+    Object.hasOwn(needsArena ? NO_ARENA_SCENARIOS : SCENARIOS, name),
+  ).map(({ name }) => name);
+  if (
+    missing.length > 0 ||
+    extra.length > 0 ||
+    duplicates.length > 0 ||
+    misplaced.length > 0
+  ) {
     state.failed++;
     summary(
       state,
-      `catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")} duplicates=${duplicates.join(",")}`,
+      `catalog mismatch missing=${missing.join(",")} extra=${extra.join(",")} duplicates=${duplicates.join(",")} misplaced=${misplaced.join(",")}`,
     );
     return;
   }
@@ -120,28 +133,43 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
   for (const { name, reason } of plan.skipped)
     log(runId, `SKIP ${name}: ${reason}`);
   const dim = world.getDimension("overworld");
-  const lanes =
-    laneCount === 1
-      ? [laneOf(request.at)]
-      : plan.lanes.map((_, i) => laneOf(i));
-  const arenas = await prepareRun(dim, lanes, boostRunwayCount);
+  let arenas: readonly Arena[] = [];
+  if (plan.needsArena) {
+    const lanes =
+      laneCount === 1
+        ? [laneOf(request.at)]
+        : plan.lanes.map((_, i) => laneOf(i));
+    arenas = await prepareRun(dim, lanes, boostRunwayCount);
+  } else {
+    await prepareNoArena(dim);
+  }
 
   // A throw is a FAIL of that scenario only, so one lane never stops another.
   async function runScenario(
-    arena: Arena,
+    arena: Arena | undefined,
     spec: ScenarioSpec,
     laneIndex: number,
   ): Promise<void> {
     const { name } = spec;
     const start = system.currentTick;
+    const onStep: StepSink = (result) => {
+      if (state.cancelled) return;
+      for (const line of stepLines(result)) log(runId, `${name} ${line}`);
+    };
     let outcome: Outcome;
     try {
-      const run = SCENARIOS[name];
-      if (!run) throw new Error(`scenario not registered: ${name}`);
-      outcome = await run(arena, (result) => {
-        if (state.cancelled) return;
-        for (const line of stepLines(result)) log(runId, `${name} ${line}`);
-      });
+      // ADR 0187: the catalog flag assigns each name to exactly one registry.
+      if (!spec.needsArena) {
+        const run = NO_ARENA_SCENARIOS[name];
+        if (!run) throw new Error(`scenario not registered: ${name}`);
+        outcome = await run(onStep);
+      } else if (arena === undefined) {
+        outcome = { pass: false, detail: "arena not prepared" };
+      } else {
+        const run = SCENARIOS[name];
+        if (!run) throw new Error(`scenario not registered: ${name}`);
+        outcome = await run(arena, onStep);
+      }
     } catch (e) {
       outcome = { pass: false, detail: `error: ${e}` };
     }
@@ -161,7 +189,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     for (const line of outcome.lines ?? []) log(runId, `${name} ${line}`);
   }
   async function runLane(
-    arena: Arena,
+    arena: Arena | undefined,
     specs: readonly ScenarioSpec[],
     laneIndex: number,
   ): Promise<void> {
@@ -175,11 +203,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
     if (state.cancelled) return;
     log(runId, READY);
     await Promise.all(
-      plan.lanes.map((specs, i) => {
-        const arena = arenas[i];
-        if (!arena) throw new Error(`arena ${i} not prepared`);
-        return runLane(arena, specs, i);
-      }),
+      plan.lanes.map((specs, i) => runLane(arenas[i], specs, i)),
     );
   } finally {
     for (const runway of arenas[0]?.boostRunways ?? [])
@@ -187,9 +211,7 @@ async function runAll(request: RunRequest, state: ActiveRun): Promise<void> {
   }
   if (plan.exclusive.length > 0 && !state.cancelled) {
     await removeVehicles(dim);
-    const arena = arenas[0];
-    if (!arena) throw new Error("arena 0 not prepared");
-    await runLane(arena, plan.exclusive, 0);
+    await runLane(arenas[0], plan.exclusive, 0);
   }
   if (state.cancelled) return;
   summary(state);

@@ -35,12 +35,49 @@ const catalog = fc
       ...spec,
       name: `scenario_${i}`,
       file: "fixture",
+      needsArena: true,
     })),
   );
 const selectedBy = (spec: ScenarioSpec, features: readonly FeatureTag[]) =>
   features.some((changed) => spec.features.some((tag) => covers(changed, tag)));
 
 describe("planOf", () => {
+  it("requires an arena only for scenarios assigned to the run", () => {
+    fc.assert(
+      fc.property(
+        catalog,
+        fc.array(fc.boolean(), { minLength: 1, maxLength: 40 }),
+        fc.boolean(),
+        fc.option(tags, { nil: undefined }),
+        fc.integer({ min: 1, max: 8 }),
+        (specs, arenaFlags, playerConnected, features, total) => {
+          const mixed = specs.map(
+            (spec, i): ScenarioSpec =>
+              arenaFlags[i % arenaFlags.length]
+                ? spec
+                : {
+                    ...spec,
+                    needsArena: false,
+                    vehicles: 0,
+                    isolation: "exclusive",
+                    group: undefined,
+                  },
+          );
+          for (let index = 1; index <= total; index++) {
+            const plan = planOf(mixed, {
+              shard: { index, total },
+              playerConnected,
+              features,
+            });
+            expect(plan.needsArena).toBe(
+              plan.runs.some((spec) => spec.needsArena),
+            );
+          }
+        },
+      ),
+    );
+  });
+
   it("gates manual setup before player checks and sharding, reporting each skip once", () => {
     fc.assert(
       fc.property(
@@ -102,6 +139,7 @@ describe("planOf", () => {
             ticks: 1300,
             features: ["build"],
             isolation: "exclusive",
+            needsArena: true,
             needsPlayer: true,
             manualSetup: manualSetup || undefined,
             skipNote,
@@ -332,6 +370,7 @@ describe("planOf", () => {
       features: [],
       isolation: "lane",
       group: index === 1 || index === 3 || index === 5 ? "tent" : undefined,
+      needsArena: true,
       needsPlayer: false,
       vehicles: 1,
     }));

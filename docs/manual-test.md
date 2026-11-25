@@ -75,13 +75,13 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 
 ## Nav explorer maps
 
-Run the server-side scenarios `nav_map_delivery` and `nav_map_full_inventory` on both world types.
+Use a flat dev world for the automated NAV checks. For the manual destination sweep on natural terrain, start the dev BDS with `BDS_LEVEL_TYPE=DEFAULT pnpm server:up` on a new world.
 
-1. Start the dev BDS with `BDS_LEVEL_TYPE=DEFAULT pnpm server:up` on a new world to generate natural terrain. To test the same invariants on flat terrain, use a flat dev world.
+1. Start the dev BDS on a flat dev world with `pnpm server:up`.
 2. Connect a player in the Overworld. Leave an inventory slot free for `nav_map_delivery`.
-3. Run `GAME_TEST_FEATURES=vehicle:nav pnpm test:game` and record the tick count printed for each scenario on both world types. CI skips these two scenarios because no player joins.
+3. Run `GAME_TEST_FEATURES=vehicle:nav pnpm test:game`. The selection includes `nav_map_delivery`, `nav_map_full_inventory`, and the arena-based `suv_nav_passenger_refused`. CI skips the two map scenarios because no player joins.
 
-In two flat-world runs on dev BDS 1.26.66.1 with one player on 2026-11-25, `nav_map_delivery` took 3 ticks and `nav_map_full_inventory` took 1 tick, with natural-terrain timings still unmeasured.
+In two flat-world runs on dev BDS 1.26.66.1 with one player on 2026-11-25, `nav_map_delivery` took 3 ticks and `nav_map_full_inventory` took 1 tick. Natural terrain remains unmeasured.
 
 Repeated searches from the same position in one world skip already generated chunks, so later searches can reach farther and take longer. Use fresh terrain when comparing search timings.
 
