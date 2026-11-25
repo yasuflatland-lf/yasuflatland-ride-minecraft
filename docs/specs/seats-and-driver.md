@@ -19,6 +19,7 @@
 - Source: [0223](../adr/0223-require-a-rider-list-slot-on-every-rider.md)
 - Source: [0238](../adr/0238-lounge-pose-by-overriding-the-player-client-entity.md)
 - Source: [0250](../adr/0250-scooter-rider-grip-pose-and-stepped-lean.md)
+- Source: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md): proposed navigation controls for the seat-zero driver
 - Excluded: [0117](../adr/0117-move-the-suv-front-seats-back.md): SUV seat coordinates, covered by suv-body
 - Excluded: [0138](../adr/0138-raise-and-lower-the-bulldozer-blade.md): bulldozer blade lift, not seating
 - Excluded: [0155](../adr/0155-cut-under-water-and-dig-a-shaft-when-rising.md): bulldozer cutting, not seating
