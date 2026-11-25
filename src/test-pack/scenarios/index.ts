@@ -206,6 +206,7 @@ import {
 } from "./diningTable";
 import { fleetForget } from "./fleetRemove";
 import { suvNavPassengerRefused } from "./nav";
+import { navMapFullInventory } from "./navMap";
 import {
   parasolPaint,
   parasolPlaceTakeBack,
@@ -300,6 +301,7 @@ import { washstandPlaceTakeBack, washstandRunTiming } from "./washstand";
 export type ScenarioRun = (a: Arena, onStep: StepSink) => Promise<Outcome>;
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
+  nav_map_full_inventory: navMapFullInventory,
   suv_nav_passenger_refused: suvNavPassengerRefused,
   suv_boost_wall: suvBoostWall,
   camper_boost_wall: camperBoostWall,

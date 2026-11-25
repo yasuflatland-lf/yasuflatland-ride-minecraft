@@ -20,6 +20,16 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "nav_map_full_inventory",
+    file: "navMap",
+    // Allows for the 40-tick probe deadline and inventory setup and cleanup.
+    ticks: 50,
+    features: ["vehicle:nav"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "suv_nav_passenger_refused",
     file: "nav",
     ticks: 24,
