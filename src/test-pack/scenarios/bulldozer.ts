@@ -50,7 +50,7 @@ async function sendToolState(
   system.sendScriptEvent(TEST_EQUIPMENT_EVENT, `${car.id},${item},${state}`);
 }
 /** Sets the blade through the server-only test hook and waits until it has finished moving (ADR 0138). */
-async function setBlade(car: Entity, raised: boolean): Promise<void> {
+export async function setBlade(car: Entity, raised: boolean): Promise<void> {
   await sendToolState(car, BLADE_SWITCH.item, raised ? "up" : "down");
   await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
   const lift = car.getProperty(entityPropertyId("blade"));

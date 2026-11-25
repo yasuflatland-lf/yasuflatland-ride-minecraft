@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, it } from "vitest";
 import type { Drive, TickContext } from "../../../../src/domain/vehicle/drive";
 import {
@@ -86,6 +87,44 @@ it.each(flyingKinds)(
     );
     expect(dive.impulse.y * spec.flightVerticalDrag).toBeCloseTo(
       -3 * spec.maxClimb,
+    );
+  },
+);
+
+it.each(flyingKinds)(
+  "%s bleeds the held vertical input on release",
+  (kind, spec) => {
+    fc.assert(
+      fc.property(
+        fc.boolean(),
+        fc.integer({ min: 1, max: 40 }),
+        (up, ticks) => {
+          const drive = KINDS[kind].createDrive(0, { form: "hover" });
+          const boost = enableBoost(drive);
+          const input = up ? CLIMB : { ...FORWARD, moveY: -1 };
+          let ctx = context();
+          const step = () => {
+            const { impulse } = drive.step(input, ctx);
+            const y = (ctx.velocity.y + impulse.y) * spec.flightVerticalDrag;
+            ctx = {
+              ...ctx,
+              tick: ctx.tick + 1,
+              velocity: { ...ctx.velocity, y },
+            };
+            return y;
+          };
+          const limit = up ? spec.maxClimb : -spec.maxClimb;
+          expect(step()).toBeCloseTo(limit * MOTION.boostFlightScale, 10);
+          boost.toggle();
+          for (let tick = 1; tick <= ticks; tick++) {
+            const scale = Math.max(
+              1,
+              MOTION.boostFlightScale - tick * MOTION.boostBleed,
+            );
+            expect(step()).toBeCloseTo(limit * scale, 10);
+          }
+        },
+      ),
     );
   },
 );
