@@ -81,7 +81,7 @@ Use a flat dev world for the automated NAV checks. For the manual destination sw
 2. Connect a player in the Overworld. Leave an inventory slot free for `nav_map_delivery`.
 3. Run `GAME_TEST_FEATURES=vehicle:nav pnpm test:game`. The selection includes `nav_map_delivery`, `nav_map_full_inventory`, and the arena-based `suv_nav_passenger_refused`. CI skips the two map scenarios because no player joins.
 
-In two flat-world runs on dev BDS 1.26.66.1 with one player on 2026-11-25, `nav_map_delivery` took 3 ticks and `nav_map_full_inventory` took 1 tick. Natural terrain remains unmeasured.
+In two flat-world runs on dev BDS 1.26.66.1 with one player on 2026-11-25, `nav_map_delivery` took 3 ticks and `nav_map_full_inventory` took 1 tick. On two natural-terrain worlds with `GAME_TEST_LANES=1`, the same scenarios took 3 and 1 ticks and returned `given` for all three destinations; with the default four lanes the run stops with `lane 1 ground height differs from lane 0`. The flat-world `monument` result of `given` suggests delivery even without a monument, but a player must check whether the map points to one.
 
 Repeated searches from the same position in one world skip already generated chunks, so later searches can reach farther and take longer. Use fresh terrain when comparing search timings.
 
