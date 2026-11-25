@@ -39,6 +39,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "nav_map_full_inventory",
+    file: "navMap",
+    // Allows for the 40-tick probe deadline and inventory setup and cleanup.
+    ticks: 50,
+    features: ["vehicle:nav"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "suv_boost_wall",
     file: "boosterObstacles",
     ticks: 214,

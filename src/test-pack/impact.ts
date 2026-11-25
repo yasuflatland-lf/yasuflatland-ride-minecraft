@@ -345,6 +345,15 @@ const IMPACT_RULES: readonly ImpactRule[] = [
     impact: "all",
   },
   {
+    rule: "nav-map",
+    test: exactPaths([
+      "src/infrastructure/vehicle/bedrock/navMapDelivery.ts",
+      "src/infrastructure/vehicle/testHooks/navMapReply.ts",
+      "src/infrastructure/vehicle/testHooks/testNavMap.ts",
+    ]),
+    impact: ["vehicle:nav"],
+  },
+  {
     rule: "entry",
     test: /^src\/(?:buildFlags\.d|main|infrastructure\/bootstrap)\.ts$/,
     impact: "all",

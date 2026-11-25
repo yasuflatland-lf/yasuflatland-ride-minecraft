@@ -75,7 +75,15 @@ To use commands, run `docker exec yasuflatland-ride-bds send-command op <player 
 
 ## Nav explorer maps
 
-Driver and passenger access can be checked now. Run the map checks on a world with natural terrain once the destination list has confirmed entries.
+Run the server-side scenarios `nav_map_delivery` and `nav_map_full_inventory` on both world types.
+
+1. Start the dev BDS with `BDS_LEVEL_TYPE=DEFAULT pnpm server:up` on a new world to generate natural terrain. To test the same invariants on flat terrain, use a flat dev world.
+2. Connect a player in the Overworld. Leave an inventory slot free for `nav_map_delivery`.
+3. Run `GAME_TEST_FEATURES=vehicle:nav pnpm test:game` and record the tick count printed for each scenario on both world types. CI skips these two scenarios because no player joins.
+
+Repeated searches from the same position in one world skip already generated chunks, so later searches can reach farther and take longer. Use fresh terrain when comparing search timings.
+
+To sweep all ten destinations manually, run `scriptevent yasu_ride:test_nav_map <playerId>,<destination>` from the dev server console. Use the connected player's Script API `Player.id` and run the command once each for `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`.
 
 | #    | Steps                                                                                                                                                                                            | Pass condition                                                                                                                                                       |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
