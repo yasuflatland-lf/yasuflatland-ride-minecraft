@@ -176,6 +176,30 @@ class Sim {
 }
 
 describe("Vehicle (aggregate)", () => {
+  it("reports the seat 0 rider as driverId", () => {
+    fc.assert(
+      fc.property(fc.string(), (driver) => {
+        const sim = new Sim();
+        const vehicle = createVehicle("suv", asVehicleId("car"), 0);
+        expect(vehicle.driverId).toBeUndefined();
+        sim.riders = [
+          { id: driver, seat: 0, yaw: 0, raw: IDLE },
+          { id: "passenger", seat: 1, yaw: 0, raw: IDLE },
+        ];
+        sim.run(vehicle, 1);
+        expect(vehicle.driverId).toBe(driver);
+      }),
+    );
+  });
+
+  it("has no driverId when only a passenger rides", () => {
+    const sim = new Sim();
+    const vehicle = createVehicle("suv", asVehicleId("car"), 0);
+    sim.riders = [{ id: "passenger", seat: 1, yaw: 0, raw: IDLE }];
+    sim.run(vehicle, 1);
+    expect(vehicle.driverId).toBeUndefined();
+  });
+
   it("moves forward when the rider in the driver's seat presses the accelerator", () => {
     const sim = new Sim();
     sim.riders = [{ id: "d", seat: 0, yaw: 0, raw: FORWARD }];
@@ -458,8 +482,10 @@ describe("Vehicle (aggregate)", () => {
       { id: "p", seat: 1, yaw: 0, raw: IDLE },
     ];
     sim.run(v, 5);
+    expect(v.driverId).toBe("d");
     sim.riders = [{ id: "p", seat: 0, yaw: 0, raw: IDLE }];
     sim.run(v, 1, 5);
+    expect(v.driverId).toBe("p");
     expect(v.flipHeadlightSwitch(asPlayerId("p"), 100)).toBe(true);
   });
 
