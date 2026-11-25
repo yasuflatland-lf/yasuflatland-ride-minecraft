@@ -5,6 +5,7 @@ import { asPlayerId } from "../../../../src/domain/shared/ids";
 import { PAINTS } from "../../../../src/domain/shared/paint";
 import { HINTS } from "../../../../src/domain/vehicle/hints";
 import { dyeOf } from "../../../../src/infrastructure/shared/dyes";
+import { ActionBarLog } from "../../../../src/infrastructure/vehicle/bedrock/actionBarLog";
 import { BedrockHintWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockHintWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -83,7 +84,10 @@ describe("BedrockHintWorld", () => {
         },
       }),
     ]);
-    const views = new BedrockHintWorld(new EntityIndex()).hintPlayers();
+    const views = new BedrockHintWorld(
+      new EntityIndex(),
+      new ActionBarLog(new EntityIndex(), () => 0),
+    ).hintPlayers();
     expect(views.map((v) => v.controls)).toEqual([
       ...cases.map(([, controls]) => controls),
       "other",
@@ -105,7 +109,10 @@ describe("BedrockHintWorld", () => {
             },
           },
         ]);
-        const views = new BedrockHintWorld(new EntityIndex()).hintPlayers();
+        const views = new BedrockHintWorld(
+          new EntityIndex(),
+          new ActionBarLog(new EntityIndex(), () => 0),
+        ).hintPlayers();
         expect(views).toEqual([
           {
             id: "dye",
@@ -136,7 +143,12 @@ describe("BedrockHintWorld", () => {
     };
     index.track(car as unknown as Entity);
     index.track({ id: "old", isValid: false } as unknown as Entity);
-    expect(new BedrockHintWorld(index).hintVehicles()).toEqual([
+    expect(
+      new BedrockHintWorld(
+        index,
+        new ActionBarLog(index, () => 0),
+      ).hintVehicles(),
+    ).toEqual([
       { id: "car", dimensionId: "nether", location: { x: 3, y: 4, z: 5 } },
     ]);
   });
@@ -146,7 +158,10 @@ describe("BedrockHintWorld", () => {
     game.getEntity.mockImplementation((id: string) =>
       id === player.id ? player : undefined,
     );
-    const hints = new BedrockHintWorld(new EntityIndex());
+    const hints = new BedrockHintWorld(
+      new EntityIndex(),
+      new ActionBarLog(new EntityIndex(), () => 0),
+    );
     hints.showHint(asPlayerId("p"), {
       name: HINTS.bumperMouse,
       with: [{ number: 3 }, { vehicle: "camper" }],
@@ -182,7 +197,10 @@ describe("BedrockHintWorld", () => {
       throw new Error("invalid");
     });
     game.getEntity.mockReturnValue(player);
-    const hints = new BedrockHintWorld(new EntityIndex());
+    const hints = new BedrockHintWorld(
+      new EntityIndex(),
+      new ActionBarLog(new EntityIndex(), () => 0),
+    );
     expect(() => hints.clearHint(asPlayerId("p"))).not.toThrow();
   });
 });

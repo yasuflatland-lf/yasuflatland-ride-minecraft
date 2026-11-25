@@ -15,6 +15,7 @@ import {
 import type { SeatAssignment } from "../../../domain/vehicle/seatChoice";
 import type { StandInPose } from "../../../domain/vehicle/standIn";
 import { messageKey } from "../../shared/identifiers";
+import type { ActionBarLog } from "./actionBarLog";
 import type { DeckSeats } from "./deckSeats";
 import type { EntityIndex } from "./entityIndex";
 import { seatExitSpot } from "./seatExitSpot";
@@ -28,6 +29,7 @@ export class BedrockVehicleRiders implements RiderWorld {
     private readonly deckSeats: DeckSeats,
     private readonly seatFillers: SeatFillers,
     private readonly standIns: StandIns,
+    private readonly actionBar: ActionBarLog,
   ) {}
 
   standRiderAt(vehicleId: VehicleId, playerId: PlayerId, at: Vec3): void {
@@ -102,7 +104,7 @@ export class BedrockVehicleRiders implements RiderWorld {
   }
 
   showMessage(playerId: PlayerId, name: string): void {
-    this.index.player(playerId)?.onScreenDisplay.setActionBar({
+    this.actionBar.write(playerId, {
       translate: messageKey(name),
     });
   }

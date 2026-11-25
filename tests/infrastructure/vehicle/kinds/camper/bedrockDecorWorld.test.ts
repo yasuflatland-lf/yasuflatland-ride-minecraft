@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asPlayerId, asVehicleId } from "../../../../../src/domain/shared/ids";
 import { CAMPING_GEAR_IDS } from "../../../../../src/domain/vehicle/kinds/camper/campingGear";
 import { serializeDecor } from "../../../../../src/domain/vehicle/kinds/camper/decorData";
+import { ActionBarLog } from "../../../../../src/infrastructure/vehicle/bedrock/actionBarLog";
 import { EntityIndex } from "../../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { PLAYER_TYPE } from "../../../../../src/infrastructure/vehicle/bedrock/identifiers";
 import {
@@ -46,7 +47,11 @@ function fixture() {
     vehicle,
     player,
     inventory,
-    world: new BedrockDecorWorld(new EntityIndex(), inventory),
+    world: new BedrockDecorWorld(
+      new EntityIndex(),
+      inventory,
+      new ActionBarLog(new EntityIndex(), () => 0),
+    ),
   };
 }
 

@@ -1161,20 +1161,26 @@ it("registers shower-toilet presses during startup and sends an empty hand's pre
   );
 });
 
-it("checks the hints every hint interval, after the drive on the same tick (ADR 0086)", () => {
+it("registers the drive, hints, and radar in tick order", () => {
   const drive = { execute: vi.fn() };
   const hints = { execute: vi.fn() };
+  const radar = { execute: vi.fn() };
   register({
-    useCases: { drive, hints } as unknown as UseCases,
+    useCases: { drive, hints, radar } as unknown as UseCases,
   });
   const intervals = vi.mocked(system.runInterval).mock.calls;
   expect(intervals.map(([, ticks]) => ticks)).toEqual([
     1,
     SPEC.hintCheckInterval,
+    SPEC.radarScanInterval,
   ]);
   for (const [callback] of intervals) callback();
   expect(drive.execute).toHaveBeenCalledWith(game.currentTick);
   expect(hints.execute).toHaveBeenCalledOnce();
+  expect(radar.execute).toHaveBeenCalledOnce();
+  expect(hints.execute.mock.invocationCallOrder[0]).toBeLessThan(
+    defined(radar.execute.mock.invocationCallOrder[0], "radar call"),
+  );
   expect(drive.execute.mock.invocationCallOrder[0]).toBeLessThan(
     defined(hints.execute.mock.invocationCallOrder[0], "hints call"),
   );

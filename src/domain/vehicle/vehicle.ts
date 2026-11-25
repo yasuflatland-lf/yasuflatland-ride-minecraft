@@ -164,6 +164,10 @@ export class Vehicle {
     return this.profile.kind;
   }
 
+  get driverId(): PlayerId | undefined {
+    return this.crew.driver;
+  }
+
   get speed(): number {
     return this.drive.speed;
   }
@@ -360,7 +364,7 @@ export class Vehicle {
    * whose profile enables deckSeatDriverHeadlights (ADR 0149). Their switch operates the headlights only.
    */
   atTheWheel(playerId: PlayerId): boolean {
-    return playerId === this.crew.driver || playerId === this.deckDriverId;
+    return playerId === this.driverId || playerId === this.deckDriverId;
   }
 
   /** A burst of uses from one touch at the wheel flips the headlights once (ADR 0024). */
@@ -372,7 +376,7 @@ export class Vehicle {
     playerId: PlayerId,
     tick: number,
   ): "on" | "off" | "unavailable" | "denied" {
-    if (playerId !== this.crew.driver) return "denied";
+    if (playerId !== this.driverId) return "denied";
     const boost = this.capability(BOOST_CONTROL);
     if (boost === undefined) return "unavailable";
     if (!this.boosterCooldown.press(tick)) return "denied";
@@ -385,7 +389,7 @@ export class Vehicle {
     tick: number,
   ): boolean {
     return this.equipment.switchEquipment(
-      playerId === this.crew.driver,
+      playerId === this.driverId,
       equipmentSwitch,
       tick,
     );

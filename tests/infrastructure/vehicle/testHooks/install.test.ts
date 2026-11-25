@@ -9,6 +9,7 @@ import { asVehicleId } from "../../../../src/domain/shared/ids";
 import { BOOST_CONTROL } from "../../../../src/domain/vehicle/boost";
 import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { createVehicle } from "../../../../src/domain/vehicle/kinds/index";
+import { ActionBarLog } from "../../../../src/infrastructure/vehicle/bedrock/actionBarLog";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import { installCamper } from "../../../../src/infrastructure/vehicle/kinds/camper/install";
@@ -41,6 +42,7 @@ function fixture() {
       index,
       inventory: new BedrockInventory(index),
       clock: { now: () => 0 },
+      actionBar: new ActionBarLog(index, () => 0),
     },
     () => undefined,
     () => undefined,

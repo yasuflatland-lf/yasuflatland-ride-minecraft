@@ -24,6 +24,7 @@ import type {
   HintControls,
 } from "../../../domain/vehicle/hints";
 import { heldDye } from "../../shared/dyes";
+import type { ActionBarLog } from "./actionBarLog";
 import type { EntityIndex } from "./entityIndex";
 import { ENTITY_TYPE, hintKey } from "./identifiers";
 
@@ -51,7 +52,10 @@ const argText = (arg: HintArg): RawMessage =>
     : { translate: `entity.${ENTITY_TYPE[arg.vehicle]}.name` };
 
 export class BedrockHintWorld implements HintWorld {
-  constructor(private readonly index: EntityIndex) {}
+  constructor(
+    private readonly index: EntityIndex,
+    private readonly actionBar: ActionBarLog,
+  ) {}
 
   hintPlayers(): HintPlayerView[] {
     return world.getAllPlayers().flatMap((player) => {
@@ -93,7 +97,7 @@ export class BedrockHintWorld implements HintWorld {
   }
 
   showHint(playerId: PlayerId, hint: Hint): void {
-    this.setActionBar(playerId, {
+    this.actionBar.write(playerId, {
       rawtext: [
         hint.with
           ? {
@@ -106,17 +110,6 @@ export class BedrockHintWorld implements HintWorld {
   }
 
   clearHint(playerId: PlayerId): void {
-    this.setActionBar(playerId, "");
-  }
-
-  private setActionBar(
-    playerId: PlayerId,
-    text: Parameters<Player["onScreenDisplay"]["setActionBar"]>[0],
-  ): void {
-    try {
-      this.index.player(playerId)?.onScreenDisplay.setActionBar(text);
-    } catch {
-      // The player left between the scan and the send.
-    }
+    this.actionBar.write(playerId, "");
   }
 }
