@@ -50,13 +50,10 @@ it.each([destination, "cancel", undefined] as const)(
 );
 
 it.each([
-  [
-    1,
-    'execute at @s run loot give @s loot "loot_tables/yasu_ride/nav_test_destination.json"',
-  ],
+  [1, 'execute at @s run loot give @s loot "yasu_ride/nav_test_destination"'],
   [
     0,
-    'execute at @s run loot spawn ~ ~ ~ loot "loot_tables/yasu_ride/nav_test_destination.json"',
+    'execute at @s run loot spawn ~ ~ ~ loot "yasu_ride/nav_test_destination"',
   ],
 ] as const)(
   "runs loot once at the driver with %i free inventory slots",

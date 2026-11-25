@@ -2,7 +2,10 @@ import { existsSync, globSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { expect, it } from "vitest";
 import { NAV_DESTINATIONS } from "../../src/domain/vehicle/navigation/destinations";
-import { navLootTable } from "../../src/infrastructure/vehicle/bedrock/identifiers";
+import {
+  navDestinationLabelKey,
+  navLootTableFile,
+} from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
@@ -12,7 +15,7 @@ const destinationOf = (path: string) =>
 
 it("ships exactly one loot table for each menu destination", () => {
   expect([...new Set(tables)].sort()).toEqual(
-    NAV_DESTINATIONS.map(navLootTable).sort(),
+    NAV_DESTINATIONS.map(navLootTableFile).sort(),
   );
 });
 
@@ -52,9 +55,7 @@ it.each(["en_US", "ja_JP"])(
       "yasu_ride.message.nav_driver_only",
       "yasu_ride.message.nav_overworld_only",
       "yasu_ride.message.nav_nothing_found",
-      ...tables.map(
-        (path) => `yasu_ride.nav.destination.${destinationOf(path)}`,
-      ),
+      ...NAV_DESTINATIONS.map(navDestinationLabelKey),
     ]) {
       expect(lang).toMatch(
         new RegExp(`^${key.replaceAll(".", "\\.")}=.+$`, "m"),
