@@ -21,6 +21,7 @@ import {
 } from "../../../../src/domain/vehicle/kinds/index";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
 import { NAMESPACE } from "../../../../src/infrastructure/shared/identifiers";
+import { ActionBarLog } from "../../../../src/infrastructure/vehicle/bedrock/actionBarLog";
 import { BedrockVehicleWorld } from "../../../../src/infrastructure/vehicle/bedrock/bedrockVehicleWorld";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
 import {
@@ -103,6 +104,7 @@ function fixture(
       docks,
       restoredReaders,
       isStandableRoomBlock,
+      new ActionBarLog(index, () => 0),
     ),
   };
 }
