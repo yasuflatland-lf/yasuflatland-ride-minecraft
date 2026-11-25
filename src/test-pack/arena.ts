@@ -20,6 +20,8 @@ import { TEST_DECOR_EVENT as DECOR_EVENT } from "../infrastructure/vehicle/kinds
 
 import {
   areaBounds,
+  BOOST_RUNWAY_BOUNDS,
+  BOOST_RUNWAYS,
   inside,
   type Lane,
   LOCAL_ARENA,
@@ -41,6 +43,7 @@ export interface Arena {
   readonly dim: Dimension;
   readonly gy: number;
   readonly lane: Lane;
+  readonly boostRunways: readonly Arena[];
   at(x: number, y: number, z: number): Vector3;
   xyz(x: number, y: number, z: number): string;
   box(
@@ -54,7 +57,12 @@ export interface Arena {
   local(v: Vector3): Vector3;
 }
 
-function arenaOf(dim: Dimension, gy: number, lane: Lane): Arena {
+function arenaOf(
+  dim: Dimension,
+  gy: number,
+  lane: Lane,
+  boostRunways: readonly Arena[] = [],
+): Arena {
   const at = (x: number, y: number, z: number): Vector3 =>
     toWorld(lane, { x, y, z });
   const xyz = (x: number, y: number, z: number): string => {
@@ -65,6 +73,7 @@ function arenaOf(dim: Dimension, gy: number, lane: Lane): Arena {
     dim,
     gy,
     lane,
+    boostRunways,
     at,
     xyz,
     box: (x1, y1, z1, x2, y2, z2) => `${xyz(x1, y1, z1)} ${xyz(x2, y2, z2)}`,
@@ -185,6 +194,7 @@ const VEHICLE_TYPES = [
 export async function prepareRun(
   dim: Dimension,
   lanes: readonly Lane[],
+  boostRunwayCount: number,
 ): Promise<Arena[]> {
   for (const name of SERIES_AREAS) {
     try {
@@ -241,7 +251,8 @@ export async function prepareRun(
     if (!lanes.some((used) => used.index === lane.index))
       dim.runCommand(`tickingarea remove ${lane.tickingArea}`);
   }
-  const arenas = lanes.map((lane) => arenaOf(dim, gy, lane));
+  const boostRunways: Arena[] = [];
+  const arenas = lanes.map((lane) => arenaOf(dim, gy, lane, boostRunways));
   const { minX, maxX, minZ, maxZ } = LOCAL_ARENA;
   const midX = (minX + maxX) / 2;
   const midZ = Math.floor((minZ + maxZ) / 2);
@@ -268,6 +279,38 @@ export async function prepareRun(
     dim.runCommand(`fill ${a.box(minX, gy + 7, 0, 60, gy + 20, 12)} air`);
   }
   await wait(5);
+  if (boostRunwayCount > 0) {
+    const { minX, maxX, minZ, maxZ } = BOOST_RUNWAY_BOUNDS;
+    try {
+      for (const lane of BOOST_RUNWAYS.slice(0, boostRunwayCount)) {
+        const runway = arenaOf(dim, gy, lane);
+        const added = dim.runCommand(
+          `tickingarea add ${runway.box(minX, -64, minZ, maxX, 0, maxZ)} ${lane.tickingArea} true`,
+        );
+        if (added.successCount <= 0) {
+          if (boostRunways.length > 0) break;
+          throw new Error(`No ticking area available for ${lane.tickingArea}`);
+        }
+        boostRunways.push(runway);
+      }
+      for (const runway of boostRunways) {
+        const loaded = await waitUntil(200, () => {
+          for (let z = minZ; z <= maxZ; z += 16)
+            for (const x of [minX, maxX])
+              if (!blockLoaded(dim, runway.at(x, gy, z))) return false;
+          return true;
+        });
+        if (!loaded)
+          throw new Error(`Chunks not loaded for ${runway.lane.tickingArea}`);
+      }
+      for (const type of VEHICLE_TYPES) dim.runCommand(`kill @e[type=${type}]`);
+      await wait(5);
+    } catch (error) {
+      for (const runway of boostRunways)
+        dim.runCommand(`tickingarea remove ${runway.lane.tickingArea}`);
+      throw error;
+    }
+  }
   return arenas;
 }
 

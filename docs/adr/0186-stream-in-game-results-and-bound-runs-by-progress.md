@@ -20,6 +20,8 @@ Reject a malformed request with an error SUMMARY under its own run id. The scrip
 
 `pnpm test:game` prints lines as they arrive. Any new line of the run counts as progress, including PLAN, SKIP, READY, and step lines. The run is `overdue` when the time since PLAN exceeds `ceil(ticks / 20 * 1.5)` seconds plus a 30-second setup margin. It is `stalled` when no new line arrives for 60 seconds. On either condition, the command sends the cancel event and exits 1. Remove the fixed five-minute deadline.
 
+The PLAN tick estimate is at least the sum of the declared ticks for scenarios using the shared booster runways, so the deadline allows for queuing if only one runway is available.
+
 A scenario normally declares at most 300 ticks. At 20 TPS, 300 ticks is a quarter of the 60-second stall window, so a scenario only looks stalled when TPS drops to about 5. The camper booster release, wall, and landing scenarios may declare up to 350 ticks because the camper needs about 225 ticks to accelerate to boosted cruise. They report the measured cruise speed before testing release, collision, or touchdown.
 
 ## Consequences

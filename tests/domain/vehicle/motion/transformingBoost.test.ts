@@ -206,6 +206,89 @@ it.each([
   }
 });
 
+it.each(flyingKinds)(
+  "%s sheds measured speed gradually when ground drag starts at touchdown",
+  (kind, spec) => {
+    const drive = KINDS[kind].createDrive(0, { form: "hover" });
+    enableBoost(drive);
+    const airborne = driveTicks(
+      drive,
+      FORWARD,
+      context(),
+      300,
+      spec.flightDrag,
+    );
+    let ctx = { ...airborne, onGround: true };
+    for (let tick = 0; tick < 20; tick++) {
+      const { impulse } = drive.step(FORWARD, ctx);
+      // BDS retains 91% of the observed velocity on contact and 54.6% on
+      // stone from the next tick, then adds the impulse.
+      const velocity = ctx.velocity.z * (tick === 0 ? 0.91 : 0.546) + impulse.z;
+      const drop = ctx.velocity.z - velocity;
+      expect(drop).toBeGreaterThan(0);
+      expect(drop).toBeLessThanOrEqual(spec.maxSpeed * MOTION.boostBleed * 1.5);
+      ctx = {
+        ...ctx,
+        tick: ctx.tick + 1,
+        velocity: { ...ctx.velocity, z: velocity },
+      };
+    }
+    expect(ctx.velocity.z / spec.maxSpeed).toBeCloseTo(1, 1);
+  },
+);
+
+it("ignores the friction estimate learned while accelerating before takeoff", () => {
+  const drive = KINDS.suv.createDrive(0, { form: "car" });
+  let ctx = { ...context(), onGround: true };
+  for (const input of [FORWARD, CLIMB, FORWARD, CLIMB]) {
+    const { impulse } = drive.step(input, ctx);
+    ctx = {
+      ...ctx,
+      tick: ctx.tick + 1,
+      velocity: { ...ctx.velocity, z: ctx.velocity.z * 0.546 + impulse.z },
+    };
+  }
+  enableBoost(drive);
+  const airborne = driveTicks(
+    drive,
+    FORWARD,
+    { ...ctx, onGround: false },
+    300,
+    SUV_SPEC.flightDrag,
+  );
+  const contact = drive.step(FORWARD, { ...airborne, onGround: true });
+  const contactSpeed = airborne.velocity.z * 0.91 + contact.impulse.z;
+  const grounded = drive.step(FORWARD, {
+    ...airborne,
+    tick: airborne.tick + 1,
+    onGround: true,
+    velocity: { ...airborne.velocity, z: contactSpeed },
+  });
+  const drop = contactSpeed - (contactSpeed * 0.546 + grounded.impulse.z);
+  expect(drop).toBeGreaterThan(0);
+  expect(drop).toBeLessThanOrEqual(SUV_SPEC.maxSpeed * MOTION.boostBleed * 1.5);
+});
+
+it("keeps the bulldozer's pivot braking when it touches down at boosted speed", () => {
+  const drive = KINDS.bulldozer.createDrive(0, { form: "hover" });
+  enableBoost(drive);
+  const ctx = driveTicks(
+    drive,
+    FORWARD,
+    context(),
+    300,
+    BULLDOZER_SPEC.flightDrag,
+  );
+  const { impulse } = drive.step(
+    { moveX: 1, moveY: 0, jump: false },
+    { ...ctx, onGround: true },
+  );
+  const forwardSpeed = ctx.velocity.z * 0.91 + impulse.z;
+  expect(forwardSpeed).toBeGreaterThan(BULLDOZER_SPEC.maxSpeed);
+  expect(forwardSpeed).toBeLessThan(ctx.velocity.z);
+  expect(drive.yaw).not.toBe(0);
+});
+
 it("returns immediately from boosted flight to the submarine cap on submergence", () => {
   const drive = KINDS.suv.createDrive(0, { form: "hover" });
   enableBoost(drive);

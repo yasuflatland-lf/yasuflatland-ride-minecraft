@@ -69,14 +69,28 @@ export function inside(b: Bounds, p: XZ, halfWidth: number): boolean {
   );
 }
 
-export function runwayArea(lane: Lane): string {
-  return `${lane.tickingArea}_runway`;
-}
+// Bedrock allows ten ticking areas, leaving two slots when all lanes are used.
+export const BOOST_RUNWAYS: readonly Lane[] = Array.from(
+  { length: 10 - MAX_LANES },
+  (_, slot) => ({
+    index: MAX_LANES + slot,
+    origin: { x: (MAX_LANES + slot) * LANE_STRIDE, z: 0 },
+    tickingArea: `yasu_ride_boost_runway_${slot}`,
+  }),
+);
+
+export const BOOST_RUNWAY_BOUNDS: Bounds = {
+  minX: 16,
+  maxX: 47,
+  minZ: 0,
+  maxZ: 550,
+};
 
 export const UNLOAD_AREA = "yasu_ride_unload_spike";
 export const SERIES_AREAS: readonly string[] = [
   ...Array.from({ length: MAX_LANES }, (_, index) => laneOf(index)).flatMap(
-    (lane) => [lane.tickingArea, runwayArea(lane)],
+    ({ tickingArea }) => [tickingArea, `${tickingArea}_runway`],
   ),
+  ...BOOST_RUNWAYS.map((runway) => runway.tickingArea),
   UNLOAD_AREA,
 ];

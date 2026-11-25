@@ -15,6 +15,8 @@ Scenario metadata lives in a pure catalog. Each `ScenarioSpec` holds its name an
 
 Every scenario coordinate is local to a lane. The local arena spans x 0-120 and z 0-90. Lane `i` has its world origin at x = 160 * i, z = 0. Its ticking area is the arena grown by 16 blocks on every side, covering 80 chunks. Neighbouring lanes' areas sit in adjacent chunk columns, so a vehicle that runs out of its arena stays loaded and its scenario's cleanup can still remove it. Name the areas `yasu_ride_arena` for lane 0 and `yasu_ride_arena_<i>` otherwise.
 
+Booster runways are dedicated ticking areas outside the lane arenas. Load up to two runways during setup when selected scenarios need them. A scenario uses one runway at a time and leaves its lane area loaded. Remove the runways after the lanes finish. When all eight arenas are in use and the unloaded warp probe is selected, leave one slot for its temporary area.
+
 Once per run, perform setup in this order:
 
 1. Remove the series' own named areas. Never use `remove_all`, so the owner's areas survive.

@@ -3,12 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   AREA_MARGIN,
   areaBounds,
+  BOOST_RUNWAY_BOUNDS,
+  BOOST_RUNWAYS,
   type Bounds,
   inside,
   LANE_STRIDE,
   LOCAL_ARENA,
   laneOf,
-  runwayArea,
   SERIES_AREAS,
   toLocal,
   toWorld,
@@ -94,6 +95,23 @@ describe("lane frame", () => {
     );
   });
 
+  it("reserves two disjoint runways outside the lane arenas and the unload area", () => {
+    const runways = BOOST_RUNWAYS.map((l) =>
+      worldBounds(l, BOOST_RUNWAY_BOUNDS),
+    );
+    expect(runways).toHaveLength(2);
+    expect(new Set(runways.map((b) => b.minX)).size).toBe(2);
+    fc.assert(
+      fc.property(lane, (l) => {
+        for (const runway of runways) {
+          expect(chunksOf(runway)).toBeLessThanOrEqual(100);
+          expect(overlaps(runway, areaBounds(l))).toBe(false);
+          expect(runway.maxX).toBeLessThan(1900);
+        }
+      }),
+    );
+  });
+
   it("counts all intersected chunks, including negative coordinates and edges", () => {
     fc.assert(
       fc.property(bounds, (b) => {
@@ -149,12 +167,14 @@ describe("lane frame", () => {
     const lanes = Array.from({ length: MAX_LANES }, (_, i) => laneOf(i));
     expect(lanes[0]?.tickingArea).toBe("yasu_ride_arena");
     expect(new Set(lanes.map((l) => l.tickingArea)).size).toBe(MAX_LANES);
-    expect(SERIES_AREAS).toHaveLength(MAX_LANES * 2 + 1);
-    expect(new Set(SERIES_AREAS).size).toBe(MAX_LANES * 2 + 1);
+    expect(SERIES_AREAS).toHaveLength(MAX_LANES * 2 + BOOST_RUNWAYS.length + 1);
+    expect(new Set(SERIES_AREAS).size).toBe(SERIES_AREAS.length);
     for (const l of lanes) {
       expect(SERIES_AREAS).toContain(l.tickingArea);
-      expect(SERIES_AREAS).toContain(runwayArea(l));
+      expect(SERIES_AREAS).toContain(`${l.tickingArea}_runway`);
     }
+    for (const runway of BOOST_RUNWAYS)
+      expect(SERIES_AREAS).toContain(runway.tickingArea);
     expect(SERIES_AREAS).toContain("yasu_ride_unload_spike");
     fc.assert(
       fc.property(lane, (l) => {
