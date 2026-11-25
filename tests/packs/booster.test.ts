@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { BOOSTER_TYPE } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 it("exposes the booster as a single-stack creative item without a recipe", () => {
   const item = JSON.parse(
@@ -15,7 +16,7 @@ it("exposes the booster as a single-stack creative item without a recipe", () =>
     ),
   )["minecraft:item"];
   expect(item.description).toEqual({
-    identifier: "yasu_ride:booster",
+    identifier: BOOSTER_TYPE,
     menu_category: headlight.description.menu_category,
   });
   expect(item.components["minecraft:max_stack_size"]).toBe(1);

@@ -9,6 +9,7 @@ import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
 import type { SwitchCeilingLights } from "../../../application/vehicle/room/switchCeilingLights";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
+import type { SwitchBoost } from "../../../application/vehicle/switchBoost";
 import type { SwitchEquipment } from "../../../application/vehicle/switchEquipment";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
@@ -22,6 +23,7 @@ import {
 } from "../../shared/switchRouter";
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { registerBoarding } from "./handlers/boarding";
+import { boosterSwitchTarget } from "./handlers/boosterSwitch";
 import { registerDrive } from "./handlers/drive";
 import { equipmentSwitchTarget } from "./handlers/equipmentSwitch";
 import { registerFleet } from "./handlers/fleet";
@@ -31,7 +33,7 @@ import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerStandIns } from "./handlers/standIn";
 import { registerTestInput } from "./handlers/testInput";
-import { EQUIPMENT_SWITCH_TYPES } from "./identifiers";
+import { BOOSTER_TYPE, EQUIPMENT_SWITCH_TYPES } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -44,6 +46,7 @@ export function registerSubscriptions(
     headlights: SwitchHeadlights;
     ceilingLights: SwitchCeilingLights;
     equipment: SwitchEquipment;
+    boost: SwitchBoost;
     hints: ShowVehicleHints;
     board: BoardVehicle;
   },
@@ -71,8 +74,10 @@ export function registerSubscriptions(
     dockCellOwner,
   );
   const equipment = equipmentSwitchTarget(useCases.equipment);
+  const booster = boosterSwitchTarget(useCases.boost);
   const switchRoutes: SwitchRoutes = {
     [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, ...laterSwitchTargets()],
+    [BOOSTER_TYPE]: () => [booster],
     ...Object.fromEntries(
       EQUIPMENT_SWITCH_TYPES.map((type) => [type, () => [equipment]]),
     ),

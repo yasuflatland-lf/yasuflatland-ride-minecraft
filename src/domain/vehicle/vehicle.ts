@@ -5,6 +5,7 @@ import { HitCounters, hitRule } from "../shared/hitCounter";
 import type { PlayerId, VehicleId } from "../shared/ids";
 import { isDyeable } from "../shared/paint";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
+import { BOOST_CONTROL } from "./boost";
 import type { CapabilityKey } from "./capability";
 import { Crew } from "./crew";
 import type { CutColumn } from "./cut";
@@ -112,6 +113,7 @@ export class Vehicle {
   private readonly ram: RamSensor;
   private readonly standIn: StandInKeeper | undefined;
   private readonly switchCooldown = new Debounce(SPEC.headlightSwitchCooldown);
+  private readonly boosterCooldown = new Debounce(SPEC.boosterSwitchCooldown);
   private readonly hitCounters = new HitCounters<PlayerId>(TAKE_BACK_RULE);
   /** As of the last tick: held in place (ADR 0063, 0068), and nobody in the driver's seat or its deck seat. */
   private held = false;
@@ -361,6 +363,17 @@ export class Vehicle {
   /** A burst of uses from one touch at the wheel flips the headlights once (ADR 0024). */
   flipHeadlightSwitch(playerId: PlayerId, tick: number): boolean {
     return this.atTheWheel(playerId) && this.switchCooldown.press(tick);
+  }
+
+  switchBoost(
+    playerId: PlayerId,
+    tick: number,
+  ): "on" | "off" | "unavailable" | "denied" {
+    if (playerId !== this.crew.driver) return "denied";
+    const boost = this.capability(BOOST_CONTROL);
+    if (boost === undefined) return "unavailable";
+    if (!this.boosterCooldown.press(tick)) return "denied";
+    return boost.toggle() ? "on" : "off";
   }
 
   switchEquipment(

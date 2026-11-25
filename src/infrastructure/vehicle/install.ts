@@ -13,6 +13,7 @@ import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { RiderEffects } from "../../application/vehicle/riderEffects";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
+import { SwitchBoost } from "../../application/vehicle/switchBoost";
 import { SwitchEquipment } from "../../application/vehicle/switchEquipment";
 import { SwitchFeedback } from "../../application/vehicle/switchFeedback";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
@@ -136,6 +137,7 @@ export function installVehicles(deps: {
       ),
       ceilingLights: camper.ceilingLights,
       equipment: new SwitchEquipment(repo, systemClock, feedback),
+      boost: new SwitchBoost(repo, systemClock, feedback, bedrock),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,

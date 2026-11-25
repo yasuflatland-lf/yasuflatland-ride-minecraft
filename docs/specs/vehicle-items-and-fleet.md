@@ -12,6 +12,7 @@
 - Source: [0142](../adr/0142-place-the-bulldozer-in-the-suvs-space.md)
 - Source: [0143](../adr/0143-place-the-camper-in-the-suvs-space.md)
 - Source: [0220](../adr/0220-separate-room-capability-from-drive.md)
+- Source: [0260](../adr/0260-toggle-flight-boost-with-a-booster.md)
 - Excluded: [0036](../adr/0036-paint-by-hitting-with-a-dye.md): partly supersedes 0008 for dye hits, which repaint instead of counting toward pickup; covered by the paint topic.
 - Excluded: [0136](../adr/0136-bulldozer.md): second starter and bulldozer fleet limit, covered by the bulldozer topic.
 - Excluded: [0067](../adr/0067-camper.md): camper recipe and fleet limit, covered by the camper topic.
@@ -25,11 +26,11 @@
 ### Booster item
 
 - Applies to: the booster item.
-- Rule: The single-stack `yasu_ride:booster` is available in the Creative Items category alongside the headlight switch. It has no recipe and currently has no behavior. Both locales provide its name and boost status messages.
+- Rule: The single-stack `yasu_ride:booster` is available in the Creative Items category alongside the headlight switch. It has no recipe. While riding, the driver can use the item or press the ridden vehicle to toggle [flight boost](flight-and-submarine.md#flight-boost). Block presses keep their normal behavior. A successful toggle plays the headlight switch click and shows the new state in the third-person camera. A sports boat driver sees the unavailable message in any camera.
 - Agreement: Accepted
-- Basis: [0008](../adr/0008-vehicle-item-and-breaking.md) establishes vehicle-related items.
-- Implementation: `packs/yasu_ride_bp/items/yasu_ride/booster.item.json`; `tools/suv_export.py`; `packs/yasu_ride_rp/texts/`.
-- Verification: `tests/packs/booster.test.ts` checks the item and locale entries.
+- Basis: [0260](../adr/0260-toggle-flight-boost-with-a-booster.md) Decision.
+- Implementation: `packs/yasu_ride_bp/items/yasu_ride/booster.item.json`, `tools/suv_export.py`, `packs/yasu_ride_rp/texts/`, and `src/infrastructure/vehicle/bedrock/handlers/boosterSwitch.ts`.
+- Verification: `tests/packs/booster.test.ts` checks the item and locale entries. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks event claims and click playback. `tests/application/vehicle/switchBoost.test.ts` checks action-bar messages.
 
 ### Crafted vehicle items
 

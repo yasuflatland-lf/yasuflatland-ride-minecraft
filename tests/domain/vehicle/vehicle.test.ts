@@ -9,6 +9,7 @@ import {
   type Vec2,
   type Vec3,
 } from "../../../src/domain/shared/vec";
+import { BOOST_CONTROL } from "../../../src/domain/vehicle/boost";
 import type { Drive } from "../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../src/domain/vehicle/driveInput";
 import { HINTS } from "../../../src/domain/vehicle/hints";
@@ -558,6 +559,60 @@ describe("Vehicle (aggregate)", () => {
         },
       ),
     );
+  });
+});
+
+describe("Vehicle booster switch", () => {
+  it("toggles only for the driver after an idle cooldown independent of headlights", () => {
+    fc.assert(
+      fc.property(fc.array(fc.integer({ min: 0, max: 20 })), (gaps) => {
+        const driver = riderView("driver");
+        const passenger = riderView("passenger", { seat: 1 });
+        const vehicle = rebuildVehicle(
+          "suv",
+          asVehicleId("v"),
+          0,
+          [driver, passenger],
+          {},
+        );
+        const boost = defined(vehicle.capability(BOOST_CONTROL), "boost");
+        expect(vehicle.switchBoost(passenger.id, 0)).toBe("denied");
+        expect(vehicle.switchBoost(asPlayerId("outside"), 0)).toBe("denied");
+        expect(vehicle.flipHeadlightSwitch(driver.id, 0)).toBe(true);
+        expect(vehicle.switchBoost(driver.id, 0)).toBe("on");
+        let tick = 0;
+        let on = true;
+        for (const gap of gaps) {
+          tick += gap;
+          const ready = gap >= SPEC.boosterSwitchCooldown;
+          if (ready) on = !on;
+          expect(vehicle.switchBoost(driver.id, tick)).toBe(
+            ready ? (on ? "on" : "off") : "denied",
+          );
+          expect(boost.isOn()).toBe(on);
+        }
+      }),
+    );
+  });
+
+  it("starts the next driver's boost off", () => {
+    const sim = new Sim();
+    const vehicle = createVehicle("suv", asVehicleId("v"), 0);
+    sim.riders = [
+      { id: "driver", seat: 0, yaw: 0, raw: IDLE },
+      { id: "passenger", seat: 1, yaw: 0, raw: IDLE },
+    ];
+    sim.run(vehicle, 1);
+    expect(vehicle.switchBoost(asPlayerId("driver"), 0)).toBe("on");
+    sim.riders = [{ id: "passenger", seat: 1, yaw: 0, raw: IDLE }];
+    sim.run(vehicle, 1, 1);
+    expect(vehicle.switchBoost(asPlayerId("passenger"), 1)).toBe("denied");
+    sim.riders = [{ id: "passenger", seat: 0, yaw: 0, raw: IDLE }];
+    sim.run(vehicle, 1, 2);
+    expect(vehicle.capability(BOOST_CONTROL)?.isOn()).toBe(false);
+    expect(
+      vehicle.switchBoost(asPlayerId("passenger"), SPEC.boosterSwitchCooldown),
+    ).toBe("on");
   });
 });
 
