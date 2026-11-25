@@ -175,8 +175,22 @@ export const EQUIPMENT_SWITCH_TYPES = EQUIPMENT_SWITCH_ITEMS.map(id);
 export const BOOSTER_TYPE = id("booster");
 export const NAV_TYPE = id("nav");
 
-export function navLootTable(destination: NavDestination): string {
-  return `loot_tables/${NAMESPACE}/nav_${destination}.json`;
+const lootTableDirectory = "loot_tables/";
+const lootTableExtension = ".json";
+
+export function navLootTableFile(destination: NavDestination): string {
+  return `${lootTableDirectory}${NAMESPACE}/nav_${destination}${lootTableExtension}`;
+}
+
+export function navLootTableId(destination: NavDestination): string {
+  return navLootTableFile(destination).slice(
+    lootTableDirectory.length,
+    -lootTableExtension.length,
+  );
+}
+
+export function navDestinationLabelKey(destination: NavDestination): string {
+  return `${NAMESPACE}.nav.destination.${destination}`;
 }
 /**
  * Camera presets for each chase camera: the vanilla preset that views the player from
