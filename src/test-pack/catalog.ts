@@ -20,6 +20,15 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "suv_nav_passenger_refused",
+    file: "nav",
+    ticks: 24,
+    features: ["vehicle:nav", "vehicle:suv"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
     name: "suv_boost_wall",
     file: "boosterObstacles",
     ticks: 214,

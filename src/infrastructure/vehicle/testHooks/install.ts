@@ -5,6 +5,7 @@ import { registerTestBoost } from "./testBoost";
 import { registerTestBoostCrew } from "./testBoostCrew";
 import { registerTestEquipment } from "./testEquipment";
 import { registerTestHeldItem } from "./testHeldItem";
+import { registerTestNav } from "./testNav";
 import { registerTestRadar } from "./testRadar";
 
 export interface VehicleTestHookParts {
@@ -21,4 +22,5 @@ export function installVehicleTestHooks(parts: VehicleTestHookParts): void {
   registerTestBoostCrew(parts.repo);
   registerTestEquipment(parts.repo);
   registerTestHeldItem(parts.testHeldItems);
+  registerTestNav(parts.repo);
 }

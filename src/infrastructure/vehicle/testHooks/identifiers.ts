@@ -10,3 +10,6 @@ export const TEST_BOOST_RESULT_EVENT = /* @__PURE__ */ id("test_boost_result");
 
 export const TEST_RADAR_EVENT = /* @__PURE__ */ id("test_radar");
 export const TEST_RADAR_RESULT_EVENT = /* @__PURE__ */ id("test_radar_result");
+
+export const TEST_NAV_EVENT = /* @__PURE__ */ id("test_nav");
+export const TEST_NAV_RESULT = /* @__PURE__ */ id("test_nav_result");

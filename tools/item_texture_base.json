@@ -8,6 +8,9 @@
     "yasu_ride_booster": {
       "textures": "textures/items/yasu_ride/booster"
     },
+    "yasu_ride_nav": {
+      "textures": "textures/items/yasu_ride/nav"
+    },
     "yasu_ride_headlight_switch": {
       "textures": "textures/items/yasu_ride/headlight_switch"
     },

@@ -264,6 +264,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0258](0258-build-undo-steps-back-fresh-selection.md) | Build Undo steps back a fresh selection | Proposed |
 | [0259](0259-bedrock-draws-east-on-the-minimum-x-side.md) | Bedrock draws east on the minimum x side | Accepted |
 | [0260](0260-toggle-flight-boost-with-a-booster.md) | Toggle flight boost with a booster | Accepted |
+| [0261](0261-navigation-by-explorer-maps-and-a-mob-radar.md) | Navigation by explorer maps and a mob radar | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).

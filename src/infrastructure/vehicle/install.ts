@@ -10,6 +10,7 @@ import { DriveVehicles } from "../../application/vehicle/driveVehicles";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { OpenGift } from "../../application/vehicle/openGift";
+import { OpenNav } from "../../application/vehicle/openNav";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { RiderEffects } from "../../application/vehicle/riderEffects";
@@ -34,6 +35,7 @@ import { BedrockFleetWorld } from "./bedrock/bedrockFleetWorld";
 import { BedrockHeadlightWorld } from "./bedrock/bedrockHeadlightWorld";
 import { BedrockHintWorld } from "./bedrock/bedrockHintWorld";
 import { BedrockInventory } from "./bedrock/bedrockInventory";
+import { BedrockNavWorld } from "./bedrock/bedrockNavWorld";
 import { BedrockPaintWorld } from "./bedrock/bedrockPaintWorld";
 import { BedrockPlacementWorld } from "./bedrock/bedrockPlacementWorld";
 import { BedrockRadarWorld } from "./bedrock/bedrockRadarWorld";
@@ -144,6 +146,7 @@ export function installVehicles(deps: {
       ceilingLights: camper.ceilingLights,
       equipment: new SwitchEquipment(repo, systemClock, feedback),
       boost: new SwitchBoost(repo, systemClock, feedback, bedrock),
+      nav: new OpenNav(repo, new BedrockNavWorld(index, actionBar)),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index, actionBar),
         repo,
