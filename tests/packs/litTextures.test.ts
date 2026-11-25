@@ -24,7 +24,7 @@ function texels(name: string) {
 
 const suvLampRegions: {
   rect: [number, number, number, number];
-  lit: [number, number][];
+  lit: [number, number, number, number, number][];
 }[] = JSON.parse(
   execFileSync(
     "python3",
@@ -36,10 +36,11 @@ sys.path.insert(0, 'tools')
 from tool_loader import load_tool
 atlas = load_tool('suv_atlas')
 texture = load_tool('suv_texture')
+lit_rgb = texture.lit_pixel(load_tool('suv_palette').BODY_PAINTS[0])
 result = []
 for name in ('headlight', 'tail_lamp'):
     r = atlas.BLOCKS[name].region
-    result.append({'rect': list(r[1:]), 'lit': [[x, y] for y in range(r.y, r.y + r.h) for x in range(r.x, r.x + r.w) if texture.is_lit(x, y)]})
+    result.append({'rect': list(r[1:]), 'lit': [[x, y, *lit_rgb(x, y)] for y in range(r.y, r.y + r.h) for x in range(r.x, r.x + r.w) if texture.is_lit(x, y)]})
 print(json.dumps(result))`,
     ],
     { encoding: "utf8" },
@@ -55,6 +56,12 @@ const suvLit = (x: number, y: number) =>
       y < by + h &&
       lit.some(([lx, ly]) => lx === x && ly === y),
   );
+
+const suvLitRgb = (x: number, y: number) =>
+  suvLampRegions
+    .flatMap(({ lit }) => lit)
+    .find(([lx, ly]) => lx === x && ly === y)
+    ?.slice(2);
 
 const scooterPython = startPythonWorker();
 afterAll(() => scooterPython.close());
@@ -199,8 +206,18 @@ const kinds = [
 describe.each(kinds)(
   "$kind lit textures (ADR 0147)",
   ({ kind, slots, cell, regionRule, bones, condition }) => {
-    function expectedColorTexel(pixel: number[], on: boolean) {
-      if (on) return [...pixel.slice(0, 3), 0];
+    function expectedColorTexel(
+      pixel: number[],
+      on: boolean,
+      x: number,
+      y: number,
+    ) {
+      // The SUV lens takes its own lamp colours in the lit pass; see suvLitRgb.
+      if (on)
+        return [
+          ...((kind === "suv" && suvLitRgb(x, y)) || pixel.slice(0, 3)),
+          0,
+        ];
       // Both generators pass opaque_unlit_cutouts, so a cutout hole stays out of the lit pass.
       if ((kind === "suv" || kind === "scooter") && pixel[3] === 0)
         return [...pixel.slice(0, 3), 255];
@@ -238,7 +255,15 @@ describe.each(kinds)(
             slots.includes(Math.floor((i % base.width) / (cell ?? 1))));
         // The clear corners of a round scooter lens must not glow as a square plate.
         const on = inRegion && !(kind === "scooter" && pixel[3] === 0);
-        expectedColor.set(expectedColorTexel(pixel, on), offset);
+        expectedColor.set(
+          expectedColorTexel(
+            pixel,
+            on,
+            i % base.width,
+            Math.floor(i / base.width),
+          ),
+          offset,
+        );
         expectedMer.set([0, on ? 255 : 0, 255, 255], offset);
       }
       expect(Buffer.from(lit.pixels).equals(expectedColor), "color atlas").toBe(
@@ -339,6 +364,40 @@ print(json.dumps(list(load_tool('suv_atlas').region('headlight', 'lens')[1:])))`
         expect(mer.pixels[y * mer.width + x]?.[1]).toBe(inside ? 255 : 0);
       }
     }
+  });
+
+  it("draws the lens inside its chrome bezel in bright lamp colours only when lit", () => {
+    const [x0, y0, w, h]: [number, number, number, number] = JSON.parse(
+      execFileSync(
+        "python3",
+        [
+          "-I",
+          "-c",
+          `import json, sys
+sys.path.insert(0, 'tools')
+from tool_loader import load_tool
+print(json.dumps(list(load_tool('suv_atlas').region('headlight', 'lens')[1:])))`,
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    const lit = texels("suv_lit");
+    const base = texels("suv");
+    // Rec. 601 luma; the unlit glass and trim sit far below this, the lamp colours above it.
+    const luma = ([r = 0, g = 0, b = 0]: number[]) =>
+      0.299 * r + 0.587 * g + 0.114 * b;
+    let darkUnlit = 0;
+    for (let y = y0; y < y0 + h; y++) {
+      for (let x = x0; x < x0 + w; x++) {
+        const radius = Math.hypot(x + 0.5 - x0 - w / 2, y + 0.5 - y0 - h / 2);
+        if (radius > w / 2 - 4) continue;
+        expect(
+          luma(lit.pixels[y * lit.width + x] ?? []),
+        ).toBeGreaterThanOrEqual(180);
+        if (luma(base.pixels[y * base.width + x] ?? []) < 100) darkUnlit++;
+      }
+    }
+    expect(darkUnlit).toBeGreaterThan(0);
   });
 });
 
