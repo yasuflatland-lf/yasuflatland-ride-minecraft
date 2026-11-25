@@ -5,6 +5,7 @@ import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { OpenGift } from "../../../application/vehicle/openGift";
+import type { OpenNav } from "../../../application/vehicle/openNav";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
 import type { SwitchCeilingLights } from "../../../application/vehicle/room/switchCeilingLights";
@@ -30,10 +31,11 @@ import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
 import { vehicleSwitchTarget } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
+import { navSwitchTarget } from "./handlers/navSwitch";
 import { registerPlacement } from "./handlers/placement";
 import { registerStandIns } from "./handlers/standIn";
 import { registerTestInput } from "./handlers/testInput";
-import { BOOSTER_TYPE, EQUIPMENT_SWITCH_TYPES } from "./identifiers";
+import { BOOSTER_TYPE, EQUIPMENT_SWITCH_TYPES, NAV_TYPE } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -47,6 +49,7 @@ export function registerSubscriptions(
     ceilingLights: SwitchCeilingLights;
     equipment: SwitchEquipment;
     boost: SwitchBoost;
+    nav: OpenNav;
     hints: ShowVehicleHints;
     board: BoardVehicle;
   },
@@ -75,9 +78,11 @@ export function registerSubscriptions(
   );
   const equipment = equipmentSwitchTarget(useCases.equipment);
   const booster = boosterSwitchTarget(useCases.boost);
+  const nav = navSwitchTarget(useCases.nav);
   const switchRoutes: SwitchRoutes = {
     [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, ...laterSwitchTargets()],
     [BOOSTER_TYPE]: () => [booster],
+    [NAV_TYPE]: () => [nav],
     ...Object.fromEntries(
       EQUIPMENT_SWITCH_TYPES.map((type) => [type, () => [equipment]]),
     ),

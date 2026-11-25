@@ -180,6 +180,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/vehicle/motion/turn.ts",
   "src/domain/vehicle/motion/water.ts",
   "src/domain/vehicle/pave.ts",
+  "src/domain/vehicle/navigation/destinations.ts",
   "src/domain/vehicle/placement/gift.ts",
   "src/domain/vehicle/placement/placement.ts",
   "src/domain/vehicle/placement/starter.ts",

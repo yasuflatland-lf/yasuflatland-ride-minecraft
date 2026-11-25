@@ -26,6 +26,7 @@ import type {
 } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
+import type { NavDestination } from "../../../domain/vehicle/navigation/destinations";
 import type { Pave } from "../../../domain/vehicle/pave";
 import type { ChaseCamera } from "../../../domain/vehicle/profile";
 import type { RamHit, RamTarget } from "../../../domain/vehicle/ram";
@@ -208,4 +209,17 @@ export interface HintWorld {
   showHint(playerId: PlayerId, hint: Hint): void;
   /** Empties the action bar; does nothing for a missing player. */
   clearHint(playerId: PlayerId): void;
+}
+
+export interface NavWorld {
+  dimensionOf(playerId: PlayerId): DimensionId | undefined;
+  choose(
+    playerId: PlayerId,
+    options: readonly NavDestination[],
+  ): Promise<NavDestination | undefined>;
+  giveMap(
+    playerId: PlayerId,
+    destination: NavDestination,
+  ): "given" | "nothing" | "unknown";
+  showMessage(playerId: PlayerId, name: string): void;
 }

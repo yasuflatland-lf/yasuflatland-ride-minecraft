@@ -2055,6 +2055,7 @@ describe("vehicle item switch routes", () => {
     let vehicle = mount
       ? { ...mount, dimension: { playSound }, location }
       : undefined;
+    const nav = { execute: vi.fn(async () => {}) };
     const equipment = { execute: vi.fn(() => result), force: vi.fn() };
     const headlights = { execute: vi.fn(() => false) };
     const ceilingLights = { execute: vi.fn(), canSwitch: vi.fn(() => false) };
@@ -2073,6 +2074,7 @@ describe("vehicle item switch routes", () => {
       useCases: {
         equipment,
         boost,
+        nav,
         headlights,
         ceilingLights,
         board: { execute: vi.fn(() => false) },
@@ -2104,6 +2106,7 @@ describe("vehicle item switch routes", () => {
             : undefined,
     };
     return {
+      nav,
       equipment,
       headlights,
       ceilingLights,
@@ -2210,6 +2213,33 @@ describe("vehicle item switch routes", () => {
         },
       ),
     );
+  });
+
+  it("routes nav item use and presses on the ridden vehicle to OpenNav", () => {
+    const f = fixture();
+    const type = "yasu_ride:nav";
+    f.send("item", type);
+    expect(
+      f.send("entity", type, { id: "other", typeId: ENTITY_TYPE.suv }).cancel,
+    ).toBe(false);
+    expect(f.send("block", type).cancel).toBe(false);
+    expect(f.send("entity", type).cancel).toBe(true);
+    f.nextTick();
+    expect(f.nav.execute.mock.calls).toEqual([
+      [{ playerId: "player", vehicleId: "dozer" }],
+      [{ playerId: "player", vehicleId: "dozer" }],
+    ]);
+    expect(f.equipment.execute).not.toHaveBeenCalled();
+    expect(f.later.switchFor).not.toHaveBeenCalled();
+  });
+
+  it("routes nav item use on foot to the driver check", () => {
+    const f = fixture(null);
+    f.send("item", "yasu_ride:nav");
+    expect(f.nav.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId: "player",
+      vehicleId: undefined,
+    });
   });
 
   it("shares the booster cooldown across item uses and cancelled entity presses", () => {

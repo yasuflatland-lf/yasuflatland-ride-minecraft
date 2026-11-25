@@ -101,6 +101,28 @@ export async function waitUntil(
   return done();
 }
 
+/** Waits for a response whose first comma-separated field is the request's entity ID. */
+export async function requestProbe(
+  requestId: string,
+  resultId: string,
+  entityId: string,
+  payload: string,
+  timeout: number,
+): Promise<string | undefined> {
+  let result: string | undefined;
+  const listener = system.afterEvents.scriptEventReceive.subscribe((event) => {
+    if (event.id === resultId && event.message.split(",")[0] === entityId)
+      result = event.message;
+  });
+  try {
+    system.sendScriptEvent(requestId, `${entityId},${payload}`);
+    await waitUntil(timeout, () => result !== undefined);
+    return result;
+  } finally {
+    system.afterEvents.scriptEventReceive.unsubscribe(listener);
+  }
+}
+
 export function wait(ticks: number): Promise<void> {
   return new Promise((resolve) => system.runTimeout(resolve, ticks));
 }
