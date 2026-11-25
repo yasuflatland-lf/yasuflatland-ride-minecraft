@@ -1,3 +1,4 @@
+item.yasu_ride:booster.name=ブースター
 item.yasu_ride:suv_item.name=SUV
 entity.yasu_ride:suv.name=SUV
 item.yasu_ride:headlight_switch.name=ヘッドライトスイッチ
@@ -308,3 +309,7 @@ yasu_build.message.aim_stair_goal=ゴールを見て押す
 yasu_build.message.no_stair_goal=そこはゴールにできない
 entity.yasu_build:tap_target.name=範囲選択ワンドのタップ対象
 action.interact.yasu_build.tap_target=タップ
+
+yasu_ride.message.boost_on=ブースト ON
+yasu_ride.message.boost_off=ブースト OFF
+yasu_ride.message.boost_unavailable=この乗り物ではブースターを使えません。

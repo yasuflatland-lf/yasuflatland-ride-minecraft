@@ -261,6 +261,7 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   gas_lantern: ["camp"],
   gas_lantern_item: ["camp"],
   headlight_switch: ["vehicle", "camp"],
+  booster: ["vehicle"],
   icebreaker_switch: ["vehicle:sportsboat"],
   low_chair: ["camp"],
   low_chair_item: ["camp"],

@@ -10,7 +10,8 @@
         "packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.png",
         "packs/yasu_ride_rp/textures/entity/yasu_ride/suv*.texture_set.json",
         "packs/yasu_ride_rp/textures/items/yasu_ride/suv_item.png",
-        "packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png"
+        "packs/yasu_ride_rp/textures/items/yasu_ride/headlight_switch.png",
+        "packs/yasu_ride_rp/textures/items/yasu_ride/booster.png"
       ],
       "trackedOutputs": ["tests/packs/fixtures/face-cull/yasu_ride.suv.json"],
       "reads": ["packs/yasu_ride_rp/entity/yasu_ride/suv.ce.json"]
