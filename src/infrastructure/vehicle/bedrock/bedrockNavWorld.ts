@@ -1,3 +1,4 @@
+import type { Container } from "@minecraft/server";
 import type { NavWorld } from "../../../application/vehicle/ports/drive";
 import {
   asDimensionId,
@@ -6,10 +7,18 @@ import {
 } from "../../../domain/shared/ids";
 import type { NavDestination } from "../../../domain/vehicle/navigation/destinations";
 import { chooseFromForm } from "../../shared/choiceForm";
+import { countFilledMaps } from "../../shared/filledMaps";
 import { messageKey } from "../../shared/identifiers";
 import type { ActionBarLog } from "./actionBarLog";
 import type { EntityIndex } from "./entityIndex";
 import { navDestinationLabelKey, navLootTableId } from "./identifiers";
+
+function countInventoryFilledMaps(inventory: Container): number {
+  const items = Array.from({ length: inventory.size }, (_, slot) =>
+    inventory.getItem(slot),
+  );
+  return countFilledMaps(items);
+}
 
 export class BedrockNavWorld implements NavWorld {
   constructor(
@@ -36,16 +45,22 @@ export class BedrockNavWorld implements NavWorld {
     return choice === "cancel" ? undefined : choice;
   }
 
-  giveMap(playerId: PlayerId, destination: NavDestination): "unknown" {
+  giveMap(
+    playerId: PlayerId,
+    destination: NavDestination,
+  ): ReturnType<NavWorld["giveMap"]> {
     const player = this.index.player(playerId);
     if (!player?.isValid) return "unknown";
     const inventory = player.getComponent("minecraft:inventory")?.container;
-    const target = inventory?.emptySlotsCount === 0 ? "spawn ~ ~ ~" : "give @s";
+    const full = inventory?.emptySlotsCount === 0;
+    const target = full ? "spawn ~ ~ ~" : "give @s";
+    const before =
+      inventory && !full ? countInventoryFilledMaps(inventory) : undefined;
     player.runCommand(
       `execute at @s run loot ${target} loot "${navLootTableId(destination)}"`,
     );
-    // Bedrock's success count cannot distinguish an explorer map from a blank map.
-    return "unknown";
+    if (!inventory || before === undefined) return "unknown";
+    return countInventoryFilledMaps(inventory) > before ? "given" : "nothing";
   }
 
   showMessage(playerId: PlayerId, name: string): void {

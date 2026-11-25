@@ -18,7 +18,7 @@
 ### Menu and map delivery
 
 - Applies to: The destinations offered to an eligible driver.
-- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The list is currently empty and no form opens. The command adapter has inventory and feet-drop paths. A command success count cannot distinguish a blank map from a filled explorer map.
+- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The list is currently empty and no form opens. The command adapter has inventory and feet-drop paths. The adapter verifies inventory delivery by comparing the total number of filled maps before and after the loot command, while a feet-drop for a full inventory leaves delivery unverified.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.
 - Implementation: `src/domain/vehicle/navigation/destinations.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`, `src/infrastructure/shared/choiceForm.ts`.

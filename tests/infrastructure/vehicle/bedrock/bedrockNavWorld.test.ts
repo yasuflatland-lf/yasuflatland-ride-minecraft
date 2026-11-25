@@ -16,16 +16,24 @@ vi.mock("../../../../src/infrastructure/shared/choiceForm", () => ({
 const destination = "test_destination" as NavDestination;
 const playerId = asPlayerId("driver");
 
-function setup(emptySlotsCount = 1) {
+function setup(
+  items: ({ typeId: string; amount: number } | undefined)[] = [undefined],
+) {
   const player = {
     isValid: true,
-    getComponent: vi.fn(() => ({ container: { emptySlotsCount } })),
+    getComponent: vi.fn(() => ({
+      container: {
+        emptySlotsCount: items.filter((item) => item === undefined).length,
+        size: items.length,
+        getItem: (slot: number) => items[slot],
+      },
+    })),
     runCommand: vi.fn(() => ({ successCount: 1 })),
   };
   const index = new EntityIndex();
   vi.spyOn(index, "player").mockReturnValue(player as unknown as Player);
   const nav = new BedrockNavWorld(index, new ActionBarLog(index, () => 0));
-  return { nav, player };
+  return { nav, player, index };
 }
 
 it.each([destination, "cancel", undefined] as const)(
@@ -49,17 +57,44 @@ it.each([destination, "cancel", undefined] as const)(
   },
 );
 
-it.each([
-  [1, 'execute at @s run loot give @s loot "yasu_ride/nav_test_destination"'],
-  [
-    0,
+it("returns given when the amount in an existing filled map stack increases", () => {
+  const filledMaps = { typeId: "minecraft:filled_map", amount: 2 };
+  const { nav, player } = setup([filledMaps, undefined]);
+  player.runCommand.mockImplementationOnce(() => {
+    filledMaps.amount += 1;
+    return { successCount: 1 };
+  });
+  expect(nav.giveMap(playerId, destination)).toBe("given");
+  expect(player.runCommand).toHaveBeenCalledExactlyOnceWith(
+    'execute at @s run loot give @s loot "yasu_ride/nav_test_destination"',
+  );
+});
+
+it("returns nothing when a successful command adds only a blank map", () => {
+  const items = [{ typeId: "minecraft:filled_map", amount: 2 }, undefined];
+  const { nav, player } = setup(items);
+  player.runCommand.mockImplementationOnce(() => {
+    items[1] = { typeId: "minecraft:empty_map", amount: 1 };
+    return { successCount: 1 };
+  });
+  expect(nav.giveMap(playerId, destination)).toBe("nothing");
+});
+
+it("drops loot at the driver's feet and returns unknown for a full inventory", () => {
+  const { nav, player } = setup([{ typeId: "minecraft:stone", amount: 64 }]);
+  expect(nav.giveMap(playerId, destination)).toBe("unknown");
+  expect(player.runCommand).toHaveBeenCalledExactlyOnceWith(
     'execute at @s run loot spawn ~ ~ ~ loot "yasu_ride/nav_test_destination"',
-  ],
-] as const)(
-  "runs loot once at the driver with %i free inventory slots",
-  (slots, command) => {
-    const { nav, player } = setup(slots);
+  );
+});
+
+it.each(["invalid", "missing"])(
+  "returns unknown without running loot for a %s player",
+  (state) => {
+    const { nav, player, index } = setup();
+    if (state === "missing") vi.mocked(index.player).mockReturnValue(undefined);
+    else player.isValid = false;
     expect(nav.giveMap(playerId, destination)).toBe("unknown");
-    expect(player.runCommand).toHaveBeenCalledExactlyOnceWith(command);
+    expect(player.runCommand).not.toHaveBeenCalled();
   },
 );
