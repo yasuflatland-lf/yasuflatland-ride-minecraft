@@ -60,6 +60,8 @@ vi.mock("@minecraft/server", () => {
   };
 });
 
+vi.mock("@minecraft/server-ui", () => ({}));
+
 beforeEach(() => vi.resetAllMocks());
 
 it("grants Creative players each missing starter vehicle once across joins", () => {

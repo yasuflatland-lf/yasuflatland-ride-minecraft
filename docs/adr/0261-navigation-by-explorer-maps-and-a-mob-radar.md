@@ -27,4 +27,4 @@ Maps alone give a driver a distant goal but require an explicit choice for every
 
 ## Consequences
 
-Mob clusters can suggest a village or outpost even when the mobs moved there independently. Places without characteristic mobs produce no radar report. Reports go only to the driver and share the existing vehicle action bar. The nav menu depends on measured search cost and player-origin behavior on the supported engine version. Recheck those observations when the engine changes.
+Mob clusters can suggest a village or outpost even when the mobs moved there independently. Places without characteristic mobs produce no radar report. Reports go only to the driver and share the existing vehicle action bar. The nav menu depends on measured search cost and player-origin behavior on the supported engine version. The recorded flat-world spike produced blank maps for every candidate and confirmed no player-origin give path. The current destination list is empty while those checks are pending. Recheck the observations when the engine changes.

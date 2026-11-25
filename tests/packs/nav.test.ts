@@ -1,12 +1,20 @@
 import { existsSync, globSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { expect, it } from "vitest";
+import { NAV_DESTINATIONS } from "../../src/domain/vehicle/navigation/destinations";
+import { navLootTable } from "../../src/infrastructure/vehicle/bedrock/identifiers";
 
 const bp = "packs/yasu_ride_bp";
 const rp = "packs/yasu_ride_rp";
 const tables = globSync("loot_tables/**/nav_*.json", { cwd: bp });
 const destinationOf = (path: string) =>
   basename(path, ".json").slice("nav_".length);
+
+it("ships exactly one loot table for each menu destination", () => {
+  expect([...new Set(tables)].sort()).toEqual(
+    NAV_DESTINATIONS.map(navLootTable).sort(),
+  );
+});
 
 it("exposes the nav as a single-stack creative item without a recipe", () => {
   const item = JSON.parse(
