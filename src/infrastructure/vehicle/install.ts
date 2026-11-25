@@ -173,6 +173,7 @@ export function installVehicles(deps: {
     isFleetEntityType,
     testHooks: {
       repo,
+      index,
       registerKindTestHooks: camper.registerTestHooks,
       testHeldItems,
     },

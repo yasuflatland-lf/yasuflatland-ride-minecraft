@@ -52,6 +52,7 @@ function fixture() {
   subscribe.mockClear();
   installVehicleTestHooks({
     repo,
+    index,
     registerKindTestHooks: camperParts.registerTestHooks,
     testHeldItems,
   });
