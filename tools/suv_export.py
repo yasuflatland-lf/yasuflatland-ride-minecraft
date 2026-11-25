@@ -130,6 +130,24 @@ def booster_icon(x, y):
     return (0, 0, 0, 0)
 
 
+def nav_icon(x, y):
+    if not 1 <= x <= 14:
+        return (0, 0, 0, 0)
+    top = (5, 5, 4, 4, 3, 3, 4, 4, 5, 5, 4, 4, 3, 3)[x - 1]
+    row = y - top
+    if not 0 <= row <= 9:
+        return (0, 0, 0, 0)
+    if row in (0, 9) or x in (1, 14):
+        return (107, 85, 58, 255)
+    if 9 <= x <= 13 and abs(x - 11) == abs(y - 8):
+        return (192, 43, 40, 255)
+    if row == 2 + x // 3:
+        return (99, 160, 180, 255)
+    if 6 <= x <= 9:
+        return (204, 185, 139, 255)
+    return (249, 232, 180, 255)
+
+
 def paint_textures(out, directory):
     relief_name = f"suv_{material.RELIEF_KIND}"
     out.png(directory / f"{relief_name}.png", ATLAS.width, ATLAS.height,
@@ -152,3 +170,4 @@ def item_icons(out, directory):
     out.png(directory / "suv_item.png", 16, 16, icon)
     out.png(directory / "headlight_switch.png", 16, 16, switch_icon)
     out.png(directory / "booster.png", 16, 16, booster_icon)
+    out.png(directory / "nav.png", 16, 16, nav_icon)

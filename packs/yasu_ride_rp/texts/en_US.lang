@@ -1,4 +1,5 @@
 item.yasu_ride:booster.name=Booster
+item.yasu_ride:nav.name=Nav
 item.yasu_ride:suv_item.name=SUV
 entity.yasu_ride:suv.name=SUV
 item.yasu_ride:headlight_switch.name=Headlight Switch
@@ -313,6 +314,11 @@ action.interact.yasu_build.tap_target=Tap
 yasu_ride.message.boost_on=Boost ON
 yasu_ride.message.boost_off=Boost OFF
 yasu_ride.message.boost_unavailable=This vehicle cannot use a booster.
+
+yasu_ride.nav.title=Nav
+yasu_ride.message.nav_driver_only=Use the nav from the driver's seat.
+yasu_ride.message.nav_overworld_only=The nav only works in the Overworld.
+yasu_ride.message.nav_nothing_found=Nothing found nearby.
 
 yasu_ride.radar.report=%1 %2 m: %3
 yasu_ride.radar.place.village=Village
