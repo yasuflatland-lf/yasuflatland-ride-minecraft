@@ -96,5 +96,9 @@ def lit(region, u, v):
     return False
 
 
+def lit_color(region, u, v, paint):
+    return None
+
+
 def relief(region, u, v):
     return None

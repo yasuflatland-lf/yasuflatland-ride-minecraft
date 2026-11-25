@@ -21,6 +21,8 @@ POD_RIM_WIDTH = 1
 RIM_INNER_RADIUS = LENS_RADIUS - 2
 BEZEL_INNER_RADIUS = LENS_RADIUS - 4
 CLEAR_LENS_HIGHLIGHT = 0.12
+LIT_CORE = (255, 255, 244)
+LIT_RIM = (208, 208, 190)
 
 
 def centered(u, v, size):
@@ -69,6 +71,24 @@ def mer(region, u, v, paint):
 
 def lit(region, u, v):
     return region == "lens" and math.hypot(*centered(u, v, LENS_SIZE)) <= LENS_RADIUS
+
+
+def lit_color(region, u, v, paint):
+    x, y = centered(u, v, LENS_SIZE)
+    radius = math.hypot(x, y)
+    if region != "lens" or radius > BEZEL_INNER_RADIUS:
+        return None
+    # The unlit glass and trim are dark, and the emissive pass only brightens the colour it is
+    # given, so a lit lens needs its own lamp colours to read as switched on.
+    for offset in (-PROJECTOR_OFFSET, PROJECTOR_OFFSET):
+        distance = math.hypot(x, y - offset)
+        if distance <= PROJECTOR_RADIUS:
+            return LIT_RIM if distance > PROJECTOR_RADIUS - PROJECTOR_RIM_WIDTH else LIT_CORE
+    for px in (-POD_X, POD_X):
+        for py in (-POD_Y, POD_Y):
+            if math.hypot(x - px, y - py) <= POD_RADIUS:
+                return LIT_CORE
+    return palette.PALETTE["light"]
 
 
 def relief(region, u, v):

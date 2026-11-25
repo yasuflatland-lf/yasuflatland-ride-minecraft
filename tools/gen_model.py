@@ -150,7 +150,8 @@ export.paint_textures(out, ENTITY_TEXTURES)
 load_tool("lit_textures").build_lit_textures(
     out, ENTITY_TEXTURES, "suv", ATLAS.width, ATLAS.height,
     texture.paint_pixel(palette.BODY_PAINTS[0]),
-    is_lit=texture.is_lit, opaque_unlit_cutouts=True)
+    is_lit=texture.is_lit, opaque_unlit_cutouts=True,
+    lit_pixel=texture.lit_pixel(palette.BODY_PAINTS[0]))
 textures = [(out.images[RP / f"{path}.png"], (ATLAS.width, ATLAS.height)) for path in texture_paths]
 policy = face_cull.CullPolicy((), face_cull.opaque_occluder(lambda bone, cube, side: textures))
 result = face_cull.cull_buried_faces(geometry, policy)

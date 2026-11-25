@@ -22,6 +22,9 @@ class RegionPainter(Protocol):
     def color(self, region: str, u: int, v: int, paint: Paint) -> tuple[int, int, int, int]: ...
     def mer(self, region: str, u: int, v: int, paint: Paint) -> Mer | None: ...
     def lit(self, region: str, u: int, v: int) -> bool: ...
+    def lit_color(self, region: str, u: int, v: int, paint: Paint) -> tuple[int, int, int] | None:
+        """Return the lit pass RGB of a lit texel, or None to keep its unlit colour."""
+        ...
     def relief(self, region: str, u: int, v: int) -> int | None:
         """Return signed depth steps (negative is recessed), or None for flat."""
         ...
@@ -50,3 +53,19 @@ def is_lit(x: int, y: int) -> bool:
         return False
     block, spec, u, v = hit
     return atlas.PAINTERS[block].lit(spec.name, u, v)
+
+
+def lit_pixel(paint: Paint) -> Callable[[int, int], tuple]:
+    pixel = paint_pixel(paint)
+
+    def lit_rgb(x, y):
+        atlas = load_tool("suv_atlas")
+        hit = atlas.region_at(x, y)
+        if hit is not None:
+            block, spec, u, v = hit
+            rgb = atlas.PAINTERS[block].lit_color(spec.name, u, v, paint)
+            if rgb is not None:
+                return rgb
+        return pixel(x, y)[:3]
+
+    return lit_rgb

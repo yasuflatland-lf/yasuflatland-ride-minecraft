@@ -69,5 +69,9 @@ def lit(region, u, v):
     return reverse_lamp(u, v) or led_bar(u, v)
 
 
+def lit_color(region, u, v, paint):
+    return None
+
+
 def relief(region, u, v):
     return None
