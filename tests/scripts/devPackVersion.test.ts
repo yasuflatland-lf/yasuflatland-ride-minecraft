@@ -1,15 +1,18 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  DEV_EPOCH_MS,
   DEV_PATCH_BASE,
+  DEV_PATCH_MAX,
   devPackVersion,
   RESOURCE_PACK_UUID,
   readCounter,
   rewriteBehaviorPack,
   rewriteResourcePack,
+  timeFloor,
   writeDevManifests,
 } from "../../scripts/dev-pack-version.mjs";
 
@@ -49,6 +52,10 @@ const behaviorPack = fc.record({
 });
 
 describe("dev pack version", () => {
+  it("floors elapsed hours and keeps a minimum of one", () => {
+    expect(timeFloor(DEV_EPOCH_MS - 3_600_000)).toBe(1);
+    expect(timeFloor(DEV_EPOCH_MS + 3 * 3_600_000 - 1)).toBe(2);
+  });
   it("keeps the committed major and minor and puts the patch at or above the dev base", () => {
     fc.assert(
       fc.property(version, counter, (committed, count) => {
@@ -106,7 +113,7 @@ describe("dev pack version", () => {
 
   it("reads back a positive counter", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 1, max: 1_000_000 }), (value) => {
+      fc.property(fc.integer({ min: 1, max: 20_000 }), (value) => {
         expect(readCounter(JSON.stringify({ counter: value }))).toBe(value);
       }),
     );
@@ -178,7 +185,11 @@ describe("writing the dev manifests", () => {
     const dir = dataDir();
     const [major, minor] = committedRp.header.version;
     for (const expected of [1, 2, 3]) {
-      const { version: dev } = writeDevManifests({ packsDir, dataDir: dir });
+      const { version: dev } = writeDevManifests({
+        packsDir,
+        dataDir: dir,
+        now: 0,
+      });
       expect(dev).toEqual([major, minor, DEV_PATCH_BASE + expected]);
       const rp = readManifest(dir, "yasu_ride_rp");
       const bp = readManifest(dir, "yasu_ride_bp");
@@ -190,12 +201,75 @@ describe("writing the dev manifests", () => {
     }
   });
 
-  it("starts again at 1 over a corrupt state file", () => {
+  it.each([undefined, "{ not json"])(
+    "uses the time floor with missing or corrupt state",
+    (state) => {
+      const dir = dataDir();
+      if (state !== undefined)
+        writeFileSync(join(dir, "dev-pack-version.json"), state);
+      expect(
+        writeDevManifests({
+          packsDir,
+          dataDir: dir,
+          now: Date.UTC(2026, 0, 1) + 42 * 3_600_000 + 3_599_999,
+        }).version[2],
+      ).toBe(DEV_PATCH_BASE + 42);
+    },
+  );
+
+  it("refuses a patch above the cap Bedrock accepts", () => {
     const dir = dataDir();
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "dev-pack-version.json"), "{ not json");
-    expect(writeDevManifests({ packsDir, dataDir: dir }).version[2]).toBe(
-      DEV_PATCH_BASE + 1,
+    writeFileSync(
+      join(dir, "dev-pack-version.json"),
+      JSON.stringify({ counter: DEV_PATCH_MAX - DEV_PATCH_BASE }),
+    );
+    expect(() =>
+      writeDevManifests({ packsDir, dataDir: dir, now: DEV_EPOCH_MS }),
+    ).toThrow(/Bedrock rejects/);
+  });
+
+  it("increments a counter above the time floor", () => {
+    const dir = dataDir();
+    writeFileSync(
+      join(dir, "dev-pack-version.json"),
+      JSON.stringify({ counter: 100 }),
+    );
+    expect(
+      writeDevManifests({
+        packsDir,
+        dataDir: dir,
+        now: Date.UTC(2026, 0, 1) + 42 * 3_600_000,
+      }).version[2],
+    ).toBe(DEV_PATCH_BASE + 101);
+  });
+
+  it("increases the patch on successive starts with retained state", () => {
+    fc.assert(
+      fc.property(
+        fc.option(fc.integer({ min: 1, max: 20_000 }), { nil: undefined }),
+        fc.nat({ max: 15_000 * 3_600_000 }),
+        fc.nat({ max: 15_000 * 3_600_000 }),
+        (previous, start, elapsed) => {
+          const dir = dataDir();
+          if (previous !== undefined)
+            writeFileSync(
+              join(dir, "dev-pack-version.json"),
+              JSON.stringify({ counter: previous }),
+            );
+          const first = writeDevManifests({
+            packsDir,
+            dataDir: dir,
+            now: Date.UTC(2026, 0, 1) + start,
+          }).version[2];
+          const second = writeDevManifests({
+            packsDir,
+            dataDir: dir,
+            now: Date.UTC(2026, 0, 1) + start + elapsed,
+          }).version[2];
+          expect(second).toBeGreaterThan(first ?? Number.POSITIVE_INFINITY);
+          expect(second).toBeLessThanOrEqual(DEV_PATCH_MAX);
+        },
+      ),
     );
   });
 
