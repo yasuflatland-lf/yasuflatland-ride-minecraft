@@ -4,7 +4,7 @@ import {
   BLADE_SWITCH_ITEM,
   ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
-} from "../../src/domain/vehicle/kinds/bulldozer/monitor";
+} from "../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { ICEBREAKER_SWITCH_ITEM } from "../../src/domain/vehicle/kinds/sportsboat/equipment";
 import { expectSingleStackUseItem } from "../support/itemContract";
 import { readLang } from "../support/lang";

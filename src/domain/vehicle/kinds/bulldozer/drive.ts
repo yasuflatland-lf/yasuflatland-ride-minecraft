@@ -4,7 +4,7 @@ import type { CutColumn } from "../../cut";
 import type { DriveStep, EngineCommand, TickContext } from "../../drive";
 import { type RawInput, toDriveInput } from "../../driveInput";
 import type { RestoredOf } from "../../entityContract";
-import { toolBindings } from "../../monitor/monitor";
+import { equipmentBindings } from "../../equipment/equipment";
 import { climbInput, type Form } from "../../motion/forms";
 import type { GroundInput, MotionResult } from "../../motion/motion";
 import { pivotGroundStep, pivotMediumStep } from "../../motion/pivot";
@@ -27,10 +27,10 @@ import {
 } from "./entity";
 import {
   BLADE_SWITCH_ITEM,
-  BULLDOZER_MONITOR,
+  BULLDOZER_EQUIPMENT,
   ROAD_PAVER_SWITCH_ITEM,
   WIDE_BLADE_SWITCH_ITEM,
-} from "./monitor";
+} from "./equipment";
 import { type CellClass, paveStep } from "./paver";
 import { BULLDOZER_MOTION, BULLDOZER_TYRES } from "./profile";
 import {
@@ -117,7 +117,7 @@ export class BulldozerDrive extends TransformingDrive {
   private travel: TrackTravel = { r: 0, l: 0 };
   private doorTimer = 0;
   private doorSteps = 0;
-  /** The blade's target: the saved property or the spawn default, then whatever setToolState last set. The shown height travels toward it (ADR 0138). */
+  /** The blade's target: the saved property or the spawn default, then whatever setEquipmentState last set. The shown height travels toward it (ADR 0138). */
   private bladeTargetRaised: boolean;
   /** 0 (down) to BULLDOZER_SPEC.bladeLiftTicks (up), one step per tick. */
   private bladeSteps: number;
@@ -132,7 +132,7 @@ export class BulldozerDrive extends TransformingDrive {
     )
     .add((drive) => drive.wideBlade, wideBladeCommand)
     .add((drive) => drive.roadPaverOn, roadPaverCommand);
-  private readonly tools = toolBindings(BULLDOZER_MONITOR, {
+  private readonly equipment = equipmentBindings(BULLDOZER_EQUIPMENT, {
     [BLADE_SWITCH_ITEM]: {
       // The monitor shows the target before the blade finishes easing (ADR 0139).
       get: () => (this.bladeTargetRaised ? "up" : "down"),
@@ -192,12 +192,12 @@ export class BulldozerDrive extends TransformingDrive {
     this.resync();
   }
 
-  toolState(item: string): string | undefined {
-    return this.tools.toolState(item);
+  equipmentState(item: string): string | undefined {
+    return this.equipment.equipmentState(item);
   }
 
-  setToolState(item: string, state: string): boolean {
-    return this.tools.setToolState(item, state);
+  setEquipmentState(item: string, state: string): boolean {
+    return this.equipment.setEquipmentState(item, state);
   }
 
   private bladeTargetSteps(): number {

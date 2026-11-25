@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { CAMPING_GEAR_IDS } from "../../src/domain/vehicle/kinds";
-import { BULLDOZER_MONITOR } from "../../src/domain/vehicle/kinds/bulldozer/monitor";
-import { SPORTSBOAT_MONITOR } from "../../src/domain/vehicle/kinds/sportsboat/equipment";
+import { BULLDOZER_EQUIPMENT } from "../../src/domain/vehicle/kinds/bulldozer/equipment";
+import { SPORTSBOAT_EQUIPMENT } from "../../src/domain/vehicle/kinds/sportsboat/equipment";
 import {
   BUILD_UNDO_TYPE,
   PASTE_PLACE_TYPE,
@@ -59,14 +59,14 @@ const groups = [
   group(id("resort_gear"), RESORT_CATALOG_ITEMS),
   group(
     SPORTSBOAT_PACK_CONTRACT.monitorGroup,
-    SPORTSBOAT_MONITOR.tools.map(({ item }) => id(item)),
+    SPORTSBOAT_EQUIPMENT.switches.map(({ item }) => id(item)),
   ),
   group(BULLDOZER_PACK_CONTRACT.monitorGroup, [
     SELECTION_WAND_TYPE,
     PASTE_ROTATE_TYPE,
     PASTE_PLACE_TYPE,
     BUILD_UNDO_TYPE,
-    ...BULLDOZER_MONITOR.tools.map(({ item }) => id(item)),
+    ...BULLDOZER_EQUIPMENT.switches.map(({ item }) => id(item)),
     WARP_TOOL_TYPE,
     WARP_BLOCK_TYPE,
   ]),

@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { SwitchEquipment } from "../../../src/application/vehicle/switchEquipment";
 import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback";
-import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
@@ -67,7 +67,7 @@ it("reports the new tool state only for successful chase-camera switches", () =>
           { showMessage: (_, name) => messages.push(name) },
           { isThirdPerson: () => thirdPerson },
         );
-        const use = new SwitchTool(repo, clock, feedback);
+        const use = new SwitchEquipment(repo, clock, feedback);
         const cmd = { playerId: driver.id, vehicleId, item };
         expect(use.execute({ ...cmd, playerId: asPlayerId("passenger") })).toBe(
           false,
@@ -78,13 +78,13 @@ it("reports the new tool state only for successful chase-camera switches", () =>
         expect(use.execute({ ...cmd, item: "unsupported" })).toBe(false);
         expect(messages).toEqual([]);
         expect(use.execute(cmd)).toBe(true);
-        expect(repo.get(vehicleId)?.toolState(item)).toBe(first);
+        expect(repo.get(vehicleId)?.equipmentState(item)).toBe(first);
         expect(messages).toEqual(thirdPerson ? [firstKey] : []);
         expect(use.execute(cmd)).toBe(false);
         expect(messages).toEqual(thirdPerson ? [firstKey] : []);
-        clock.tick += SPEC.toolSwitchCooldown;
+        clock.tick += SPEC.equipmentSwitchCooldown;
         expect(use.execute(cmd)).toBe(true);
-        expect(repo.get(vehicleId)?.toolState(item)).toBe(second);
+        expect(repo.get(vehicleId)?.equipmentState(item)).toBe(second);
         expect(messages).toEqual(thirdPerson ? [firstKey, secondKey] : []);
       },
     ),

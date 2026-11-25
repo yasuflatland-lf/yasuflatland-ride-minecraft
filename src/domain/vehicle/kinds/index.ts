@@ -92,22 +92,25 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
     }),
   });
 
-const MONITOR_TOOLS = VEHICLE_KINDS.flatMap(
-  (kind) => KINDS[kind].profile.monitor?.tools ?? [],
+const EQUIPMENT_SWITCHES = VEHICLE_KINDS.flatMap(
+  (kind) => KINDS[kind].profile.equipment?.switches ?? [],
 );
 
-export const MONITOR_TOOL_ITEMS: readonly string[] = Object.freeze([
-  ...new Set(MONITOR_TOOLS.map((tool) => tool.item)),
+export const EQUIPMENT_SWITCH_ITEMS: readonly string[] = Object.freeze([
+  ...new Set(EQUIPMENT_SWITCHES.map((equipmentSwitch) => equipmentSwitch.item)),
 ]);
 
-export function toolFeedback(item: string, state: string): string | undefined {
-  for (const tool of MONITOR_TOOLS)
+export function equipmentFeedback(
+  item: string,
+  state: string,
+): string | undefined {
+  for (const equipmentSwitch of EQUIPMENT_SWITCHES)
     if (
-      tool.item === item &&
-      tool.feedback !== undefined &&
-      tool.states.includes(state)
+      equipmentSwitch.item === item &&
+      equipmentSwitch.feedback !== undefined &&
+      equipmentSwitch.states.includes(state)
     )
-      return `${tool.feedback}_${state}`;
+      return `${equipmentSwitch.feedback}_${state}`;
   return undefined;
 }
 

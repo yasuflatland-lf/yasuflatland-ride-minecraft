@@ -7,7 +7,7 @@ import type {
   TickContext,
 } from "../../../../src/domain/vehicle/drive";
 import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
-import { BLADE_SWITCH_ITEM } from "../../../../src/domain/vehicle/kinds/bulldozer/monitor";
+import { BLADE_SWITCH_ITEM } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import {
   createVehicle,
   profileOf,
@@ -25,8 +25,8 @@ import { waterSensors } from "../../../support/waterDepth";
 
 const profile: VehicleProfile = {
   ...profileOf("suv"),
-  monitor: {
-    tools: [{ item: "switch", states: ["down", "up"] }],
+  equipment: {
+    switches: [{ item: "switch", states: ["down", "up"] }],
   },
 };
 const driveCommand: EngineCommand = {
@@ -47,12 +47,12 @@ function rider(seat: number, tool?: string): RiderView {
 function tickInput(
   tick: number,
   riders: readonly RiderView[],
-  testTool?: string,
+  testHeldItem?: string,
 ): VehicleTickInput {
   return {
     tick,
     riders,
-    testHeld: testTool === undefined ? undefined : { tool: testTool },
+    testHeld: testHeldItem === undefined ? undefined : { tool: testHeldItem },
     deckSeatInputs: [],
     velocity: { x: 0, y: 0, z: 0 },
     onGround: true,
@@ -72,7 +72,7 @@ function setup() {
     resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
-    toolState: (item) => (item === "switch" ? state : undefined),
+    equipmentState: (item) => (item === "switch" ? state : undefined),
     step: (_raw, sensors) => {
       context = sensors;
       expect(sensors).not.toHaveProperty("testHeld");
@@ -92,8 +92,8 @@ function setup() {
     state: (value: string | undefined) => {
       state = value;
     },
-    tick: (riders: readonly RiderView[] = [], testTool?: string) =>
-      vehicle.tick(tickInput(tick++, riders, testTool)).stepCommands,
+    tick: (riders: readonly RiderView[] = [], testHeldItem?: string) =>
+      vehicle.tick(tickInput(tick++, riders, testHeldItem)).stepCommands,
   };
 }
 function expectedScreen(
@@ -231,7 +231,7 @@ describe("bulldozer cab monitor", () => {
     const sim = bulldozer();
     expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(2)]);
     expect(
-      sim.vehicle.switchTool(asPlayerId("d"), BLADE_SWITCH_ITEM, 100),
+      sim.vehicle.switchEquipment(asPlayerId("d"), BLADE_SWITCH_ITEM, 100),
     ).toBe(true);
     expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(1)]);
   });

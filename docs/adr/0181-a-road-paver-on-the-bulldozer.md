@@ -17,7 +17,7 @@ The owner wants to clear and pave in one pass, using the driver's held block wit
 
 The existing code provides these building blocks:
 
-- `RiderView.heldTool` and `VehicleTickInput.testHeldTool` in `src/domain/vehicle/vehicle.ts`, together with `VehicleSnapshot.testHeldTool`, carry the monitor's held tool (0139). `BULLDOZER_MONITOR` lists the tools and their states; after 0178 its group is `"yasu_build:building_tools"`.
+- `RiderView.heldTool` and `VehicleTickInput.testHeldTool` in `src/domain/vehicle/vehicle.ts`, together with `VehicleSnapshot.testHeldTool`, carry the monitor's held tool (0139). `BULLDOZER_EQUIPMENT` lists the switches and their states. The catalog places the switch items in `yasu_build:building_tools` (0178).
 - `TickContext` and `DriveStep` in `src/domain/vehicle/drive.ts`, `TickOutcome`, and `DriveVehicles` carry drive decisions to the world calls. `DriveStep.cut` is applied after clear and before movement (0055, 0137).
 - `bladeColumns` in `src/domain/vehicle/kinds/bulldozer/blade.ts` rounds the feet row and selects touching cells (0136). `bladeRule()` from 0180 supplies the normal or wide half width without a second wide-state check.
 - `KEPT_BLOCKS` in `src/domain/shared/keptBlocks.ts` includes air and the four liquids as well as item holders. World Edit's `EDITABLE` in `src/domain/build/edit/guard.ts` subtracts those five open blocks again, while `BUILD_KEPT_BLOCKS` adds protection for other data-bearing blocks (0178).

@@ -23,7 +23,7 @@ The existing code provides these building blocks:
 
 - `BULLDOZER_SPEC.blade`, `BULLDOZER_SPEC.bodyHalfWidth`, and `bladeColumns` in `src/domain/vehicle/kinds/bulldozer/` define the cut width, ram body width, and touching-cell selection (0136). The width is fixed today.
 - `DriveStep` in `src/domain/vehicle/drive.ts`, `VehicleProfile.body` in `profile.ts`, and `RAM_QUERY_RADIUS` define the kind-neutral drive output and ram envelope (0006, 0050, 0055).
-- `BULLDOZER_MONITOR` and `Drive.toolState` supply the blade switch's down/up screens (0138, 0139). `GROUPS` in `tools/gen_item_catalog.py` places `yasu_ride:blade_switch` in `yasu_build:building_tools` by its full ID (0178). The tests look up the group using `tests/support/packContract.ts`.
+- `BULLDOZER_EQUIPMENT` and `Drive.equipmentState` supply the blade switch's down/up screens (0138, 0139). `GROUPS` in `tools/gen_item_catalog.py` places `yasu_ride:blade_switch` in `yasu_build:building_tools` by its full ID (0178). The tests look up the group using `tests/support/packContract.ts`.
 - `tools/gen_bulldozer.py` draws `blade` under `blade_rig`, using `BLADE_HALF` and `BLADE_TOP`; `bulldozer.rc.json` controls bone visibility. The drive animation moves `blade_rig` when the blade lifts.
 - `VehicleProfile.footprint` and `isVehicleSpace` reserve space around a vehicle (0122); the bulldozer's footprint is 3.35, while placement clearance excludes the blade and tracks (0142).
 

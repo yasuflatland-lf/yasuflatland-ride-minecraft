@@ -78,7 +78,7 @@ describe.each(monitors)(
 
     it("uses ordered screen bones and the main model's visible bounds", () => {
       const rule = defined(
-        profileOf(vehicle).monitor,
+        profileOf(vehicle).equipment,
         `${vehicle} monitor rule`,
       );
       expect(screens.map(({ item, state }) => ({ item, state }))).toEqual(

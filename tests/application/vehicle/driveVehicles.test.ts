@@ -1266,7 +1266,7 @@ describe("entity mirror (ADR 0055)", () => {
       // The core writes the monitor for a kind with a rule; no kind contract declares it (ADR 0139).
       const declared = [
         ...Object.keys(properties),
-        ...(profileOf(kind).monitor ? [MONITOR_PROPERTY_NAME] : []),
+        ...(profileOf(kind).equipment ? [MONITOR_PROPERTY_NAME] : []),
       ];
       // A rebuilt drive trusts the form it reads back and does not send it
       // again (ADR 0039, 0127), so both entities start out holding it.

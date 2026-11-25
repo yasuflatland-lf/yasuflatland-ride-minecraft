@@ -1,5 +1,5 @@
 import type { PlayerId } from "../../domain/shared/ids";
-import { toolFeedback } from "../../domain/vehicle/kinds/index";
+import { equipmentFeedback } from "../../domain/vehicle/kinds/index";
 import type { RiderWorld } from "./ports/drive";
 import type { RiderEffects } from "./riderEffects";
 
@@ -19,7 +19,7 @@ export class SwitchFeedback {
     const message =
       item === "headlight_switch"
         ? HEADLIGHT_MESSAGES.get(state)
-        : toolFeedback(item, state);
+        : equipmentFeedback(item, state);
     if (message !== undefined) this.world.showMessage(playerId, message);
   }
 }

@@ -1,9 +1,9 @@
 import type { PaintPolicy } from "../shared/paint";
 import type { RoofTentMount } from "../shared/roofTent";
 import type { Vec2 } from "../shared/vec";
+import type { EquipmentRule } from "./equipment/equipment";
 import type { HintZones } from "./hints";
 import type { VehicleKind } from "./kind";
-import type { MonitorRule } from "./monitor/monitor";
 import type { PlacementGift } from "./placement/gift";
 import type { PlacementRule } from "./placement/placement";
 import type { RiderPoseTable } from "./riderPose";
@@ -108,8 +108,8 @@ export interface VehicleProfile {
   readonly standIn?: StandInRule;
   /** The gift a player gets the first time they place this kind (ADR 0093). Absent = no gift. */
   readonly placementGift?: PlacementGift;
-  /** The tools the cab monitor shows for the driver (ADR 0139). Absent = the kind has no cab monitor. */
-  readonly monitor?: MonitorRule;
+  /** Available switches, in cab monitor screen order (ADR 0139). */
+  readonly equipment?: EquipmentRule;
   /** Roof tent mount (see the roof tent ADR, issue #1079). Absent = no mount: sportsboat and bulldozer have none. */
   readonly roofTent?: RoofTentMount;
 }

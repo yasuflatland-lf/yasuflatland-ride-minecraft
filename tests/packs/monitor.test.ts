@@ -24,7 +24,7 @@ function properties(kind: string): Record<string, Record<string, unknown>> {
 }
 
 describe.each(VEHICLE_KINDS)("the %s cab monitor (ADR 0139)", (kind) => {
-  const rule = profileOf(kind).monitor;
+  const rule = profileOf(kind).equipment;
   const definition = properties(kind)[entityPropertyId(MONITOR_PROPERTY_NAME)];
 
   it("declares the monitor property exactly when the kind has a rule", () => {
@@ -49,9 +49,9 @@ describe.each(VEHICLE_KINDS)("the %s cab monitor (ADR 0139)", (kind) => {
 
   it.runIf(rule)("has no duplicate items or states", () => {
     if (!rule) throw new Error("Missing monitor rule");
-    const items = rule.tools.map((t) => t.item);
+    const items = rule.switches.map((t) => t.item);
     expect(new Set(items).size).toBe(items.length);
-    for (const { states } of rule.tools)
+    for (const { states } of rule.switches)
       expect(new Set(states).size).toBe(states.length);
   });
 });
