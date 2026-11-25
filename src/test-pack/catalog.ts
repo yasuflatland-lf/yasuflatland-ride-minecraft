@@ -20,6 +20,25 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
+    name: "suv_nav_passenger_refused",
+    file: "nav",
+    ticks: 24,
+    features: ["vehicle:nav", "vehicle:suv"],
+    isolation: "lane",
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "nav_map_delivery",
+    file: "navMap",
+    // Estimated from three 40-tick probe deadlines. Timing on BDS is pending.
+    ticks: 120,
+    features: ["vehicle:nav"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "nav_map_full_inventory",
     file: "navMap",
     // Allows for the 40-tick probe deadline and inventory setup and cleanup.
@@ -28,15 +47,6 @@ export const CATALOG: readonly ScenarioSpec[] = [
     isolation: "exclusive",
     needsPlayer: true,
     vehicles: 0,
-  },
-  {
-    name: "suv_nav_passenger_refused",
-    file: "nav",
-    ticks: 24,
-    features: ["vehicle:nav", "vehicle:suv"],
-    isolation: "lane",
-    needsPlayer: false,
-    vehicles: 1,
   },
   {
     name: "suv_boost_wall",

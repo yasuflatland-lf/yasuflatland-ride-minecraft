@@ -13,7 +13,7 @@
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision.
 - Implementation: `src/infrastructure/vehicle/bedrock/handlers/navSwitch.ts`, `src/application/vehicle/openNav.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`.
-- Verification: `tests/application/vehicle/openNav.test.ts` checks the order, cancellation, seat recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_refused` scenario checks refusal with two seated probes and awaits an in-game run.
+- Verification: `tests/application/vehicle/openNav.test.ts` checks the order, cancellation, seat recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_refused` scenario checks refusal with two seated probes.
 
 ### Menu and map delivery
 
@@ -22,7 +22,7 @@
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.
 - Implementation: `src/domain/vehicle/navigation/destinations.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`, `src/infrastructure/shared/choiceForm.ts`.
-- Verification: `tests/packs/nav.test.ts` checks that the shipped tables match the destination list and have labels. `tests/infrastructure/vehicle/bedrock/bedrockNavWorld.test.ts` checks form answers and both command paths with test data. The `nav_map_full_inventory` scenario checks that a full inventory selects the spawn path and reports delivery as unknown. Player-origin and rendering checks are in [Manual test](../manual-test.md#nav-explorer-maps).
+- Verification: `tests/packs/nav.test.ts` checks that the shipped tables match the destination list and have labels. `tests/infrastructure/vehicle/bedrock/bedrockNavWorld.test.ts` checks form answers and both command paths with test data. The `nav_map_delivery` scenario checks inventory delivery for three sampled destinations. The `nav_map_full_inventory` scenario checks that a full inventory selects the spawn path and reports delivery as unknown. Player-origin and rendering checks are in [Manual test](../manual-test.md#nav-explorer-maps).
 
 ### Radar scanning and clustering
 

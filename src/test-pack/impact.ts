@@ -266,6 +266,7 @@ export const PACK_STEM_TAGS: Readonly<Record<string, Impact>> = {
   headlight_switch: ["vehicle", "camp"],
   booster: ["vehicle"],
   nav: ["vehicle"],
+  navMap: ["vehicle"],
   ...Object.fromEntries(
     NAV_DESTINATIONS.map((destination) => [`nav_${destination}`, ["vehicle"]]),
   ),
