@@ -7,6 +7,7 @@ import type {
 } from "../../../../../src/domain/vehicle/drive";
 import type { RawInput } from "../../../../../src/domain/vehicle/driveInput";
 import { toDriveInput } from "../../../../../src/domain/vehicle/driveInput";
+import type { EquipmentSwitch } from "../../../../../src/domain/vehicle/equipment/equipment";
 import { bladeColumns } from "../../../../../src/domain/vehicle/kinds/bulldozer/blade";
 import {
   BulldozerDrive,
@@ -15,9 +16,9 @@ import {
   cutReach,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/drive";
 import {
-  BLADE_SWITCH_ITEM,
-  ROAD_PAVER_SWITCH_ITEM,
-  WIDE_BLADE_SWITCH_ITEM,
+  BLADE_SWITCH,
+  ROAD_PAVER_SWITCH,
+  WIDE_BLADE_SWITCH,
 } from "../../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { paveStep } from "../../../../../src/domain/vehicle/kinds/bulldozer/paver";
 import {
@@ -387,7 +388,7 @@ it("cuts at speed with a fully lowered blade, a driver, and no pivot, including 
           let cutForward = false;
           for (const [tick, frame] of controls.entries()) {
             if (frame.blade !== undefined) {
-              d.setEquipmentState("blade_switch", frame.blade);
+              d.forceEquipment(BLADE_SWITCH, frame.blade);
               bladeUp = frame.blade === "up";
             }
             bladeHeight += Math.sign(
@@ -688,7 +689,7 @@ it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)"
         const d = new BulldozerDrive(0, { blade, form });
         const raised =
           typeof blade === "number" ? blade >= 0.5 : S.bladeRaisedOnSpawn;
-        expect(d.equipmentState("blade_switch") === "up").toBe(raised);
+        expect(d.equipmentState(BLADE_SWITCH) === "up").toBe(raised);
         expect(propertyValue(d.step(IDLE, context()).commands, "blade")).toBe(
           raised ? 1 : 0,
         );
@@ -698,8 +699,7 @@ it("starts at its saved blade, raised from 0.5 up, without moving it (ADR 0138)"
 
 it("reads a saved blade of exactly 0.5 as raised (ADR 0138)", () => {
   expect(
-    new BulldozerDrive(0, { blade: 0.5 }).equipmentState("blade_switch") ===
-      "up",
+    new BulldozerDrive(0, { blade: 0.5 }).equipmentState(BLADE_SWITCH) === "up",
   ).toBe(true);
 });
 
@@ -716,7 +716,7 @@ it("moves the blade one step per tick toward the switched state and sends each h
       let sent: number | undefined;
       switches.forEach((set, tick) => {
         if (set !== undefined) {
-          d.setEquipmentState("blade_switch", set ? "up" : "down");
+          d.forceEquipment(BLADE_SWITCH, set ? "up" : "down");
           target = set;
         }
         steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
@@ -729,7 +729,7 @@ it("moves the blade one step per tick toward the switched state and sends each h
           expect(value).toBe(height);
           sent = height;
         } else expect(value).toBeUndefined();
-        expect(d.equipmentState("blade_switch") === "up").toBe(target);
+        expect(d.equipmentState(BLADE_SWITCH) === "up").toBe(target);
       });
     }),
   ));
@@ -766,7 +766,7 @@ it.each([false, true])(
           let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
           switches.forEach((set, tick) => {
             if (set !== undefined) {
-              d.setEquipmentState("blade_switch", set ? "up" : "down");
+              d.forceEquipment(BLADE_SWITCH, set ? "up" : "down");
               target = set;
             }
             steps += Math.sign((target ? S.bladeLiftTicks : 0) - steps);
@@ -828,8 +828,8 @@ it("switches step-up on the tick the blade's target changes (ADR 0138)", () => {
   let b: Body = { pos: { x: 0, z: 0 }, vel: { x: 0, z: 0 } };
   const rises: boolean[] = [];
   for (let tick = 0; tick < 60; tick++) {
-    if (tick === 10) d.setEquipmentState("blade_switch", "up");
-    if (tick === 40) d.setEquipmentState("blade_switch", "down");
+    if (tick === 10) d.forceEquipment(BLADE_SWITCH, "up");
+    if (tick === 40) d.forceEquipment(BLADE_SWITCH, "down");
     const out = d.step(FORWARD, {
       ...context(),
       tick,
@@ -846,13 +846,13 @@ it("switches step-up on the tick the blade's target changes (ADR 0138)", () => {
 const toggles = fc.constantFrom(
   {
     property: "wide_blade",
-    item: WIDE_BLADE_SWITCH_ITEM,
+    item: WIDE_BLADE_SWITCH,
     off: "normal",
     on: "wide",
   },
   {
     property: "road_paver",
-    item: ROAD_PAVER_SWITCH_ITEM,
+    item: ROAD_PAVER_SWITCH,
     off: "off",
     on: "on",
   },
@@ -887,9 +887,7 @@ it("sends tool flags only when changed or resynced", () => {
         for (const [tick, action] of steps.entries()) {
           if (action === "toggle") {
             enabled = !enabled;
-            expect(drive.setEquipmentState(item, enabled ? on : off)).toBe(
-              true,
-            );
+            expect(drive.forceEquipment(item, enabled ? on : off)).toBe(true);
           }
           if (action === "resync") {
             drive.resync();
@@ -911,35 +909,26 @@ it("keeps the blade, wide blade, and road paver tools independent", () => {
     fc.property(
       fc.array(
         fc.oneof(
+          fc.tuple(fc.constant(BLADE_SWITCH), fc.constantFrom("down", "up")),
           fc.tuple(
-            fc.constant(BLADE_SWITCH_ITEM),
-            fc.constantFrom("down", "up"),
-          ),
-          fc.tuple(
-            fc.constant(ROAD_PAVER_SWITCH_ITEM),
+            fc.constant(ROAD_PAVER_SWITCH),
             fc.constantFrom("off", "on"),
           ),
           fc.tuple(
-            fc.constant(WIDE_BLADE_SWITCH_ITEM),
+            fc.constant(WIDE_BLADE_SWITCH),
             fc.constantFrom("normal", "wide"),
           ),
         ),
       ),
       (sets) => {
         const drive = new BulldozerDrive(0, {});
-        const last = new Map([
-          [BLADE_SWITCH_ITEM, drive.equipmentState(BLADE_SWITCH_ITEM)],
-          [
-            WIDE_BLADE_SWITCH_ITEM,
-            drive.equipmentState(WIDE_BLADE_SWITCH_ITEM),
-          ],
-          [
-            ROAD_PAVER_SWITCH_ITEM,
-            drive.equipmentState(ROAD_PAVER_SWITCH_ITEM),
-          ],
+        const last = new Map<EquipmentSwitch, string | undefined>([
+          [BLADE_SWITCH, drive.equipmentState(BLADE_SWITCH)],
+          [WIDE_BLADE_SWITCH, drive.equipmentState(WIDE_BLADE_SWITCH)],
+          [ROAD_PAVER_SWITCH, drive.equipmentState(ROAD_PAVER_SWITCH)],
         ]);
         for (const [item, state] of sets) {
-          expect(drive.setEquipmentState(item, state)).toBe(true);
+          expect(drive.forceEquipment(item, state)).toBe(true);
           last.set(item, state);
         }
         for (const [item, state] of last)
@@ -959,7 +948,7 @@ it("uses the current blade rule for cuts and ram width across toggles", () => {
         const d = new BulldozerDrive(heading, { blade: raised ? 1 : 0 });
         let b: Body = { pos: { x: 0.5, z: 0.5 }, vel: { x: 0, z: 0 } };
         widths.forEach((wide, tick) => {
-          d.setEquipmentState(WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
+          d.forceEquipment(WIDE_BLADE_SWITCH, wide ? "wide" : "normal");
           const rule = wide ? BULLDOZER_WIDE_BLADE : S.blade;
           const ctx = cutContext("car", tick, b);
           const out = d.step(FORWARD, ctx);

@@ -7,7 +7,11 @@ import type {
   TickContext,
 } from "../../../../src/domain/vehicle/drive";
 import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityContract";
-import { BLADE_SWITCH_ITEM } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
+import {
+  defineEquipmentSwitch,
+  isEquipmentState,
+} from "../../../../src/domain/vehicle/equipment/equipment";
+import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import {
   createVehicle,
   profileOf,
@@ -23,10 +27,11 @@ import { defined } from "../../../support/defined";
 import { riderView } from "../../../support/riders";
 import { waterSensors } from "../../../support/waterDepth";
 
+const monitorSwitch = defineEquipmentSwitch("switch", ["down", "up"]);
 const profile: VehicleProfile = {
   ...profileOf("suv"),
   equipment: {
-    switches: [{ item: "switch", states: ["down", "up"] }],
+    switches: [monitorSwitch],
   },
 };
 const driveCommand: EngineCommand = {
@@ -72,7 +77,11 @@ function setup() {
     resync() {},
     onDriverMounted() {},
     onSeatVacated: () => [],
-    equipmentState: (item) => (item === "switch" ? state : undefined),
+    equipmentState: (equipmentSwitch) =>
+      equipmentSwitch.item === monitorSwitch.item &&
+      isEquipmentState(equipmentSwitch, state)
+        ? state
+        : undefined,
     step: (_raw, sensors) => {
       context = sensors;
       expect(sensors).not.toHaveProperty("testHeld");
@@ -229,11 +238,11 @@ describe("bulldozer cab monitor", () => {
 
   it("shows the blade switch's target and switches at once", () => {
     const sim = bulldozer();
-    expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(2)]);
+    expect(sim.monitor(BLADE_SWITCH.item)).toEqual([command(2)]);
     expect(
-      sim.vehicle.switchEquipment(asPlayerId("d"), BLADE_SWITCH_ITEM, 100),
+      sim.vehicle.switchEquipment(asPlayerId("d"), BLADE_SWITCH, 100),
     ).toBe(true);
-    expect(sim.monitor(BLADE_SWITCH_ITEM)).toEqual([command(1)]);
+    expect(sim.monitor(BLADE_SWITCH.item)).toEqual([command(1)]);
   });
 
   it("blanks for a driver holding nothing", () => {

@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  BLADE_SWITCH_ITEM,
-  ROAD_PAVER_SWITCH_ITEM,
-  WIDE_BLADE_SWITCH_ITEM,
+  BLADE_SWITCH,
+  ROAD_PAVER_SWITCH,
+  WIDE_BLADE_SWITCH,
 } from "../../src/domain/vehicle/kinds/bulldozer/equipment";
-import { ICEBREAKER_SWITCH_ITEM } from "../../src/domain/vehicle/kinds/sportsboat/equipment";
+import { ICEBREAKER_SWITCH } from "../../src/domain/vehicle/kinds/sportsboat/equipment";
 import { expectSingleStackUseItem } from "../support/itemContract";
 import { readLang } from "../support/lang";
 
@@ -15,7 +15,7 @@ const read = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
 const switches = [
   {
-    id: BLADE_SWITCH_ITEM,
+    id: BLADE_SWITCH.item,
     name: {
       en_US: "Blade Up/Down",
       ja_JP: "\u30d6\u30ec\u30fc\u30c9\u4e0a\u4e0b",
@@ -28,7 +28,7 @@ const switches = [
     ],
   },
   {
-    id: WIDE_BLADE_SWITCH_ITEM,
+    id: WIDE_BLADE_SWITCH.item,
     name: {
       en_US: "Wide Blade",
       ja_JP: "\u30ef\u30a4\u30c9\u30d6\u30ec\u30fc\u30c9",
@@ -41,7 +41,7 @@ const switches = [
     ],
   },
   {
-    id: ROAD_PAVER_SWITCH_ITEM,
+    id: ROAD_PAVER_SWITCH.item,
     name: {
       en_US: "Road Paver",
       ja_JP: "\u30ed\u30fc\u30c9\u30da\u30fc\u30d0\u30fc",
@@ -54,7 +54,7 @@ const switches = [
     ],
   },
   {
-    id: ICEBREAKER_SWITCH_ITEM,
+    id: ICEBREAKER_SWITCH.item,
     name: {
       en_US: "Icebreaker Switch",
       ja_JP: "\u7815\u6c37\u30b9\u30a4\u30c3\u30c1",

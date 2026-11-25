@@ -1,11 +1,12 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
+import type { EquipmentSwitch } from "../../domain/vehicle/equipment/equipment";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { Clock } from "./ports/shared";
 import type { SwitchFeedback } from "./switchFeedback";
 
 interface SwitchEquipmentCommand {
   playerId: PlayerId;
-  item: string;
+  switch: EquipmentSwitch;
   vehicleId: VehicleId;
 }
 
@@ -18,12 +19,12 @@ export class SwitchEquipment {
 
   execute(cmd: SwitchEquipmentCommand): boolean {
     const vehicle = this.repo.get(cmd.vehicleId);
-    if (!vehicle?.switchEquipment(cmd.playerId, cmd.item, this.clock.now()))
+    if (!vehicle?.switchEquipment(cmd.playerId, cmd.switch, this.clock.now()))
       return false;
     this.feedback?.show(
       cmd.playerId,
-      cmd.item,
-      vehicle.equipmentState(cmd.item),
+      cmd.switch.item,
+      vehicle.equipmentState(cmd.switch),
     );
     return true;
   }

@@ -22,6 +22,7 @@ import { PlaceVehicle } from "../../../../src/application/vehicle/placeVehicle";
 import type { PlacementWorld } from "../../../../src/application/vehicle/ports/placement";
 import { asVehicleId, type VehicleId } from "../../../../src/domain/shared/ids";
 import type { RawInput } from "../../../../src/domain/vehicle/driveInput";
+import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { drawerAtHeight } from "../../../../src/domain/vehicle/kinds/camper/furniture";
 import { COUNTER_HEIGHT } from "../../../../src/domain/vehicle/kinds/camper/spec";
 import { SPEC } from "../../../../src/domain/vehicle/spec";
@@ -2166,7 +2167,7 @@ describe("equipment switch (ADR 0171)", () => {
       expect(f.equipment.execute).toHaveBeenCalledExactlyOnceWith({
         playerId: "player",
         vehicleId: "dozer",
-        item: "blade_switch",
+        switch: BLADE_SWITCH,
       });
       expect(f.playSound).toHaveBeenCalledTimes(result ? 1 : 0);
       if (result)

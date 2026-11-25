@@ -18,7 +18,7 @@ export function registerTestEquipment(repo: VehicleRepository): void {
         console.warn(`[${NAMESPACE}] ignored test tool: ${ev.message}`);
         return;
       }
-      repo.get(cmd.vehicleId)?.forceEquipment(cmd.item, cmd.state);
+      repo.get(cmd.vehicleId)?.forceEquipment(cmd.switch, cmd.state);
     },
     { namespaces: [NAMESPACE] },
   );

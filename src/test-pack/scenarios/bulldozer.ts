@@ -8,9 +8,9 @@ import {
 import { normalizeYaw, type Vec3 } from "../../domain/shared/vec";
 import { bladeColumns } from "../../domain/vehicle/kinds/bulldozer/blade";
 import {
-  BLADE_SWITCH_ITEM,
-  ROAD_PAVER_SWITCH_ITEM,
-  WIDE_BLADE_SWITCH_ITEM,
+  BLADE_SWITCH,
+  ROAD_PAVER_SWITCH,
+  WIDE_BLADE_SWITCH,
 } from "../../domain/vehicle/kinds/bulldozer/equipment";
 import {
   type BladeRule,
@@ -51,7 +51,7 @@ async function sendToolState(
 }
 /** Sets the blade through the server-only test hook and waits until it has finished moving (ADR 0138). */
 async function setBlade(car: Entity, raised: boolean): Promise<void> {
-  await sendToolState(car, BLADE_SWITCH_ITEM, raised ? "up" : "down");
+  await sendToolState(car, BLADE_SWITCH.item, raised ? "up" : "down");
   await wait(BULLDOZER_SPEC.bladeLiftTicks + 2);
   const lift = car.getProperty(entityPropertyId("blade"));
   const want = raised ? 1 : 0;
@@ -59,7 +59,7 @@ async function setBlade(car: Entity, raised: boolean): Promise<void> {
 }
 /** Sets the wide blade state through the server-only test hook and checks the saved property (ADR 0180). */
 export async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
-  await sendToolState(car, WIDE_BLADE_SWITCH_ITEM, wide ? "wide" : "normal");
+  await sendToolState(car, WIDE_BLADE_SWITCH.item, wide ? "wide" : "normal");
   await wait(2);
   const shown = car.getProperty(entityPropertyId("wide_blade"));
   if (shown !== wide)
@@ -67,7 +67,7 @@ export async function setWideBlade(car: Entity, wide: boolean): Promise<void> {
 }
 /** Checks the saved paver state after the server-only tool hook (ADR 0181). */
 export async function setRoadPaver(car: Entity, on: boolean): Promise<void> {
-  await sendToolState(car, ROAD_PAVER_SWITCH_ITEM, on ? "on" : "off");
+  await sendToolState(car, ROAD_PAVER_SWITCH.item, on ? "on" : "off");
   await wait(2);
   const saved = car.getProperty(entityPropertyId("road_paver"));
   if (saved !== on) throw new Error(`road_paver=${String(saved)} want ${on}`);
@@ -829,17 +829,17 @@ async function monitorStep(car: Entity): Promise<Outcome> {
     await wait(2);
     return screen();
   };
-  const up = await holdAndRead(BLADE_SWITCH_ITEM);
+  const up = await holdAndRead(BLADE_SWITCH.item);
   await setBlade(car, false);
   const down = screen();
-  const norm = await holdAndRead(WIDE_BLADE_SWITCH_ITEM);
+  const norm = await holdAndRead(WIDE_BLADE_SWITCH.item);
   await setWideBlade(car, true);
   const wide = screen();
-  const off = await holdAndRead(ROAD_PAVER_SWITCH_ITEM);
+  const off = await holdAndRead(ROAD_PAVER_SWITCH.item);
   await setRoadPaver(car, true);
   const on = screen();
   const other = await holdAndRead("stone");
-  hold(BLADE_SWITCH_ITEM);
+  hold(BLADE_SWITCH.item);
   const cleared = await holdAndRead("clear");
   return {
     pass:

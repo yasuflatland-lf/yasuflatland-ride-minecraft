@@ -1,8 +1,13 @@
 import { asVehicleId, type VehicleId } from "../../../domain/shared/ids";
+import {
+  type EquipmentSwitch,
+  isEquipmentState,
+} from "../../../domain/vehicle/equipment/equipment";
+import { equipmentSwitchOf } from "../../../domain/vehicle/kinds/index";
 
 interface ForceEquipmentCommand {
   vehicleId: VehicleId;
-  item: string;
+  switch: EquipmentSwitch;
   state: string;
 }
 
@@ -13,6 +18,9 @@ export function parseTestEquipmentMessage(
   const parts = message.split(",");
   if (parts.length !== 3) return undefined;
   const [id = "", item = "", state = ""] = parts;
-  if (id === "" || item === "" || state === "") return undefined;
-  return { vehicleId: asVehicleId(id), item, state };
+  if (id === "") return undefined;
+  const equipmentSwitch = equipmentSwitchOf(item);
+  if (!equipmentSwitch || !isEquipmentState(equipmentSwitch, state))
+    return undefined;
+  return { vehicleId: asVehicleId(id), switch: equipmentSwitch, state };
 }

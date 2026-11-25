@@ -1,6 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import type { EquipmentRule } from "../../../../src/domain/vehicle/equipment/equipment";
+import {
+  defineEquipmentSwitch,
+  type EquipmentRule,
+} from "../../../../src/domain/vehicle/equipment/equipment";
 import {
   BLANK_SCREEN,
   monitorScreen,
@@ -81,7 +84,7 @@ describe("cab monitor screens", () => {
               .join("") + suffix;
           const extended = {
             ...rule,
-            switches: [...rule.switches, { item, states: ["new"] as [string] }],
+            switches: [...rule.switches, defineEquipmentSwitch(item, ["new"])],
           };
           for (const equipmentSwitch of rule.switches)
             for (const state of equipmentSwitch.states)
@@ -95,7 +98,7 @@ describe("cab monitor screens", () => {
 
   it("maps a bulldozer-shaped blade switch to down then up", () => {
     const rule: EquipmentRule = {
-      switches: [{ item: "blade_switch", states: ["down", "up"] }],
+      switches: [defineEquipmentSwitch("blade_switch", ["down", "up"])],
     };
     expect(monitorScreen(rule, "blade_switch", () => "down")).toBe(1);
     expect(monitorScreen(rule, "blade_switch", () => "up")).toBe(2);
