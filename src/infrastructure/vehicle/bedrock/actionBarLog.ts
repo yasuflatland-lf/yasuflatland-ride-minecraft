@@ -1,4 +1,5 @@
 import type { PlayerId } from "../../../domain/shared/ids";
+import { SPEC } from "../../../domain/vehicle/spec";
 import type { ActionBarMessage } from "../../shared/players";
 import type { EntityIndex } from "./entityIndex";
 
@@ -9,6 +10,11 @@ export class ActionBarLog {
     private readonly index: EntityIndex,
     private readonly now: () => number,
   ) {}
+
+  quietSince(playerId: PlayerId, tick: number): boolean {
+    const lastWrite = this.writtenAt.get(playerId);
+    return lastWrite === undefined || tick - lastWrite >= SPEC.radarQuietTicks;
+  }
 
   write(playerId: PlayerId, text: ActionBarMessage): void {
     try {

@@ -8,6 +8,7 @@ import type { OpenGift } from "../../../application/vehicle/openGift";
 import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
 import type { SwitchCeilingLights } from "../../../application/vehicle/room/switchCeilingLights";
+import type { ScanForPlaces } from "../../../application/vehicle/scanForPlaces";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
 import type { SwitchBoost } from "../../../application/vehicle/switchBoost";
 import type { SwitchEquipment } from "../../../application/vehicle/switchEquipment";
@@ -48,6 +49,7 @@ export function registerSubscriptions(
     equipment: SwitchEquipment;
     boost: SwitchBoost;
     hints: ShowVehicleHints;
+    radar: ScanForPlaces;
     board: BoardVehicle;
   },
   testInputs: VehicleTestStore<RawInput>,
@@ -60,7 +62,7 @@ export function registerSubscriptions(
   laterSwitchTargets: () => readonly SwitchTarget[],
 ): void {
   installKind();
-  registerDrive(useCases.drive, useCases.hints);
+  registerDrive(useCases.drive, useCases.hints, useCases.radar);
   registerFleet(useCases.limit);
   registerTestInput(testInputs);
   registerGifts(useCases.gift);
