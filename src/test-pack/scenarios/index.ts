@@ -299,11 +299,15 @@ import { warpFlow } from "./warpFlow";
 import { washstandPlaceTakeBack, washstandRunTiming } from "./washstand";
 
 export type ScenarioRun = (a: Arena, onStep: StepSink) => Promise<Outcome>;
+export type NoArenaRun = (onStep: StepSink) => Promise<Outcome>;
+
+export const NO_ARENA_SCENARIOS: Readonly<Record<string, NoArenaRun>> = {
+  nav_map_delivery: navMapDelivery,
+  nav_map_full_inventory: navMapFullInventory,
+};
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   suv_nav_passenger_refused: suvNavPassengerRefused,
-  nav_map_delivery: navMapDelivery,
-  nav_map_full_inventory: navMapFullInventory,
   suv_boost_wall: suvBoostWall,
   camper_boost_wall: camperBoostWall,
   scooter_boost_wall: scooterBoostWall,

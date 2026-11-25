@@ -38,6 +38,7 @@ export interface Skipped {
 
 export interface RunPlan {
   readonly runs: readonly ScenarioSpec[];
+  readonly needsArena: boolean;
   readonly skipped: readonly Skipped[];
   readonly unselected: number;
   readonly expectedTicks: number;
@@ -154,6 +155,7 @@ export function planOf(
   }
   return {
     runs,
+    needsArena: runs.some((spec) => spec.needsArena),
     skipped,
     unselected: catalog.length - selected.length,
     expectedTicks,

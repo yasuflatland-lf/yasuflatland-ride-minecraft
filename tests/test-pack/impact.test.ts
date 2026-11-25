@@ -330,6 +330,7 @@ describe("selectionOf", () => {
             name: "fixture",
             ticks: 0,
             isolation: "lane" as const,
+            needsArena: true,
             needsPlayer: false,
             vehicles: 0,
             ...entry,

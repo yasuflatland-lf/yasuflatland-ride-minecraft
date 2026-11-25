@@ -11,19 +11,20 @@ The in-game scenarios run one after another in one arena. Four CI shards shorten
 
 ## Decision
 
-Scenario metadata lives in a pure catalog. Each `ScenarioSpec` holds its name and file, declared ticks, feature tags, isolation (`lane` or `exclusive`), an optional group, `needsPlayer`, and `vehicles`. The `vehicles` value is the most unowned fleet vehicles the scenario keeps alive at once.
+Scenario metadata lives in a pure catalog. Each `ScenarioSpec` holds its name and file, declared ticks, feature tags, isolation (`lane` or `exclusive`), an optional group, `needsArena`, `needsPlayer`, and `vehicles`. The `vehicles` value is the most unowned fleet vehicles the scenario keeps alive at once. A scenario with `needsArena: false` must be exclusive and declare zero vehicles. The runner uses this flag to dispatch to `SCENARIOS` or `NO_ARENA_SCENARIOS`, and each registry must match its catalog entries exactly.
 
-Every scenario coordinate is local to a lane. The local arena spans x 0-120 and z 0-90. Lane `i` has its world origin at x = 160 * i, z = 0. Its ticking area is the arena grown by 16 blocks on every side, covering 80 chunks. Neighbouring lanes' areas sit in adjacent chunk columns, so a vehicle that runs out of its arena stays loaded and its scenario's cleanup can still remove it. Name the areas `yasu_ride_arena` for lane 0 and `yasu_ride_arena_<i>` otherwise.
+Every arena scenario coordinate is local to a lane. The local arena spans x 0-120 and z 0-90. Lane `i` has its world origin at x = 160 * i, z = 0. Its ticking area is the arena grown by 16 blocks on every side, covering 80 chunks. Neighbouring lanes' areas sit in adjacent chunk columns, so a vehicle that runs out of its arena stays loaded and its scenario's cleanup can still remove it. Name the areas `yasu_ride_arena` for lane 0 and `yasu_ride_arena_<i>` otherwise.
 
 Booster runways are dedicated ticking areas outside the lane arenas. Load up to two runways during setup when selected scenarios need them. A scenario uses one runway at a time and leaves its lane area loaded. Remove the runways after the lanes finish. When all eight arenas are in use and the unloaded warp probe is selected, leave one slot for its temporary area.
 
-Once per run, perform setup in this order:
+At the start of every run, remove the series' own named areas. Never use `remove_all`, so the owner's areas survive. For a plan with no arena scenario, setup ends there. When at least one scenario in the plan requires an arena, continue setup in this order:
 
-1. Remove the series' own named areas. Never use `remove_all`, so the owner's areas survive.
-2. Add and keep the areas for the lanes the run uses.
-3. Wait, up to a bound, until the used lanes' corners have loaded.
-4. Run the world-wide entity kills.
-5. Fill the used lanes one lane per tick, and assert that every fill changed blocks.
+1. Add and keep the areas for the lanes the run uses.
+2. Wait, up to a bound, until the used lanes' corners have loaded.
+3. Run the world-wide entity kills.
+4. Fill the used lanes one lane per tick, and assert that every fill changed blocks.
+
+If an arena scenario reaches dispatch without an arena, record `arena not prepared` for that scenario and continue the run.
 
 Apply filters in this order: features, player, shard, then lanes. Pack lane scenarios into K lanes by declared ticks, using the same longest-processing-time-first (LPT) rule as `shardsOf` (0054). Scenarios sharing a group are packed as one unit. The only group is `tent`, because the world allows four tents.
 

@@ -1,9 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../../src/test-pack/catalog";
 import { STALL_MS, TPS } from "../../src/test-pack/deadline";
 import { isFeatureTag } from "../../src/test-pack/features";
 import { coverageGaps } from "../../src/test-pack/plan";
+import {
+  NO_ARENA_SCENARIOS,
+  SCENARIOS,
+} from "../../src/test-pack/scenarios/index";
+
+vi.mock("@minecraft/server", () => ({}));
 
 // A scenario of at most 300 ticks only looks stalled when TPS falls to about 5.
 const MAX_SCENARIO_TICKS = ((STALL_MS / 1000) * TPS) / 4;
@@ -38,6 +44,14 @@ for (const match of registry.matchAll(
 }
 
 describe("scenario catalog", () => {
+  it("marks only the nav map scenarios as arena-free", () => {
+    expect(
+      CATALOG.filter((spec) => spec.needsArena === false).map(
+        ({ name }) => name,
+      ),
+    ).toEqual(["nav_map_delivery", "nav_map_full_inventory"]);
+  });
+
   it("has unique names with the scenario naming convention", () => {
     const names = CATALOG.map((spec) => spec.name);
     expect(new Set(names).size).toBe(names.length);
@@ -61,6 +75,10 @@ describe("scenario catalog", () => {
     expect(new Set(spec.features).size).toBe(spec.features.length);
     expect(spec.features.every(isFeatureTag)).toBe(true);
     if (spec.needsPlayer) expect(spec.isolation).toBe("exclusive");
+    if (spec.needsArena === false) {
+      expect(spec.vehicles).toBe(0);
+      expect(spec.isolation).toBe("exclusive");
+    }
     expect(spec.manualSetup === true).toBe(playerDecorScenarios.has(spec.name));
     if (spec.manualSetup) expect(spec.needsPlayer).toBe(true);
     if (spec.group !== undefined) expect(spec.isolation).toBe("lane");
@@ -68,14 +86,21 @@ describe("scenario catalog", () => {
   });
 
   it("registers exactly the catalog names using functions from their declared files", () => {
+    for (const [needsArena, scenarios] of [
+      [true, SCENARIOS],
+      [false, NO_ARENA_SCENARIOS],
+    ] as const) {
+      expect(
+        coverageGaps(
+          CATALOG.filter((spec) => spec.needsArena === needsArena).map(
+            (spec) => spec.name,
+          ),
+          Object.keys(scenarios),
+        ),
+      ).toEqual({ missing: [], extra: [], duplicates: [] });
+    }
     const keys = entries.map((entry) => entry[1] ?? "");
     expect(new Set(keys).size).toBe(keys.length);
-    expect(
-      coverageGaps(
-        CATALOG.map((spec) => spec.name),
-        keys,
-      ),
-    ).toEqual({ missing: [], extra: [], duplicates: [] });
     const exceptions: Record<string, { functionName: string; call?: string }> =
       {
         step2_front: { functionName: "step2", call: "step2(a, 8, -90, 100)" },

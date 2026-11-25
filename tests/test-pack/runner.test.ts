@@ -5,10 +5,12 @@ import { CANCEL_EVENT, TEST_EVENT } from "../../src/test-pack/protocol";
 const harness = vi.hoisted(() => ({
   receive: (_ev: { id: string; message: string }) => {},
   setup: vi.fn(),
+  setupNoArena: vi.fn(),
   remove: vi.fn(),
   first: vi.fn(),
   second: vi.fn(),
   player: vi.fn(),
+  map: vi.fn(),
   playerConnected: false,
   system: {
     currentTick: 0,
@@ -30,6 +32,7 @@ vi.mock("../../src/test-pack/manualProbes", () => ({}));
 vi.mock("../../src/test-pack/renderBench", () => ({}));
 vi.mock("../../src/test-pack/arena", () => ({
   prepareRun: harness.setup,
+  prepareNoArena: harness.setupNoArena,
   removeVehicles: harness.remove,
 }));
 vi.mock("../../src/test-pack/catalog", () => ({
@@ -41,6 +44,7 @@ vi.mock("../../src/test-pack/catalog", () => ({
       file: "x",
       vehicles: 0,
       features: [],
+      needsArena: true,
       needsPlayer: false,
     },
     {
@@ -50,6 +54,7 @@ vi.mock("../../src/test-pack/catalog", () => ({
       file: "x",
       vehicles: 0,
       features: [],
+      needsArena: true,
       needsPlayer: false,
     },
     {
@@ -59,6 +64,17 @@ vi.mock("../../src/test-pack/catalog", () => ({
       file: "x",
       vehicles: 0,
       features: [],
+      needsArena: true,
+      needsPlayer: true,
+    },
+    {
+      name: "map",
+      ticks: 3,
+      isolation: "exclusive",
+      file: "x",
+      vehicles: 0,
+      features: ["vehicle:nav"],
+      needsArena: false,
       needsPlayer: true,
     },
   ],
@@ -69,6 +85,7 @@ vi.mock("../../src/test-pack/scenarios/index", () => ({
     second: harness.second,
     player: harness.player,
   },
+  NO_ARENA_SCENARIOS: { map: harness.map },
 }));
 
 function deferred<T>() {
@@ -102,13 +119,53 @@ beforeEach(async () => {
     },
   );
   harness.setup.mockResolvedValue([{}]);
+  harness.setupNoArena.mockResolvedValue(undefined);
   harness.first.mockResolvedValue({ pass: true, detail: "ok" });
   harness.second.mockResolvedValue({ pass: true, detail: "ok" });
   harness.player.mockResolvedValue({ pass: true, detail: "ok" });
+  harness.map.mockResolvedValue({ pass: true, detail: "ok" });
   await import("../../src/test-pack/runner");
   logs = [];
 });
 afterEach(() => vi.restoreAllMocks());
+
+it.each([1, 4])(
+  "skips arena setup for an arena-free run with %i lanes",
+  async (lanes) => {
+    harness.playerConnected = true;
+    send(TEST_EVENT, `map features=vehicle:nav lanes=${lanes}`);
+    await flush();
+    expect(harness.setupNoArena).toHaveBeenCalledTimes(1);
+    expect(harness.setup).not.toHaveBeenCalled();
+    expect(harness.map).toHaveBeenCalledWith(expect.any(Function));
+    expect(logs).toContain(
+      lanes === 1
+        ? "[YASU-RIDE-TEST] map PASS map ticks=0 ok"
+        : "[YASU-RIDE-TEST] map PASS map ticks=0 lane=0 ok",
+    );
+    expect(logs.at(-1)).toMatch(/SUMMARY pass=1 fail=0 ticks=0 ms=\d+$/);
+  },
+);
+
+it("fails scenarios with missing arenas and continues through the exclusive phase", async () => {
+  harness.playerConnected = true;
+  harness.setup.mockResolvedValue([]);
+  send(TEST_EVENT, "missing lanes=2");
+  await flush();
+  expect(harness.setupNoArena).not.toHaveBeenCalled();
+  expect(harness.first).not.toHaveBeenCalled();
+  expect(harness.second).not.toHaveBeenCalled();
+  expect(harness.player).not.toHaveBeenCalled();
+  expect(logs).toEqual(
+    expect.arrayContaining([
+      "[YASU-RIDE-TEST] missing FAIL first ticks=0 lane=1 arena not prepared",
+      "[YASU-RIDE-TEST] missing FAIL second ticks=0 lane=0 arena not prepared",
+      "[YASU-RIDE-TEST] missing FAIL player ticks=0 lane=0 arena not prepared",
+      "[YASU-RIDE-TEST] missing PASS map ticks=0 lane=0 ok",
+    ]),
+  );
+  expect(logs.at(-1)).toMatch(/SUMMARY pass=1 fail=3 ticks=0 ms=\d+$/);
+});
 
 it("logs PLAN and SKIP before setup, then streams steps and results before completion", async () => {
   const setup = deferred<object[]>();
@@ -119,8 +176,9 @@ it("logs PLAN and SKIP before setup, then streams steps and results before compl
   harness.second.mockReturnValue(second.promise);
   send(TEST_EVENT, "stream");
   expect(logs).toEqual([
-    "[YASU-RIDE-TEST] stream PLAN runs=2 skipped=1 unselected=0 ticks=60 lanes=1",
+    "[YASU-RIDE-TEST] stream PLAN runs=2 skipped=2 unselected=0 ticks=60 lanes=1",
     "[YASU-RIDE-TEST] stream SKIP player: a connected player is required",
+    "[YASU-RIDE-TEST] stream SKIP map: a connected player is required",
   ]);
   setup.resolve([{}]);
   await flush();
@@ -226,7 +284,7 @@ it("logs the makespan and lane numbers for a two-lane request", async () => {
   send(TEST_EVENT, "parallel lanes=2");
   await flush();
   expect(logs[0]).toBe(
-    "[YASU-RIDE-TEST] parallel PLAN runs=2 skipped=1 unselected=0 ticks=40 lanes=2",
+    "[YASU-RIDE-TEST] parallel PLAN runs=2 skipped=2 unselected=0 ticks=40 lanes=2",
   );
   expect(harness.second.mock.calls[0]?.[0]).toBe(arenas[0]);
   expect(harness.first.mock.calls[0]?.[0]).toBe(arenas[1]);
@@ -279,7 +337,7 @@ it("waits for every lane and vehicle removal before running exclusive specs on l
   send(TEST_EVENT, "exclusive lanes=2");
   await flush();
   expect(logs[0]).toBe(
-    "[YASU-RIDE-TEST] exclusive PLAN runs=3 skipped=0 unselected=0 ticks=50 lanes=2",
+    "[YASU-RIDE-TEST] exclusive PLAN runs=4 skipped=0 unselected=0 ticks=53 lanes=2",
   );
   expect(harness.remove).not.toHaveBeenCalled();
   expect(harness.player).not.toHaveBeenCalled();
@@ -296,10 +354,11 @@ it("waits for every lane and vehicle removal before running exclusive specs on l
   await flush();
   expect(harness.player).toHaveBeenCalledTimes(1);
   expect(harness.player.mock.calls[0]?.[0]).toBe(arenas[0]);
-  expect(logs.at(-2)).toBe(
+  expect(logs.slice(-3, -1)).toEqual([
     "[YASU-RIDE-TEST] exclusive PASS player ticks=0 lane=0 ok",
-  );
-  expect(logs.at(-1)).toMatch(/SUMMARY pass=3 fail=0 ticks=0 ms=\d+$/);
+    "[YASU-RIDE-TEST] exclusive PASS map ticks=0 lane=0 ok",
+  ]);
+  expect(logs.at(-1)).toMatch(/SUMMARY pass=4 fail=0 ticks=0 ms=\d+$/);
 });
 
 it("suppresses output from all pending lanes and skips exclusive specs after cancellation", async () => {

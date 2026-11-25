@@ -211,13 +211,7 @@ const VEHICLE_TYPES = [
   ENTITY_TYPE.scooter,
 ] as const;
 
-export async function prepareRun(
-  dim: Dimension,
-  lanes: readonly Lane[],
-  boostRunwayCount: number,
-): Promise<Arena[]> {
-  const [first] = lanes;
-  if (!first) throw new Error("no lane to prepare");
+function removeSeriesAreas(dim: Dimension): void {
   for (const name of SERIES_AREAS) {
     try {
       dim.runCommand(`tickingarea remove ${name}`);
@@ -225,6 +219,20 @@ export async function prepareRun(
       // Missing series areas are normal on the first run.
     }
   }
+}
+
+export async function prepareNoArena(dim: Dimension): Promise<void> {
+  removeSeriesAreas(dim);
+}
+
+export async function prepareRun(
+  dim: Dimension,
+  lanes: readonly Lane[],
+  boostRunwayCount: number,
+): Promise<Arena[]> {
+  const [first] = lanes;
+  if (!first) throw new Error("no lane to prepare");
+  removeSeriesAreas(dim);
   await wait(2);
   for (const lane of lanes) {
     try {
