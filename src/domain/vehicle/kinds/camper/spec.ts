@@ -1,4 +1,5 @@
 import { ticks } from "../../../shared/ticks";
+import { MOTION } from "../../motion/constants";
 import { transformingSpecOf } from "../../motion/transforming";
 import type { CampingGearId } from "./campingGear";
 
@@ -160,6 +161,7 @@ export const DRAWER_GEAR_IDS: ReadonlySet<CampingGearId> = new Set([
 ]);
 
 export const CAMPER_TRANSFORMING = transformingSpecOf(CAMPER_SPEC, {
+  boost: Object.freeze({ flightScale: MOTION.boostFlightScale }),
   bankEasing: "constant",
   waterPolicy: "submerge",
 });

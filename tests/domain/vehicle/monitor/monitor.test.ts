@@ -1,43 +1,39 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
+  defineEquipmentSwitch,
+  type EquipmentRule,
+} from "../../../../src/domain/vehicle/equipment/equipment";
+import {
   BLANK_SCREEN,
-  type MonitorRule,
   monitorScreen,
-  monitorTool,
-  nextToolState,
-  toolBindings,
 } from "../../../../src/domain/vehicle/monitor/monitor";
 import {
   monitorPropertySpec,
   monitorScreens,
 } from "../../../support/monitorContract";
-
-const ruleArbitrary = fc
-  .uniqueArray(
-    fc.record({
-      item: fc.string({ minLength: 1 }),
-      states: fc
-        .uniqueArray(fc.string(), { minLength: 1, maxLength: 5 })
-        .map((states) => states as [string, ...string[]]),
-    }),
-    { selector: (tool) => tool.item, minLength: 1, maxLength: 5 },
-  )
-  .map((tools): MonitorRule => ({ tools }));
+import { equipmentRuleArbitrary } from "../equipment/equipmentRuleArbitrary";
 
 describe("cab monitor screens", () => {
-  it("assigns every tool state a distinct screen in property order and range", () => {
+  it("assigns every switch state a distinct screen in property order and range", () => {
     fc.assert(
-      fc.property(ruleArbitrary, (rule) => {
+      fc.property(equipmentRuleArbitrary, (rule) => {
         const screens = monitorScreens(rule);
         const spec = monitorPropertySpec(rule);
         expect(spec).toEqual({ type: "int", range: [0, screens.length] });
-        const values = rule.tools.flatMap((tool) =>
-          tool.states.map((state) => {
-            const value = monitorScreen(rule, tool.item, () => state);
+        const values = rule.switches.flatMap((equipmentSwitch) =>
+          equipmentSwitch.states.map((state) => {
+            const value = monitorScreen(
+              rule,
+              equipmentSwitch.item,
+              () => state,
+            );
             expect(value).toBeGreaterThanOrEqual(1);
             expect(value).toBeLessThanOrEqual(spec.range[1]);
-            expect(screens[value - 1]).toEqual({ item: tool.item, state });
+            expect(screens[value - 1]).toEqual({
+              item: equipmentSwitch.item,
+              state,
+            });
             return value;
           }),
         );
@@ -47,11 +43,14 @@ describe("cab monitor screens", () => {
     );
   });
 
-  it("blanks missing tools and unknown states, including prototype names", () => {
+  it("blanks missing switches and unknown states, including prototype names", () => {
     fc.assert(
-      fc.property(ruleArbitrary, fc.string(), (rule, arbitrary) => {
+      fc.property(equipmentRuleArbitrary, fc.string(), (rule, arbitrary) => {
         const missing = [arbitrary, "constructor", "__proto__"].filter(
-          (item) => !rule.tools.some((tool) => tool.item === item),
+          (item) =>
+            !rule.switches.some(
+              (equipmentSwitch) => equipmentSwitch.item === item,
+            ),
         );
         expect(monitorScreen(rule, undefined, () => "anything")).toBe(
           BLANK_SCREEN,
@@ -60,12 +59,12 @@ describe("cab monitor screens", () => {
           expect(monitorScreen(rule, item, () => "anything")).toBe(
             BLANK_SCREEN,
           );
-        for (const tool of rule.tools) {
-          expect(monitorScreen(rule, tool.item, () => undefined)).toBe(
-            BLANK_SCREEN,
-          );
-          const unknown = `${tool.states.join("")}unknown`;
-          expect(monitorScreen(rule, tool.item, () => unknown)).toBe(
+        for (const equipmentSwitch of rule.switches) {
+          expect(
+            monitorScreen(rule, equipmentSwitch.item, () => undefined),
+          ).toBe(BLANK_SCREEN);
+          const unknown = `${equipmentSwitch.states.join("")}unknown`;
+          expect(monitorScreen(rule, equipmentSwitch.item, () => unknown)).toBe(
             BLANK_SCREEN,
           );
         }
@@ -73,114 +72,35 @@ describe("cab monitor screens", () => {
     );
   });
 
-  it("keeps all earlier values when a tool is appended", () => {
+  it("keeps all earlier values when a switch is appended", () => {
     fc.assert(
       fc.property(
-        ruleArbitrary,
+        equipmentRuleArbitrary,
         fc.string({ minLength: 1 }),
         (rule, suffix) => {
-          const item = rule.tools.map((tool) => tool.item).join("") + suffix;
+          const item =
+            rule.switches
+              .map((equipmentSwitch) => equipmentSwitch.item)
+              .join("") + suffix;
           const extended = {
             ...rule,
-            tools: [...rule.tools, { item, states: ["new"] as [string] }],
+            switches: [...rule.switches, defineEquipmentSwitch(item, ["new"])],
           };
-          for (const tool of rule.tools)
-            for (const state of tool.states)
-              expect(monitorScreen(extended, tool.item, () => state)).toBe(
-                monitorScreen(rule, tool.item, () => state),
-              );
+          for (const equipmentSwitch of rule.switches)
+            for (const state of equipmentSwitch.states)
+              expect(
+                monitorScreen(extended, equipmentSwitch.item, () => state),
+              ).toBe(monitorScreen(rule, equipmentSwitch.item, () => state));
         },
       ),
     );
   });
 
   it("maps a bulldozer-shaped blade switch to down then up", () => {
-    const rule: MonitorRule = {
-      tools: [{ item: "blade_switch", states: ["down", "up"] }],
+    const rule: EquipmentRule = {
+      switches: [defineEquipmentSwitch("blade_switch", ["down", "up"])],
     };
     expect(monitorScreen(rule, "blade_switch", () => "down")).toBe(1);
     expect(monitorScreen(rule, "blade_switch", () => "up")).toBe(2);
-  });
-});
-
-describe("monitor tool switching", () => {
-  it("reads and writes only declared states through their own bindings", () => {
-    fc.assert(
-      fc.property(fc.string(), fc.string(), (on, off) => {
-        fc.pre(on !== off);
-        const invalid = `${on}${off}invalid`;
-        const states = [off, on] as const;
-        const rule: MonitorRule = {
-          tools: [
-            { item: "switch", states },
-            { item: "unbound", states },
-            { item: "constructor", states },
-          ],
-        };
-        let current = invalid;
-        const binding = {
-          get: () => current,
-          set: (state: string) => {
-            current = state;
-          },
-        };
-        const tools = toolBindings(rule, { switch: binding, extra: binding });
-        expect(tools.toolState("switch")).toBeUndefined();
-        for (const state of states) {
-          expect(tools.setToolState("switch", state)).toBe(true);
-          expect(tools.toolState("switch")).toBe(state);
-          expect(tools.setToolState("switch", invalid)).toBe(false);
-          for (const item of ["extra", "unbound", "constructor", "__proto__"]) {
-            expect(tools.toolState(item)).toBeUndefined();
-            expect(tools.setToolState(item, state)).toBe(false);
-          }
-          expect(current).toBe(state);
-        }
-      }),
-    );
-  });
-
-  it("always advances to a member, starts at the first for missing states, and cycles back", () => {
-    fc.assert(
-      fc.property(ruleArbitrary, fc.string(), (rule, arbitrary) => {
-        for (const tool of rule.tools) {
-          expect(tool.states).toContain(nextToolState(tool, arbitrary));
-          expect(nextToolState(tool, undefined)).toBe(tool.states[0]);
-          const unknown = `${tool.states.join("")}unknown`;
-          expect(nextToolState(tool, unknown)).toBe(tool.states[0]);
-          for (const start of tool.states) {
-            let state = start;
-            for (let i = 0; i < tool.states.length; i++)
-              state = nextToolState(tool, state);
-            expect(state).toBe(start);
-          }
-          tool.states.forEach((state, index) => {
-            expect(nextToolState(tool, state)).toBe(
-              tool.states[(index + 1) % tool.states.length],
-            );
-          });
-        }
-      }),
-    );
-  });
-
-  it("finds exactly the declared tool and ignores unknown items or a missing rule", () => {
-    fc.assert(
-      fc.property(ruleArbitrary, fc.string(), (rule, item) => {
-        for (const tool of rule.tools)
-          expect(monitorTool(rule, tool.item)).toBe(tool);
-        const found = monitorTool(rule, item);
-        expect(found !== undefined).toBe(
-          rule.tools.some((tool) => tool.item === item),
-        );
-        expect(
-          monitorTool(
-            rule,
-            `${rule.tools.map((tool) => tool.item).join("")}unknown`,
-          ),
-        ).toBeUndefined();
-        expect(monitorTool(undefined, item)).toBeUndefined();
-      }),
-    );
   });
 });

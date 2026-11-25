@@ -23,8 +23,8 @@ import {
 } from "../../infrastructure/vehicle/bedrock/identifiers";
 import { SeatFillers } from "../../infrastructure/vehicle/bedrock/seatFillers";
 import {
+  TEST_EQUIPMENT_EVENT,
   TEST_HELD_ITEM_EVENT,
-  TEST_TOOL_EVENT,
 } from "../../infrastructure/vehicle/testHooks/identifiers";
 import {
   type Arena,
@@ -648,7 +648,10 @@ export function boatMonitor(a: Arena): Promise<Outcome> {
     };
     await wait(2);
     const off = await hold("icebreaker_switch");
-    system.sendScriptEvent(TEST_TOOL_EVENT, `${boat.id},icebreaker_switch,on`);
+    system.sendScriptEvent(
+      TEST_EQUIPMENT_EVENT,
+      `${boat.id},icebreaker_switch,on`,
+    );
     await wait(2);
     const on = boat.getProperty(entityPropertyId("monitor"));
     const restored = boat.getProperty(entityPropertyId("icebreaker"));
@@ -719,7 +722,7 @@ async function boatIcebreaker(
         dim.getBlock(highSide)?.setType("minecraft:stone");
         try {
           system.sendScriptEvent(
-            TEST_TOOL_EVENT,
+            TEST_EQUIPMENT_EVENT,
             `${boat.id},icebreaker_switch,${enabled ? "on" : "off"}`,
           );
           await wait(2);
@@ -834,7 +837,7 @@ async function boatIcebreakerMountain(
         fillMountain("stone", gy - POOL_DEPTH, mountainTop);
         try {
           system.sendScriptEvent(
-            TEST_TOOL_EVENT,
+            TEST_EQUIPMENT_EVENT,
             `${boat.id},icebreaker_switch,${enabled ? "on" : "off"}`,
           );
           await wait(20);

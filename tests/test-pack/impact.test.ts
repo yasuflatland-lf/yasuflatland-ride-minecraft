@@ -1,9 +1,8 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { posix } from "node:path";
-import { fileURLToPath } from "node:url";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { listRepoFiles } from "../../scripts/repo-files.mjs";
 import { FURNITURE_IDS } from "../../src/infrastructure/resort/identifiers";
 import { bareId } from "../../src/infrastructure/shared/identifiers";
 import { CATALOG } from "../../src/test-pack/catalog";
@@ -25,16 +24,7 @@ import { planOf } from "../../src/test-pack/plan";
 import { WHOLE_RUN } from "../../src/test-pack/protocol";
 
 const root = new URL("../../", import.meta.url);
-const tracked = execFileSync(
-  "git",
-  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-  {
-    cwd: fileURLToPath(root),
-    encoding: "utf8",
-  },
-)
-  .split("\0")
-  .filter(Boolean);
+const tracked = listRepoFiles();
 
 function importsOf(path: string): string[] {
   const source = readFileSync(new URL(path, root), "utf8");

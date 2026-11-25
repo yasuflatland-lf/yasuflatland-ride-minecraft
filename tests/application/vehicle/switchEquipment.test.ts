@@ -1,10 +1,11 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
+import { SwitchEquipment } from "../../../src/application/vehicle/switchEquipment";
 import { SwitchFeedback } from "../../../src/application/vehicle/switchFeedback";
-import { SwitchTool } from "../../../src/application/vehicle/switchTool";
 import { asPlayerId, asVehicleId } from "../../../src/domain/shared/ids";
 import { BULLDOZER_PROFILE } from "../../../src/domain/vehicle/kinds/bulldozer/profile";
 import {
+  equipmentSwitchOf,
   profileOf,
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
@@ -67,24 +68,39 @@ it("reports the new tool state only for successful chase-camera switches", () =>
           { showMessage: (_, name) => messages.push(name) },
           { isThirdPerson: () => thirdPerson },
         );
-        const use = new SwitchTool(repo, clock, feedback);
-        const cmd = { playerId: driver.id, vehicleId, item };
+        const use = new SwitchEquipment(repo, clock, feedback);
+        const equipmentSwitch = defined(equipmentSwitchOf(item), item);
+        const cmd = { playerId: driver.id, vehicleId, switch: equipmentSwitch };
         expect(use.execute({ ...cmd, playerId: asPlayerId("passenger") })).toBe(
           false,
         );
         expect(use.execute({ ...cmd, vehicleId: asVehicleId("missing") })).toBe(
           false,
         );
-        expect(use.execute({ ...cmd, item: "unsupported" })).toBe(false);
+        expect(
+          use.execute({
+            ...cmd,
+            switch: defined(
+              equipmentSwitchOf(
+                kind === "bulldozer" ? "icebreaker_switch" : "blade_switch",
+              ),
+              "switch of a different kind",
+            ),
+          }),
+        ).toBe(false);
         expect(messages).toEqual([]);
         expect(use.execute(cmd)).toBe(true);
-        expect(repo.get(vehicleId)?.toolState(item)).toBe(first);
+        expect(repo.get(vehicleId)?.equipmentState(equipmentSwitch)).toBe(
+          first,
+        );
         expect(messages).toEqual(thirdPerson ? [firstKey] : []);
         expect(use.execute(cmd)).toBe(false);
         expect(messages).toEqual(thirdPerson ? [firstKey] : []);
-        clock.tick += SPEC.toolSwitchCooldown;
+        clock.tick += SPEC.equipmentSwitchCooldown;
         expect(use.execute(cmd)).toBe(true);
-        expect(repo.get(vehicleId)?.toolState(item)).toBe(second);
+        expect(repo.get(vehicleId)?.equipmentState(equipmentSwitch)).toBe(
+          second,
+        );
         expect(messages).toEqual(thirdPerson ? [firstKey, secondKey] : []);
       },
     ),

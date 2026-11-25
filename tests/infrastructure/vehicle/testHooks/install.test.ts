@@ -6,6 +6,7 @@ import {
 } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
+import { BLADE_SWITCH } from "../../../../src/domain/vehicle/kinds/bulldozer/equipment";
 import { createVehicle } from "../../../../src/domain/vehicle/kinds/index";
 import { BedrockInventory } from "../../../../src/infrastructure/vehicle/bedrock/bedrockInventory";
 import { EntityIndex } from "../../../../src/infrastructure/vehicle/bedrock/entityIndex";
@@ -75,7 +76,7 @@ it.each([
     set: "dozer,blade_switch,down",
     reset: "dozer,blade_switch,up",
     read: ({ dozer }: ReturnType<typeof fixture>) =>
-      dozer.toolState("blade_switch"),
+      dozer.equipmentState(BLADE_SWITCH),
     initial: "up",
     expected: "down",
     final: "up",
@@ -125,6 +126,6 @@ it("ignores tool commands for a missing vehicle or a vehicle without that tool",
   const { camper, dozer, send } = fixture();
   send("yasu_ride:test_tool", "missing,blade_switch,down");
   send("yasu_ride:test_tool", "camper,blade_switch,down");
-  expect(camper.toolState("blade_switch")).toBeUndefined();
-  expect(dozer.toolState("blade_switch")).toBe("up");
+  expect(camper.equipmentState(BLADE_SWITCH)).toBeUndefined();
+  expect(dozer.equipmentState(BLADE_SWITCH)).toBe("up");
 });
