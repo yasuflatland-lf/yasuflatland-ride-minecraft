@@ -29,6 +29,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
+    name: "nav_map_delivery",
+    file: "navMap",
+    // Estimated from three 40-tick probe deadlines. Timing on BDS is pending.
+    ticks: 120,
+    features: ["vehicle:nav"],
+    isolation: "exclusive",
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "suv_boost_wall",
     file: "boosterObstacles",
     ticks: 214,
