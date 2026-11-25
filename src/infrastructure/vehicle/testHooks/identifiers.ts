@@ -13,3 +13,6 @@ export const TEST_RADAR_RESULT_EVENT = /* @__PURE__ */ id("test_radar_result");
 
 export const TEST_NAV_EVENT = /* @__PURE__ */ id("test_nav");
 export const TEST_NAV_RESULT = /* @__PURE__ */ id("test_nav_result");
+
+export const TEST_NAV_MAP_EVENT = /* @__PURE__ */ id("test_nav_map");
+export const TEST_NAV_MAP_RESULT = /* @__PURE__ */ id("test_nav_map_result");

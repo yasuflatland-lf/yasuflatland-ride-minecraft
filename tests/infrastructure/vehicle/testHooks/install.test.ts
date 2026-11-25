@@ -1,8 +1,10 @@
 import {
   type Entity,
+  type Player,
   type ScriptEventCommandMessageAfterEvent,
   ScriptEventSource,
   system,
+  world,
 } from "@minecraft/server";
 import { expect, it, vi } from "vitest";
 import { asVehicleId } from "../../../../src/domain/shared/ids";
@@ -19,7 +21,11 @@ import { VehicleTestStore } from "../../../../src/infrastructure/vehicle/testInp
 
 vi.mock("@minecraft/server", () => ({
   ScriptEventSource: { Server: "Server", Entity: "Entity" },
-  system: { afterEvents: { scriptEventReceive: { subscribe: vi.fn() } } },
+  world: { getAllPlayers: vi.fn() },
+  system: {
+    sendScriptEvent: vi.fn(),
+    afterEvents: { scriptEventReceive: { subscribe: vi.fn() } },
+  },
 }));
 
 function fixture() {
@@ -144,4 +150,55 @@ it("ignores tool commands for a missing vehicle or a vehicle without that tool",
   send("yasu_ride:test_tool", "camper,blade_switch,down");
   expect(camper.equipmentState(BLADE_SWITCH)).toBeUndefined();
   expect(dozer.equipmentState(BLADE_SWITCH)).toBe("up");
+});
+
+it("reports independent filled-map counts for spawn and give deliveries", () => {
+  const { send } = fixture();
+  const items: ({ typeId: string; amount: number } | undefined)[] = [
+    { typeId: "minecraft:filled_map", amount: 4 },
+    { typeId: "minecraft:map", amount: 2 },
+    { typeId: "minecraft:filled_map", amount: 3 },
+  ];
+  const player = {
+    id: "player",
+    getComponent: () => ({
+      container: {
+        size: items.length,
+        emptySlotsCount: items.filter((item) => item === undefined).length,
+        getItem: (slot: number) => items[slot],
+      },
+    }),
+    runCommand: vi.fn(),
+  };
+  vi.mocked(world.getAllPlayers).mockReturnValue([player as unknown as Player]);
+  const event = "yasu_ride:test_nav_map";
+  const result = "yasu_ride:test_nav_map_result";
+  send(event, "player,village", ScriptEventSource.Entity);
+  expect(system.sendScriptEvent).not.toHaveBeenCalled();
+  send(event, "player,invalid");
+  send(event, "missing,village");
+  expect(system.sendScriptEvent).toHaveBeenCalledWith(
+    result,
+    expect.stringMatching(/^player,error:/),
+  );
+  expect(system.sendScriptEvent).toHaveBeenCalledWith(
+    result,
+    expect.stringMatching(/^missing,error:/),
+  );
+  expect(player.runCommand).not.toHaveBeenCalled();
+  send(event, "player,village");
+  expect(player.runCommand).toHaveBeenCalledOnce();
+  expect(system.sendScriptEvent).toHaveBeenCalledWith(
+    result,
+    "player,unknown,spawn,-,-,7,7",
+  );
+  items[1] = undefined;
+  player.runCommand.mockImplementationOnce(() => {
+    items[1] = { typeId: "minecraft:filled_map", amount: 1 };
+  });
+  send(event, "player,village");
+  expect(system.sendScriptEvent).toHaveBeenCalledWith(
+    result,
+    "player,given,give,7,8,7,8",
+  );
 });
