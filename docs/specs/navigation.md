@@ -13,7 +13,7 @@
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision.
 - Implementation: `src/infrastructure/vehicle/bedrock/handlers/navSwitch.ts`, `src/application/vehicle/openNav.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`.
-- Verification: `tests/application/vehicle/openNav.test.ts` checks the order, cancellation, seat recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_refused` scenario checks refusal with two seated probes and awaits an in-game run.
+- Verification: `tests/application/vehicle/openNav.test.ts` checks the order, cancellation, seat recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_refused` scenario checks refusal with two seated probes. The `nav_map_delivery` scenario checks inventory delivery for three sampled destinations.
 
 ### Menu and map delivery
 
