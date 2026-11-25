@@ -263,7 +263,7 @@ describe("BedrockVehicleWorld snapshots", () => {
     );
   });
 
-  it.each(VEHICLE_KINDS.filter((kind) => !profileOf(kind).monitor))(
+  it.each(VEHICLE_KINDS.filter((kind) => !profileOf(kind).equipment))(
     "does not read rider inventory for %s without a monitor rule",
     (kind) => {
       const { car, world } = fixture();

@@ -4,6 +4,7 @@ import {
   type EntityContract,
   MONITOR_PROPERTY_NAME,
 } from "../../src/domain/vehicle/entityContract";
+import { defineEquipmentSwitch } from "../../src/domain/vehicle/equipment/equipment";
 import { profileOf } from "../../src/domain/vehicle/kinds/index";
 import type { VehicleProfile } from "../../src/domain/vehicle/profile";
 import { expectDeclaredCommand, expectPackProperty } from "./entityContract";
@@ -26,8 +27,8 @@ function checkPhaseCommand(value: number | boolean): void {
 describe("expectDeclaredCommand", () => {
   const profile: VehicleProfile = {
     ...profileOf("suv"),
-    monitor: {
-      tools: [{ item: "switch", states: ["down", "up"] }],
+    equipment: {
+      switches: [defineEquipmentSwitch("switch", ["down", "up"])],
     },
   };
   function checkMonitor(

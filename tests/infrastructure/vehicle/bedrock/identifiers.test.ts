@@ -12,6 +12,7 @@ import {
 import {
   DECK_SEAT_TYPE,
   ENTITY_TYPE,
+  EQUIPMENT_SWITCH_TYPES,
   entityEventId,
   entityPropertyId,
   FLEET_PROPERTY,
@@ -22,7 +23,6 @@ import {
   kindOfEntity,
   kindOfItem,
   LIT_CELLS_PROPERTY,
-  MONITOR_TOOL_TYPES,
   OWNER_PROPERTY,
   ramMountOf,
   STARTER_RECEIVED_PROPERTY,
@@ -64,7 +64,7 @@ describe("identifiers (ADR 0047)", () => {
     "yasu_ride:unknown",
     "toString",
     HEADLIGHT_SWITCH_TYPE,
-    ...MONITOR_TOOL_TYPES,
+    ...EQUIPMENT_SWITCH_TYPES,
   ])("does not recognize an unrelated type %s", (typeId) => {
     expect(kindOfEntity(typeId)).toBeUndefined();
     expect(isVehicleEntity(typeId)).toBe(false);
@@ -119,7 +119,7 @@ describe("identifiers (ADR 0047)", () => {
       FLEET_PROPERTY,
       OWNER_PROPERTY,
       HEADLIGHT_SWITCH_TYPE,
-      ...MONITOR_TOOL_TYPES,
+      ...EQUIPMENT_SWITCH_TYPES,
       HEADLIGHTS_PROPERTY,
       LIT_CELLS_PROPERTY,
       TEST_INPUT_EVENT,

@@ -9,8 +9,8 @@ import type { PaintVehicle } from "../../../application/vehicle/paintVehicle";
 import type { PlaceVehicle } from "../../../application/vehicle/placeVehicle";
 import type { SwitchCeilingLights } from "../../../application/vehicle/room/switchCeilingLights";
 import type { ShowVehicleHints } from "../../../application/vehicle/showVehicleHints";
+import type { SwitchEquipment } from "../../../application/vehicle/switchEquipment";
 import type { SwitchHeadlights } from "../../../application/vehicle/switchHeadlights";
-import type { SwitchTool } from "../../../application/vehicle/switchTool";
 import type { DimensionId, VehicleId } from "../../../domain/shared/ids";
 import type { Vec3 } from "../../../domain/shared/vec";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
@@ -23,6 +23,7 @@ import {
 import type { VehicleTestStore } from "../testInput/vehicleTestStore";
 import { registerBoarding } from "./handlers/boarding";
 import { registerDrive } from "./handlers/drive";
+import { equipmentSwitchTarget } from "./handlers/equipmentSwitch";
 import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
 import { vehicleSwitchTarget } from "./handlers/headlights";
@@ -30,8 +31,7 @@ import { registerHits } from "./handlers/hits";
 import { registerPlacement } from "./handlers/placement";
 import { registerStandIns } from "./handlers/standIn";
 import { registerTestInput } from "./handlers/testInput";
-import { toolSwitchTarget } from "./handlers/toolSwitch";
-import { MONITOR_TOOL_TYPES } from "./identifiers";
+import { EQUIPMENT_SWITCH_TYPES } from "./identifiers";
 
 export function registerSubscriptions(
   useCases: {
@@ -43,7 +43,7 @@ export function registerSubscriptions(
     paint: PaintVehicle;
     headlights: SwitchHeadlights;
     ceilingLights: SwitchCeilingLights;
-    tool: SwitchTool;
+    equipment: SwitchEquipment;
     hints: ShowVehicleHints;
     board: BoardVehicle;
   },
@@ -70,11 +70,11 @@ export function registerSubscriptions(
     useCases.ceilingLights,
     dockCellOwner,
   );
-  const tool = toolSwitchTarget(useCases.tool);
+  const equipment = equipmentSwitchTarget(useCases.equipment);
   const switchRoutes: SwitchRoutes = {
     [HEADLIGHT_SWITCH_TYPE]: () => [vehicle, ...laterSwitchTargets()],
     ...Object.fromEntries(
-      MONITOR_TOOL_TYPES.map((type) => [type, () => [tool]]),
+      EQUIPMENT_SWITCH_TYPES.map((type) => [type, () => [equipment]]),
     ),
   };
   registerSwitchRouter(switchRoutes);

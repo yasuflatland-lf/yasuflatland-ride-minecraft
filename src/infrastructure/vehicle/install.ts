@@ -13,9 +13,9 @@ import { PaintVehicle } from "../../application/vehicle/paintVehicle";
 import { PlaceVehicle } from "../../application/vehicle/placeVehicle";
 import { RiderEffects } from "../../application/vehicle/riderEffects";
 import { ShowVehicleHints } from "../../application/vehicle/showVehicleHints";
+import { SwitchEquipment } from "../../application/vehicle/switchEquipment";
 import { SwitchFeedback } from "../../application/vehicle/switchFeedback";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
-import { SwitchTool } from "../../application/vehicle/switchTool";
 import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
 import { STARTER_KINDS } from "../../domain/vehicle/placement/starter";
@@ -135,7 +135,7 @@ export function installVehicles(deps: {
         feedback,
       ),
       ceilingLights: camper.ceilingLights,
-      tool: new SwitchTool(repo, systemClock, feedback),
+      equipment: new SwitchEquipment(repo, systemClock, feedback),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index),
         repo,

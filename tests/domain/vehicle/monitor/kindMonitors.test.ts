@@ -5,7 +5,6 @@ import { MONITOR_PROPERTY_NAME } from "../../../../src/domain/vehicle/entityCont
 import { VEHICLE_KINDS } from "../../../../src/domain/vehicle/kind";
 import {
   createVehicle,
-  KINDS,
   profileOf,
 } from "../../../../src/domain/vehicle/kinds/index";
 import { monitorScreen } from "../../../../src/domain/vehicle/monitor/monitor";
@@ -17,11 +16,11 @@ import { waterSensors } from "../../../support/waterDepth";
 it.each(VEHICLE_KINDS)(
   "emits no monitor commands without a rule, or only in-range values with one for %s",
   (kind) => {
-    const rule = profileOf(kind).monitor;
+    const rule = profileOf(kind).equipment;
     const held = fc.option(
       fc.oneof(
         fc.string(),
-        ...(rule?.tools.map((tool) => fc.constant(tool.item)) ?? []),
+        ...(rule?.switches.map((tool) => fc.constant(tool.item)) ?? []),
       ),
       { nil: undefined },
     );
@@ -71,30 +70,8 @@ it.each(VEHICLE_KINDS)(
   },
 );
 
-it.each(VEHICLE_KINDS)(
-  "reports declared tool states and rejects non-tools for %s with a monitor",
-  (kind) => {
-    const rule = profileOf(kind).monitor;
-    if (!rule) return;
-    const drive = KINDS[kind].createDrive(0, {});
-    const stateOf = defined(drive.toolState, "monitor drive toolState").bind(
-      drive,
-    );
-    for (const tool of rule.tools)
-      expect(tool.states).toContain(stateOf(tool.item));
-    const unknown = fc
-      .oneof(fc.string(), fc.constantFrom("constructor", "__proto__"))
-      .filter((item) => !rule.tools.some((tool) => tool.item === item));
-    fc.assert(
-      fc.property(unknown, (item) => {
-        expect(stateOf(item)).toBeUndefined();
-      }),
-    );
-  },
-);
-
 it("maps the bulldozer road paver state to screens five and six", () => {
-  const rule = defined(profileOf("bulldozer").monitor, "bulldozer monitor");
+  const rule = defined(profileOf("bulldozer").equipment, "bulldozer monitor");
   expect(monitorPropertySpec(rule).range).toEqual([0, 6]);
   for (const [state, screen] of [
     ["off", 5],

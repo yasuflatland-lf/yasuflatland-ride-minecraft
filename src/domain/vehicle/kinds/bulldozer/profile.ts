@@ -6,7 +6,7 @@ import {
   type PlacementSurface,
 } from "../../placement/placement";
 import type { VehicleProfile } from "../../profile";
-import { BULLDOZER_MONITOR } from "./monitor";
+import { BULLDOZER_EQUIPMENT } from "./equipment";
 import { BULLDOZER_SPEC, BULLDOZER_WIDE_BLADE } from "./spec";
 
 const body = Object.freeze({
@@ -43,7 +43,7 @@ export const BULLDOZER_PROFILE: VehicleProfile = Object.freeze({
   }),
   chaseCamera: "mid",
   paintPolicy: dyeable("yellow"),
-  monitor: BULLDOZER_MONITOR,
+  equipment: BULLDOZER_EQUIPMENT,
 });
 export const BULLDOZER_MOTION = motionLimitsOf(BULLDOZER_SPEC);
 // Read by stepMotion and stepMediumMotion but without effect: the bulldozer never creeps or handbrakes.

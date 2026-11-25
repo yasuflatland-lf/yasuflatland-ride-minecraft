@@ -2,6 +2,7 @@
 import type { VehicleId } from "../../shared/ids";
 import type { Drive, RestoredValues } from "../drive";
 import type { EntityContract } from "../entityContract";
+import type { EquipmentSwitch } from "../equipment/equipment";
 import type { FleetLimitOf } from "../fleet/fleet";
 import { VEHICLE_KINDS, type VehicleKind } from "../kind";
 import type { VehicleProfile } from "../profile";
@@ -95,23 +96,23 @@ export const KINDS: Readonly<Record<VehicleKind, Readonly<KindDefinition>>> =
     }),
   });
 
-const MONITOR_TOOLS = VEHICLE_KINDS.flatMap(
-  (kind) => KINDS[kind].profile.monitor?.tools ?? [],
+const EQUIPMENT_SWITCHES = VEHICLE_KINDS.flatMap(
+  (kind) => KINDS[kind].profile.equipment?.switches ?? [],
 );
 
-export const MONITOR_TOOL_ITEMS: readonly string[] = Object.freeze([
-  ...new Set(MONITOR_TOOLS.map((tool) => tool.item)),
+const EQUIPMENT_SWITCH_BY_ITEM = new Map<string, EquipmentSwitch>(
+  EQUIPMENT_SWITCHES.map((equipmentSwitch) => [
+    equipmentSwitch.item,
+    equipmentSwitch,
+  ]),
+);
+
+export const EQUIPMENT_SWITCH_ITEMS: readonly string[] = Object.freeze([
+  ...EQUIPMENT_SWITCH_BY_ITEM.keys(),
 ]);
 
-export function toolFeedback(item: string, state: string): string | undefined {
-  for (const tool of MONITOR_TOOLS)
-    if (
-      tool.item === item &&
-      tool.feedback !== undefined &&
-      tool.states.includes(state)
-    )
-      return `${tool.feedback}_${state}`;
-  return undefined;
+export function equipmentSwitchOf(item: string): EquipmentSwitch | undefined {
+  return EQUIPMENT_SWITCH_BY_ITEM.get(item);
 }
 
 export const fleetLimitOf: FleetLimitOf = (kind) =>
