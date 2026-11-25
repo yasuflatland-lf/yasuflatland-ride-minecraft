@@ -19,19 +19,17 @@ import {
 import { TEST_DECOR_EVENT as DECOR_EVENT } from "../infrastructure/vehicle/kinds/camper/identifiers";
 
 import {
-  areaBounds,
+  addAreaCommand,
   BOOST_RUNWAY_BOUNDS,
   BOOST_RUNWAYS,
   inside,
   type Lane,
   LOCAL_ARENA,
-  laneOf,
   SERIES_AREAS,
   toLocal,
   toWorld,
   worldBounds,
 } from "./lane";
-import { MAX_LANES } from "./protocol";
 
 // Mirrors the SUV's minecraft:rideable but seats cows, because only players
 // can ride the SUV and a test has no players (ADR 0010).
@@ -218,6 +216,8 @@ export async function prepareRun(
   lanes: readonly Lane[],
   boostRunwayCount: number,
 ): Promise<Arena[]> {
+  const [first] = lanes;
+  if (!first) throw new Error("no lane to prepare");
   for (const name of SERIES_AREAS) {
     try {
       dim.runCommand(`tickingarea remove ${name}`);
@@ -226,15 +226,9 @@ export async function prepareRun(
     }
   }
   await wait(2);
-  const allLanes = Array.from({ length: MAX_LANES }, (_, index) =>
-    laneOf(index),
-  );
-  for (const lane of allLanes) {
-    const b = areaBounds(lane);
+  for (const lane of lanes) {
     try {
-      const result = dim.runCommand(
-        `tickingarea add ${b.minX} -64 ${b.minZ} ${b.maxX} 0 ${b.maxZ} ${lane.tickingArea} true`,
-      );
+      const result = dim.runCommand(addAreaCommand(lane));
       if (result.successCount <= 0) throw new Error("area not added");
     } catch (e) {
       throw new Error(
@@ -242,18 +236,20 @@ export async function prepareRun(
       );
     }
   }
-  for (const lane of allLanes) {
+  for (const lane of lanes) {
     if (!(await waitUntil(200, () => arenaLoaded(dim, lane, 0))))
       throw new Error(`lane ${lane.index} not loaded (corners)`);
   }
-  const top = dim.getTopmostBlock(toWorld(laneOf(0), GROUND_PROBE));
-  if (!top) throw new Error("lane 0 not loaded");
+  const top = dim.getTopmostBlock(toWorld(first, GROUND_PROBE));
+  if (!top) throw new Error(`lane ${first.index} not loaded`);
   const gy = top.location.y + 1;
   for (const lane of lanes) {
     const laneTop = dim.getTopmostBlock(toWorld(lane, GROUND_PROBE));
     if (!laneTop) throw new Error(`lane ${lane.index} not loaded (corners)`);
     if (laneTop.location.y + 1 !== gy)
-      throw new Error(`lane ${lane.index} ground height differs from lane 0`);
+      throw new Error(
+        `lane ${lane.index} ground height differs from lane ${first.index}`,
+      );
   }
   for (const type of VEHICLE_TYPES) dim.runCommand(`kill @e[type=${type}]`);
   for (const { typeId } of Object.values(CHAIR_KINDS))
@@ -269,10 +265,6 @@ export async function prepareRun(
   // torches, which then drop as items.
   dim.runCommand("kill @e[type=item]");
   await wait(5);
-  for (const lane of allLanes) {
-    if (!lanes.some((used) => used.index === lane.index))
-      dim.runCommand(`tickingarea remove ${lane.tickingArea}`);
-  }
   const boostRunways: Arena[] = [];
   const arenas = lanes.map((lane) => arenaOf(dim, gy, lane, boostRunways));
   const { minX, maxX, minZ, maxZ } = LOCAL_ARENA;
