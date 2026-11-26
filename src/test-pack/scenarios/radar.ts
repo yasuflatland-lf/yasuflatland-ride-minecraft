@@ -8,12 +8,15 @@ import {
 import { type Arena, wait, waitUntil, withBoat, withCar } from "../arena";
 import type { Outcome } from "../outcome";
 
+const VILLAGE_SUV_START = [55.5, 69.5, 0] as const;
+
 async function observeRadar(
   a: Arena,
   car: Entity,
   place: RadarReport["place"],
-  quiet = false,
+  mode: "start" | "message" | "passenger" = "start",
 ): Promise<Outcome> {
+  const quiet = mode === "message";
   const monument = place === "ocean_monument";
   const type = monument ? "minecraft:guardian" : "minecraft:villager";
   const name = `radar_${a.lane.index}_${system.currentTick}`;
@@ -31,15 +34,12 @@ async function observeRadar(
   });
   try {
     await wait(2);
-    system.sendScriptEvent(
-      TEST_RADAR_EVENT,
-      `${car.id},${quiet ? "message" : "start"}`,
-    );
+    system.sendScriptEvent(TEST_RADAR_EVENT, `${car.id},${mode}`);
     if (
       !(await waitUntil(10, () => ready !== undefined)) ||
       ready === undefined
     )
-      return { pass: false, detail: "Radar driver did not become ready" };
+      return { pass: false, detail: "Radar rider did not become ready" };
     const start = system.currentTick;
     const count = monument ? 2 : 3;
     for (let i = 0; i < count; i++) {
@@ -52,7 +52,7 @@ async function observeRadar(
     const deadline = quiet
       ? ready + SPEC.radarQuietTicks + SPEC.radarScanInterval
       : start + 100;
-    // Keep listening beyond another quiet period so a duplicate can reach the driver.
+    // Keep listening beyond another quiet period so a duplicate can reach the rider.
     await wait(
       deadline -
         system.currentTick +
@@ -79,12 +79,20 @@ async function observeRadar(
 }
 
 export function suvRadarVillage(a: Arena): Promise<Outcome> {
-  return withCar(a, 55.5, 69.5, 0, (car) => observeRadar(a, car, "village"));
+  return withCar(a, ...VILLAGE_SUV_START, (car) =>
+    observeRadar(a, car, "village"),
+  );
+}
+
+export function suvRadarPassenger(a: Arena): Promise<Outcome> {
+  return withCar(a, ...VILLAGE_SUV_START, (car) =>
+    observeRadar(a, car, "village", "passenger"),
+  );
 }
 
 export function suvRadarQuiet(a: Arena): Promise<Outcome> {
-  return withCar(a, 55.5, 69.5, 0, (car) =>
-    observeRadar(a, car, "village", true),
+  return withCar(a, ...VILLAGE_SUV_START, (car) =>
+    observeRadar(a, car, "village", "message"),
   );
 }
 
