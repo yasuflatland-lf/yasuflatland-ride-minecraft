@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+import { NavSelections } from "../../../src/application/vehicle/navSelections";
 import { OpenNav } from "../../../src/application/vehicle/openNav";
 import type { NavWorld } from "../../../src/application/vehicle/ports/drive";
 import {
@@ -39,7 +40,7 @@ function setup() {
   return {
     repo,
     world,
-    nav: new OpenNav(repo, world),
+    nav: new OpenNav(repo, world, new NavSelections()),
     command: { playerId: driver.id, vehicleId },
   };
 }

@@ -9,6 +9,7 @@ import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
+import { NavSelections } from "../../application/vehicle/navSelections";
 import { OpenGift } from "../../application/vehicle/openGift";
 import { OpenNav } from "../../application/vehicle/openNav";
 import { PaintVehicle } from "../../application/vehicle/paintVehicle";
@@ -84,6 +85,7 @@ export function installVehicles(deps: {
   const testInputs = new VehicleTestStore<RawInput>();
   const testHeldItems = new VehicleTestStore<string>();
   const index = new EntityIndex();
+  const navSelections = new NavSelections();
   const actionBar = new ActionBarLog(index, () => system.currentTick);
   const inventory = new BedrockInventory(index);
   const dockCodec = composeDockCodec({
@@ -146,7 +148,11 @@ export function installVehicles(deps: {
       ceilingLights: camper.ceilingLights,
       equipment: new SwitchEquipment(repo, systemClock, feedback),
       boost: new SwitchBoost(repo, systemClock, feedback, bedrock),
-      nav: new OpenNav(repo, new BedrockNavWorld(index, actionBar)),
+      nav: new OpenNav(
+        repo,
+        new BedrockNavWorld(index, actionBar),
+        navSelections,
+      ),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index, actionBar),
         repo,
