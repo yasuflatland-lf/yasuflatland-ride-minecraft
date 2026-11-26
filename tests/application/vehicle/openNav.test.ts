@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { NavSelections } from "../../../src/application/vehicle/navSelections";
 import { OpenNav } from "../../../src/application/vehicle/openNav";
@@ -45,15 +46,67 @@ function setup() {
   };
 }
 
+it("lets a passenger in any seat choose and receive a map", async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.integer({ min: 1, max: 3 }), async (seat) => {
+      const { nav, repo, world } = setup();
+      const passenger = riderView("passenger", {
+        offset: defined(
+          profileOf("suv").seats.positions[seat],
+          "passenger seat",
+        ),
+      });
+      repo.save(rebuildVehicle("suv", vehicleId, 0, [driver, passenger], {}));
+      await nav.execute({ playerId: passenger.id, vehicleId });
+      expect(world.choose).toHaveBeenCalledExactlyOnceWith(passenger.id, [
+        destination,
+      ]);
+      expect(world.giveMap).toHaveBeenCalledExactlyOnceWith(
+        passenger.id,
+        destination,
+      );
+    }),
+  );
+});
+
+it("gives nothing when a passenger gets out before choosing", async () => {
+  const { nav, repo, world } = setup();
+  const passenger = riderView("passenger", {
+    offset: defined(profileOf("suv").seats.positions[1], "passenger seat"),
+  });
+  repo.save(rebuildVehicle("suv", vehicleId, 0, [driver, passenger], {}));
+  const pending = nav.execute({ playerId: passenger.id, vehicleId });
+  repo.save(rebuildVehicle("suv", vehicleId, 0, [driver], {}));
+  await pending;
+  expect(world.giveMap).not.toHaveBeenCalled();
+  expect(world.showMessage).not.toHaveBeenCalled();
+});
+
+it("refuses a rider of a different vehicle", async () => {
+  const { nav, repo, world } = setup();
+  const passenger = riderView("passenger", {
+    offset: defined(profileOf("suv").seats.positions[1], "passenger seat"),
+  });
+  repo.save(
+    rebuildVehicle("suv", asVehicleId("other"), 0, [driver, passenger], {}),
+  );
+  await nav.execute({ playerId: passenger.id, vehicleId });
+  expect(world.showMessage).toHaveBeenCalledExactlyOnceWith(
+    passenger.id,
+    "nav_riding_only",
+  );
+  expect(world.choose).not.toHaveBeenCalled();
+});
+
 it.each([vehicleId, undefined])(
-  "refuses a non-driver before looking up the dimension or opening a menu (%s)",
+  "refuses a player on foot before looking up the dimension or opening a menu (%s)",
   async (id) => {
     const { nav, world } = setup();
     const playerId = asPlayerId("not-driver");
     await nav.execute({ vehicleId: id, playerId });
     expect(world.showMessage).toHaveBeenCalledExactlyOnceWith(
       playerId,
-      "nav_driver_only",
+      "nav_riding_only",
     );
     expect(world.dimensionOf).not.toHaveBeenCalled();
     expect(world.choose).not.toHaveBeenCalled();

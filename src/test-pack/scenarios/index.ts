@@ -205,7 +205,7 @@ import {
   diningTableTopRestore,
 } from "./diningTable";
 import { fleetForget } from "./fleetRemove";
-import { suvNavPassengerRefused } from "./nav";
+import { suvNavPassengerAllowed } from "./nav";
 import { navMapDelivery, navMapFullInventory } from "./navMap";
 import {
   parasolPaint,
@@ -214,6 +214,7 @@ import {
 } from "./parasol";
 import {
   sportsboatRadarMonument,
+  suvRadarPassenger,
   suvRadarQuiet,
   suvRadarVillage,
 } from "./radar";
@@ -307,7 +308,7 @@ export const NO_ARENA_SCENARIOS: Readonly<Record<string, NoArenaRun>> = {
 };
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
-  suv_nav_passenger_refused: suvNavPassengerRefused,
+  suv_nav_passenger_allowed: suvNavPassengerAllowed,
   suv_boost_wall: suvBoostWall,
   camper_boost_wall: camperBoostWall,
   scooter_boost_wall: scooterBoostWall,
@@ -327,6 +328,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
   scooter_boost_landing: scooterBoostLanding,
   bulldozer_boost_landing: bulldozerBoostLanding,
   suv_radar_village: suvRadarVillage,
+  suv_radar_passenger: suvRadarPassenger,
   sportsboat_radar_monument: sportsboatRadarMonument,
   suv_radar_quiet: suvRadarQuiet,
   suv_boost_release: suvBoostRelease,

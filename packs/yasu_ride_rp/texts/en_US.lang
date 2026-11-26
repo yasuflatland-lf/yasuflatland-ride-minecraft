@@ -330,6 +330,7 @@ yasu_ride.message.nav_driver_only=Use the nav from the driver's seat.
 yasu_ride.message.nav_open_touch=Long-press to open the map menu.
 yasu_ride.message.nav_open_mouse=Right-click to open the map menu.
 yasu_ride.message.nav_open_other=Use the nav to open the map menu.
+yasu_ride.message.nav_riding_only=Use the nav while riding a vehicle.
 yasu_ride.message.nav_overworld_only=The nav only works in the Overworld.
 yasu_ride.message.nav_nothing_found=Nothing found nearby.
 

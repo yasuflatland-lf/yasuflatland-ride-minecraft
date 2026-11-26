@@ -21,7 +21,7 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
-    name: "suv_nav_passenger_refused",
+    name: "suv_nav_passenger_allowed",
     file: "nav",
     ticks: 24,
     features: ["vehicle:nav", "vehicle:suv"],
@@ -236,6 +236,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
   },
   {
     name: "suv_radar_village",
+    file: "radar",
+    ticks: 190,
+    features: ["vehicle:radar", "vehicle:suv"],
+    isolation: "lane",
+    needsArena: true,
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
+    name: "suv_radar_passenger",
     file: "radar",
     ticks: 190,
     features: ["vehicle:radar", "vehicle:suv"],
