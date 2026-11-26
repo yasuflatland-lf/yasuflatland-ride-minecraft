@@ -405,7 +405,7 @@ from unittest.mock import patch
 rp = Path('packs/yasu_ride_rp')
 with tempfile.TemporaryDirectory() as directory:
     output = Path(directory)
-    names = ('suv-front-left.png', 'suv-headlights.png', 'suv-flying.png', 'suv-submarine.png')
+    names = ('suv-front-left.png', 'suv-flying-headlights.png', 'suv-side.png', 'suv-submarine-rear.png')
     before = {name: Path('docs/images', name).read_bytes() for name in names}
     for name, data in before.items():
         (output / name).write_bytes(data)

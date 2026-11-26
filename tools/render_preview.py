@@ -13,9 +13,9 @@ Add --icons <pack dir> ... to either command to also write or check pack_icon.pn
 each folded wheel over a charcoal and orange background. yasu_ride_test_bp gets it in grayscale, so
 the test pack stands out in the pack list.
 
-Four SUV poses share one camera and one scale, so they line up side by side in the README: on the
-ground, with the headlights on at night, flying with the wheels folded (ADR 0027), and under water
-as a submarine (ADR 0045). Four sports boat pictures share another scale: afloat in its default
+Four SUV pictures share one scale, so they line up side by side in the README: front-left on the
+ground and flying with the headlights on at dusk in one frame, side, and rear under water as a
+submarine (ADR 0027, ADR 0045). Four sports boat pictures share another scale: afloat in its default
 black and with the headlights on at night from the SUV's angle, from the side, and from its
 rear-right corner (ADR 0056). Four camper pictures share a third scale: front-left,
 headlights at dusk, side, and rear, without water layers (ADR 0067).
@@ -301,11 +301,13 @@ PHOTO_VIEWS = {
 ICON_NAMES = {**{piece["name"]: piece["item"] for piece in RESORT_GEAR}, ROOF_TENT_PREVIEW: ROOF_TENT_ICON, NOGA_CHAIR_PREVIEW: NOGA_CHAIR_ICON, CHAIR_PREVIEW: CHAIR_ICON, TENT_PREVIEW: TENT_ICON, TABLE_PREVIEW: TABLE_ICON, FIRE_PIT_PREVIEW: FIRE_PIT_ICON, DUTCH_OVEN_PREVIEW: DUTCH_OVEN_ICON, GAS_LANTERN_PREVIEW: GAS_LANTERN_ICON}
 
 POSES = {
-    "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "brightness": MAIN_BRIGHTNESS},
-    "suv-headlights.png": {"lamps": True, "dusk": True, "hover": False, "submarine": False},
-    "suv-flying.png": {"lamps": False, "dusk": False, "hover": True, "submarine": False, "brightness": MAIN_BRIGHTNESS},
-    "suv-submarine.png": {"lamps": False, "dusk": False, "hover": False, "submarine": True},
+    "suv-front-left.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "view": VIEW_DIRECTION, "brightness": MAIN_BRIGHTNESS},
+    "suv-flying-headlights.png": {"lamps": True, "dusk": True, "hover": True, "submarine": False, "view": VIEW_DIRECTION},
+    "suv-side.png": {"lamps": False, "dusk": False, "hover": False, "submarine": False, "view": (1.0, 0.15, 0.0001), "brightness": SIDE_BRIGHTNESS},
+    "suv-submarine-rear.png": {"lamps": False, "dusk": False, "hover": False, "submarine": True, "view": (1.0, 0.6, 1.0)},
 }
+# The pack icon flies with its lamps lit but without the dusk tint, so the body keeps its daylight colors.
+SUV_ICON_POSE = {"lamps": True, "dusk": False, "hover": True, "submarine": False, "brightness": 1.0}
 
 
 def read_png_bytes(path):
@@ -1204,20 +1206,25 @@ def render_suv(rp: Path, icon_path: Path | None) -> SceneResult:
     ground_y = min(p[1] for quad, _, _ in scenes["suv-front-left.png"] for p in quad)
     layers = {name: ground_layers(scenes[name], pose, ground_y, flight=flight if pose["hover"] else None) for name, pose in POSES.items()}
 
-    # One camera and one scale for every pose, so the vehicle has the same size in each picture
-    camera = Camera([p for polygons in scenes.values() for quad, _, _ in polygons for p in quad])
-    to_screen = fit(camera, [q for name in POSES for q, _, _ in scenes[name] + layers[name]])
-
-    images = {
-        name: RasterJob(name, scenes[name], layers[name], to_screen, WIDTH, HEIGHT, None, BLOOM, ())
-        for name in POSES
-    }
+    # Each view direction gets its own frame, all at one scale, so the SUV keeps its size across the row.
+    # The headlight beam stays out of the frame so it cannot shrink the vehicle.
+    frame_layers = {name: ground_layers(scenes[name], {**pose, "lamps": False}, ground_y, flight=flight if pose["hover"] else None)
+                    for name, pose in POSES.items()}
+    points = [p for polygons in scenes.values() for quad, _, _ in polygons for p in quad]
+    frames = {}
+    for name, pose in POSES.items():
+        frames.setdefault(pose["view"], []).append(name)
+    views = [(Camera(points, view), [q for name in names for q, _, _ in scenes[name] + frame_layers[name]])
+             for view, names in frames.items()]
+    images = {}
+    for names, to_screen in zip(frames.values(), fit_views(views)):
+        for name in names:
+            images[name] = RasterJob(name, scenes[name], layers[name], to_screen, WIDTH, HEIGHT, None, BLOOM, ())
+    images = {name: images[name] for name in POSES}
     icon = None
     if icon_path is not None:
-        # Lamps lit without the dusk tint, so the body keeps its daylight colors
-        pose = {**POSES["suv-flying.png"], "lamps": True, "brightness": 1.0}
-        polygons = collect(geo, texture, turns, pose, lit_texture, flight=flight)
-        icon = render_icon(geo, polygons, camera, str(icon_path), flight)
+        polygons = collect(geo, texture, turns, SUV_ICON_POSE, lit_texture, flight=flight)
+        icon = render_icon(geo, polygons, Camera(points), str(icon_path), flight)
     return SceneResult(images, icon)
 
 
