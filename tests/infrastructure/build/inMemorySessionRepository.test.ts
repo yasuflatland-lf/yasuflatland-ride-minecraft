@@ -2,7 +2,10 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import type { Clipboard } from "../../../src/domain/build/clipboard/clipboard";
+import {
+  type Clipboard,
+  clipboardOf,
+} from "../../../src/domain/build/clipboard/clipboard";
 import type { UndoEntry } from "../../../src/domain/build/history/history";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -62,13 +65,11 @@ it("keeps exactly the clipboard and snapshot handles referenced by the session a
           repo.update(session, () => {
             switch (operation) {
               case "completeCopy":
-                clipboard = {
-                  material,
+                clipboard = clipboardOf({
+                  selection,
                   facing: "north",
-                  size: { x: 1, y: 1, z: 1 },
-                  blockCount: 1,
-                  contents: { kind: "structure", handle: capture("copy") },
-                };
+                  handle: capture("copy"),
+                });
                 session.completeCopy(selection, clipboard);
                 break;
               case "repeatCopy":

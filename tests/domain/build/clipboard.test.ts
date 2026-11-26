@@ -1,9 +1,11 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { boxOf, volume } from "../../../src/domain/build/box";
+import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf, sizeOf, volume } from "../../../src/domain/build/box";
 import {
   aimedPasteTarget,
   type Clipboard,
+  clipboardOf,
   pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
@@ -11,11 +13,14 @@ import {
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
+import { selectionOf } from "../../../src/domain/build/selection";
+import { structureHandle } from "../../../src/domain/build/structure/handle";
 import {
   anchorCell,
   type BlockFace,
 } from "../../../src/domain/shared/blockFace";
 import { cellOf } from "../../../src/domain/shared/cells";
+import { asDimensionId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
 
 const faces: readonly BlockFace[] = [
@@ -42,6 +47,35 @@ const clipboard: fc.Arbitrary<Clipboard> = fc
       ),
     ),
   );
+
+it("builds the same clipboard as the copy and cut literals", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.constantFrom(...FACINGS),
+      fc.constantFrom("minecraft:stone", "minecraft:dirt"),
+      fc.uuid(),
+      (a, b, facing, materialId, rawHandle) => {
+        const box = boxOf(a, b);
+        const material = blockStateOf(materialId);
+        const selection = selectionOf(
+          asDimensionId("minecraft:overworld"),
+          box,
+          material,
+        );
+        const handle = structureHandle(rawHandle);
+        expect(clipboardOf({ selection, facing, handle })).toStrictEqual({
+          material,
+          facing,
+          size: sizeOf(box),
+          blockCount: volume(box),
+          contents: { kind: "structure", handle },
+        });
+      },
+    ),
+  );
+});
 
 it("four facings give distinct turns, preserve volume and swap horizontal extents on odd turns", () => {
   fc.assert(

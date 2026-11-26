@@ -4,12 +4,8 @@ import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import {
-  boxFromSize,
-  boxOf,
-  cellsOf,
-  volume,
-} from "../../../src/domain/build/box";
+import { boxFromSize, boxOf, cellsOf } from "../../../src/domain/build/box";
+import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { rotatedSize } from "../../../src/domain/build/rotation/quarterTurn";
@@ -56,12 +52,10 @@ function setup(anchor = cellOf({ x: 0, y: 1, z: 0 }), blockCount = 8) {
       z: anchor.z + 1,
     }),
   );
-  session.completeCopy(selectionOf(overworld, box, AIR), {
-    material: AIR,
-    size: { x: 2, y: 2, z: 2 },
+  const selection = selectionOf(overworld, box, AIR);
+  session.completeCopy(selection, {
+    ...clipboardOf({ selection, facing: "east", handle }),
     blockCount,
-    facing: "east",
-    contents: { kind: "structure", handle },
   });
   const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const start = vi.spyOn(jobs, "start");
@@ -94,17 +88,9 @@ it("selects the pasted box at the root and keeps the clipboard", () => {
         const e = setup(source);
         const material = blockStateOf(materialId);
         const sourceBox = boxFromSize(source, size);
-        const clipboard = {
-          material,
-          size,
-          blockCount: volume(sourceBox),
-          facing,
-          contents: { kind: "structure" as const, handle },
-        };
-        e.session.completeCopy(
-          selectionOf(overworld, sourceBox, material),
-          clipboard,
-        );
+        const selection = selectionOf(overworld, sourceBox, material);
+        const clipboard = clipboardOf({ selection, facing, handle });
+        e.session.completeCopy(selection, clipboard);
         const box = boxFromSize(anchor, rotatedSize(size, turn));
         const cmd = { ...e.cmd, dimensionId, target: { anchor, box, turn } };
         expect(e.paste.execute(cmd)).toBe("pasted");
