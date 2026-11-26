@@ -205,7 +205,7 @@ import {
   diningTableTopRestore,
 } from "./diningTable";
 import { fleetForget } from "./fleetRemove";
-import { suvNavPassengerRefused } from "./nav";
+import { suvNavPassengerAllowed } from "./nav";
 import { navMapDelivery, navMapFullInventory } from "./navMap";
 import {
   parasolPaint,
@@ -308,7 +308,7 @@ export const NO_ARENA_SCENARIOS: Readonly<Record<string, NoArenaRun>> = {
 };
 
 export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
-  suv_nav_passenger_refused: suvNavPassengerRefused,
+  suv_nav_passenger_allowed: suvNavPassengerAllowed,
   suv_boost_wall: suvBoostWall,
   camper_boost_wall: camperBoostWall,
   scooter_boost_wall: scooterBoostWall,

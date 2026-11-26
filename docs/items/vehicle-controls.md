@@ -64,7 +64,7 @@ See the [navigation spec](../specs/navigation.md) and [ADR 0261](../adr/0261-nav
 
 ### Explorer maps
 
-Use Nav from the driver's seat in the Overworld. On PC, right-click with Nav selected. On touch, tap to use it. The driver can choose a destination type once supported explorer-map destinations are confirmed. The current pack has an empty destination list.
+Use Nav while riding a vehicle in the Overworld. On PC, right-click with Nav selected. On touch, tap to use it. Any rider can choose a destination type and receive an explorer map.
 
 With a filled map, open your inventory and move it into the off-hand slot next to your character. On PC, drag it into the slot. On touch, tap the map and then the off-hand slot. Switch to first person to read it while driving. Check visibility on your device. If the map is hard to see, read it in the main hand while stopped. The third-person flight camera hides the held map.
 

@@ -1,23 +1,23 @@
 # Navigation
 
-- Scope: Driver access to the Nav item, destination selection and explorer map delivery, and automatic radar reports for places indicated by nearby mobs while driving any vehicle kind.
+- Scope: Rider access to the Nav item, destination selection and explorer map delivery, and automatic radar reports for places indicated by nearby mobs while riding any vehicle kind.
 - Verified at: 4316b7e76
 - Source: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md), [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md)
 
 ## Rules
 
-### Driver access and selection
+### Rider access and selection
 
 - Applies to: Using the Nav item in the air or pressing the vehicle the player is riding.
-- Rule: A player outside the driver's seat receives the translated driver-only message. The driver must be in the Overworld to open the destination form. A second press by the same player is ignored while their selection is pending. Cancel gives no item. After a choice, the driver must still be in the driver's seat of the same vehicle before a map can be delivered.
+- Rule: A player not riding the vehicle receives the translated riding-only message. A rider must be in the Overworld to open the destination form. A second press by the same player is ignored while their selection is pending. Cancel gives no item. After a choice, the player must still be a rider of the same vehicle before a map can be delivered.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision.
 - Implementation: `src/infrastructure/vehicle/bedrock/handlers/navSwitch.ts`, `src/application/vehicle/openNav.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`.
-- Verification: `tests/application/vehicle/openNav.test.ts` checks the order, cancellation, seat recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_refused` scenario checks refusal with two seated probes.
+- Verification: `tests/application/vehicle/openNav.test.ts` checks rider access, the order, cancellation, rider recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_allowed` scenario checks that a passenger opens the menu with two seated probes.
 
 ### Menu and map delivery
 
-- Applies to: The destinations offered to an eligible driver.
+- Applies to: The destinations offered to an eligible rider.
 - Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The form opens with these destinations in order: `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`. The command adapter has inventory and feet-drop paths. The adapter verifies inventory delivery by comparing the total number of filled maps before and after the loot command, while a feet-drop for a full inventory leaves delivery unverified.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.

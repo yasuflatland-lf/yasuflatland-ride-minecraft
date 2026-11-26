@@ -21,9 +21,9 @@ export class OpenNav {
     if (this.selections.has(playerId)) return;
     if (
       vehicleId === undefined ||
-      this.repo.get(vehicleId)?.driverId !== playerId
+      !this.repo.get(vehicleId)?.isRider(playerId)
     ) {
-      this.world.showMessage(playerId, "nav_driver_only");
+      this.world.showMessage(playerId, "nav_riding_only");
       return;
     }
     if (this.world.dimensionOf(playerId) !== "minecraft:overworld") {
@@ -36,7 +36,7 @@ export class OpenNav {
       const destination = await this.world.choose(playerId, NAV_DESTINATIONS);
       if (
         destination === undefined ||
-        this.repo.get(vehicleId)?.driverId !== playerId
+        !this.repo.get(vehicleId)?.isRider(playerId)
       )
         return;
       if (this.world.giveMap(playerId, destination) === "nothing") {

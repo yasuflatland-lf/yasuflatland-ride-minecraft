@@ -14,9 +14,9 @@ Decided in: #2479 (design and engine spike). The [driving navigation design](../
 
 ## Decision
 
-Propose both explorer maps for distant destinations and automatic radar reports for nearby places. The owner chose a nav item operated from the driver's seat over per-destination crafting recipes, and limited the radar to places identifiable by mobs.
+Propose both explorer maps for distant destinations and automatic radar reports for nearby places. The owner chose a nav item operated by any rider over per-destination crafting recipes, and limited the radar to places identifiable by mobs.
 
-- Open the destination menu only for the seat-zero driver in the Overworld. Follow vanilla exploration-map behavior and search for the nearest unexplored destination from the driver. Prefer the loot manager if its search origin can be verified. Otherwise try the loot command at the driver. If neither path searches from the driver, cancel the nav work and ship the radar alone.
+- Open the destination menu for any rider in the Overworld. Follow vanilla exploration-map behavior and search for the nearest unexplored destination from the rider. Prefer the loot manager if its search origin can be verified. Otherwise try the loot command at the rider. If neither path searches from the rider, cancel the nav work and ship the radar alone.
 - Include only confirmed destinations whose search takes at most one second (20 nominal ticks). Show “Nothing found nearby” when the script can identify a miss. Otherwise give the vanilla result and document that limitation.
 - If the off-hand map does not render while riding, document reading the map in the main hand or while stopped. Keep the nav item without adding a HUD.
 - Run the radar in every dimension. Scan one occupied vehicle per interval, cluster nearby mobs by place type, and report a place once per rider and ride. Give other vehicle action-bar messages priority for 60 ticks. Recompute direction and distance before displaying a delayed report and discard the report if the rider is out of range. Count the place as reported only after display.

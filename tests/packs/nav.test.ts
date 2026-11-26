@@ -53,7 +53,7 @@ it.each(["en_US", "ja_JP"])(
     for (const key of [
       "item.yasu_ride:nav.name",
       "yasu_ride.nav.title",
-      "yasu_ride.message.nav_driver_only",
+      "yasu_ride.message.nav_riding_only",
       "yasu_ride.message.nav_overworld_only",
       "yasu_ride.message.nav_nothing_found",
       ...NAV_DESTINATIONS.map(navDestinationLabelKey),
