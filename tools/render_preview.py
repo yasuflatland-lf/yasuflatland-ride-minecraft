@@ -13,9 +13,9 @@ Add --icons <pack dir> ... to either command to also write or check pack_icon.pn
 each folded wheel over a charcoal and orange background. yasu_ride_test_bp gets it in grayscale, so
 the test pack stands out in the pack list.
 
-Four SUV poses share one camera and one scale, so they line up side by side in the README: on the
-ground, with the headlights on at night, flying with the wheels folded (ADR 0027), and under water
-as a submarine (ADR 0045). Four sports boat pictures share another scale: afloat in its default
+Four SUV pictures share one scale, so they line up side by side in the README: front-left on the
+ground and flying with the headlights on at dusk in one frame, side, and rear under water as a
+submarine (ADR 0027, ADR 0045). Four sports boat pictures share another scale: afloat in its default
 black and with the headlights on at night from the SUV's angle, from its rear-left corner, and from
 straight above (ADR 0056). Four camper pictures share a third scale: front-left,
 headlights at dusk, side, and rear, without water layers (ADR 0067).
