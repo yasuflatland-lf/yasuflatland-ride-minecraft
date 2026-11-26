@@ -1,4 +1,5 @@
 // Action-bar hints for players on foot near a vehicle (ADR 0086).
+
 import type { Ticks } from "../shared/ticks";
 import {
   distanceToRectXZ,
@@ -7,12 +8,11 @@ import {
   type Vec2,
   type Vec3,
 } from "../shared/vec";
+import type { InputControls } from "./controls";
 import type { VehicleKind } from "./kind";
 import { DRIVER_SEAT, toLocal } from "./seats";
 import { SPEC } from "./spec";
 
-/** The input a player last used; each gets its own wording for the interact gesture. */
-export type HintControls = "touch" | "mouse" | "other";
 export type HeldItem = "dye" | "other";
 
 export const HINTS = Object.freeze({
@@ -37,12 +37,12 @@ export interface Hint {
   readonly with?: readonly HintArg[];
 }
 
-const BUMPER_HINT: Readonly<Record<HintControls, HintName>> = Object.freeze({
+const BUMPER_HINT: Readonly<Record<InputControls, HintName>> = Object.freeze({
   touch: HINTS.bumperTouch,
   mouse: HINTS.bumperMouse,
   other: HINTS.bumperOther,
 });
-const DRIVE_HINT: Readonly<Record<HintControls, HintName>> = Object.freeze({
+const DRIVE_HINT: Readonly<Record<InputControls, HintName>> = Object.freeze({
   touch: HINTS.driveTouch,
   mouse: HINTS.driveMouse,
   other: HINTS.driveOther,
@@ -86,7 +86,7 @@ export interface HintView {
   readonly hasRiders: boolean;
   readonly dyeable: boolean;
   readonly held: HeldItem;
-  readonly controls: HintControls;
+  readonly controls: InputControls;
 }
 
 const within = (y: number, [lo, hi]: FeetBand) => y >= lo && y <= hi;

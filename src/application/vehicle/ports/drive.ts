@@ -7,6 +7,7 @@ import type {
 import type { Ticks } from "../../../domain/shared/ticks";
 // Ports the per-tick drive requires from the game; implemented in the infrastructure layer (ADR 0012).
 import type { Vec3 } from "../../../domain/shared/vec";
+import type { InputControls } from "../../../domain/vehicle/controls";
 import type { CutColumn } from "../../../domain/vehicle/cut";
 import type {
   ClearCell,
@@ -19,11 +20,7 @@ import type {
   RestoredValues,
 } from "../../../domain/vehicle/drive";
 import type { RawInput } from "../../../domain/vehicle/driveInput";
-import type {
-  HeldItem,
-  Hint,
-  HintControls,
-} from "../../../domain/vehicle/hints";
+import type { HeldItem, Hint } from "../../../domain/vehicle/hints";
 import type { VehicleKind } from "../../../domain/vehicle/kind";
 import type { LitCell } from "../../../domain/vehicle/lighting/headlights";
 import type { NavDestination } from "../../../domain/vehicle/navigation/destinations";
@@ -192,7 +189,7 @@ export interface HintPlayerView {
   /** Riding any entity, a vehicle, a deck seat or a vanilla mount. */
   riding: boolean;
   held: HeldItem;
-  controls: HintControls;
+  controls: InputControls;
 }
 
 export interface HintVehicleView {
