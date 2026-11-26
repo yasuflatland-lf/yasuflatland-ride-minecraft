@@ -41,6 +41,10 @@ export function registerTestNav(repo: VehicleRepository): void {
             actions.push("menu");
             return undefined;
           },
+          showCreating: () => actions.push("creating"),
+          waitTicks: async () => {
+            actions.push("wait");
+          },
           giveMap: () => {
             actions.push("map");
             return "unknown";

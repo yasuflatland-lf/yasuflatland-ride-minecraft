@@ -332,6 +332,7 @@ yasu_ride.message.nav_open_mouse=右クリックで地図を作るメニュー�
 yasu_ride.message.nav_open_other=ナビを使うと地図を作るメニューが出ます
 yasu_ride.message.nav_riding_only=乗り物に乗っているときにナビを使ってください。
 yasu_ride.message.nav_overworld_only=ナビはオーバーワールドでのみ使えます。
+yasu_ride.message.nav_creating=%s への地図を作成中…
 yasu_ride.message.nav_nothing_found=近くには何も見つかりませんでした。
 
 yasu_ride.radar.report=%1 %2 m: %3

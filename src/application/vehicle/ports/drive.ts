@@ -215,6 +215,8 @@ export interface NavWorld {
     playerId: PlayerId,
     options: readonly NavDestination[],
   ): Promise<NavDestination | undefined>;
+  showCreating(playerId: PlayerId, destination: NavDestination): void;
+  waitTicks(ticks: Ticks): Promise<void>;
   giveMap(
     playerId: PlayerId,
     destination: NavDestination,

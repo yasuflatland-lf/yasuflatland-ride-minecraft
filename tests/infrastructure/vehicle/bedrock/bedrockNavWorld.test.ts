@@ -22,6 +22,7 @@ function setup(
 ) {
   const player = {
     isValid: true,
+    onScreenDisplay: { setActionBar: vi.fn() },
     getComponent: vi.fn(() => ({
       container: {
         emptySlotsCount: items.filter((item) => item === undefined).length,
@@ -72,6 +73,17 @@ it.each([destination, "cancel", undefined] as const)(
     );
   },
 );
+
+it("shows the creating message with the translated destination on the rider's action bar", () => {
+  const { nav, player } = setup();
+  nav.showCreating(playerId, destination);
+  expect(player.onScreenDisplay.setActionBar).toHaveBeenCalledExactlyOnceWith({
+    translate: "yasu_ride.message.nav_creating",
+    with: {
+      rawtext: [{ translate: "yasu_ride.nav.destination.test_destination" }],
+    },
+  });
+});
 
 it("returns given when the amount in an existing filled map stack increases", () => {
   const filledMaps = { typeId: "minecraft:filled_map", amount: 2 };

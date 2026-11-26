@@ -55,6 +55,7 @@ it.each(["en_US", "ja_JP"])(
       "yasu_ride.nav.title",
       "yasu_ride.message.nav_riding_only",
       "yasu_ride.message.nav_overworld_only",
+      "yasu_ride.message.nav_creating",
       "yasu_ride.message.nav_nothing_found",
       "yasu_ride.message.nav_open_touch",
       "yasu_ride.message.nav_open_mouse",
