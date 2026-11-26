@@ -18,11 +18,11 @@
 ### Nav guidance
 
 - Applies to: Drivers and passengers who select the Nav in the hotbar or tap a block or entity while holding it.
-- Rule: The action bar shows long-press instructions for touch, right-click instructions for mouse, or neutral use instructions for other controls. Selecting the Nav can always show guidance. A tap can show guidance only after 40 ticks have elapsed since the player's last guide. Both triggers stay silent while that player's Nav selection is pending. A touch tap in the air emits no script event.
+- Rule: The action bar shows long-press instructions for touch, right-click instructions for mouse, or neutral use instructions for other controls. Selecting the Nav can always show guidance. A tap can show guidance only after 40 ticks have elapsed since the player's last guide. Both triggers stay silent while the destination menu is open and during the two-tick delay after the map-creation message. A touch tap in the air emits no script event.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision, the Nav item and destination menu. The [Nav hints design](../superpowers/specs/2026-11-26-nav-hints-design.md) specifies the guidance.
 - Implementation: `src/domain/vehicle/navigation/navGuide.ts`, `src/domain/vehicle/spec.ts`, `src/application/vehicle/guideNav.ts`, `src/infrastructure/vehicle/bedrock/handlers/navGuide.ts`.
-- Verification: `tests/domain/vehicle/navigation/navGuide.test.ts` checks timing and player independence. `tests/application/vehicle/guideNav.test.ts` checks rider eligibility, pending selections, and control wording. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks event routing. Device checks are in [Manual test](../manual-test.md#nav-explorer-maps).
+- Verification: `tests/domain/vehicle/navigation/navGuide.test.ts` checks timing and player independence. `tests/application/vehicle/guideNav.test.ts` checks rider eligibility, pending selections, and control wording. `tests/application/vehicle/openNav.test.ts` checks that neither trigger replaces the map-creation message during the delay and that guidance resumes after delivery. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks event routing. Device checks are in [Manual test](../manual-test.md#nav-explorer-maps).
 
 ### Menu and map delivery
 
