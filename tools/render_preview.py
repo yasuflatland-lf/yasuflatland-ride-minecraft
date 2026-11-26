@@ -146,16 +146,15 @@ BOAT_WATER_LAYERS = 10
 BOAT_WATER_ALPHA = 0.07
 BOAT_WATER_MARGIN = 14.0
 BOAT_BEAM_LENGTH = 40.0
-# The rear view mirrors the SUV's angle front to back. The top view puts the bow on the right, so
-# the long hull fills the landscape frame.
-BOAT_REAR_VIEW = (-1.0, 0.65, 1.0)
-BOAT_TOP_VIEW = (0.0, 1.0, 0.0)
-BOAT_TOP_SCREEN_UP = (-1.0, 0.0, 0.0)
+# The side and rear views match the camper row, so the right side the front-left views hide shows
+# in both.
+BOAT_SIDE_VIEW = (1.0, 0.15, 0.0001)
+BOAT_REAR_VIEW = (1.0, 0.65, 1.0)
 BOAT_POSES = {
     "sportsboat-afloat.png": {"lamps": False, "dusk": False, "view": VIEW_DIRECTION, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
     "sportsboat-headlights.png": {"lamps": True, "dusk": True, "view": VIEW_DIRECTION, "screen_up": None},
+    "sportsboat-side.png": {"lamps": False, "dusk": False, "view": BOAT_SIDE_VIEW, "screen_up": None, "brightness": SIDE_BRIGHTNESS, "lift": BOAT_LIFT},
     "sportsboat-rear.png": {"lamps": False, "dusk": False, "view": BOAT_REAR_VIEW, "screen_up": None, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
-    "sportsboat-top.png": {"lamps": False, "dusk": False, "view": BOAT_TOP_VIEW, "screen_up": BOAT_TOP_SCREEN_UP, "brightness": MAIN_BRIGHTNESS, "lift": BOAT_LIFT},
 }
 
 CAMPER_GEOMETRY = "models/entity/yasu_ride/camper.geo.json"
