@@ -7,6 +7,7 @@ import { isDyeable } from "../shared/paint";
 import { forward, type Vec2, type Vec3 } from "../shared/vec";
 import { BOOST_CONTROL } from "./boost";
 import type { CapabilityKey } from "./capability";
+import type { InputControls } from "./controls";
 import { Crew } from "./crew";
 import type { CutColumn } from "./cut";
 import type { ClearCell, Departure, Dock } from "./dock/dock";
@@ -19,7 +20,6 @@ import {
 import {
   type HeldItem,
   type Hint,
-  type HintControls,
   type HintName,
   hintAt,
   zoneOf,
@@ -168,6 +168,14 @@ export class Vehicle {
     return this.crew.driver;
   }
 
+  get riderIds(): readonly PlayerId[] {
+    return [...this.crew.riders()];
+  }
+
+  isRider(playerId: PlayerId): boolean {
+    return this.crew.riders().has(playerId);
+  }
+
   get speed(): number {
     return this.drive.speed;
   }
@@ -200,7 +208,7 @@ export class Vehicle {
   hint(
     offset: Vec3,
     held: HeldItem,
-    controls: HintControls,
+    controls: InputControls,
     current?: HintName,
   ): Hint | undefined {
     const view = {

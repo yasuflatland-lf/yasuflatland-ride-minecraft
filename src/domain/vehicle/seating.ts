@@ -150,6 +150,12 @@ export class Seating {
     return this.seats.size > 0;
   }
 
+  /** Iterates settled riders in ascending seat order. */
+  riders(): ReadonlySet<PlayerId> {
+    const bySeat = [...this.seats].sort((a, b) => a[1] - b[1]);
+    return new Set(bySeat.map(([id]) => id));
+  }
+
   /** The seat indices riders sit in now. */
   taken(): ReadonlySet<number> {
     return new Set(this.seats.values());

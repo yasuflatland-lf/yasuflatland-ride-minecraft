@@ -34,6 +34,7 @@ import { MOTION } from "../../../src/domain/vehicle/motion/constants";
 import { stepLanes } from "../../../src/domain/vehicle/motion/stepUp";
 import type { VehicleProfile } from "../../../src/domain/vehicle/profile";
 import type { RamTarget } from "../../../src/domain/vehicle/ram";
+import { Seating } from "../../../src/domain/vehicle/seating";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import {
   type RiderView,
@@ -188,6 +189,42 @@ describe("Vehicle (aggregate)", () => {
         ];
         sim.run(vehicle, 1);
         expect(vehicle.driverId).toBe(driver);
+      }),
+    );
+  });
+
+  it("lists settled riders in seat order and forgets riders who leave", () => {
+    const seats = fc.shuffledSubarray([0, 1, 2, 3]);
+    const players = ["sam", "lee", "jo", "kai"].map(asPlayerId);
+    const playerAt = (seat: number) => defined(players[seat], "seat occupant");
+    fc.assert(
+      fc.property(seats, seats, (before, after) => {
+        const vehicle = createVehicle("suv", asVehicleId("car"), 0);
+        const sim = new Sim();
+        const seating = new Seating(SUV_PROFILE.seats.positions);
+        for (const [tick, occupied] of [before, after].entries()) {
+          sim.riders = occupied.map((seat) => ({
+            id: playerAt(seat),
+            seat,
+            yaw: 0,
+            raw: IDLE,
+          }));
+          seating.update(
+            sim.riders.map(({ id, seat }) => riderView(id, { seat })),
+            forward(sim.yaw),
+          );
+          sim.run(vehicle, 1, tick);
+          const ids = vehicle.riderIds;
+          expect(ids.length).toBe(seating.taken().size);
+          expect(ids).toEqual(
+            [...occupied].sort((a, b) => a - b).map(playerAt),
+          );
+          for (const id of players) {
+            expect(vehicle.isRider(id)).toBe(ids.includes(id));
+          }
+          if (vehicle.driverId !== undefined)
+            expect(vehicle.isRider(vehicle.driverId)).toBe(true);
+        }
       }),
     );
   });

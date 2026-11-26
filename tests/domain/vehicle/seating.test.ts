@@ -58,6 +58,8 @@ describe("Seating read by rider-list slot (ADR 0120)", () => {
           const s = new Seating(P);
           s.update(laid(prev), f);
           const out = s.update(laid(now), f);
+          expect(s.riders()).toEqual(new Set(now.map((r) => asPlayerId(r.id))));
+          for (const { id } of out.left) expect(s.riders().has(id)).toBe(false);
           expect([...s.taken()].sort()).toEqual(
             [...new Set(now.map((r) => r.seat))].sort(),
           );
