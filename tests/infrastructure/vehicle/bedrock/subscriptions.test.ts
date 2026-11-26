@@ -8,8 +8,10 @@ import {
   type ItemUseAfterEvent,
   Player,
   type PlayerBreakBlockBeforeEvent,
+  type PlayerHotbarSelectedSlotChangeAfterEvent,
   type PlayerInteractWithBlockBeforeEvent,
   type PlayerInteractWithEntityBeforeEvent,
+  type PlayerSwingStartAfterEvent,
   type ScriptEventCommandMessageAfterEvent,
   type StartupEvent,
   system,
@@ -46,6 +48,7 @@ import {
   EQUIPMENT_SWITCH_TYPES,
   GIFT_ITEM,
   ITEM_TYPE,
+  NAV_TYPE,
   OWNER_PROPERTY,
   STAND_IN_OF_PROPERTY,
   STAND_IN_PROPERTY,
@@ -157,9 +160,62 @@ vi.mock("@minecraft/server", () => {
         entitySpawn: signal(),
         entityDie: signal(),
         entityHitEntity: signal(),
+        playerHotbarSelectedSlotChange: signal(),
+        playerSwingStart: signal(),
       },
     },
   };
+});
+
+it("routes Nav hotbar selections and swings from valid players to GuideNav", () => {
+  const navGuide = { execute: vi.fn() };
+  register({ useCases: { navGuide } as unknown as UseCases });
+  const select = defined(
+    vi.mocked(world.afterEvents.playerHotbarSelectedSlotChange.subscribe).mock
+      .lastCall?.[0],
+    "hotbar callback",
+  );
+  const swing = defined(
+    vi.mocked(world.afterEvents.playerSwingStart.subscribe).mock.lastCall?.[0],
+    "swing callback",
+  );
+  const player = {
+    id: "player",
+    isValid: true,
+    inputInfo: { lastInputModeUsed: "Touch" },
+    getComponent: (name: string) =>
+      name === "minecraft:riding"
+        ? { entityRidingOn: { id: "suv", typeId: ENTITY_TYPE.suv } }
+        : undefined,
+  };
+  const selectItem = (typeId: string, isValid = true) =>
+    select({
+      player: { ...player, isValid },
+      itemStack: { typeId },
+    } as unknown as PlayerHotbarSelectedSlotChangeAfterEvent);
+  const swingItem = (typeId: string, isValid = true) =>
+    swing({
+      player: { ...player, isValid },
+      heldItemStack: { typeId },
+    } as unknown as PlayerSwingStartAfterEvent);
+
+  selectItem(NAV_TYPE);
+  swingItem(NAV_TYPE);
+  selectItem("minecraft:stick");
+  swingItem("minecraft:stick");
+  selectItem(NAV_TYPE, false);
+  swingItem(NAV_TYPE, false);
+
+  const expected = {
+    playerId: "player",
+    vehicleId: "suv",
+    controls: "touch",
+    tick: game.currentTick,
+  };
+  expect(navGuide.execute.mock.calls).toEqual([
+    [{ ...expected, trigger: "select" }],
+    [{ ...expected, trigger: "tap" }],
+  ]);
 });
 
 const FACES = ["Up", "Down", "North", "South", "East", "West"] as const;
