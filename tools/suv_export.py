@@ -85,17 +85,21 @@ def icon(x, y):
     return (0, 0, 0, 255)
 
 
-def switch_icon(x, y):
-    # 16x16 headlight switch icon: the white high-beam symbol, a D-shaped lamp with light bars.
-    blue, light = (248, 248, 250, 255), (196, 202, 214, 255)
-    if y in (3, 5, 7, 9, 11) and 0 <= x <= (3 if y in (3, 11) else 4):
-        return blue
+def _high_beam_lamp(x, y):
     reach = abs(y - 7)
-    if reach <= 5:
-        width = (10, 10, 10, 9, 7, 5)[reach]
-        if 6 <= x < 6 + width:
-            return light if (x, y) in ((7, 4), (7, 5), (8, 4)) else blue
-    return (0, 0, 0, 0)
+    return reach <= 4 and 6 <= x < 6 + (8, 8, 8, 6, 5)[reach]
+
+
+def switch_icon(x, y):
+    # 16x16 headlight switch icon: the blue dashboard high-beam symbol, an outlined D-shaped lamp
+    # with light bars, drawn at about 0.85 of the full tile on an opaque black background.
+    blue = (40, 110, 255, 255)
+    if y in (3, 5, 7, 9, 11) and 1 <= x <= 4:
+        return blue
+    if _high_beam_lamp(x, y) and not all(
+            _high_beam_lamp(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+        return blue
+    return (0, 0, 0, 255)
 
 
 def booster_icon(x, y):
@@ -103,7 +107,7 @@ def booster_icon(x, y):
     # u runs along the rocket toward its nose, v across it toward the lower right.
     root = 2 ** 0.5
     dx, dy = x + 0.5 - 8, 8 - (y + 0.5)
-    u, v = (dx + dy) / root + 1.2, (dx - dy) / root
+    u, v = (dx + dy) / root - 0.2, (dx - dy) / root
     reach = abs(v)
     if -3.4 <= u <= 5.6:
         half = 2.3 if u <= 2.6 else 2.3 * ((5.8 - u) / 3.2) ** 0.5
