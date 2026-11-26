@@ -15,13 +15,10 @@ const PLACE_BY_MOB = new Map(
 );
 const MOB_TYPES = [...PLACE_BY_MOB.keys()];
 
-interface DriveMemory {
-  driverId: PlayerId;
-  dimensions: Map<DimensionId, RadarMemory>;
-}
+type RideMemories = Map<PlayerId, Map<DimensionId, RadarMemory>>;
 
 export class ScanForPlaces {
-  private readonly drives = new Map<VehicleId, DriveMemory>();
+  private readonly rides = new Map<VehicleId, RideMemories>();
   private cursor = 0;
 
   constructor(
@@ -30,16 +27,24 @@ export class ScanForPlaces {
   ) {}
 
   execute(): void {
-    const drivers = new Map<VehicleId, PlayerId>();
+    const occupied = new Map<VehicleId, readonly PlayerId[]>();
     for (const id of this.repo.ids()) {
-      const driverId = this.repo.get(id)?.driverId;
-      if (driverId !== undefined) drivers.set(id, driverId);
+      const riders = this.repo.get(id)?.riderIds;
+      if (riders?.length) occupied.set(id, riders);
     }
-    for (const [id, drive] of this.drives) {
-      if (drivers.get(id) !== drive.driverId) this.drives.delete(id);
+    for (const [id, memories] of this.rides) {
+      const riders = occupied.get(id);
+      if (!riders) {
+        this.rides.delete(id);
+        continue;
+      }
+      for (const rider of memories.keys()) {
+        if (!riders.includes(rider)) memories.delete(rider);
+      }
+      if (!memories.size) this.rides.delete(id);
     }
 
-    const ids = [...drivers.keys()];
+    const ids = [...occupied.keys()];
     const selected = ids[this.cursor % ids.length];
     if (selected === undefined) {
       this.cursor = 0;
@@ -47,25 +52,27 @@ export class ScanForPlaces {
     }
     this.cursor = (this.cursor % ids.length) + 1;
     const scannedAt = this.world.position(selected);
-    const driverId = drivers.get(selected);
-    if (scannedAt && driverId !== undefined) {
-      this.scan(selected, driverId, scannedAt);
+    const riders = occupied.get(selected);
+    if (scannedAt && riders) {
+      this.scan(selected, riders, scannedAt);
     }
 
-    for (const [id, drive] of this.drives) {
-      if (!this.world.isQuiet(drive.driverId)) continue;
+    for (const [id, memories] of this.rides) {
       const position = id === selected ? scannedAt : this.world.position(id);
       if (!position) continue;
-      const report = drive.dimensions
-        .get(position.dimensionId)
-        ?.next(position.location);
-      if (report) this.world.showReport(drive.driverId, report);
+      for (const [rider, dimensions] of memories) {
+        if (!this.world.isQuiet(rider)) continue;
+        const report = dimensions
+          .get(position.dimensionId)
+          ?.next(position.location);
+        if (report) this.world.showReport(rider, report);
+      }
     }
   }
 
   private scan(
     id: VehicleId,
-    driverId: PlayerId,
+    riders: readonly PlayerId[],
     { dimensionId, location }: NonNullable<ReturnType<RadarWorld["position"]>>,
   ): void {
     const mobs = this.world.mobsNear(
@@ -80,13 +87,16 @@ export class ScanForPlaces {
     });
     if (!hits.length) return;
 
-    const drive = this.drives.get(id) ?? {
-      driverId,
-      dimensions: new Map<DimensionId, RadarMemory>(),
-    };
-    this.drives.set(id, drive);
-    const memory = drive.dimensions.get(dimensionId) ?? new RadarMemory();
-    drive.dimensions.set(dimensionId, memory);
-    memory.offer(clusterHits(hits));
+    const clusters = clusterHits(hits);
+    const memories: RideMemories = this.rides.get(id) ?? new Map();
+    this.rides.set(id, memories);
+    for (const rider of riders) {
+      const dimensions =
+        memories.get(rider) ?? new Map<DimensionId, RadarMemory>();
+      memories.set(rider, dimensions);
+      const memory = dimensions.get(dimensionId) ?? new RadarMemory();
+      dimensions.set(dimensionId, memory);
+      memory.offer(clusters);
+    }
   }
 }

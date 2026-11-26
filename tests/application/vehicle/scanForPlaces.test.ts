@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import type { RadarWorld } from "../../../src/application/vehicle/ports/drive";
 import { ScanForPlaces } from "../../../src/application/vehicle/scanForPlaces";
@@ -30,27 +31,22 @@ function fixture() {
     showReport: vi.fn<RadarWorld["showReport"]>(),
   };
   const radar = new ScanForPlaces(world, repo);
-  function add(rawId: string, driver?: string, x = 0) {
+  function add(rawId: string, driver?: string, x = 0, passenger?: string) {
     const id = asVehicleId(rawId);
-    const vehicle = rebuildVehicle(
-      "suv",
-      id,
-      0,
-      driver ? [riderView(driver)] : [],
-      {},
-    );
-    repo.save(vehicle);
+    const riders = driver === undefined ? [] : [riderView(driver)];
+    if (passenger !== undefined) riders.push(riderView(passenger, { seat: 1 }));
+    repo.save(rebuildVehicle("suv", id, 0, riders, {}));
     positions.set(id, { dimensionId: OVERWORLD, location: at(x) });
     return id;
   }
   return { repo, positions, world, radar, add };
 }
 
-it("scans one driven vehicle per call in round robin order", () => {
+it("scans one occupied vehicle per call in round robin order", () => {
   const { radar, add, world } = fixture();
   add("a", "first", 100);
   add("parked", undefined, 200);
-  add("b", "second", 300);
+  add("b", undefined, 300, "passenger");
   for (const x of [100, 300, 100]) {
     world.mobsNear.mockClear();
     radar.execute();
@@ -61,6 +57,96 @@ it("scans one driven vehicle per call in round robin order", () => {
       expect.arrayContaining(["minecraft:villager_v2", "minecraft:witch"]),
     );
   }
+});
+
+it("reports to a passenger in a vehicle without a driver", () => {
+  const { radar, add, world } = fixture();
+  add("a", undefined, 0, "passenger");
+  radar.execute();
+  expect(world.showReport).toHaveBeenCalledExactlyOnceWith("passenger", {
+    place: "village",
+    direction: "e",
+    distance: 30,
+  });
+});
+
+it("reports the same place once to both riders and reads their vehicle position once per run", () => {
+  const { radar, add, world } = fixture();
+  const occupied = add("a", "driver", 0, "passenger");
+  const other = add("b", "other", 300);
+  radar.execute();
+  expect(world.position.mock.calls).toEqual([[occupied]]);
+  const report = { place: "village", direction: "e", distance: 30 };
+  expect(world.showReport.mock.calls).toEqual([
+    ["driver", report],
+    ["passenger", report],
+  ]);
+
+  world.position.mockClear();
+  radar.execute();
+  expect(world.position.mock.calls).toHaveLength(2);
+  expect(world.position).toHaveBeenCalledWith(occupied);
+  expect(world.position).toHaveBeenCalledWith(other);
+  radar.execute();
+  expect(world.showReport.mock.calls).toEqual([
+    ["driver", report],
+    ["passenger", report],
+    ["other", report],
+  ]);
+});
+
+it("lets either rider receive a report while the other rider's bar is busy", () => {
+  fc.assert(
+    fc.property(
+      fc.constantFrom("driver", "passenger"),
+      fc.integer({ min: 1, max: 5 }),
+      (busy, scans) => {
+        const { radar, add, world } = fixture();
+        add("a", "driver", 0, "passenger");
+        const quiet = busy === "driver" ? "passenger" : "driver";
+        world.isQuiet.mockImplementation((id) => id !== busy);
+        for (let scan = 0; scan < scans; scan++) radar.execute();
+        const report = { place: "village", direction: "e", distance: 30 };
+        expect(world.showReport).toHaveBeenCalledExactlyOnceWith(quiet, report);
+
+        world.mobsNear.mockReturnValue([]);
+        world.isQuiet.mockReturnValue(true);
+        radar.execute();
+        expect(world.showReport.mock.calls).toEqual([
+          [quiet, report],
+          [busy, report],
+        ]);
+      },
+    ),
+  );
+});
+
+it("clears only the rider who gets out, even if that rider was the driver", () => {
+  const { radar, add, world } = fixture();
+  add("a", "driver", 0, "passenger");
+  radar.execute();
+  expect(world.showReport.mock.calls.map(([rider]) => rider)).toEqual([
+    "driver",
+    "passenger",
+  ]);
+  add("a", undefined, 0, "passenger");
+  radar.execute();
+  expect(world.showReport).toHaveBeenCalledTimes(2);
+  add("a", "driver", 0, "passenger");
+  radar.execute();
+  expect(world.showReport.mock.calls.map(([rider]) => rider)).toEqual([
+    "driver",
+    "passenger",
+    "driver",
+  ]);
+});
+
+it("does not scan a vehicle with no riders", () => {
+  const { radar, add, world } = fixture();
+  add("parked");
+  radar.execute();
+  expect(world.position).not.toHaveBeenCalled();
+  expect(world.mobsNear).not.toHaveBeenCalled();
 });
 
 it("holds a report while the bar is busy and delivers it on a later vehicle's scan", () => {

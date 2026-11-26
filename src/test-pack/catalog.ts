@@ -245,6 +245,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 1,
   },
   {
+    name: "suv_radar_passenger",
+    file: "radar",
+    ticks: 190,
+    features: ["vehicle:radar", "vehicle:suv"],
+    isolation: "lane",
+    needsArena: true,
+    needsPlayer: false,
+    vehicles: 1,
+  },
+  {
     name: "sportsboat_radar_monument",
     file: "radar",
     ticks: 230,
