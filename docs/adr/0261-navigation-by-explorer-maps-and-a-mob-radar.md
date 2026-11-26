@@ -10,7 +10,7 @@
 
 Drivers want somewhere new to explore and a way to notice places they pass. The stable Script API has no structure locate call. Running the locate command returns a `CommandResult` with only a success count, so the script cannot read the coordinates. Vanilla explorer maps can carry a destination marker, and scripts can query mobs in loaded chunks. The vanilla Player Locator Bar covers travel towards another player.
 
-Decided in: #2479 (design and engine spike). The [driving navigation design](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) records the engine measurements and outstanding player checks.
+Decided in: #2479 (design and engine spike), which records the engine measurements and outstanding player checks.
 
 ## Decision
 
