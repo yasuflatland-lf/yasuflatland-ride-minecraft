@@ -1,5 +1,6 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import { NAV_DESTINATIONS } from "../../domain/vehicle/navigation/destinations";
+import { SPEC } from "../../domain/vehicle/spec";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
 import type { NavSelections } from "./navSelections";
 import type { NavWorld } from "./ports/drive";
@@ -39,6 +40,9 @@ export class OpenNav {
         !this.repo.get(vehicleId)?.isRider(playerId)
       )
         return;
+      this.world.showCreating(playerId, destination);
+      await this.world.waitTicks(SPEC.navMapDelay);
+      if (!this.repo.get(vehicleId)?.isRider(playerId)) return;
       if (this.world.giveMap(playerId, destination) === "nothing") {
         this.world.showMessage(playerId, "nav_nothing_found");
       }
