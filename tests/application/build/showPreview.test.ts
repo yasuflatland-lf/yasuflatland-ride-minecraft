@@ -622,7 +622,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
   );
 });
 
-it("shows the hint and only paste layers after copying a confirmed box", () => {
+it("shows the paste hint, outline and white anchor marker after copying a confirmed box", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: 1, max: 5 }),
@@ -668,12 +668,10 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
           expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
-          for (const layer of [
-            "startMarker",
-            "shape",
-            "endMarker",
-            "roof",
-          ] as const)
+          expect(set?.startMarker).toEqual(
+            cornerMarkerPoints(cellOf({ ...end, y: end.y + 1 })),
+          );
+          for (const layer of ["shape", "endMarker", "roof"] as const)
             expect(set?.[layer]).toEqual([]);
         } else expect(feedback.previews).toEqual([]);
       },

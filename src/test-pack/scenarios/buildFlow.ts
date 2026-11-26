@@ -1148,10 +1148,11 @@ function pasteStep(
 
 function capturePasteSource(
   f: Fixture,
-  { min, max }: BoxBounds,
+  point1: Cell,
+  point2: Cell,
 ): Promise<Reply> {
   return f.edit(
-    `structure ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z}`,
+    `structure ${point1.x} ${point1.y} ${point1.z} ${point2.x} ${point2.y} ${point2.z}`,
   );
 }
 
@@ -1324,10 +1325,16 @@ export function buildPasteItemSwitch(a: Arena): Promise<Outcome> {
 
 export function buildUndoItemPaste(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
-    await copyLine(f);
+    f.block(f.cell()).setType("minecraft:stone");
+    f.block(f.cell(1)).setType("minecraft:oak_log");
+    await f.tap("block", f.cell(1));
+    await f.tap("air", f.cell());
+    await f.tap("fixHeight");
+    await startPasteStep(f);
     const expected = snapshot(f, f.region(2, 1, 1));
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
-    await pasteInto(f, target);
+    const aimed = f.cell(13, 0, 12);
+    await pasteStep(f, aimed.x, aimed.y, aimed.z, "up");
     await checkState(f, "selected", true);
     check(unchanged(f, target.cells, expected), "Paste did not write blocks");
     f.holdControl(BUILD_UNDO_TYPE);
@@ -1338,7 +1345,7 @@ export function buildUndoItemPaste(a: Arena): Promise<Outcome> {
       "Undo did not restore the area",
     );
     await checkState(f, "pasteAim", true);
-    await pasteInto(f, target);
+    await pasteStep(f, aimed.x, aimed.y, aimed.z, "up");
     await checkState(f, "selected", true);
     check(unchanged(f, target.cells, expected), "Re-paste lost the clipboard");
     await f.edit("undo");
@@ -3594,8 +3601,8 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
       check(!!oldCow, "missing target cow");
       const min = f.cell();
       const max = f.cell(7, 3, 3);
-      await capturePasteSource(f, { min, max });
-      const anchor = f.cell(12, -1);
+      await capturePasteSource(f, max, min);
+      const anchor = f.cell(19, -1, 3);
       const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
       check(
         pasted.message === "editDoneCount" && pasted.count === source.length,
@@ -3635,7 +3642,7 @@ export function buildPasteStructure(a: Arena): Promise<Outcome> {
         .map((e) => e.id)
         .sort()
         .join(",");
-      await capturePasteSource(f, { min, max });
+      await capturePasteSource(f, max, min);
       const refused = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
       check(
         refused.message === "pasteBlocked" && unchanged(f, target, before),
@@ -3810,7 +3817,7 @@ export async function buildPasteStructureDecor(
         removeItems();
         const min = f.cell();
         const max = f.cell(7, 5, 7);
-        await capturePasteSource(f, { min, max });
+        await capturePasteSource(f, max, min);
         // Capture before breaking the original so the clipboard retains its contents.
         breakFrame(cell);
         await wait(2);
@@ -3828,7 +3835,7 @@ export async function buildPasteStructureDecor(
         phase = "paste";
         const mirrored = cellOf({ ...cell, x: cell.x + 12 });
         f.block(mirrored).setPermutation(permutation);
-        const anchor = f.cell(12, -1);
+        const anchor = f.cell(19, -1, 7);
         const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste",
@@ -3857,7 +3864,7 @@ export async function buildPasteStructureDecor(
           pastedDrops.join(","),
         );
         removeItems();
-        await capturePasteSource(f, { min, max });
+        await capturePasteSource(f, max, min);
         f.block(mirrored).setPermutation(permutation);
         for (const c of f.region(8, 1, 8, f.cell(12)))
           f.block(c).setType("minecraft:air");
@@ -3945,7 +3952,8 @@ export function buildUndoMixedTen(a: Arena): Promise<Outcome> {
       }),
     };
     for (const target of [first, ...remaining]) {
-      if (target !== first) await capturePasteSource(f, sourceBox);
+      if (target !== first)
+        await capturePasteSource(f, sourceBox.min, sourceBox.max);
       const pasted = await pasteStep(
         f,
         target.anchor.x,

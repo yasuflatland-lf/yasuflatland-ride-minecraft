@@ -102,6 +102,7 @@ it("captures the whole box twice before removing anything and records a snapshot
         for (const cell of cellsOf(box))
           expect(e.world.stateAt(overworld, cell)).toEqual(AIR);
         expect(e.session.clipboard).toEqual({
+          anchor: { x: "min", z: "min" },
           material: stone,
           size: { x, y, z },
           blockCount: x * y * z,
