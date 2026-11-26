@@ -1,9 +1,11 @@
+import { system } from "@minecraft/server";
 import type { NavWorld } from "../../../application/vehicle/ports/drive";
 import {
   asDimensionId,
   type DimensionId,
   type PlayerId,
 } from "../../../domain/shared/ids";
+import type { Ticks } from "../../../domain/shared/ticks";
 import type { NavDestination } from "../../../domain/vehicle/navigation/destinations";
 import { chooseFromForm } from "../../shared/choiceForm";
 import { messageKey } from "../../shared/identifiers";
@@ -35,6 +37,17 @@ export class BedrockNavWorld implements NavWorld {
       options.map((id) => ({ id, textKey: navDestinationLabelKey(id) })),
     );
     return choice === "cancel" ? undefined : choice;
+  }
+
+  showCreating(playerId: PlayerId, destination: NavDestination): void {
+    this.actionBar.write(playerId, {
+      translate: messageKey("nav_creating"),
+      with: { rawtext: [{ translate: navDestinationLabelKey(destination) }] },
+    });
+  }
+
+  waitTicks(ticks: Ticks): Promise<void> {
+    return new Promise((resolve) => system.runTimeout(resolve, ticks));
   }
 
   giveMap(

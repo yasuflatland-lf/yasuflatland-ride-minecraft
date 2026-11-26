@@ -328,6 +328,7 @@ yasu_ride.nav.destination.shipwreck=難破船
 yasu_ride.nav.destination.ruins=海底遺跡
 yasu_ride.message.nav_riding_only=乗り物に乗っているときにナビを使ってください。
 yasu_ride.message.nav_overworld_only=ナビはオーバーワールドでのみ使えます。
+yasu_ride.message.nav_creating=%s への地図を作成中…
 yasu_ride.message.nav_nothing_found=近くには何も見つかりませんでした。
 
 yasu_ride.radar.report=%1 %2 m: %3

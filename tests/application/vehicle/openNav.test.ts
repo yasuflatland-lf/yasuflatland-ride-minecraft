@@ -13,6 +13,7 @@ import {
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import type { NavDestination } from "../../../src/domain/vehicle/navigation/destinations";
+import { SPEC } from "../../../src/domain/vehicle/spec";
 import { defined } from "../../support/defined";
 import { riderView } from "../../support/riders";
 import { InMemoryRepo } from "./fakes";
@@ -35,6 +36,8 @@ function setup() {
       asDimensionId("minecraft:overworld"),
     ),
     choose: vi.fn<NavWorld["choose"]>().mockResolvedValue(destination),
+    showCreating: vi.fn<NavWorld["showCreating"]>(),
+    waitTicks: vi.fn<NavWorld["waitTicks"]>().mockResolvedValue(undefined),
     giveMap: vi.fn<NavWorld["giveMap"]>().mockReturnValue("given"),
     showMessage: vi.fn<NavWorld["showMessage"]>(),
   };
@@ -78,6 +81,7 @@ it("gives nothing when a passenger gets out before choosing", async () => {
   const pending = nav.execute({ playerId: passenger.id, vehicleId });
   repo.save(rebuildVehicle("suv", vehicleId, 0, [driver], {}));
   await pending;
+  expect(world.showCreating).not.toHaveBeenCalled();
   expect(world.giveMap).not.toHaveBeenCalled();
   expect(world.showMessage).not.toHaveBeenCalled();
 });
@@ -125,7 +129,7 @@ it("refuses a driver outside the Overworld before opening a menu", async () => {
 });
 
 it.each(["given", "unknown"] as const)(
-  "gives the chosen map once and stays silent for %s",
+  "announces the destination and waits before delivering the map for %s",
   async (result) => {
     const { nav, world, command } = setup();
     world.giveMap.mockReturnValue(result);
@@ -133,6 +137,14 @@ it.each(["given", "unknown"] as const)(
     expect(world.choose).toHaveBeenCalledExactlyOnceWith(driver.id, [
       destination,
     ]);
+    expect(world.showCreating).toHaveBeenCalledExactlyOnceWith(
+      driver.id,
+      destination,
+    );
+    expect(world.waitTicks).toHaveBeenCalledExactlyOnceWith(SPEC.navMapDelay);
+    expect(world.choose).toHaveBeenCalledBefore(world.showCreating);
+    expect(world.showCreating).toHaveBeenCalledBefore(world.waitTicks);
+    expect(world.waitTicks).toHaveBeenCalledBefore(world.giveMap);
     expect(world.giveMap).toHaveBeenCalledExactlyOnceWith(
       driver.id,
       destination,
@@ -145,6 +157,7 @@ it("gives nothing when the driver cancels", async () => {
   const { nav, world, command } = setup();
   world.choose.mockResolvedValue(undefined);
   await nav.execute(command);
+  expect(world.showCreating).not.toHaveBeenCalled();
   expect(world.giveMap).not.toHaveBeenCalled();
   expect(world.showMessage).not.toHaveBeenCalled();
 });
@@ -156,6 +169,7 @@ it("gives nothing when the driver moves to another vehicle while choosing", asyn
   repo.save(rebuildVehicle("suv", vehicleId, 0, [], {}));
   repo.save(rebuildVehicle("suv", asVehicleId("other"), 0, [driver], {}));
   await pending;
+  expect(world.showCreating).not.toHaveBeenCalled();
   expect(world.giveMap).not.toHaveBeenCalled();
   expect(world.showMessage).not.toHaveBeenCalled();
 });
@@ -185,5 +199,39 @@ it("ignores a second press while choosing and allows the next press after cancel
   await pending;
   await nav.execute(command);
   expect(world.choose).toHaveBeenCalledTimes(2);
+  expect(world.giveMap).toHaveBeenCalledExactlyOnceWith(driver.id, destination);
+});
+
+it("skips delivery and the miss message if the rider gets out during the wait", async () => {
+  const { nav, repo, world, command } = setup();
+  world.giveMap.mockReturnValue("nothing");
+  world.waitTicks.mockImplementationOnce(async () => {
+    repo.save(rebuildVehicle("suv", vehicleId, 0, [], {}));
+  });
+  await nav.execute(command);
+  expect(world.showCreating).toHaveBeenCalledExactlyOnceWith(
+    driver.id,
+    destination,
+  );
+  expect(world.giveMap).not.toHaveBeenCalled();
+  expect(world.showMessage).not.toHaveBeenCalled();
+});
+
+it("ignores another press until the map delay ends", async () => {
+  const { nav, world, command } = setup();
+  let finishWait = () => {};
+  world.waitTicks.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finishWait = resolve;
+    }),
+  );
+  const pending = nav.execute(command);
+  await Promise.resolve();
+  expect(world.waitTicks).toHaveBeenCalledOnce();
+  await nav.execute(command);
+  expect(world.choose).toHaveBeenCalledOnce();
+  expect(world.giveMap).not.toHaveBeenCalled();
+  finishWait();
+  await pending;
   expect(world.giveMap).toHaveBeenCalledExactlyOnceWith(driver.id, destination);
 });
