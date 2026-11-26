@@ -6,7 +6,7 @@ import {
 } from "../../../src/infrastructure/build/identifiers";
 import { DescribeBuild } from "../../../src/infrastructure/build/testHooks/describeBuild";
 import { registerTestPress } from "../../../src/infrastructure/build/testHooks/testPress";
-import { FakeSessions } from "../../application/build/fakes";
+import { FakeSessions, nether } from "../../application/build/fakes";
 
 const clock = vi.hoisted(() => ({
   tick: 0,
@@ -30,7 +30,13 @@ function setup() {
   vi.clearAllMocks();
   clock.tick = 0;
   clock.jobs.length = 0;
-  const player = { id: "player", name: "Alex", isValid: true };
+  const player = {
+    id: "player",
+    name: "Alex",
+    isValid: true,
+    dimension: { id: nether },
+    isSneaking: false,
+  };
   vi.mocked(world.getAllPlayers).mockReturnValue([
     player as ReturnType<typeof world.getAllPlayers>[number],
   ]);
@@ -60,7 +66,8 @@ function setup() {
     })),
     hints: vi.fn(() => 1),
   };
-  registerTestPress(routes, describe, messages);
+  const execute = vi.fn();
+  registerTestPress(routes, { execute }, describe, messages);
   const callback = vi.mocked(system.afterEvents.scriptEventReceive.subscribe)
     .mock.calls[0]?.[0];
   if (!callback) throw new Error("Missing press subscription");
@@ -77,7 +84,7 @@ function setup() {
       for (const job of ready) job.run();
     }
   };
-  return { calls, routes, status, messages, player, send, advance };
+  return { calls, routes, status, messages, player, send, advance, execute };
 }
 
 it.each([0, 3, 40])(
@@ -119,6 +126,9 @@ it.each([
   "player itemUse 41",
   "player itemUse 0 extra",
   "missing itemUse",
+  "player tap 1 2 3 up -1",
+  "player tap 1 2 3 invalid 8",
+  "player tap 1 2.5 3 up 8",
 ])("ignores invalid input %s", (command) => {
   const e = setup();
   e.send(command);
@@ -126,6 +136,21 @@ it.each([
   expect(e.calls).toEqual([]);
   expect(e.messages.forget).not.toHaveBeenCalled();
   expect(system.sendScriptEvent).not.toHaveBeenCalled();
+});
+
+it("dispatches a server-only block tap with its face and quiet gap", () => {
+  const e = setup();
+  e.send("player tap -1 2 3 west 8", "Entity" as ScriptEventSource);
+  expect(e.execute).not.toHaveBeenCalled();
+  e.send("player tap -1 2 3 west 8");
+  expect(e.execute).toHaveBeenCalledExactlyOnceWith({
+    playerId: "player",
+    intent: "selectPoint",
+    tap: { dimensionId: nether, cell: { x: -1, y: 2, z: 3 }, face: "west" },
+    quietTicks: 8,
+  });
+  expect(e.calls).toEqual([]);
+  expect(system.sendScriptEvent).toHaveBeenCalledOnce();
 });
 
 it("waits for editing to settle and reports timeout after 200 ticks", () => {

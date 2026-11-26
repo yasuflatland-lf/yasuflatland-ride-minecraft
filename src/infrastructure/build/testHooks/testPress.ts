@@ -13,7 +13,7 @@ import { replyWhenSettled } from "./testEdit";
 
 export function registerTestPress(
   routes: PasteControlRoutes,
-  pressWand: PressWand,
+  pressWand: Pick<PressWand, "execute">,
   describe: DescribeBuild,
   messages: Pick<
     ReturnType<typeof recordMessages>,
@@ -28,6 +28,10 @@ export function registerTestPress(
       )
         return;
       const [id, sequence, ...args] = ev.message.trim().split(/\s+/);
+      if (!sequence) return;
+      const player = world.getAllPlayers().find((p) => p.id === id);
+      if (!player?.isValid) return;
+      const playerId = asPlayerId(player.id);
       if (sequence === "tap") {
         const [xText, yText, zText, faceText, quietText] = args;
         if (
@@ -46,9 +50,6 @@ export function registerTestPress(
         const quietTicks = Number(quietText);
         const face = parseBlockFace(faceText);
         if (!face || ![x, y, z, quietTicks].every(Number.isSafeInteger)) return;
-        const player = world.getAllPlayers().find((p) => p.id === id);
-        if (!player?.isValid) return;
-        const playerId = asPlayerId(player.id);
         const { flow } = describe.editStatus(playerId);
         const intent = routePress({
           flow,
@@ -79,7 +80,7 @@ export function registerTestPress(
         return;
       }
       const [gapText = "0", ...extra] = args;
-      if (!sequence || extra.length > 0 || !/^\d+$/.test(gapText)) return;
+      if (extra.length > 0 || !/^\d+$/.test(gapText)) return;
       const gap = Number(gapText);
       if (!Number.isSafeInteger(gap) || gap > 40) return;
       const presses = sequence.split(",");
@@ -89,9 +90,6 @@ export function registerTestPress(
         )
       )
         return;
-      const player = world.getAllPlayers().find((p) => p.id === id);
-      if (!player?.isValid) return;
-      const playerId = asPlayerId(player.id);
       messages.forget(playerId);
       presses.forEach((route, i) => {
         const press = () => {
