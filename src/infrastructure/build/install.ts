@@ -18,7 +18,6 @@ import { CutBox } from "../../application/build/cutBox";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
-import { FixStairGoal } from "../../application/build/fixStairGoal";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import {
   type MenuCases,
@@ -26,6 +25,7 @@ import {
 } from "../../application/build/menuChoices";
 import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
 import { PasteAt } from "../../application/build/pasteAt";
+import { PressGaps } from "../../application/build/pressGaps";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { PressUndo } from "../../application/build/pressUndo";
 import { PressWand } from "../../application/build/pressWand";
@@ -38,6 +38,7 @@ import { ShowPreview } from "../../application/build/showPreview";
 import { StepBackSelection } from "../../application/build/stepBackSelection";
 import { SyncTapTarget } from "../../application/build/syncTapTarget";
 import { TapAir } from "../../application/build/tapAir";
+import { TapStairGoal } from "../../application/build/tapStairGoal";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -90,7 +91,8 @@ export function installBuild(deps: {
     BUILD_SPEC.rotateDebounceTicks,
   );
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const endSession = new EndBuildSession(repo, tapTargets);
+  const pressGaps = new PressGaps();
+  const endSession = new EndBuildSession(repo, tapTargets, pressGaps);
   const modes = new UpdateBuildModes(repo, new LeaveBuild(repo, tapTargets));
   const players = new BedrockBuildPlayers();
   const facing = new BedrockFacingReader();
@@ -194,7 +196,7 @@ export function installBuild(deps: {
     {
       setPoint: new SetPoint(repo, blocks, feedback),
       tapAir: new TapAir(repo, feedback, blocks),
-      fixStairGoal: new FixStairGoal(repo, feedback, aim),
+      tapStairGoal: new TapStairGoal(repo, feedback),
       pressPasteAim,
       onPasted: (id, tick) => {
         // Another event from the paste gesture now routes through selection.
@@ -205,7 +207,7 @@ export function installBuild(deps: {
     blocks,
   );
   const wand = { repo, aim, menus, pressWand, debounce };
-  registerWand({ ...wand, pasteDebounce });
+  registerWand({ ...wand, pasteDebounce, pressGaps });
   const pressTapTarget = registerTapTarget({ ...wand, targets: tapTargets });
   registerModeTick(modes);
   registerOutlineTick(preview);

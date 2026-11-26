@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { MenuChoices } from "../../../src/application/build/menuChoices";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
@@ -161,7 +162,7 @@ function snapshotHook() {
     new DescribeBuild(repo),
     messages,
     repo,
-    new EndBuildSession(repo, new FakeTapTargets()),
+    new EndBuildSession(repo, new FakeTapTargets(), new PressGaps()),
     structures,
     new RotatePasteAim(repo, feedback),
     { aim: new TestAimReader(overrides), preview },

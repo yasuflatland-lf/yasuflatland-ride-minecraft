@@ -85,8 +85,9 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
     fc.property(
       cells,
       fc.constantFrom("stairs" as const, "terrace" as const),
-      (cell, op) => {
-        const { repo, press, world, aim, feedback } = wandFixture();
+      fc.boolean(),
+      (cell, op, confirmByTap) => {
+        const { repo, press, world, feedback } = wandFixture();
         world.put(cell, stone);
         press.execute({
           playerId,
@@ -114,20 +115,35 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
           "utilityMenu",
         );
         session.setFlowForTest(chooseStairs(session.flow, op));
-        expect(press.execute({ playerId, intent: "fixStairGoal" })).toBe(
-          "none",
+        expect(
+          press.execute({
+            playerId,
+            intent: "confirmStairGoal",
+            quietTicks: 9,
+          }),
+        ).toBe("none");
+        expect(feedback.messages.at(-1)?.message).toBe("stairTapGoal");
+        const tap = blockTapOf(
+          nether,
+          cellOf({ x: cell.x + 4, y: cell.y + 2, z: cell.z + 1 }),
+          "up",
         );
-        expect(feedback.messages.at(-1)?.message).toBe("noStairGoal");
-        aim.target = {
-          ...sample,
-          block: {
-            face: "up",
-            cell: cellOf({ x: cell.x + 4, y: cell.y + 2, z: cell.z + 1 }),
-          },
-        };
-        expect(press.execute({ playerId, intent: "fixStairGoal" })).toBe(
-          op === "stairs" ? "stairContents" : "terraceMenu",
-        );
+        expect(
+          press.execute({
+            playerId,
+            intent: "tapStairGoal",
+            tap,
+            quietTicks: 9,
+          }),
+        ).toBe("none");
+        expect(
+          press.execute({
+            playerId,
+            intent: confirmByTap ? "tapStairGoal" : "confirmStairGoal",
+            tap,
+            quietTicks: 9,
+          }),
+        ).toBe(op === "stairs" ? "stairContents" : "terraceMenu");
         expect(session.flow).toMatchObject({
           kind: "stairContents",
           op,

@@ -6,11 +6,12 @@ import {
   ConfirmTerrace,
 } from "../../../src/application/build/confirmStairs";
 import { EditJobs } from "../../../src/application/build/editJobs";
-import { FixStairGoal } from "../../../src/application/build/fixStairGoal";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { ShowPreview } from "../../../src/application/build/showPreview";
+import { TapStairGoal } from "../../../src/application/build/tapStairGoal";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { cellOf } from "../../../src/domain/shared/cells";
@@ -24,6 +25,7 @@ import {
   FakeSessions,
   FakeWorld,
   fakeSyncTapTarget,
+  nether,
   overworld,
 } from "./fakes";
 import { FakeStructureStore } from "./fakes/structureStore";
@@ -44,7 +46,7 @@ function fixture() {
   const log = { info() {}, warn() {}, error() {} };
   const jobs = new EditJobs(repo, world, feedback, log, new FakeBuildPlayers());
   const choose = new ChooseStairs(repo, feedback);
-  const fix = new FixStairGoal(repo, feedback, aim);
+  const tapGoal = new TapStairGoal(repo, feedback);
   const confirm = new ConfirmStairs(repo, feedback, jobs, world);
   const undo = new UndoEdit(repo, feedback, jobs, world, structures, log);
   const preview = new ShowPreview(
@@ -70,7 +72,11 @@ function fixture() {
   };
   return {
     choose,
-    fix,
+    tapGoal,
+    tap: (cell = hit, quietTicks = 9) =>
+      tapGoal.tap({ ...command, tap: blockTapOf(overworld, cell), quietTicks }),
+    confirmGoal: (quietTicks = 9) =>
+      tapGoal.confirm({ ...command, quietTicks }),
     confirm,
     terrace: new ConfirmTerrace(repo, feedback, jobs, world),
     undo,
@@ -102,12 +108,11 @@ it("refuses a missing row, an unstable material, and a missing or invalid goal",
   expect(f.session.flow.kind).toBe("selected");
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
-  expect(f.feedback.messages.at(-1)?.message).toBe("aimStairGoal");
+  expect(f.feedback.messages.at(-1)?.message).toBe("stairTapGoal");
   const aiming = f.session.flow;
-  expect(f.fix.execute(command)).toBe(false);
-  expect(f.feedback.messages.at(-1)?.message).toBe("noStairGoal");
-  f.aimAt({ ...hit, y: from.y });
-  expect(f.fix.execute(command)).toBe(false);
+  expect(f.confirmGoal()).toBe(false);
+  expect(f.feedback.messages.at(-1)?.message).toBe("stairTapGoal");
+  expect(f.tap({ ...hit, y: from.y })).toBe(false);
   expect(f.feedback.messages.at(-1)?.message).toBe("noStairGoal");
   expect(f.session.flow).toBe(aiming);
 });
@@ -131,8 +136,8 @@ it("starts stairs and terrace jobs exactly when their planned cells fit maxVolum
           ...command,
           op: contents === "terrace" ? "terrace" : "stairs",
         });
-        f.aimAt({ ...hit, z: 1 });
-        expect(f.fix.execute(command)).toBe(true);
+        expect(f.tap({ ...hit, z: 1 })).toBe(false);
+        expect(f.confirmGoal()).toBe(true);
         const start = vi.spyOn(f.jobs, "start");
         if (contents === "terrace") f.terrace.execute(command);
         else f.confirm.execute({ ...command, contents });
@@ -159,8 +164,8 @@ it("builds the step cells, selects the goal row, and restores the original row a
   const f = fixture();
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
-  f.aimAt();
-  expect(f.fix.execute(command)).toBe(true);
+  expect(f.tap()).toBe(false);
+  expect(f.confirmGoal()).toBe(true);
   f.confirm.execute({ ...command, contents: "stepsOnly" });
   expect(f.feedback.messages.at(-1)).toMatchObject({
     message: "building",
@@ -186,32 +191,51 @@ it("builds the step cells, selects the goal row, and restores the original row a
   expect(f.world.stateAt(overworld, goalFrom)).toBe(AIR);
 });
 
-it("keeps the last valid preview while aiming and uses the fixed goal in contents", () => {
+it("previews only the tapped goal and keeps it across invalid taps and camera movement", () => {
   const f = fixture();
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
+  const readAim = vi.spyOn(f.aim, "aim");
   f.aimAt();
   f.preview.refresh(playerId, 1);
+  expect(f.feedback.previews.at(-1)?.set.stairs).toEqual([]);
+  expect(f.feedback.previews.at(-1)?.set.startMarker.length).toBeGreaterThan(0);
+
+  expect(f.tap()).toBe(false);
+  f.preview.refresh(playerId, 2);
   const first = f.feedback.previews.at(-1)?.set.stairs;
   expect(first?.length).toBeGreaterThan(0);
-  f.aim.target = undefined;
-  f.preview.refresh(playerId, 2);
-  expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(first);
-  f.aimAt({ ...hit, z: -4 });
+  const aiming = f.session.flow;
+  const other = { ...hit, z: -4 };
+  f.aimAt(other);
+  expect(
+    f.tapGoal.tap({
+      ...command,
+      tap: blockTapOf(nether, other),
+      quietTicks: 9,
+    }),
+  ).toBe(false);
+  expect(f.feedback.messages.at(-1)?.message).toBe("noStairGoal");
+  expect(f.tap({ ...other, y: from.y })).toBe(false);
+  expect(f.session.flow).toBe(aiming);
+  expect(f.confirmGoal(8)).toBe(false);
   f.preview.refresh(playerId, 3);
+  expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(first);
+
+  expect(f.tap(other, 1)).toBe(false);
+  f.preview.refresh(playerId, 4);
   const latest = f.feedback.previews.at(-1)?.set.stairs;
   expect(latest).not.toEqual(first);
-  expect(f.fix.execute(command)).toBe(true);
+  expect(f.tap(other, 8)).toBe(false);
+  expect(f.session.flow).toMatchObject({
+    kind: "stairAim",
+    goalTap: { cell: other },
+  });
+  expect(f.tap(other, 9)).toBe(true);
   f.aimAt();
-  f.preview.refresh(playerId, 4);
-  expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(latest);
-  f.session.backToAiming();
-  f.select();
-  f.choose.execute({ ...command, op: "stairs" });
-  f.aim.target = undefined;
-  const previews = f.feedback.previews.length;
   f.preview.refresh(playerId, 5);
-  expect(f.feedback.previews).toHaveLength(previews);
+  expect(f.feedback.previews.at(-1)?.set.stairs).toEqual(latest);
+  expect(readAim).not.toHaveBeenCalled();
 });
 
 it("can Undo a goal-row advance when the steps already match", () => {
@@ -227,8 +251,8 @@ it("can Undo a goal-row advance when the steps already match", () => {
       f.world.put(cellOf({ x, y, z }), stone);
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
-  f.aimAt();
-  expect(f.fix.execute(command)).toBe(true);
+  expect(f.tap()).toBe(false);
+  expect(f.confirmGoal()).toBe(true);
   f.confirm.execute({ ...command, contents: "stepsOnly" });
   f.jobs.step();
   expect(f.world.writes).toBe(0);
@@ -256,8 +280,8 @@ it("terraces with sand selected and restores the stone and original taps on Undo
   }
   f.select(blockStateOf("minecraft:sand"));
   f.choose.execute({ ...command, op: "terrace" });
-  f.aimAt();
-  expect(f.fix.execute(command)).toBe(true);
+  expect(f.tap()).toBe(false);
+  expect(f.confirmGoal()).toBe(true);
   f.confirm.execute({ ...command, contents: "stepsOnly" });
   expect(f.feedback.messages.at(-1)?.message).toBe("noSelection");
   f.terrace.execute(command);
@@ -287,8 +311,8 @@ it("counts Passage steps, fill and cleared headroom in the completed edit", () =
       for (let y = 10; y <= 15; y++) f.world.put(cellOf({ x, y, z }), dirt);
   f.select();
   f.choose.execute({ ...command, op: "stairs" });
-  f.aimAt();
-  expect(f.fix.execute(command)).toBe(true);
+  expect(f.tap()).toBe(false);
+  expect(f.confirmGoal()).toBe(true);
   f.confirm.execute({ ...command, contents: "passage" });
   f.jobs.step();
   expect(f.feedback.messages.at(-1)).toEqual({

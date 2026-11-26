@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { PasteAt } from "../../../src/application/build/pasteAt";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxFromSize, boxOf, cellsOf } from "../../../src/domain/build/box";
 import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
@@ -314,7 +315,11 @@ it("discards the clipboard and paste snapshot before removing the session, and t
           expect(e.repo.get(playerId)).toBe(e.session);
           original(handle);
         });
-      const end = new EndBuildSession(e.repo, new FakeTapTargets());
+      const end = new EndBuildSession(
+        e.repo,
+        new FakeTapTargets(),
+        new PressGaps(),
+      );
       end.execute(playerId);
       expect(discard).toHaveBeenCalledWith(handle);
       expect(discard).toHaveBeenCalledWith(snapshot);
