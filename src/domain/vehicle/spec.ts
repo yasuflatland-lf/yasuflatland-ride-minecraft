@@ -41,6 +41,7 @@ export const SPEC = Object.freeze({
   hintRefreshTicks: ticks(40), // assumes the action bar stays up longer than 2 s, which is undocumented and not yet measured (ADR 0086)
   hintShowTicks: ticks(100), // A hint keeps being re-sent after a player comes near; then it fades until they leave or pick up another item
   hintExitMargin: 0.5, // blocks past the reach a shown hint keeps showing, so standing on the edge does not flicker
+  navGuideInterval: ticks(40),
   radarRadius: 128,
   radarScanInterval: ticks(20),
   radarClusterRadius: 48,
