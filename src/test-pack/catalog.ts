@@ -21,7 +21,7 @@ export interface ScenarioSpec {
 
 export const CATALOG: readonly ScenarioSpec[] = [
   {
-    name: "suv_nav_passenger_refused",
+    name: "suv_nav_passenger_allowed",
     file: "nav",
     ticks: 24,
     features: ["vehicle:nav", "vehicle:suv"],

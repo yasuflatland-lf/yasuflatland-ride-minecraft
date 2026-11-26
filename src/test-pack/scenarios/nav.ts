@@ -6,7 +6,7 @@ import { type Arena, requestProbe, wait, waitUntil, withCar } from "../arena";
 import type { Outcome } from "../outcome";
 import { withBoostRider } from "./support/boostRiderProbe";
 
-export async function suvNavPassengerRefused(a: Arena): Promise<Outcome> {
+export async function suvNavPassengerAllowed(a: Arena): Promise<Outcome> {
   return withCar(a, 8.5, 8.5, 0, async (car) => {
     await wait(3);
     return withBoostRider(a, car, () =>
@@ -32,7 +32,7 @@ export async function suvNavPassengerRefused(a: Arena): Promise<Outcome> {
           12,
         );
         return {
-          pass: result === `${car.id},nav_driver_only`,
+          pass: result === `${car.id},menu`,
           detail: result ?? "No response from nav probe",
         };
       }),

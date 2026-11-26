@@ -30,7 +30,7 @@ The progress message has one sensible way: write it, then start the search a cou
 ## Design
 
 - Progress: `OpenNav` asks the world to show `nav_creating` with the destination label, waits a short delay (spec constant, about 2 ticks), rechecks that the player still rides the same vehicle, then calls `giveMap`. The pending-selection guard stays held through the delay so a second press is still ignored.
-- Access: `OpenNav` accepts any rider of the vehicle instead of only `driverId`, in the menu check and in the recheck after the choice. Riders in different seats each have their own pending-selection guard. A player on foot gets a renamed "use the nav while riding a vehicle" message in place of `nav_driver_only`; the Overworld-only rule stays.
+- Access: `OpenNav` accepts any rider of the vehicle instead of only `driverId`, in the menu check and in the recheck after the choice. Riders in different seats each have their own pending-selection guard. A player on foot gets a renamed "use the nav while riding a vehicle" message in place of the driver-only message; the Overworld-only rule stays.
 - Selection hint: on `playerHotbarSelectedSlotChange`, when the new item is the Nav and the player rides a vehicle, show the guidance once.
 - Tap hint: on `playerSwingStart` by a rider whose held item is the Nav, show the guidance, rate-limited per player (spec constant, about 40 ticks) so repeated taps do not spam the action bar. The touch spike measured a swing for a block tap (`Mine`) and an entity tap (`Attack`), and nothing for an air tap, so this one event covers every detectable tap. No guidance is shown while the player's nav selection is pending, so a swing during a long press cannot overwrite the menu flow or the progress message.
 - Wording: new lang keys in `en_US.lang` and `ja_JP.lang`, `_touch`, `_mouse`, `_other` variants following the existing `hint.drive_*` pattern and `controlsOf` in `bedrockHintWorld.ts`. The `ja_JP.lang` strings translate the English wording for the "creating a map to %s..." status and the "hold to open the map menu" hint.
@@ -42,7 +42,7 @@ The progress message has one sensible way: write it, then start the search a cou
 
 - Stable Script API only (ADR 0001); layers and feature boundaries per ADR 0012 and 0046. Decision logic (who gets a hint, rate limit) in application or domain with tests; event wiring in `src/infrastructure/vehicle/bedrock/`.
 - Resource Pack manifest bump for the lang changes (ADR 0015).
-- Update the Decision and Consequences of ADR 0261 in place for rider access to the nav and to radar reports (no new ADR), `docs/specs/navigation.md`, and the Nav rows in `docs/manual-test.md`. The `suv_nav_passenger_refused` scenario becomes a passenger-allowed check.
+- Update the Decision and Consequences of ADR 0261 in place for rider access to the nav and to radar reports (no new ADR), `docs/specs/navigation.md`, and the Nav rows in `docs/manual-test.md`. The passenger scenario checks that access is allowed.
 
 ## Left to the builder
 
