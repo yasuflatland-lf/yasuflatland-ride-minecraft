@@ -38,7 +38,7 @@ function setup() {
     isSneaking: false,
   };
   vi.mocked(world.getAllPlayers).mockReturnValue([
-    player as ReturnType<typeof world.getAllPlayers>[number],
+    player as unknown as ReturnType<typeof world.getAllPlayers>[number],
   ]);
   const calls: string[] = [];
   const routes = {
