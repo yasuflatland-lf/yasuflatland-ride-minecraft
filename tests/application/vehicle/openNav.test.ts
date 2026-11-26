@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { GuideNav } from "../../../src/application/vehicle/guideNav";
 import { NavSelections } from "../../../src/application/vehicle/navSelections";
 import { OpenNav } from "../../../src/application/vehicle/openNav";
 import type { NavWorld } from "../../../src/application/vehicle/ports/drive";
@@ -13,6 +14,7 @@ import {
   rebuildVehicle,
 } from "../../../src/domain/vehicle/kinds/index";
 import type { NavDestination } from "../../../src/domain/vehicle/navigation/destinations";
+import { NavGuideThrottle } from "../../../src/domain/vehicle/navigation/navGuide";
 import { SPEC } from "../../../src/domain/vehicle/spec";
 import { defined } from "../../support/defined";
 import { riderView } from "../../support/riders";
@@ -41,10 +43,12 @@ function setup() {
     giveMap: vi.fn<NavWorld["giveMap"]>().mockReturnValue("given"),
     showMessage: vi.fn<NavWorld["showMessage"]>(),
   };
+  const selections = new NavSelections();
   return {
     repo,
     world,
-    nav: new OpenNav(repo, world, new NavSelections()),
+    nav: new OpenNav(repo, world, selections),
+    guide: new GuideNav(repo, world, selections, new NavGuideThrottle()),
     command: { playerId: driver.id, vehicleId },
   };
 }
@@ -217,8 +221,14 @@ it("skips delivery and the miss message if the rider gets out during the wait", 
   expect(world.showMessage).not.toHaveBeenCalled();
 });
 
-it("ignores another press until the map delay ends", async () => {
-  const { nav, world, command } = setup();
+it("suppresses repeated presses and guidance during the map delay", async () => {
+  const { nav, guide, world, command } = setup();
+  const selection = {
+    ...command,
+    controls: "touch",
+    trigger: "select",
+    tick: 0,
+  } as const;
   let finishWait = () => {};
   world.waitTicks.mockReturnValueOnce(
     new Promise<void>((resolve) => {
@@ -228,10 +238,18 @@ it("ignores another press until the map delay ends", async () => {
   const pending = nav.execute(command);
   await Promise.resolve();
   expect(world.waitTicks).toHaveBeenCalledOnce();
+  guide.execute(selection);
+  guide.execute({ ...selection, trigger: "tap" });
+  expect(world.showMessage).not.toHaveBeenCalled();
   await nav.execute(command);
   expect(world.choose).toHaveBeenCalledOnce();
   expect(world.giveMap).not.toHaveBeenCalled();
   finishWait();
   await pending;
   expect(world.giveMap).toHaveBeenCalledExactlyOnceWith(driver.id, destination);
+  guide.execute({ ...selection, trigger: "tap", tick: SPEC.navMapDelay });
+  expect(world.showMessage).toHaveBeenCalledExactlyOnceWith(
+    driver.id,
+    "nav_open_touch",
+  );
 });

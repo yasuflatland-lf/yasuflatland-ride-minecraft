@@ -57,6 +57,9 @@ it.each(["en_US", "ja_JP"])(
       "yasu_ride.message.nav_overworld_only",
       "yasu_ride.message.nav_creating",
       "yasu_ride.message.nav_nothing_found",
+      "yasu_ride.message.nav_open_touch",
+      "yasu_ride.message.nav_open_mouse",
+      "yasu_ride.message.nav_open_other",
       ...NAV_DESTINATIONS.map(navDestinationLabelKey),
     ]) {
       expect(lang).toMatch(

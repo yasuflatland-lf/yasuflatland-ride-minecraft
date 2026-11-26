@@ -48,6 +48,8 @@ vi.mock("@minecraft/server", () => {
         entityHitEntity: unusedEvent,
         itemUse: { subscribe: vi.fn() },
         playerSpawn: { subscribe: vi.fn() },
+        playerHotbarSelectedSlotChange: unusedEvent,
+        playerSwingStart: unusedEvent,
       },
     },
     system: {

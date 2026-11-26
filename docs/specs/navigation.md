@@ -1,6 +1,6 @@
 # Navigation
 
-- Scope: Rider access to the Nav item, destination selection and explorer map delivery, and automatic radar reports for places indicated by nearby mobs while riding any vehicle kind.
+- Scope: Rider access to the Nav item, guidance for riders, destination selection and explorer map delivery, and automatic radar reports for places indicated by nearby mobs while riding any vehicle kind.
 - Verified at: 4316b7e76
 - Source: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md), [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md)
 
@@ -14,6 +14,15 @@
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision.
 - Implementation: `src/infrastructure/vehicle/bedrock/handlers/navSwitch.ts`, `src/application/vehicle/openNav.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`.
 - Verification: `tests/application/vehicle/openNav.test.ts` checks rider access, the order, cancellation, rider recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_allowed` scenario checks that a passenger opens the menu with two seated probes.
+
+### Nav guidance
+
+- Applies to: Drivers and passengers who select the Nav in the hotbar or tap a block or entity while holding it.
+- Rule: The action bar shows long-press instructions for touch, right-click instructions for mouse, or neutral use instructions for other controls. Selecting the Nav can always show guidance. A tap can show guidance only after 40 ticks have elapsed since the player's last guide. Both triggers stay silent while the destination menu is open and during the two-tick delay after the map-creation message. A touch tap in the air emits no script event.
+- Agreement: Proposed
+- Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision, the Nav item and destination menu. The [Nav hints design](../superpowers/specs/2026-11-26-nav-hints-design.md) specifies the guidance.
+- Implementation: `src/domain/vehicle/navigation/navGuide.ts`, `src/domain/vehicle/spec.ts`, `src/application/vehicle/guideNav.ts`, `src/infrastructure/vehicle/bedrock/handlers/navGuide.ts`.
+- Verification: `tests/domain/vehicle/navigation/navGuide.test.ts` checks timing and player independence. `tests/application/vehicle/guideNav.test.ts` checks rider eligibility, pending selections, and control wording. `tests/application/vehicle/openNav.test.ts` checks that neither trigger replaces the map-creation message during the delay and that guidance resumes after delivery. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks event routing. Device checks are in [Manual test](../manual-test.md#nav-explorer-maps).
 
 ### Menu and map delivery
 
@@ -44,6 +53,7 @@
 
 ## Open issues
 
+- A player who boards while already holding the Nav sees guidance only after switching away and back to the Nav or tapping a block or entity.
 - ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for full-inventory delivery and menu cancellation on natural terrain, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.

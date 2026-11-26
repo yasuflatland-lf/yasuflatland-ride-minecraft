@@ -7,6 +7,7 @@ import type { SpaceCheck } from "../../application/shared/ports/space";
 import type { VehicleHostLookup } from "../../application/shared/ports/vehicleHost";
 import { BoardVehicle } from "../../application/vehicle/boardVehicle";
 import { DriveVehicles } from "../../application/vehicle/driveVehicles";
+import { GuideNav } from "../../application/vehicle/guideNav";
 import { HitVehicle } from "../../application/vehicle/hitVehicle";
 import { LimitVehicles } from "../../application/vehicle/limitVehicles";
 import { NavSelections } from "../../application/vehicle/navSelections";
@@ -23,6 +24,7 @@ import { SwitchFeedback } from "../../application/vehicle/switchFeedback";
 import { SwitchHeadlights } from "../../application/vehicle/switchHeadlights";
 import type { RawInput } from "../../domain/vehicle/driveInput";
 import { fleetLimitOf } from "../../domain/vehicle/kinds/index";
+import { NavGuideThrottle } from "../../domain/vehicle/navigation/navGuide";
 import { STARTER_KINDS } from "../../domain/vehicle/placement/starter";
 import { consoleLogger as log } from "../shared/consoleLogger";
 import { id } from "../shared/identifiers";
@@ -87,6 +89,7 @@ export function installVehicles(deps: {
   const index = new EntityIndex();
   const navSelections = new NavSelections();
   const actionBar = new ActionBarLog(index, () => system.currentTick);
+  const navWorld = new BedrockNavWorld(index, actionBar);
   const inventory = new BedrockInventory(index);
   const dockCodec = composeDockCodec({
     ...DECK_CODEC,
@@ -148,10 +151,12 @@ export function installVehicles(deps: {
       ceilingLights: camper.ceilingLights,
       equipment: new SwitchEquipment(repo, systemClock, feedback),
       boost: new SwitchBoost(repo, systemClock, feedback, bedrock),
-      nav: new OpenNav(
+      nav: new OpenNav(repo, navWorld, navSelections),
+      navGuide: new GuideNav(
         repo,
-        new BedrockNavWorld(index, actionBar),
+        navWorld,
         navSelections,
+        new NavGuideThrottle(),
       ),
       hints: new ShowVehicleHints(
         new BedrockHintWorld(index, actionBar),
