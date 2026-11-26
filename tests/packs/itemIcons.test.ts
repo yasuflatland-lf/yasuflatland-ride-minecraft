@@ -17,6 +17,13 @@ const cornerExceptions = new Map<string, { opacity: number[]; reason: string }>(
       },
     ],
     [
+      "yasu_ride_headlight_switch",
+      {
+        opacity: [255, 255, 255, 255],
+        reason: "The high-beam symbol is drawn on a solid black tile.",
+      },
+    ],
+    [
       "yasu_ride_icebreaker_switch",
       {
         opacity: [0, 0, 255, 255],
