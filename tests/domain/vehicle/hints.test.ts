@@ -1,12 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { forward, leftOf, type Vec3 } from "../../../src/domain/shared/vec";
+import type { InputControls } from "../../../src/domain/vehicle/controls";
 import {
   type HeldItem,
   HINT_TIMING,
   HINTS,
   type Hint,
-  type HintControls,
   type HintName,
   type HintState,
   type HintView,
@@ -33,7 +33,7 @@ const coord = (lo: number, hi: number) =>
   fc
     .integer({ min: Math.round(lo * 1000), max: Math.round(hi * 1000) - 1 })
     .map((n) => n / 1000 + 0.0003);
-const controlsArb = fc.constantFrom<HintControls>("touch", "mouse", "other");
+const controlsArb = fc.constantFrom<InputControls>("touch", "mouse", "other");
 const heldArb = fc.constantFrom<HeldItem>("dye", "other");
 const yawArb = fc.double({ min: -180, max: 180, noNaN: true });
 

@@ -1,14 +1,14 @@
 import type { PlayerId, VehicleId } from "../../domain/shared/ids";
 import { NAV_DESTINATIONS } from "../../domain/vehicle/navigation/destinations";
 import type { VehicleRepository } from "../../domain/vehicle/vehicleRepository";
+import type { NavSelections } from "./navSelections";
 import type { NavWorld } from "./ports/drive";
 
 export class OpenNav {
-  private readonly choosing = new Set<PlayerId>();
-
   constructor(
     private readonly repo: VehicleRepository,
     private readonly world: NavWorld,
+    private readonly selections: NavSelections,
   ) {}
 
   async execute({
@@ -18,7 +18,7 @@ export class OpenNav {
     playerId: PlayerId;
     vehicleId: VehicleId | undefined;
   }): Promise<void> {
-    if (this.choosing.has(playerId)) return;
+    if (this.selections.has(playerId)) return;
     if (
       vehicleId === undefined ||
       this.repo.get(vehicleId)?.driverId !== playerId
@@ -31,7 +31,7 @@ export class OpenNav {
       return;
     }
 
-    this.choosing.add(playerId);
+    if (!this.selections.begin(playerId)) return;
     try {
       const destination = await this.world.choose(playerId, NAV_DESTINATIONS);
       if (
@@ -43,7 +43,7 @@ export class OpenNav {
         this.world.showMessage(playerId, "nav_nothing_found");
       }
     } finally {
-      this.choosing.delete(playerId);
+      this.selections.end(playerId);
     }
   }
 }

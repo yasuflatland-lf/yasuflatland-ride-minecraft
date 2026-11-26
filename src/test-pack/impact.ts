@@ -88,6 +88,7 @@ export const HARNESS_IMPORTS: readonly string[] = [
   "src/domain/shared/vec.ts",
   "src/domain/vehicle/boost.ts",
   "src/domain/vehicle/capability.ts",
+  "src/domain/vehicle/controls.ts",
   "src/domain/vehicle/cooldowns.ts",
   "src/domain/vehicle/crew.ts",
   "src/domain/vehicle/cut.ts",

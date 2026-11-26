@@ -52,6 +52,10 @@ it("delegates seating and waits only within the driver handover window", () => {
           });
           expect(crew.driver).toBe(seating.driver);
           expect(crew.occupied).toBe(seating.occupied);
+          expect(crew.riders()).toEqual(seating.riders());
+          expect(crew.riders().size).toBe(crew.taken().size);
+          if (crew.driver !== undefined)
+            expect(crew.riders().has(crew.driver)).toBe(true);
           expect(crew.taken()).toEqual(seating.taken());
         }
       },

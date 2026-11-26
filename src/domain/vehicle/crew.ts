@@ -80,6 +80,9 @@ export class Crew {
   get occupied(): boolean {
     return this.seating.occupied;
   }
+  riders(): ReadonlySet<PlayerId> {
+    return this.seating.riders();
+  }
   taken(): ReadonlySet<number> {
     return this.seating.taken();
   }

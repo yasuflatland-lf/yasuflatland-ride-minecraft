@@ -1,4 +1,5 @@
 import { ScriptEventSource, system, world } from "@minecraft/server";
+import { NavSelections } from "../../../application/vehicle/navSelections";
 import { OpenNav } from "../../../application/vehicle/openNav";
 import {
   asDimensionId,
@@ -32,18 +33,22 @@ export function registerTestNav(repo: VehicleRepository): void {
         return;
 
       const actions: string[] = [];
-      const nav = new OpenNav(repo, {
-        dimensionOf: () => asDimensionId(entity.dimension.id),
-        choose: async () => {
-          actions.push("menu");
-          return undefined;
+      const nav = new OpenNav(
+        repo,
+        {
+          dimensionOf: () => asDimensionId(entity.dimension.id),
+          choose: async () => {
+            actions.push("menu");
+            return undefined;
+          },
+          giveMap: () => {
+            actions.push("map");
+            return "unknown";
+          },
+          showMessage: (_, name) => actions.push(name),
         },
-        giveMap: () => {
-          actions.push("map");
-          return "unknown";
-        },
-        showMessage: (_, name) => actions.push(name),
-      });
+        new NavSelections(),
+      );
       const driver = tickBoostCrew(
         vehicle,
         entity,

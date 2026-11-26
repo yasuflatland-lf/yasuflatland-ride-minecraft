@@ -1,7 +1,6 @@
 // Implements HintWorld on the action bar (ADR 0086).
 import {
   GameMode,
-  InputMode,
   type Player,
   type RawMessage,
   world,
@@ -17,30 +16,13 @@ import {
   asVehicleId,
   type PlayerId,
 } from "../../../domain/shared/ids";
-import type {
-  HeldItem,
-  Hint,
-  HintArg,
-  HintControls,
-} from "../../../domain/vehicle/hints";
+import type { HeldItem, Hint, HintArg } from "../../../domain/vehicle/hints";
 import { heldDye } from "../../shared/dyes";
 import type { ActionBarLog } from "./actionBarLog";
 import type { EntityIndex } from "./entityIndex";
 import { ENTITY_TYPE, hintKey } from "./identifiers";
 
-const CONTROLS: Readonly<Partial<Record<InputMode, HintControls>>> = {
-  [InputMode.Touch]: "touch",
-  [InputMode.KeyboardAndMouse]: "mouse",
-};
-
-/** The player's last input; a gamepad, a motion controller, or a read that throws get the neutral wording. */
-function controlsOf(player: Player): HintControls {
-  try {
-    return CONTROLS[player.inputInfo.lastInputModeUsed] ?? "other";
-  } catch {
-    return "other";
-  }
-}
+import { controlsOf } from "./inputControls";
 
 const heldOf = (player: Player): HeldItem =>
   heldDye(player) ? "dye" : "other";
