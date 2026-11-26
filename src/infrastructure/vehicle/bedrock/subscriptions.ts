@@ -2,6 +2,7 @@
 
 import type { BoardVehicle } from "../../../application/vehicle/boardVehicle";
 import type { DriveVehicles } from "../../../application/vehicle/driveVehicles";
+import type { GuideNav } from "../../../application/vehicle/guideNav";
 import type { HitVehicle } from "../../../application/vehicle/hitVehicle";
 import type { LimitVehicles } from "../../../application/vehicle/limitVehicles";
 import type { OpenGift } from "../../../application/vehicle/openGift";
@@ -32,6 +33,7 @@ import { registerFleet } from "./handlers/fleet";
 import { registerGifts } from "./handlers/gift";
 import { vehicleSwitchTarget } from "./handlers/headlights";
 import { registerHits } from "./handlers/hits";
+import { registerNavGuide } from "./handlers/navGuide";
 import { navSwitchTarget } from "./handlers/navSwitch";
 import { registerPlacement } from "./handlers/placement";
 import { registerStandIns } from "./handlers/standIn";
@@ -51,6 +53,7 @@ export function registerSubscriptions(
     equipment: SwitchEquipment;
     boost: SwitchBoost;
     nav: OpenNav;
+    navGuide: GuideNav;
     hints: ShowVehicleHints;
     radar: ScanForPlaces;
     board: BoardVehicle;
@@ -71,6 +74,7 @@ export function registerSubscriptions(
   registerGifts(useCases.gift);
   registerBoarding(useCases.board);
   registerStandIns(useCases.board);
+  registerNavGuide(useCases.navGuide);
   // The switch router subscribes before placement so placement's block press handler stays
   // the last one subscribed; each handler ignores the other's items (ADR 0115).
   const vehicle = vehicleSwitchTarget(

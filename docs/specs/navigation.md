@@ -1,6 +1,6 @@
 # Navigation
 
-- Scope: Rider access to the Nav item, destination selection and explorer map delivery, and automatic radar reports for places indicated by nearby mobs while riding any vehicle kind.
+- Scope: Rider access to the Nav item, guidance for riders, destination selection and explorer map delivery, and automatic radar reports for places indicated by nearby mobs while riding any vehicle kind.
 - Verified at: 4316b7e76
 - Source: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md), [0090](../adr/0090-group-the-vehicle-core-by-subcontext.md)
 
@@ -15,14 +15,23 @@
 - Implementation: `src/infrastructure/vehicle/bedrock/handlers/navSwitch.ts`, `src/application/vehicle/openNav.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`.
 - Verification: `tests/application/vehicle/openNav.test.ts` checks rider access, the order, cancellation, rider recheck, and repeated presses. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks air and vehicle press routing. The `suv_nav_passenger_allowed` scenario checks that a passenger opens the menu with two seated probes.
 
+### Nav guidance
+
+- Applies to: Drivers and passengers who select the Nav in the hotbar or tap a block or entity while holding it.
+- Rule: The action bar shows long-press instructions for touch, right-click instructions for mouse, or neutral use instructions for other controls. Selecting the Nav can always show guidance. A tap can show guidance only after 40 ticks have elapsed since the player's last guide. Both triggers stay silent while the destination menu is open and during the two-tick delay after the map-creation message. A touch tap in the air emits no script event.
+- Agreement: Proposed
+- Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision, the Nav item and destination menu. Issue #2522 specifies the guidance.
+- Implementation: `src/domain/vehicle/navigation/navGuide.ts`, `src/domain/vehicle/spec.ts`, `src/application/vehicle/guideNav.ts`, `src/infrastructure/vehicle/bedrock/handlers/navGuide.ts`.
+- Verification: `tests/domain/vehicle/navigation/navGuide.test.ts` checks timing and player independence. `tests/application/vehicle/guideNav.test.ts` checks rider eligibility, pending selections, and control wording. `tests/application/vehicle/openNav.test.ts` checks that neither trigger replaces the map-creation message during the delay and that guidance resumes after delivery. `tests/infrastructure/vehicle/bedrock/subscriptions.test.ts` checks event routing. Device checks are in [Manual test](../manual-test.md#nav-explorer-maps).
+
 ### Menu and map delivery
 
 - Applies to: The destinations offered to an eligible rider.
-- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The form opens with these destinations in order: `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`. The command adapter has inventory and feet-drop paths. The adapter verifies inventory delivery by comparing the total number of filled maps before and after the loot command, while a feet-drop for a full inventory leaves delivery unverified.
+- Rule: Each confirmed destination has a localized menu label and one loot table at `loot_tables/yasu_ride/nav_<destination>.json`. The form opens with these destinations in order: `buriedtreasure`, `mansion`, `monument`, `village`, `jungle_temple`, `swamp_hut`, `trial_chambers`, `pillager_outpost`, `shipwreck`, and `ruins`. After a rider chooses a destination, the action bar shows “Creating a map to %s...” with the translated destination name. The search starts two ticks later so the client can display the message first. Further presses are ignored during the wait. If the player is no longer riding the same vehicle at the end of the wait, delivery stops silently. The command adapter has inventory and feet-drop paths. The adapter verifies inventory delivery by comparing the total number of filled maps before and after the loot command, while a feet-drop for a full inventory leaves delivery unverified.
 - Agreement: Proposed
 - Basis: [0261](../adr/0261-navigation-by-explorer-maps-and-a-mob-radar.md) Decision and Consequences.
 - Implementation: `src/domain/vehicle/navigation/destinations.ts`, `src/infrastructure/vehicle/bedrock/bedrockNavWorld.ts`, `src/infrastructure/shared/choiceForm.ts`.
-- Verification: `tests/packs/nav.test.ts` checks that the shipped tables match the destination list and have labels. `tests/infrastructure/vehicle/bedrock/bedrockNavWorld.test.ts` checks form answers and both command paths with test data. The `nav_map_delivery` scenario checks inventory delivery for three sampled destinations. On flat terrain it returned `given` for `village`, `monument`, and `buriedtreasure`. The `nav_map_full_inventory` scenario checks that a full inventory selects the spawn path and reports delivery as unknown. Both scenarios require a connected player, so CI skips them. Player-origin and rendering checks are in [Manual test](../manual-test.md#nav-explorer-maps). Here, `given` confirms only that the player's filled-map count rose by exactly one after the explorer-map loot table ran.
+- Verification: `tests/packs/nav.test.ts` checks that the shipped tables match the destination list and that both locales include the labels and creating message. `tests/application/vehicle/openNav.test.ts` checks the message and delay before delivery, dismounting and repeated presses during the wait, and cancellation. `tests/infrastructure/vehicle/bedrock/bedrockNavWorld.test.ts` checks the translated destination in the action-bar message, form answers, and both command paths with test data. The `nav_map_delivery` scenario checks inventory delivery for three sampled destinations. On flat terrain it returned `given` for `village`, `monument`, and `buriedtreasure`. The `nav_map_full_inventory` scenario checks that a full inventory selects the spawn path and reports delivery as unknown. Both scenarios require a connected player, so CI skips them. Player-origin and rendering checks are in [Manual test](../manual-test.md#nav-explorer-maps). Here, `given` confirms only that the player's filled-map count rose by exactly one after the explorer-map loot table ran.
 
 ### Radar scanning and clustering
 
@@ -44,6 +53,7 @@
 
 ## Open issues
 
-- ADR 0261 calls for maps to the nearest unexplored destination. The [corrected spike record](../superpowers/specs/2026-11-25-driving-navigation-design.md#spike-results) confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for full-inventory delivery and menu cancellation on natural terrain, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
+- A player who boards while already holding the Nav sees guidance only after switching away and back to the Nav or tapping a block or entity.
+- ADR 0261 calls for maps to the nearest unexplored destination. The corrected spike record in #2479 confirms ten filled maps and a player-origin give path in natural terrain. The menu offers all ten destinations. The cost of a successful distant search still needs measurement. Human checks remain for full-inventory delivery and menu cancellation on natural terrain, the first-person off-hand map while riding on PC and iPad, and the Locator Bar with a second player online.
 - ADR 0261 calls for discarding out-of-range radar reports. The implementation retains them as pending in `src/domain/vehicle/navigation/radar.ts`. The ADR needs an edit or a superseding ADR.
 - Client rendering of the translated radar report still needs an in-game check.

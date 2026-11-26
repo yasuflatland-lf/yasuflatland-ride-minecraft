@@ -326,8 +326,13 @@ yasu_ride.nav.destination.trial_chambers=Trial chambers
 yasu_ride.nav.destination.pillager_outpost=Pillager outpost
 yasu_ride.nav.destination.shipwreck=Shipwreck
 yasu_ride.nav.destination.ruins=Ocean ruins
+yasu_ride.message.nav_driver_only=Use the nav from the driver's seat.
+yasu_ride.message.nav_open_touch=Long-press to open the map menu.
+yasu_ride.message.nav_open_mouse=Right-click to open the map menu.
+yasu_ride.message.nav_open_other=Use the nav to open the map menu.
 yasu_ride.message.nav_riding_only=Use the nav while riding a vehicle.
 yasu_ride.message.nav_overworld_only=The nav only works in the Overworld.
+yasu_ride.message.nav_creating=Creating a map to %s...
 yasu_ride.message.nav_nothing_found=Nothing found nearby.
 
 yasu_ride.radar.report=%1 %2 m: %3
