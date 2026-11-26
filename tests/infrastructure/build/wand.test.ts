@@ -35,6 +35,7 @@ const engine = vi.hoisted(() => {
   return { handlers, scheduled, event, tick: 0 };
 });
 vi.mock("@minecraft/server", () => ({
+  Direction: { Up: "Up" },
   world: {
     afterEvents: {
       entityHitBlock: engine.event("hit"),
@@ -91,6 +92,7 @@ function setup() {
     const event = {
       player,
       block: { dimension: player.dimension, location },
+      blockFace: "Up",
       isFirstEvent,
       cancel: false,
     };

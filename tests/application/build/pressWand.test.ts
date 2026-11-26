@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
 import { chooseStairs } from "../../../src/domain/build/flow/stairFlow";
 import { cellOf } from "../../../src/domain/shared/cells";
@@ -37,9 +38,9 @@ it("samples the final ray before offering the shape or roof contents menu", () =
         for (const point of [cell, end]) {
           expect(
             press.execute({
-              ...player,
+              playerId,
               intent: "selectPoint",
-              cell: point,
+              tap: blockTapOf(nether, point),
             }),
           ).toBe("none");
         }
@@ -87,7 +88,11 @@ it("fixes a virtual endpoint and offers the stair or terrace form only for a val
       (cell, op) => {
         const { repo, press, world, aim, feedback } = wandFixture();
         world.put(cell, stone);
-        press.execute({ ...player, intent: "selectPoint", cell });
+        press.execute({
+          playerId,
+          intent: "selectPoint",
+          tap: blockTapOf(nether, cell),
+        });
         const ray = {
           origin: { ...cell, x: cell.x - 1, z: cell.z + 2 },
           direction: { x: 1, y: 0, z: 0 },

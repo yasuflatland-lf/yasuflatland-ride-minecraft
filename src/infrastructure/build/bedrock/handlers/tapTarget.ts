@@ -1,4 +1,5 @@
 import { type Player, system, world } from "@minecraft/server";
+import { blockTapOf } from "../../../../domain/build/blockTap";
 import { tapTargetCell } from "../../../../domain/build/tapTarget";
 import { asPlayerId } from "../../../../domain/shared/ids";
 import { TAP_TARGET_TYPE } from "../../identifiers";
@@ -27,8 +28,7 @@ export function registerTapTarget({
     const command = {
       player,
       playerId,
-      dimensionId: owner.dimensionId,
-      cell: owner.cell,
+      tap: blockTapOf(owner.dimensionId, owner.cell),
     };
     if (defer) {
       // Claim the press before itemUse can handle the same interaction.

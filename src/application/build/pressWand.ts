@@ -1,8 +1,8 @@
 import type { Ray } from "../../domain/build/aim/aim";
 import { virtualAimedEndPoint } from "../../domain/build/aim/endPoint";
+import type { BlockTap } from "../../domain/build/blockTap";
 import type { PressIntent } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { FixStairGoal } from "./fixStairGoal";
 import type { AimResult } from "./ports/aim";
@@ -36,14 +36,14 @@ export class PressWand {
     playerId,
     intent,
     dimensionId,
-    cell,
+    tap,
     ray,
     itemUse,
   }: {
     playerId: PlayerId;
     intent: PressIntent["kind"];
     dimensionId?: DimensionId;
-    cell?: Cell;
+    tap?: BlockTap;
     ray?: Ray;
     itemUse?: { aim: AimResult | undefined; tick: number; sneaking: boolean };
   }): FollowUp {
@@ -52,13 +52,17 @@ export class PressWand {
     const heightRay = ray ?? itemUse?.aim?.ray;
     switch (intent) {
       case "selectPoint":
-        if (dimensionId && cell)
-          this.actions.setPoint.execute({ playerId, dimensionId, cell });
+        if (tap)
+          this.actions.setPoint.execute({
+            playerId,
+            dimensionId: tap.dimensionId,
+            cell: tap.cell,
+          });
         return "none";
       case "fixEndpoint": {
         if (flow?.kind !== "point1") return "none";
         const end =
-          cell ??
+          tap?.cell ??
           (itemUse?.aim &&
             virtualAimedEndPoint(
               flow.start.cell,

@@ -4,15 +4,15 @@ import type {
   FollowUp,
   PressWand,
 } from "../../../../application/build/pressWand";
+import type { BlockTap } from "../../../../domain/build/blockTap";
 import {
   type PressIntent,
   routePress,
 } from "../../../../domain/build/flow/press";
 import type { BuildFlow } from "../../../../domain/build/flow/state";
 import type { BuildSessionRepository } from "../../../../domain/build/sessionRepository";
-import type { Cell } from "../../../../domain/shared/cells";
 import type { Debounces } from "../../../../domain/shared/debounce";
-import type { DimensionId, PlayerId } from "../../../../domain/shared/ids";
+import type { PlayerId } from "../../../../domain/shared/ids";
 import type { BuildMenus } from "../buildMenus";
 
 export type BlockPressContext = {
@@ -57,13 +57,11 @@ export function pressBlockCell(
   {
     player,
     playerId,
-    dimensionId,
-    cell,
+    tap,
   }: {
     player: Player;
     playerId: PlayerId;
-    dimensionId: DimensionId;
-    cell: Cell;
+    tap: BlockTap;
   },
   intent: PressIntent["kind"],
 ): void {
@@ -82,6 +80,6 @@ export function pressBlockCell(
   showFollowUp(
     menus,
     player,
-    pressWand.execute({ playerId, intent, dimensionId, cell, ray }),
+    pressWand.execute({ playerId, intent, tap, ray }),
   );
 }
