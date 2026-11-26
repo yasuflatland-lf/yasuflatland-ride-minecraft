@@ -100,7 +100,6 @@ function setup(
     clipboard,
     aim.target,
     turnBetween(clipboard.facing, "east"),
-    "east",
   );
   if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");

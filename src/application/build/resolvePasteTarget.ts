@@ -1,5 +1,9 @@
 import { type CellBox, sameBox } from "../../domain/build/box";
 import {
+  cornerCell,
+  turnCorner,
+} from "../../domain/build/clipboard/anchorCorner";
+import {
   aimedPasteTarget,
   type PasteTarget,
 } from "../../domain/build/clipboard/clipboard";
@@ -78,16 +82,19 @@ export class ResolvePasteTarget {
       flow.kind === "pasteAim"
         ? effectiveTurn(copied, facing, flow.manualTurn)
         : NO_TURN;
-    const target = aimedPasteTarget(
-      session.clipboard,
-      command.aim,
-      turn,
-      facing,
-    );
+    const target = aimedPasteTarget(session.clipboard, command.aim, turn);
     if (!target) return { kind: "noTarget" };
     const box = this.snap(command, target.box);
     return box
-      ? { kind: "target", target: { ...target, box, anchor: box.min } }
+      ? {
+          kind: "target",
+          target: {
+            turn,
+            box,
+            anchor: box.min,
+            corner: cornerCell(box, turnCorner(session.clipboard.anchor, turn)),
+          },
+        }
       : { kind: "noGround" };
   }
 

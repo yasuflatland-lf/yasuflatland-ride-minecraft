@@ -77,7 +77,12 @@ export class CutBox implements BoxAction {
     this.repo.update(session, (session) => {
       session.completeCopy(
         selection,
-        clipboardOf({ selection, facing: cmd.facing, handle }),
+        clipboardOf({
+          selection,
+          facing: cmd.facing,
+          point1: cmd.point1,
+          handle,
+        }),
       );
       edit.commit({ box, handle: snapshot });
     });

@@ -19,7 +19,10 @@ import {
 } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
-import type { BlockFace } from "../../../src/domain/shared/blockFace";
+import {
+  anchorCell,
+  type BlockFace,
+} from "../../../src/domain/shared/blockFace";
 import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -88,7 +91,6 @@ it("matches the domain target for every face and turn, and returns no target on 
           clipboard,
           aim,
           turnBetween(clipboard.facing, facing),
-          facing,
         ),
       });
       expect(
@@ -196,17 +198,19 @@ it("draws the same paste box that the press sends to PasteAt", () => {
           clipboard,
           aim,
           effectiveTurn(clipboard.facing, facing, manualTurn),
-          facing,
         );
         if (!unsnapped) throw new Error("Expected hit target");
         expect(
           probe.calls.every((call) => call.fromY === unsnapped.box.min.y),
         ).toBe(true);
+        expect(target?.corner).toEqual({
+          ...unsnapped.corner,
+          y: target?.box.min.y,
+        });
         expect(target?.box.min.y).toBeLessThanOrEqual(unsnapped.box.min.y);
         expect(feedback.previews).toHaveLength(1);
         expect(feedback.previews[0]?.set).toEqual(
-          previewModel(session.flow, { blink: true, pasteBox: target?.box })
-            .set,
+          previewModel(session.flow, { blink: true, pasteTarget: target }).set,
         );
       },
     ),
@@ -388,7 +392,7 @@ it("uses the clipboard facing for an initial vertical gaze", () => {
   );
 });
 
-it("never covers the aimed block on a side face for any gaze", () => {
+it("anchors the corner adjacent to the aimed side face for any gaze", () => {
   fc.assert(
     fc.property(
       aim,
@@ -412,10 +416,7 @@ it("never covers the aimed block on a side face for any gaze", () => {
         });
         expect(result.kind).toBe("target");
         if (result.kind !== "target") throw new Error("Missing target");
-        const { min, max } = result.target.box;
-        expect(
-          cell.x < min.x || cell.x > max.x || cell.z < min.z || cell.z > max.z,
-        ).toBe(true);
+        expect(result.target.corner).toEqual(anchorCell(cell, face));
       },
     ),
   );

@@ -294,6 +294,7 @@ it.each(["absent", "structure"] as const)(
                   );
                 }
                 expectedClipboard = {
+                  anchor: { x: "min", z: "min" },
                   material: AIR,
                   size: {
                     x: box.max.x - box.min.x + 1,

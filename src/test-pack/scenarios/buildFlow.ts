@@ -1584,8 +1584,8 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       ["up", 0, 1, 0],
       ["down", 0, -1, 0],
       ["east", 1, 0, 0],
-      ["west", -3, 0, 0],
-      ["north", -2, 0, -1],
+      ["west", -1, 1, 0],
+      ["north", 0, 0, -1],
       ["south", 0, 0, 1],
     ] as const) {
       await f.select(f.cell(2));
@@ -1637,10 +1637,10 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
         },
         `Paste on ${face}`,
       );
-      if (face !== "up" && face !== "down")
+      if (face === "west")
         check(
           f.block(anchor).typeId === "minecraft:gold_block",
-          "Side-face paste covered the aimed block",
+          "Ground snap did not clear the aimed wall",
         );
       const actual = snapshot(f, target);
       check(
@@ -1781,6 +1781,33 @@ function placeSupportedFrame(f: Fixture, c: Cell): void {
   const frame = f.block(c);
   frame.setType("minecraft:frame");
   frame.setPermutation(frame.permutation.withState("facing_direction", 5));
+}
+
+export function buildPasteAnchorCorner(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const source = f.region(3, 1, 2);
+    for (const c of source) f.block(c).setType("minecraft:stone");
+    const point1 = f.cell(2);
+    f.block(point1).setType("minecraft:diamond_block");
+    await f.tap("block", point1);
+    await f.tap("air", f.cell(0, 0, 1));
+    await f.tap("fixHeight");
+    await startPasteStep(f);
+    const destination = pasteTarget(f, f.cell(12, 0, 12), 3, 1, 2);
+    const aimed = f.cell(14, 0, 12);
+    const pasted = await pasteStep(f, aimed.x, aimed.y, aimed.z, "up");
+    checkSelection(
+      pasted,
+      { min: f.cell(12, 1, 12), max: f.cell(14, 1, 13) },
+      "Point-1 paste",
+    );
+    check(
+      unchanged(f, destination.cells, snapshot(f, source)) &&
+        f.block(f.cell(14, 1, 12)).typeId === "minecraft:diamond_block",
+      "The max-X point-1 block did not land above the aimed cell",
+    );
+    await f.edit("undo");
+  });
 }
 
 export function buildPasteSelectsBox(a: Arena): Promise<Outcome> {
@@ -3070,10 +3097,8 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
           )[turn];
           if (!footprint) throw new Error("Missing paste footprint");
           const [width, depth, chestX, chestZ, signX, signZ] = footprint;
-          const minX =
-            facing === "south" || facing === "west" ? 17 - width : 16;
-          const minZ =
-            facing === "west" || facing === "north" ? 13 - depth : 12;
+          const minX = turn === 1 || turn === 2 ? 17 - width : 16;
+          const minZ = turn === 2 || turn === 3 ? 13 - depth : 12;
           const label = `${facing} with manual turn ${manualTurn}`;
           const target = f.region(width, 3, depth, f.cell(minX, 0, minZ));
           for (const c of surround) {
@@ -3435,7 +3460,7 @@ async function pasteControlOnce(
     const source = f.region(5, 3, 3);
     const ground = f.region(15, 1, 11, f.cell(8, -1, 8));
     const air = f.region(15, 4, 11, f.cell(8, 0, 8));
-    const target = f.region(3, 3, 5, f.cell(16, 0, 12));
+    const target = f.region(3, 3, 5, f.cell(14, 0, 12));
     try {
       await copyControlSource(f, source);
       await aimControlTarget(f, ground, air);
@@ -3457,10 +3482,10 @@ async function pasteControlOnce(
         bothRoutes ? 0 : 3,
       );
       check(placed.message === "editDoneCount", "Control paste did not finish");
-      checkRotatedFurniture(f, target, f.cell(16, 0, 12));
+      checkRotatedFurniture(f, target, f.cell(14, 0, 12));
       checkSelection(
         placed,
-        { min: f.cell(16, 0, 12), max: f.cell(18, 2, 16) },
+        { min: f.cell(14, 0, 12), max: f.cell(16, 2, 16) },
         "Control paste box",
       );
       await checkState(f, "selected", true);

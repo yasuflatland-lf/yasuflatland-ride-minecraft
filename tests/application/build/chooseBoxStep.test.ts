@@ -49,8 +49,8 @@ it("captures the selected layers and choice facing immediately for Copy and Cut"
               ),
               blockStateOf("minecraft:stone"),
             ),
-            cellOf({ x: 0, y: 0, z: 0 }),
-            cellOf({ x: 2, y: 0, z: 2 }),
+            cellOf({ x: 2, y: 0, z: 0 }),
+            cellOf({ x: 0, y: 0, z: 2 }),
           ),
         });
         new ChooseBoxStep(repo, actions, feedback, reader).execute({
@@ -59,6 +59,7 @@ it("captures the selected layers and choice facing immediately for Copy and Cut"
         });
         expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
         expect(session.clipboard?.size).toEqual({ x: 3, y: height, z: 3 });
+        expect(session.clipboard?.anchor).toEqual({ x: "max", z: "min" });
         expect(session.clipboard?.facing).toBe(facing);
         expect(reader.facingOf).toHaveBeenCalledExactlyOnceWith(playerId);
       },

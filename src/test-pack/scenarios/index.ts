@@ -61,6 +61,7 @@ import {
   buildLiveHeight,
   buildNewCopyItemSwitch,
   buildNewCopyReplaces,
+  buildPasteAnchorCorner,
   buildPasteBlocked,
   buildPasteControlInactive,
   buildPasteControlPlace,
@@ -567,6 +568,7 @@ export const SCENARIOS: Readonly<Record<string, ScenarioRun>> = {
 
   build_paste_structure: buildPasteStructure,
   build_paste_structure_decor: buildPasteStructureDecor,
+  build_paste_anchor_corner: buildPasteAnchorCorner,
   build_paste_selects_box: buildPasteSelectsBox,
   build_copy_shapes: buildCopyShapes,
   build_copy_structure: buildCopyStructure,

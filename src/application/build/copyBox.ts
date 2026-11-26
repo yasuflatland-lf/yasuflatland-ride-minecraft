@@ -28,7 +28,12 @@ export class CopyBox implements BoxAction {
       else this.feedback.showMessage(playerId, "copyUnreadable");
       return false;
     }
-    const clipboard = clipboardOf({ selection, facing: cmd.facing, handle });
+    const clipboard = clipboardOf({
+      selection,
+      facing: cmd.facing,
+      point1: cmd.point1,
+      handle,
+    });
     this.repo.update(this.repo.getOrCreate(playerId), (session) => {
       session.completeCopy(selection, clipboard);
     });
