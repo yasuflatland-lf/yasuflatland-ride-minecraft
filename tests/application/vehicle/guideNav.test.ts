@@ -22,6 +22,8 @@ function setup() {
     choose: vi.fn<NavWorld["choose"]>(),
     giveMap: vi.fn<NavWorld["giveMap"]>(),
     showMessage: vi.fn<NavWorld["showMessage"]>(),
+    showCreating: vi.fn<NavWorld["showCreating"]>(),
+    waitTicks: vi.fn<NavWorld["waitTicks"]>().mockResolvedValue(undefined),
   };
   const selections = new NavSelections();
   return {
