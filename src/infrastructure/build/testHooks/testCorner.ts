@@ -114,6 +114,7 @@ export function registerTestTap(
             intent,
             tap: blockTapOf(dimensionId, cell),
             ray,
+            tick: system.currentTick,
           });
           // The fixture reports an explicitly requested selection menu without showing a form.
           if (flow?.kind === "selected" && followUp === "utilityMenu")

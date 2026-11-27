@@ -148,6 +148,7 @@ it("dispatches a server-only block tap with its face and quiet gap", () => {
     intent: "selectPoint",
     tap: { dimensionId: nether, cell: { x: -1, y: 2, z: 3 }, face: "west" },
     quietTicks: 8,
+    tick: 0,
   });
   expect(e.calls).toEqual([]);
   expect(system.sendScriptEvent).toHaveBeenCalledOnce();

@@ -172,6 +172,7 @@ export function installBuild(deps: {
     cases.pasteAt,
     feedback,
     resolveTarget,
+    facing,
   );
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
   const pressUndo = new PressUndo(
@@ -182,14 +183,15 @@ export function installBuild(deps: {
     pressUndo,
     undoDebounce,
     repo,
-    aim,
+    pressGaps,
     pressPasteAim,
     rotatePasteAim,
     rotateSelection: new RotateSelection(repo, rotateBox, feedback, blocks),
     pasteDebounce,
     rotateDebounce,
     refresh: (id, tick) => preview.refresh(id, tick),
-    refreshResumedPaste: (id, tick) => preview.refreshResumedPaste(id, tick),
+    refreshAfterPastePress: (id, tick) =>
+      preview.refreshAfterPastePress(id, tick),
   });
   const pressWand = new PressWand(
     repo,
@@ -198,11 +200,7 @@ export function installBuild(deps: {
       tapAir: new TapAir(repo, feedback, blocks),
       tapStairGoal: new TapStairGoal(repo, feedback),
       pressPasteAim,
-      onPasted: (id, tick) => {
-        // Another event from the paste gesture now routes through selection.
-        debounce.press(id, tick);
-        preview.refresh(id, tick);
-      },
+      onPasted: (id, tick) => preview.refreshAfterPastePress(id, tick),
     },
     blocks,
   );
@@ -237,11 +235,9 @@ export function installBuild(deps: {
     routes,
     menuCases,
     menuChoices,
-    pressPasteAim,
     pressUndo,
     endSession,
     structures: ports.structures,
-    rotatePasteAim,
     onPlayerLeave,
   };
 }

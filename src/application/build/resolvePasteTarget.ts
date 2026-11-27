@@ -1,24 +1,17 @@
+import type { BlockTap } from "../../domain/build/blockTap";
 import { type CellBox, sameBox } from "../../domain/build/box";
 import {
   cornerCell,
   turnCorner,
 } from "../../domain/build/clipboard/anchorCorner";
 import {
-  aimedPasteTarget,
   type PasteTarget,
+  pasteTarget,
 } from "../../domain/build/clipboard/clipboard";
 import { snapToGround } from "../../domain/build/clipboard/ground";
-import {
-  effectiveTurn,
-  type Facing,
-  facingFromDirection,
-} from "../../domain/build/rotation/facing";
-import { NO_TURN } from "../../domain/build/rotation/quarterTurn";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { Vec3 } from "../../domain/shared/vec";
-import type { AimResult } from "./ports/aim";
 import type { GroundProbe } from "./ports/ground";
 
 type PasteTargetResult =
@@ -33,22 +26,9 @@ type Snap = {
   snapped: CellBox | undefined;
 };
 
-export function pasteFacing(
-  copied: Facing,
-  previous: Facing | undefined,
-  direction: Vec3 | undefined,
-): Facing {
-  return (
-    (direction && facingFromDirection(direction, previous)) ??
-    previous ??
-    copied
-  );
-}
-
 export class ResolvePasteTarget {
-  // The outline redraws every few ticks while the gaze often rests on one
-  // block, so the preview reuses the last snap instead of rescanning the
-  // footprint. Entries expire so blocks placed under it still show up.
+  // Reuse a snap across outline redraws. It expires so changes under the
+  // footprint show up even when the player keeps the same target.
   private readonly snaps = new Map<PlayerId, Snap>();
 
   constructor(
@@ -58,32 +38,26 @@ export class ResolvePasteTarget {
 
   execute(command: {
     playerId: PlayerId;
-    aim: AimResult;
+    tap: BlockTap;
     dimensionId: DimensionId;
     tick: number;
     fresh?: boolean;
-    facing?: Facing;
   }): PasteTargetResult {
     const session = this.repo.get(command.playerId);
-    if (!session?.clipboard) {
+    if (!session?.clipboard || session.flow.kind !== "pasteAim") {
       this.snaps.delete(command.playerId);
       return { kind: "noTarget" };
     }
-    const flow = session.flow;
-    const copied = session.clipboard.facing;
-    const facing =
-      command.facing ??
-      pasteFacing(
-        copied,
-        flow.kind === "pasteAim" ? flow.facing : undefined,
-        command.aim.ray.direction,
-      );
-    const turn =
-      flow.kind === "pasteAim"
-        ? effectiveTurn(copied, facing, flow.manualTurn)
-        : NO_TURN;
-    const target = aimedPasteTarget(session.clipboard, command.aim, turn);
-    if (!target) return { kind: "noTarget" };
+    if (command.tap.dimensionId !== command.dimensionId)
+      return { kind: "noTarget" };
+    const { tap } = command;
+    const turn = session.pasteTurn;
+    const target = pasteTarget(
+      session.clipboard,
+      tap.cell,
+      tap.face ?? "up",
+      turn,
+    );
     const box = this.snap(command, target.box);
     return box
       ? {

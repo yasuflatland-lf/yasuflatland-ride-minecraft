@@ -164,7 +164,11 @@ it("opens paste options on a plain press and refreshes only a completed paste", 
         structureClipboard(boxOf(cell, cell), () => stone, structures),
       );
       session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
-      const paste = { ...player, intent: "pasteAim" as const };
+      const paste = {
+        ...player,
+        intent: "pasteAim" as const,
+        quietTicks: Infinity,
+      };
       expect(
         press.execute({
           ...paste,
@@ -177,17 +181,18 @@ it("opens paste options on a plain press and refreshes only a completed paste", 
           itemUse: { tick, sneaking: true, aim: undefined },
         }),
       ).toBe("none");
-      expect(feedback.messages.at(-1)?.message).toBe("pasteNoTarget");
+      expect(feedback.messages.at(-1)?.message).toBe("pasteTapPosition");
       expect(onPasted).not.toHaveBeenCalled();
       const aim = {
         input: "pointer" as const,
         ray: { origin: cell, direction: { x: 1, y: 0, z: 0 } },
         block: { cell, face: "up" as const },
       };
+      session.tapPaste(blockTapOf(nether, cell, "up"), 0, "east");
       expect(
         press.execute({ ...paste, itemUse: { tick, sneaking: true, aim } }),
       ).toBe("none");
-      expect(session.flow.kind).toBe("selected");
+      expect(session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
       expect(onPasted).toHaveBeenCalledExactlyOnceWith(playerId, tick);
     }),
   );

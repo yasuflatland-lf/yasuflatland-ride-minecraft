@@ -1,9 +1,9 @@
 import type { Player } from "@minecraft/server";
+import type { AimReader } from "../../../../application/build/ports/aim";
 import type {
   FollowUp,
   PressWand,
 } from "../../../../application/build/pressWand";
-import type { Ray } from "../../../../domain/build/aim/aim";
 import type { BlockTap } from "../../../../domain/build/blockTap";
 import {
   type PressIntent,
@@ -15,6 +15,7 @@ import type { PlayerId } from "../../../../domain/shared/ids";
 import type { BuildMenus } from "../buildMenus";
 
 export type BlockPressContext = {
+  aim: AimReader;
   menus: BuildMenus;
   repo: BuildSessionRepository;
   pressWand: PressWand;
@@ -50,28 +51,32 @@ export function blockPressIntent(
 }
 
 export function pressBlockCell(
-  { menus, repo, pressWand }: BlockPressContext,
+  { aim, menus, repo, pressWand }: BlockPressContext,
   {
     player,
     playerId,
     tap,
-    ray,
     quietTicks,
+    tick,
   }: {
     player: Player;
     playerId: PlayerId;
     tap: BlockTap;
-    ray?: Ray;
     quietTicks?: number;
+    tick?: number;
   },
   intent: PressIntent["kind"],
 ): void {
   if (!player.isValid) return;
   if (blockPressIntent(repo.get(playerId)?.flow, player.isSneaking) !== intent)
     return;
+  const ray =
+    intent === "aimHeight" || intent === "confirmLiveHeight"
+      ? aim.aim(playerId)?.ray
+      : undefined;
   showFollowUp(
     menus,
     player,
-    pressWand.execute({ playerId, intent, tap, ray, quietTicks }),
+    pressWand.execute({ playerId, intent, tap, ray, quietTicks, tick }),
   );
 }

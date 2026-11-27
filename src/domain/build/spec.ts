@@ -20,7 +20,6 @@ export const BUILD_SPEC = Object.freeze({
   // A held itemUse repeats every 4 ticks (ADR 0203 input spike table and ADR 0198 Decision 3).
   tapConfirmQuietTicks: ticks(8),
   pasteRepeatTicks: ticks(10),
-  pasteFacingHysteresisDegrees: 10, // prevents flicker near diagonal gaze boundaries
   facingMinHorizontal: 1e-3, // excludes near-vertical gaze from facing selection
   // Exceeds held itemUse repeats (4-6 ticks, ADR 0024) but admits taps below 10 ticks.
   rotateDebounceTicks: ticks(7),

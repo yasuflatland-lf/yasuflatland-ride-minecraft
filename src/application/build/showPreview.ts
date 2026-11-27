@@ -7,7 +7,6 @@ import {
   type PreviewAim,
   previewModel,
 } from "../../domain/build/preview/preview";
-import { effectiveTurn, type Facing } from "../../domain/build/rotation/facing";
 import { degreesOf } from "../../domain/build/rotation/quarterTurn";
 import type { BuildSession } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
@@ -17,7 +16,7 @@ import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { AimReader, AimResult } from "./ports/aim";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { BuildFeedback } from "./ports/feedback";
-import { pasteFacing, type ResolvePasteTarget } from "./resolvePasteTarget";
+import type { ResolvePasteTarget } from "./resolvePasteTarget";
 import type { SyncTapTarget } from "./syncTapTarget";
 import { TrackGaze } from "./trackGaze";
 
@@ -28,7 +27,6 @@ type PreviewSample = {
 
 type RefreshOptions = {
   showPasteHud?: boolean;
-  facing?: Facing;
 };
 
 export class ShowPreview {
@@ -61,16 +59,10 @@ export class ShowPreview {
         if (redraw) this.hideTapTarget(id);
         continue;
       }
-      if (!redraw && kind !== "baseHeight" && kind !== "pasteAim") continue;
+      if (!redraw && kind !== "baseHeight") continue;
       const sample = this.sample(session);
-      const facing =
-        sample.aim &&
-        this.trackGaze.execute(
-          session,
-          sample.aim,
-          sample.playerDimension !== undefined,
-        );
-      if (redraw) this.render(session, tick, sample, { facing });
+      if (sample.aim) this.trackGaze.execute(session, sample.aim);
+      if (redraw) this.render(session, tick, sample);
     }
   }
 
@@ -78,11 +70,10 @@ export class ShowPreview {
     this.refreshPlayer(id, tick, this.repo.get(id));
   }
 
-  refreshResumedPaste(id: PlayerId, tick: number): void {
+  refreshAfterPastePress(id: PlayerId, tick: number): void {
     const session = this.repo.get(id);
     this.refreshPlayer(id, tick, session, {
       showPasteHud: false,
-      facing: session?.clipboard?.facing,
     });
   }
 
@@ -100,6 +91,11 @@ export class ShowPreview {
   }
 
   private sample(session: BuildSession): PreviewSample {
+    if (session.flow.kind === "pasteAim")
+      return {
+        aim: undefined,
+        playerDimension: this.aimReader.dimensionOf(session.playerId),
+      };
     if (
       session.flow.kind === "stairAim" ||
       session.flow.kind === "stairContents"
@@ -107,7 +103,7 @@ export class ShowPreview {
       return { aim: undefined, playerDimension: undefined };
     const aim = this.aimReader.aim(session.playerId);
     const playerDimension =
-      session.flow.kind === "pasteAim" || aim?.input === "touch"
+      aim?.input === "touch"
         ? this.aimReader.dimensionOf(session.playerId)
         : undefined;
     return { aim, playerDimension };
@@ -117,27 +113,17 @@ export class ShowPreview {
     session: BuildSession,
     tick: number,
     { aim, playerDimension }: PreviewSample,
-    { showPasteHud = true, facing: facingOverride }: RefreshOptions = {},
+    { showPasteHud = true }: RefreshOptions = {},
   ): void {
-    const { playerId, flow, clipboard } = session;
+    const { playerId, flow } = session;
     const blink = Math.floor(tick / BUILD_SPEC.outlineInterval) % 2 === 0;
     const preview = this.previewAim(flow, aim, blink);
     preview.playerDimension = playerDimension;
-    const facing =
-      flow.kind === "pasteAim" && clipboard
-        ? (facingOverride ??
-          pasteFacing(
-            clipboard.facing,
-            flow.facing,
-            playerDimension ? aim?.ray.direction : undefined,
-          ))
-        : undefined;
-    if (facing && aim && playerDimension) {
+    if (flow.kind === "pasteAim" && flow.tap && playerDimension) {
       const result = this.resolveTarget.execute({
         playerId,
         dimensionId: playerDimension,
-        facing,
-        aim,
+        tap: flow.tap,
         tick,
       });
       if (result.kind === "target") preview.pasteTarget = result.target;
@@ -151,7 +137,7 @@ export class ShowPreview {
       aim,
       dimensionId: dimensionId === playerDimension ? dimensionId : undefined,
     });
-    this.reportHud(session, preview, showPasteHud ? facing : undefined);
+    this.reportHud(session, preview, showPasteHud);
     if (Object.values(set).some((points) => points.length > 0))
       this.feedback.drawPreview(playerId, dimensionId, set);
   }
@@ -181,9 +167,9 @@ export class ShowPreview {
   }
 
   private reportHud(
-    { playerId, flow, clipboard }: BuildSession,
+    { playerId, flow, clipboard, pasteTurn }: BuildSession,
     preview: PreviewAim,
-    facing: Facing | undefined,
+    showPasteHud: boolean,
   ): void {
     if (flow.kind === "heightStep")
       this.reportSize(
@@ -193,14 +179,12 @@ export class ShowPreview {
       );
     if (flow.kind === "baseHeight")
       this.reportSize(playerId, sizeOf(liveHeightBox(flow)), true);
-    if (flow.kind === "pasteAim" && clipboard && facing)
+    if (flow.kind === "pasteAim" && clipboard && showPasteHud)
       this.feedback.showMode(playerId, {
         kind: "pasteReady",
         size: clipboard.size,
         blockCount: clipboard.blockCount,
-        degrees: degreesOf(
-          effectiveTurn(clipboard.facing, facing, flow.manualTurn),
-        ),
+        degrees: degreesOf(pasteTurn),
       });
   }
 

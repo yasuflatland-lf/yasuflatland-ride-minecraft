@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
@@ -89,7 +90,7 @@ it("advances the effective turn for any copy and gaze facing without editing", (
         const box = boxOf(cellOf(at), cellOf(at));
         const clipboard = { ...structureClipboard(box), facing: copied };
         session.completeCopy(selectionOf(nether, box, AIR), clipboard);
-        session.followPasteFacing(gaze);
+        session.tapPaste(blockTapOf(nether, box.min, "up"), 0, gaze);
         for (let i = 0; i < turns; i++) session.rotatePaste();
         const before = session.pasteTurn;
         expect(new RotatePasteAim(repo, feedback).execute({ playerId })).toBe(

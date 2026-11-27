@@ -39,6 +39,7 @@ export class PressWand {
     tap,
     ray,
     quietTicks = 0,
+    tick = 0,
     itemUse,
   }: {
     playerId: PlayerId;
@@ -47,6 +48,7 @@ export class PressWand {
     tap?: BlockTap;
     ray?: Ray;
     quietTicks?: number;
+    tick?: number;
     itemUse?: { aim: AimResult | undefined; tick: number; sneaking: boolean };
   }): FollowUp {
     const session = this.repo.get(playerId);
@@ -104,12 +106,26 @@ export class PressWand {
       }
       case "openUtilityMenu":
         return flow ? "utilityMenu" : "none";
+      case "tapPaste":
+        if (
+          tap &&
+          this.actions.pressPasteAim.tap({
+            playerId,
+            tap,
+            quietTicks,
+            tick,
+          }) === "pasted"
+        )
+          this.actions.onPasted(playerId, tick);
+        return "none";
       case "pasteAim": {
         if (!dimensionId || !itemUse) return "none";
         const result = this.actions.pressPasteAim.execute({
           playerId,
           dimensionId,
-          ...itemUse,
+          quietTicks,
+          tick: itemUse.tick,
+          sneaking: itemUse.sneaking,
         });
         if (result === "pasted") this.actions.onPasted(playerId, itemUse.tick);
         return result === "menu" ? "pasteMenu" : "none";

@@ -4,9 +4,8 @@ import type { Facing4 } from "../../../domain/shared/facing";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
 
 export type BuildMessage =
-  | "pasteChoosePosition"
   | "pasteInactive"
-  | "pasteNoTarget"
+  | "pasteTapPosition"
   | "building"
   | "cutRestored"
   | "cutIncomplete"

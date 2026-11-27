@@ -68,6 +68,7 @@ export function registerTestPress(
             face,
           ),
           quietTicks,
+          tick: system.currentTick,
         });
         // Scripted menu choices use the resulting flow without opening UI.
         replyWhenSettled({

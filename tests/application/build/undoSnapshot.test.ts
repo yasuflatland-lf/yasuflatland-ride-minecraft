@@ -130,6 +130,12 @@ it.each([
       target: { box, corner: box.min, anchor: box.min, turn: 0 },
     }),
   ).toBe("pasted");
+  if (
+    situation === "matching" ||
+    situation === "rotated" ||
+    situation === "wrong dimension"
+  )
+    e.session.confirmBox(selection, "selected", cornerTaps(box));
   if (situation === "rotated") {
     const target = planRotationAboutCenter(box).target;
     e.session.replaceSelection(

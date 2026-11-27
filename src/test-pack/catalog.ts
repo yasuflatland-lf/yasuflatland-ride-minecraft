@@ -2519,7 +2519,27 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
-    name: "build_paste_selects_box",
+    name: "build_paste_stays_aiming",
+    file: "buildFlow",
+    ticks: 100, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "exclusive",
+    needsArena: true,
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_paste_tap_retap",
+    file: "buildFlow",
+    ticks: 100, // Estimate until the first BDS run.
+    features: ["build"],
+    isolation: "exclusive",
+    needsArena: true,
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
+    name: "build_paste_facing_locked",
     file: "buildFlow",
     ticks: 100, // Estimate until the first BDS run.
     features: ["build"],
