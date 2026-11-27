@@ -1,96 +1,87 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
+import { cornerMarkerEdges } from "../../../src/domain/build/cornerMarker";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { cellOf } from "../../../src/domain/shared/cells";
+import { add3 } from "../../../src/domain/shared/vec";
 
 const coord = fc.integer({ min: -1000, max: 1000 });
 const cell = fc.record({ x: coord, y: coord, z: coord }).map(cellOf);
+const axes = ["x", "y", "z"] as const;
 
-describe("cornerMarkerPoints", () => {
-  it("returns distinct points on the cube edges", () => {
+describe("cornerMarkerEdges", () => {
+  it("returns the 12 distinct frozen edges of the grown cube", () => {
     fc.assert(
       fc.property(cell, (c) => {
-        const points = cornerMarkerPoints(c);
-        expect(points).toHaveLength(
-          8 + 8 * (BUILD_SPEC.markerHorizontalEdgeSteps - 1) + 4,
-        );
-        expect(new Set(points.map((point) => JSON.stringify(point))).size).toBe(
-          points.length,
-        );
+        const edges = cornerMarkerEdges(c);
+        expect(edges).toHaveLength(12);
+        expect(
+          new Set(
+            edges.map(({ axis, center }) => JSON.stringify([axis, center])),
+          ).size,
+        ).toBe(12);
         const out = BUILD_SPEC.markerOutset;
-        for (const point of points) {
-          let boundaries = 0;
-          for (const axis of ["x", "y", "z"] as const) {
-            if (
-              point[axis] === c[axis] - out ||
-              point[axis] === c[axis] + 1 + out
-            )
-              boundaries++;
-            expect(point[axis]).toBeGreaterThanOrEqual(c[axis] - out);
-            expect(point[axis]).toBeLessThanOrEqual(c[axis] + 1 + out);
+        for (const axis of axes) {
+          const parallel = edges.filter((edge) => edge.axis === axis);
+          expect(parallel).toHaveLength(4);
+          const transverse = axes.filter((coordinate) => coordinate !== axis);
+          const lo = -out;
+          const hi = 1 + out;
+          expect(
+            parallel.map(({ center }) =>
+              transverse.map(
+                (coordinate) => center[coordinate] - c[coordinate],
+              ),
+            ),
+          ).toEqual([
+            [lo, lo],
+            [lo, hi],
+            [hi, lo],
+            [hi, hi],
+          ]);
+          for (const edge of parallel) {
+            expect(edge.length).toBe(1.125);
+            expect(edge.center[axis]).toBe(c[axis] + 0.5);
+            expect(Object.isFrozen(edge)).toBe(true);
           }
-          expect(boundaries).toBeGreaterThanOrEqual(2);
         }
       }),
     );
   });
 
-  it("translates every point by the same integer offset as the cell", () => {
+  it("translates every center by the same offset as the cell", () => {
     fc.assert(
       fc.property(cell, cell, (c, offset) => {
-        expect(
-          cornerMarkerPoints(
-            cellOf({
-              x: c.x + offset.x,
-              y: c.y + offset.y,
-              z: c.z + offset.z,
-            }),
-          ),
-        ).toEqual(
-          cornerMarkerPoints(c).map((p) => ({
-            x: p.x + offset.x,
-            y: p.y + offset.y,
-            z: p.z + offset.z,
+        expect(cornerMarkerEdges(cellOf(add3(c, offset)))).toEqual(
+          cornerMarkerEdges(c).map((edge) => ({
+            ...edge,
+            center: add3(edge.center, offset),
           })),
         );
       }),
     );
   });
 
-  it("orders the corners first, then horizontal edge points, then vertical midpoints", () => {
-    const out = BUILD_SPEC.markerOutset;
-    const lo = -out;
-    const hi = 1 + out;
-    const points = cornerMarkerPoints(cellOf({ x: 0, y: 0, z: 0 }));
-    expect(points.slice(0, 8)).toEqual([
-      { x: lo, y: lo, z: lo },
-      { x: lo, y: lo, z: hi },
-      { x: lo, y: hi, z: lo },
-      { x: lo, y: hi, z: hi },
-      { x: hi, y: lo, z: lo },
-      { x: hi, y: lo, z: hi },
-      { x: hi, y: hi, z: lo },
-      { x: hi, y: hi, z: hi },
+  it("draws the x edges first, then z, then y", () => {
+    const edges = cornerMarkerEdges(cellOf({ x: 0, y: 0, z: 0 }));
+    expect(edges.map(({ axis }) => axis)).toEqual([
+      "x",
+      "x",
+      "x",
+      "x",
+      "z",
+      "z",
+      "z",
+      "z",
+      "y",
+      "y",
+      "y",
+      "y",
     ]);
-    expect(points.slice(-4)).toEqual([
-      { x: lo, y: 0.5, z: lo },
-      { x: lo, y: 0.5, z: hi },
-      { x: hi, y: 0.5, z: lo },
-      { x: hi, y: 0.5, z: hi },
-    ]);
-  });
-
-  it("keeps every point off the cube's own faces so ground-level cells show it", () => {
-    fc.assert(
-      fc.property(cell, (c) => {
-        for (const point of cornerMarkerPoints(c)) {
-          for (const axis of ["x", "y", "z"] as const) {
-            expect(point[axis]).not.toBe(c[axis]);
-            expect(point[axis]).not.toBe(c[axis] + 1);
-          }
-        }
-      }),
-    );
+    expect(edges[0]).toEqual({
+      center: { x: 0.5, y: -0.0625, z: -0.0625 },
+      axis: "x",
+      length: 1.125,
+    });
   });
 });

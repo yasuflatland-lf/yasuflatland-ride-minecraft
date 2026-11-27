@@ -3,6 +3,7 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../../application/build/ports/feedback";
+import type { MarkerEdge } from "../../../domain/build/cornerMarker";
 import type { PreviewSet } from "../../../domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../domain/build/spec";
 import type { DimensionId, PlayerId } from "../../../domain/shared/ids";
@@ -11,22 +12,25 @@ import { playerById } from "../../shared/players";
 import { BUILD_MESSAGE } from "../identifiers";
 import {
   MARKER_COLORS,
+  MARKER_DIRECTIONS,
   MARKER_PARTICLE,
   OUTLINE_COLOR,
   OUTLINE_PARTICLE,
 } from "./markerStyle";
 
-const OUTLINE_LAYERS: ReadonlySet<keyof PreviewSet> = new Set([
+const PREVIEW_LAYERS = [
+  "startMarker",
   "shape",
+  "endMarker",
+  "sharedMarker",
   "roof",
   "stairs",
-]);
+  "paste",
+  "pasteVertical",
+] as const satisfies readonly (keyof PreviewSet)[];
 
-const PREVIEW_STYLES: Readonly<Record<keyof PreviewSet, string | RGB>> = {
-  startMarker: MARKER_COLORS.startMarker,
+const OUTLINE_STYLES = {
   shape: OUTLINE_COLOR,
-  endMarker: MARKER_COLORS.endMarker,
-  sharedMarker: MARKER_COLORS.sharedMarker,
   roof: OUTLINE_COLOR,
   stairs: OUTLINE_COLOR,
   paste: "minecraft:blue_flame_particle",
@@ -151,21 +155,47 @@ export class BedrockFeedback implements BuildFeedback {
   ): void {
     const player = viewerIn(playerId, dimensionId);
     if (!player) return;
-    for (const layer of Object.keys(PREVIEW_STYLES) as (keyof PreviewSet)[]) {
+    for (const layer of PREVIEW_LAYERS) {
+      if (
+        layer === "startMarker" ||
+        layer === "endMarker" ||
+        layer === "sharedMarker"
+      ) {
+        if (!this.spawnMarker(player, set[layer], MARKER_COLORS[layer])) return;
+        continue;
+      }
       const points = set[layer];
       if (points.length === 0) continue;
-      const style = PREVIEW_STYLES[layer];
+      const style = OUTLINE_STYLES[layer];
       if (typeof style === "string") {
         if (!this.spawnAll(player, style, points)) return;
       } else {
         const molang = new MolangVariableMap();
         molang.setColorRGB("variable.color", style);
-        const particle = OUTLINE_LAYERS.has(layer)
-          ? OUTLINE_PARTICLE
-          : MARKER_PARTICLE;
-        if (!this.spawnAll(player, particle, points, molang)) return;
+        if (!this.spawnAll(player, OUTLINE_PARTICLE, points, molang)) return;
       }
     }
+  }
+
+  private spawnMarker(
+    player: Player,
+    edges: readonly MarkerEdge[],
+    color: RGB,
+  ): boolean {
+    for (const edge of edges) {
+      if (!player.isValid) return false;
+      const molang = new MolangVariableMap();
+      molang.setColorRGB("variable.color", color);
+      molang.setVector3("variable.direction", MARKER_DIRECTIONS[edge.axis]);
+      molang.setFloat("variable.length", edge.length);
+      try {
+        player.spawnParticle(MARKER_PARTICLE, edge.center, molang);
+      } catch {
+        // Spawning into an unloaded chunk can throw.
+        return false;
+      }
+    }
+    return true;
   }
 
   private spawnAll(
