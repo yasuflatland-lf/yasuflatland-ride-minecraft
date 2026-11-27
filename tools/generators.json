@@ -113,6 +113,12 @@
       "reads": []
     },
     {
+      "script": "gen_build_particles.py",
+      "args": ["packs/yasu_ride_rp"],
+      "outputs": ["packs/yasu_ride_rp/textures/yasu_build/marker_particle.png"],
+      "reads": []
+    },
+    {
       "script": "gen_build_tools.py",
       "args": ["packs/yasu_ride_rp"],
       "outputs": [

@@ -156,3 +156,45 @@ describe("Building Tools recipes and names", () => {
     expect(values.get(GROUP)).toBe(names[GROUP]);
   });
 });
+
+describe("Build particles", () => {
+  const rp = "packs/yasu_ride_rp";
+  const particle = (name: string) =>
+    read(`${rp}/particles/yasu_build/${name}.particle.json`).particle_effect;
+  const texture = "textures/yasu_build/marker_particle";
+
+  it("renders endpoints at full tint across the entire marker texture", () => {
+    const marker = particle("marker");
+    expect(marker.description.basic_render_parameters).toEqual({
+      material: "particles_alpha",
+      texture,
+    });
+    expect(
+      marker.components["minecraft:particle_appearance_billboard"],
+    ).toMatchObject({
+      size: [0.25, 0.25],
+      uv: {
+        texture_width: 16,
+        texture_height: 16,
+        uv: [0, 0],
+        uv_size: [16, 16],
+      },
+    });
+    expect(marker.components).not.toHaveProperty(
+      "minecraft:particle_appearance_lighting",
+    );
+    const { width, height, pixels } = readRgbaPng(`${rp}/${texture}.png`);
+    expect([width, height]).toEqual([16, 16]);
+    expect(pixels).toEqual(Buffer.alloc(16 * 16 * 4, 255));
+  });
+
+  it("keeps the larger outline on the vanilla particle sheet", () => {
+    const outline = particle("outline");
+    expect(outline.description.basic_render_parameters.texture).toBe(
+      "textures/particle/particles",
+    );
+    expect(
+      outline.components["minecraft:particle_appearance_billboard"].size,
+    ).toEqual([0.3, 0.3]);
+  });
+});
