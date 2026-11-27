@@ -20,7 +20,7 @@ const manualTickBudgets = new Map([
   ["build_structure_store_decor", 1300],
   ["build_structure_rotation_decor", 1300],
   ["build_paste_structure_decor", 1300],
-  ["build_marker_night", 700],
+  ["build_marker_night", 1300],
 ]);
 const longCamperFlights = new Set([
   "camper_boost_release",

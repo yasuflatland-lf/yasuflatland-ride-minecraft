@@ -865,13 +865,15 @@ export function buildMarkerNight(a: Arena): Promise<Outcome> {
       f.player.sendMessage(message);
       await wait(200);
     };
+    const viewFromWest = (distance: number, facingLocation: Vec3) => {
+      f.block(f.cell(-distance, -1)).setType("minecraft:stone");
+      f.player.teleport(cellCenter(f.cell(-distance)), { facingLocation });
+    };
+    const overview = f.at(0.5, 0.5, 1.5);
     const time = world.getTimeOfDay();
     try {
       a.dim.runCommand("time set midnight");
-      f.block(f.cell(-4, -1)).setType("minecraft:stone");
-      f.player.teleport(f.at(-3.5, 0, 0.5), {
-        facingLocation: f.at(0.5, 0.5, 1.5),
-      });
+      viewFromWest(4, overview);
       f.block(start).setType("minecraft:stone");
       // Aim away from the start plane so the live endpoint stays absent while the player watches.
       await f.edit("aim west");
@@ -886,8 +888,14 @@ export function buildMarkerNight(a: Arena): Promise<Outcome> {
         { min: start, max: end },
         "distinct endpoints",
       );
-      await hold("white start and red end with outline");
+      const distinct = "white start and red end with outline";
+      await hold(distinct);
+      for (const distance of [1, 4, 8]) {
+        viewFromWest(distance, cellCenter(start, 0.5));
+        await hold(`${distinct} at ${distance} blocks`);
+      }
 
+      viewFromWest(4, overview);
       await f.tap("clear");
       await f.tap("block", start);
       await f.tap("air", start);
