@@ -35,6 +35,7 @@ export function wandFixture(afterPaste?: (id: PlayerId, tick: number) => void) {
         new PasteAt(repo, world, feedback, structures, new FakeBuildPlayers()),
         feedback,
         new ResolvePasteTarget(repo, new FakeGroundProbe()),
+        { facingOf: () => "east" },
       ),
       onPasted,
     },

@@ -11,6 +11,7 @@ export type PressIntent =
   | { kind: "tapStairGoal" }
   | { kind: "confirmStairGoal" }
   | { kind: "aimHeight" } // Confirm the aimed height and advance the height step.
+  | { kind: "tapPaste" }
   | { kind: "pasteAim" } // Handle the wand's paste gesture or direct Paste Place.
   | { kind: "undo" } // Request undo of the last edit.
   | { kind: "rotateSelection" }
@@ -45,7 +46,7 @@ export function routePress({
   }
 
   if (flow.kind === "pasteAim")
-    return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
+    return { kind: route === "itemUse" ? "pasteAim" : "tapPaste" };
 
   if (flow.kind === "stairContents") return { kind: "ignore" };
   if (flow.kind === "stairAim")

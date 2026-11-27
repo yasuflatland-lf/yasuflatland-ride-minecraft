@@ -296,28 +296,37 @@ it.each(["stairs", "terrace"] as const)(
   },
 );
 
-it("accepts a paste immediately after its menu and suppresses repeats across the switch to selection", () => {
-  const f = setup();
-  const session = f.repo.getOrCreate(id);
-  holdClipboard(
-    session,
-    structureClipboard(boxOf(start, start), () => stone, f.structures),
-  );
-  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
-  expect(f.interact().cancel).toBe(true);
-  expect(engine.scheduled).toHaveLength(0);
-  f.use();
-  expect(menus.showPasteMenu).toHaveBeenCalledExactlyOnceWith(f.player);
-  f.player.isSneaking = true;
-  f.aim.target = { input: "pointer", ray, block: { cell: end, face: "up" } };
-  engine.tick++;
-  f.use();
-  expect(f.onPasted).toHaveBeenCalledExactlyOnceWith(id, engine.tick);
-  expect(f.flow()?.kind).toBe("selected");
-  engine.tick += BUILD_SPEC.pressDebounceTicks - 1;
-  f.use();
-  expect(menus.showUtilityMenu).not.toHaveBeenCalled();
-  engine.tick += BUILD_SPEC.pressDebounceTicks;
-  f.use();
-  expect(menus.showUtilityMenu).toHaveBeenCalledExactlyOnceWith(f.player);
-});
+it.each([false, true])(
+  "claims both press windows for a paste block tap (sneaking: %s)",
+  (sneaking) => {
+    const f = setup();
+    const session = f.repo.getOrCreate(id);
+    holdClipboard(
+      session,
+      structureClipboard(boxOf(start, start), () => stone, f.structures),
+    );
+    session.resumePasteAim();
+    const read = vi.spyOn(f.aim, "aim");
+    const execute = vi.spyOn(f.press, "execute");
+    f.player.isSneaking = sneaking;
+    f.interact(start);
+    f.use();
+    f.flush();
+    expect(f.flow()).toMatchObject({ kind: "pasteAim", tap: { cell: start } });
+    expect(menus.showPasteMenu).not.toHaveBeenCalled();
+    expect(f.onPasted).not.toHaveBeenCalled();
+
+    engine.tick += BUILD_SPEC.tapConfirmQuietTicks + 1;
+    f.interact(start);
+    f.use();
+    f.flush();
+    expect(f.flow()).toEqual({ kind: "pasteAim", manualTurn: 0 });
+    expect(f.onPasted).toHaveBeenCalledExactlyOnceWith(id, engine.tick);
+    expect(menus.showPasteMenu).not.toHaveBeenCalled();
+    expect(execute.mock.calls.map(([command]) => command.intent)).toEqual([
+      "tapPaste",
+      "tapPaste",
+    ]);
+    expect(read).not.toHaveBeenCalled();
+  },
+);

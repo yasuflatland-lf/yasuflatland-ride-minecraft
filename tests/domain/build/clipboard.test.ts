@@ -4,7 +4,6 @@ import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, sizeOf, volume } from "../../../src/domain/build/box";
 import { anchorCornerOf } from "../../../src/domain/build/clipboard/anchorCorner";
 import {
-  aimedPasteTarget,
   type Clipboard,
   clipboardOf,
   pasteTarget,
@@ -114,13 +113,6 @@ it("four facings give distinct turns, preserve volume and swap horizontal extent
             turn % 2 ? clip.size.x : clip.size.z,
           );
           expect(target.box.max.y - target.box.min.y + 1).toBe(clip.size.y);
-          expect(
-            aimedPasteTarget(
-              clip,
-              { block: { cell: block, face } },
-              turnBetween(clip.facing, facing),
-            ),
-          ).toEqual(target);
         }
         expect(turns.size).toBe(4);
       },
@@ -175,32 +167,6 @@ it("east-facing vertical-face targets reproduce the original positive-axis box",
   );
 });
 
-it("aimedPasteTarget is undefined exactly when there is no aimed block", () => {
-  fc.assert(
-    fc.property(
-      clipboard,
-      fc.option(fc.record({ cell, face }), { nil: undefined }),
-      (clip, block) => {
-        const target = aimedPasteTarget(
-          clip,
-          { block },
-          turnBetween(clip.facing, "east"),
-        );
-        expect(target === undefined).toBe(block === undefined);
-        if (block)
-          expect(target).toEqual(
-            pasteTarget(
-              clip,
-              block.cell,
-              block.face,
-              turnBetween(clip.facing, "east"),
-            ),
-          );
-      },
-    ),
-  );
-});
-
 it("uses the explicit turn for the footprint independently of the facing", () => {
   fc.assert(
     fc.property(
@@ -228,9 +194,6 @@ it("uses the explicit turn for the footprint independently of the facing", () =>
           turn % 2 ? clip.size.x : clip.size.z,
         );
         expect(target.box.max.y - target.box.min.y + 1).toBe(clip.size.y);
-        expect(
-          aimedPasteTarget(clip, { block: { cell: block, face } }, turn),
-        ).toEqual(target);
       },
     ),
   );

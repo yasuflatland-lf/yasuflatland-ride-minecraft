@@ -72,13 +72,3 @@ export function pasteTarget(
   const box = boxAtCorner(corner, size, turnCorner(clipboard.anchor, turn));
   return { anchor: box.min, corner, box, turn };
 }
-
-export function aimedPasteTarget(
-  clipboard: Clipboard,
-  aim: { block?: { cell: Cell; face: BlockFace } },
-  turn: QuarterTurn,
-): PasteTarget | undefined {
-  return aim.block
-    ? pasteTarget(clipboard, aim.block.cell, aim.block.face, turn)
-    : undefined;
-}

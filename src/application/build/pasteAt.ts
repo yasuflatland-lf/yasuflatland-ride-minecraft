@@ -1,5 +1,4 @@
 import type { PasteTarget } from "../../domain/build/clipboard/clipboard";
-import { selectionOf } from "../../domain/build/selection";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { BuildBlockWorld } from "./ports/blocks";
@@ -65,7 +64,7 @@ export class PasteAt {
     // Commit history only once placement succeeds, preserving earlier undo on failure.
     this.repo.update(session, (session) => {
       edit.commit({ box, handle: snapshot, paste: true });
-      session.selectPasted(selectionOf(dimensionId, box, clipboard.material));
+      session.pasted();
     });
     reportEditCompletion(
       session,

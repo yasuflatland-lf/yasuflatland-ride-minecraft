@@ -435,11 +435,7 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
         expect(read.mock.calls).toEqual(
           [...cellsOf(box)].map((at) => [nether, at]),
         );
-        expect(e.session.flow).toMatchObject({
-          kind: "selected",
-          menuLevel: "root",
-          selection: { dimensionId: nether, box },
-        });
+        expect(e.session.flow).toEqual(beginPasteAim());
         e.jobs.step();
         for (const [index, at] of [...cellsOf(box)].entries())
           expect(e.world.stateAt(nether, at)).toEqual(expected[index]);

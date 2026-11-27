@@ -1,5 +1,5 @@
 import { type Player, system, world } from "@minecraft/server";
-import type { AimReader } from "../../../../application/build/ports/aim";
+import type { PressGaps } from "../../../../application/build/pressGaps";
 import type { PressPasteAim } from "../../../../application/build/pressPasteAim";
 import type { PressUndo } from "../../../../application/build/pressUndo";
 import type { RotatePasteAim } from "../../../../application/build/rotatePasteAim";
@@ -29,7 +29,7 @@ export interface PasteControlRoutes {
 
 export function registerPasteControls({
   repo,
-  aim,
+  pressGaps,
   rotatePasteAim,
   rotateSelection,
   pressPasteAim,
@@ -38,10 +38,10 @@ export function registerPasteControls({
   rotateDebounce,
   pasteDebounce,
   refresh,
-  refreshResumedPaste,
+  refreshAfterPastePress,
 }: {
   repo: BuildSessionRepository;
-  aim: AimReader;
+  pressGaps: PressGaps;
   rotatePasteAim: RotatePasteAim;
   rotateSelection: Pick<RotateSelection, "execute">;
   pressPasteAim: PressPasteAim;
@@ -50,11 +50,20 @@ export function registerPasteControls({
   rotateDebounce: Debounces<PlayerId>;
   pasteDebounce: Debounces<PlayerId>;
   refresh(playerId: PlayerId, tick: number): void;
-  refreshResumedPaste(playerId: PlayerId, tick: number): void;
+  refreshAfterPastePress(playerId: PlayerId, tick: number): void;
 }): PasteControlRoutes {
   function pressFromBlockTap(player: Player, isFirstEvent: boolean): boolean {
-    if (!controlRole(heldTypeId(player))) return false;
-    if (!isFirstEvent) return true;
+    const held = controlRole(heldTypeId(player));
+    if (!held) return false;
+    if (!isFirstEvent) {
+      if (held === "pastePlace") {
+        const playerId = asPlayerId(player.id);
+        const tick = system.currentTick;
+        pressGaps.note(playerId, tick);
+        pasteDebounce.record(playerId, tick);
+      }
+      return true;
+    }
     system.run(() => {
       if (!player.isValid) return;
       const role = controlRole(heldTypeId(player));
@@ -85,7 +94,6 @@ export function registerPasteControls({
       flow: repo.get(playerId)?.flow ?? { kind: "idle" },
       role,
       route,
-      // Only an accepted Paste Place press needs a live ray.
       target: route === "blockInteract" ? "block" : "none",
       sneaking: source.isSneaking,
     });
@@ -108,17 +116,18 @@ export function registerPasteControls({
           refresh(playerId, tick);
         break;
       case "pasteAim": {
+        const quietTicks = pressGaps.note(playerId, tick);
         if (!pasteDebounce.press(playerId, tick)) return;
         const outcome = pressPasteAim.execute({
           playerId,
           dimensionId: asDimensionId(source.dimension.id),
-          aim: aim.aim(playerId),
+          quietTicks,
           tick,
           sneaking: source.isSneaking,
           intent: "place",
         });
-        if (outcome === "aiming") refreshResumedPaste(playerId, tick);
-        else if (outcome === "pasted") refresh(playerId, tick);
+        if (outcome === "aiming" || outcome === "pasted")
+          refreshAfterPastePress(playerId, tick);
         break;
       }
     }

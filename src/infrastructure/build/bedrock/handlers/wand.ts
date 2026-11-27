@@ -1,5 +1,4 @@
 import { system, world } from "@minecraft/server";
-import type { AimReader } from "../../../../application/build/ports/aim";
 import type { PressGaps } from "../../../../application/build/pressGaps";
 import { blockTapOf } from "../../../../domain/build/blockTap";
 import {
@@ -25,7 +24,6 @@ import {
 
 export function registerWand(
   context: BlockPressContext & {
-    aim: AimReader;
     debounce: Debounces<PlayerId>;
     pasteDebounce: Debounces<PlayerId>;
     pressGaps: PressGaps;
@@ -41,12 +39,17 @@ export function registerWand(
     ev.cancel = true;
     const player = ev.player;
     const playerId = asPlayerId(player.id);
-    const quietTicks = pressGaps.note(playerId, system.currentTick);
+    const tick = system.currentTick;
+    const quietTicks = pressGaps.note(playerId, tick);
     if (!ev.isFirstEvent) return;
     const flow = repo.get(playerId)?.flow ?? { kind: "idle" };
     const intent = blockPressIntent(flow, player.isSneaking);
     if (intent === "ignore") return;
     // A PC right-click can emit itemUse before the deferred block action runs.
+    if (intent === "tapPaste") {
+      debounce.record(playerId, tick);
+      pasteDebounce.record(playerId, tick);
+    }
     if (
       (intent === "confirmLiveHeight" || intent === "openUtilityMenu") &&
       acceptsAnyItemUse(flow) &&
@@ -63,11 +66,7 @@ export function registerWand(
       ),
     };
     system.run(() => {
-      const ray =
-        intent === "aimHeight" || intent === "confirmLiveHeight"
-          ? aim.aim(playerId)?.ray
-          : undefined;
-      pressBlockCell(context, { ...command, ray, quietTicks }, intent);
+      pressBlockCell(context, { ...command, quietTicks, tick }, intent);
     });
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
@@ -83,7 +82,9 @@ export function registerWand(
     if (!presses.press(playerId, tick) && flow?.kind !== "stairAim") return;
     if (!flow) return;
     const target =
-      flow.kind === "stairAim" || flow.kind === "stairContents"
+      flow.kind === "stairAim" ||
+      flow.kind === "stairContents" ||
+      flow.kind === "pasteAim"
         ? undefined
         : aim.aim(playerId);
     const intent = routePress({
