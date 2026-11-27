@@ -1,9 +1,10 @@
 import { anchorCell, type BlockFace } from "../../shared/blockFace";
 import type { Cell } from "../../shared/cells";
 import type { BlockState } from "../blockState";
-import type { CellBox, Size } from "../box";
+import { type CellBox, type Size, sizeOf, volume } from "../box";
 import type { Facing } from "../rotation/facing";
 import { type QuarterTurn, rotatedSize } from "../rotation/quarterTurn";
+import type { Selection } from "../selection";
 import type { StructureHandle } from "../structure/handle";
 import { placedPasteBox } from "./placement";
 
@@ -17,6 +18,24 @@ export interface Clipboard {
   readonly contents: {
     readonly kind: "structure";
     readonly handle: StructureHandle;
+  };
+}
+
+export function clipboardOf({
+  selection,
+  facing,
+  handle,
+}: {
+  selection: Selection;
+  facing: Facing;
+  handle: StructureHandle;
+}): Clipboard {
+  return {
+    material: selection.material,
+    facing,
+    size: sizeOf(selection.box),
+    blockCount: volume(selection.box),
+    contents: { kind: "structure", handle },
   };
 }
 

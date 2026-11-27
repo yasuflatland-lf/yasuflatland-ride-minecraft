@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { cellOf } from "../../../src/domain/shared/cells";
 import { Debounces } from "../../../src/domain/shared/debounce";
@@ -52,8 +53,7 @@ function setup({ ownsTarget = true, holdsWand = true } = {}) {
     press.execute({
       playerId,
       intent: "selectPoint",
-      dimensionId: nether,
-      cell,
+      tap: blockTapOf(nether, cell),
     });
   point(start);
   const session = repo.getOrCreate(playerId);

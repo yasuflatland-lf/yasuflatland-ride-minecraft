@@ -13,7 +13,8 @@ import type { RotatePasteAim } from "../../../application/build/rotatePasteAim";
 import type { ShowPreview } from "../../../application/build/showPreview";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import { AIR } from "../../../domain/build/blockState";
-import { boxOf, sizeOf, volume } from "../../../domain/build/box";
+import { boxOf } from "../../../domain/build/box";
+import { clipboardOf } from "../../../domain/build/clipboard/clipboard";
 import {
   facingVector,
   parseFacing,
@@ -181,13 +182,10 @@ export function registerTestEdit(
             throw new Error(handle);
           const selection = selectionOf(dimensionId, box, AIR);
           repo.update(repo.getOrCreate(playerId), (session) => {
-            session.completeCopy(selection, {
-              material: selection.material,
-              facing,
-              size: sizeOf(box),
-              blockCount: volume(box),
-              contents: { kind: "structure", handle },
-            });
+            session.completeCopy(
+              selection,
+              clipboardOf({ selection, facing, handle }),
+            );
           });
         } else if (command === "releaseStructures" && args.length === 0) {
           repo.update(repo.getOrCreate(playerId), (session) => {

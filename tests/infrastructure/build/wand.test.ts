@@ -35,6 +35,7 @@ const engine = vi.hoisted(() => {
   return { handlers, scheduled, event, tick: 0 };
 });
 vi.mock("@minecraft/server", () => ({
+  Direction: { Up: "Up", West: "West" },
   world: {
     afterEvents: {
       entityHitBlock: engine.event("hit"),
@@ -87,10 +88,15 @@ function setup() {
     debounce,
     pasteDebounce: new Debounces(BUILD_SPEC.pasteRepeatTicks),
   });
-  const interact = (location = start, isFirstEvent = true) => {
+  const interact = (
+    location = start,
+    isFirstEvent = true,
+    blockFace = "Up",
+  ) => {
     const event = {
       player,
       block: { dimension: player.dimension, location },
+      blockFace,
       isFirstEvent,
       cancel: false,
     };
@@ -138,6 +144,18 @@ it("cancels wand interactions and defers only the first block event", () => {
         else expect(f.flow()).toBeUndefined();
       },
     ),
+  );
+});
+
+it("passes the interacted block face to the deferred wand press", () => {
+  const f = setup();
+  const execute = vi.spyOn(f.press, "execute");
+  f.interact(start, true, "West");
+  f.flush();
+  expect(execute).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      tap: { dimensionId: nether, cell: start, face: "west" },
+    }),
   );
 });
 

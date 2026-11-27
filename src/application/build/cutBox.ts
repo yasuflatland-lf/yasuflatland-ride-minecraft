@@ -1,4 +1,5 @@
-import { sizeOf, volume } from "../../domain/build/box";
+import { volume } from "../../domain/build/box";
+import { clipboardOf } from "../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { Logger } from "../shared/ports/logger";
@@ -74,13 +75,10 @@ export class CutBox implements BoxAction {
       return false;
     }
     this.repo.update(session, (session) => {
-      session.completeCopy(selection, {
-        material: selection.material,
-        facing: cmd.facing,
-        size: sizeOf(box),
-        blockCount: count,
-        contents: { kind: "structure", handle },
-      });
+      session.completeCopy(
+        selection,
+        clipboardOf({ selection, facing: cmd.facing, handle }),
+      );
       edit.commit({ box, handle: snapshot });
     });
     if (!cleared) {

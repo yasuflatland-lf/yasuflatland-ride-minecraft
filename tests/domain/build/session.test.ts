@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, boxWithHeight } from "../../../src/domain/build/box";
+import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import type { EditRecord } from "../../../src/domain/build/edit/change";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { cornerTaps } from "../../../src/domain/build/flow/taps";
@@ -521,19 +522,15 @@ it("releases only replaced or cleared structure handles and retains identical ha
           cellOf({ x: 0, y: 0, z: 0 }),
           cellOf({ x: 0, y: 0, z: 0 }),
         );
-        const clipboard = (raw: string) => ({
-          material: stone,
-          facing: "east" as const,
-          size: { x: 1, y: 1, z: 1 },
-          blockCount: 1,
-          contents: {
-            kind: "structure" as const,
+        const selection = selectionOf(dim, box, stone);
+        const clipboard = (raw: string) =>
+          clipboardOf({
+            selection,
+            facing: "east",
             handle: structureHandle(raw),
-          },
-        });
+          });
         const a = clipboard(first);
         const b = clipboard(second);
-        const selection = selectionOf(dim, box, stone);
         session.completeCopy(selection, a);
         session.clearClipboard();
         session.completeCopy(selection, clipboard(first));

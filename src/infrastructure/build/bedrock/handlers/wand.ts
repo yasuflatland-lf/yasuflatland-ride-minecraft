@@ -1,4 +1,5 @@
 import { system, world } from "@minecraft/server";
+import { blockTapOf } from "../../../../domain/build/blockTap";
 import {
   acceptsAnyItemUse,
   routePress,
@@ -10,6 +11,7 @@ import {
   asPlayerId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
+import { blockFaceOf } from "../../../shared/faces";
 import { buildItemRole } from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
 import {
@@ -45,8 +47,11 @@ export function registerWand(
     const command = {
       player,
       playerId,
-      dimensionId: asDimensionId(ev.block.dimension.id),
-      cell: cellOf(ev.block.location),
+      tap: blockTapOf(
+        asDimensionId(ev.block.dimension.id),
+        cellOf(ev.block.location),
+        blockFaceOf(ev.blockFace),
+      ),
     };
     system.run(() => pressBlockCell(context, command, intent));
   });
