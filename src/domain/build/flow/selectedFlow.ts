@@ -46,5 +46,6 @@ export function keptSelection({
     selection,
     start,
     taps,
+    rootShown: true,
   });
 }

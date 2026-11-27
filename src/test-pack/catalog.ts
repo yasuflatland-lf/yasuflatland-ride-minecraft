@@ -2421,7 +2421,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_root_menu",
     file: "buildFlow",
-    ticks: 200,
+    ticks: 240,
     features: ["build"],
     isolation: "exclusive",
     needsArena: true,

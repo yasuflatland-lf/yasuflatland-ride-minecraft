@@ -272,7 +272,10 @@ it("uses the supplied test corner and reports the selection menu only on a later
   const fixed = tap("block");
   expect(fixed.flow.kind).toBe("selected");
   expect(fixed.menu).toBeUndefined();
-  expect(tap("air").menu).toContainEqual(
+  const first = tap("air").menu;
+  expect(first[0]).toMatchObject({ id: "fill" });
+  expect(first).not.toContainEqual(
     expect.objectContaining({ id: "adjustHeight" }),
   );
+  expect(tap("air").menu[0]).toMatchObject({ id: "adjustHeight" });
 });

@@ -111,6 +111,7 @@ it("selects the pasted box at the root and keeps the clipboard", () => {
         expect(e.session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
+          rootShown: true,
           ...tappedSelection({ dimensionId, box, material }, box.min, box.max),
         });
         expect(e.session.confirmedBox).toEqual({ dimensionId, box, material });

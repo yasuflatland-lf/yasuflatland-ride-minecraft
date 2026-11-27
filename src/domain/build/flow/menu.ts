@@ -102,7 +102,9 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
   const { min, max } = flow.selection.box;
   const isLine = shapeOf(min, max).kind === "line";
   return [
-    ...(isLine ? [] : [{ id: "adjustHeight" as const }]),
+    ...(!isLine && flow.rootShown === true
+      ? [{ id: "adjustHeight" as const }]
+      : []),
     { id: "fill" },
     { id: "cut" },
     ...(isLine ? [] : [{ id: "buildShape" as const }]),

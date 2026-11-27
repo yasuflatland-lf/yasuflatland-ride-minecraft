@@ -387,6 +387,7 @@ it("reopens height aiming from the selected height and reports the change once",
       const { session, choices, feedback } = setupMenuChoices();
       const initial = selected(from, cellOf({ ...to, y: from.y + height - 1 }));
       session.setFlowForTest(initial);
+      choices.openShapeMenu(playerId, tick);
       expect(choices.chooseShape(playerId, "adjustHeight", tick)).toBe(true);
       expect(choices.chooseShape(playerId, "adjustHeight", tick)).toBe(false);
       expect(feedback.messages).toEqual([{ message: "heightAim" }]);

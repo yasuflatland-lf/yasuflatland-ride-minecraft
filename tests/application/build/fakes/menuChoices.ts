@@ -12,7 +12,7 @@ import { MenuChoices } from "../../../../src/application/build/menuChoices";
 import { OpenSelectionMenu } from "../../../../src/application/build/openSelectionMenu";
 import { blockStateOf } from "../../../../src/domain/build/blockState";
 import { boxOf } from "../../../../src/domain/build/box";
-import type { BuildFlow } from "../../../../src/domain/build/flow/state";
+import type { SelectedFlow } from "../../../../src/domain/build/flow/selectedFlow";
 import { selectionOf } from "../../../../src/domain/build/selection";
 import { type Cell, cellOf } from "../../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../../src/domain/shared/ids";
@@ -28,7 +28,7 @@ export function selected(
   from: Cell,
   to: Cell,
   menuLevel: "root" | "build" = "root",
-): BuildFlow {
+): SelectedFlow {
   return {
     kind: "selected",
     menuLevel,
