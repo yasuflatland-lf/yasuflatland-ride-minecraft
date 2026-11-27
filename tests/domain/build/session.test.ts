@@ -562,6 +562,7 @@ it("confirms a box as an active root selection with matching Copy bounds", () =>
       expect(session.flow).toEqual({
         kind: "selected",
         menuLevel: "root",
+        rootShown: true,
         ...tappedSelection(selection, box.min, box.max),
       });
       expect(session.confirmedBox).toBe(selection);
@@ -585,6 +586,7 @@ it("uses the supplied taps even when replacing a selected box, and defaults to i
       expect(session.flow).toEqual({
         kind: "selected",
         menuLevel: "root",
+        rootShown: true,
         ...tappedSelection(selection, from, to),
       });
       session.confirmBox(selection);
@@ -619,6 +621,7 @@ it("confirming a box from a selection or terrain confirmation keeps the tapped p
         expect(session.flow).toEqual({
           kind: "selected",
           menuLevel: "root",
+          rootShown: true,
           ...tappedSelection(next, from, to),
         });
       },

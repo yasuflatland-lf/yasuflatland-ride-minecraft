@@ -922,21 +922,25 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         "fixing the height failed or opened a menu",
       );
 
+      let shown: string | undefined;
       for (const [route, target] of [
         ["air", end],
         ["block", f.cell(1, 0, 1)],
         ["block", f.cell(8, 0, 8)],
       ] as const) {
         const opened = await f.tap(route, target);
+        const expected = shown
+          ? "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel"
+          : "fill,cut,buildShape,removeAbove,fillBelow,copy,cancel";
         check(
-          opened.menu?.map(({ id }) => id).join() ===
-            "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
-          "selection menu missing",
+          opened.menu?.map(({ id }) => id).join() === expected,
+          `unexpected selection menu for ${route}: expected ${expected}`,
         );
+        shown ??= JSON.stringify(opened.flow);
         const dismissed = await f.edit("menu shape");
         check(
           dismissed.offered === false &&
-            JSON.stringify(dismissed.flow) === JSON.stringify(fixed.flow),
+            JSON.stringify(dismissed.flow) === shown,
           "dismissal changed the selection",
         );
       }
@@ -950,8 +954,7 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         await wait(BUILD_SPEC.modeLeaveTicks + 2);
         const mode = await f.mode();
         check(
-          mode.mode === true &&
-            JSON.stringify(mode.flow) === JSON.stringify(fixed.flow),
+          mode.mode === true && JSON.stringify(mode.flow) === shown,
           `holding ${type} changed the selection`,
         );
       }
@@ -979,15 +982,11 @@ export function buildRootMenu(a: Arena): Promise<Outcome> {
     const boxEnd = f.cell(2, 1, 2);
     const box = { min: f.cell(), max: boxEnd };
     for (const [label, end, expected] of [
-      [
-        "box",
-        boxEnd,
-        "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
-      ],
+      ["box", boxEnd, "fill,cut,buildShape,removeAbove,fillBelow,copy,cancel"],
       [
         "single cell",
         f.cell(),
-        "adjustHeight,fill,cut,buildShape,stairs,terrace,removeAbove,fillBelow,copy,cancel",
+        "fill,cut,buildShape,stairs,terrace,removeAbove,fillBelow,copy,cancel",
       ],
       [
         "east-west row",
@@ -1010,15 +1009,42 @@ export function buildRootMenu(a: Arena): Promise<Outcome> {
       );
     }
 
-    // Root Fill uses the captured material and keeps the same selection.
+    // The first open hides Edit height again.
     const cells = f.region(3, 2, 3);
     for (const cell of cells) f.block(cell).setType("minecraft:air");
     await f.select(boxEnd);
     const opened = await f.tap("block");
     check(
-      opened.menu?.some(({ id }) => id === "fill") === true,
-      "root Fill missing",
+      opened.menu?.[0]?.id === "fill" &&
+        !opened.menu.some(({ id }) => id === "adjustHeight"),
+      "first root did not hide Edit height again",
     );
+    check(
+      (await f.edit("menu shape")).offered === false,
+      "root dismissal dispatched an action",
+    );
+    check(
+      (await f.tap("block")).menu?.[0]?.id === "adjustHeight",
+      "reopened root did not start with Edit height again",
+    );
+
+    const submenu = await f.menu("shape", "buildShape");
+    check(
+      submenu.offered === true && submenu.flow.menuLevel === "build",
+      "Build shape submenu did not open",
+    );
+    // The edit hook serializes the full domain flow.
+    check(
+      buildMenu(submenu.flow as BuildFlow)[0]?.id === "fill",
+      "submenu Fill is not first",
+    );
+    check((await f.menu("shape", "back")).offered === true, "Back was refused");
+    check(
+      (await f.tap("block")).menu?.[0]?.id === "adjustHeight",
+      "root after Back did not start with Edit height again",
+    );
+
+    // Root Fill uses the captured material and keeps the same selection.
     f.block(box.min).setType("minecraft:air");
     const filled = await f.menu("shape", "fill");
     check(
@@ -1033,16 +1059,21 @@ export function buildRootMenu(a: Arena): Promise<Outcome> {
     );
     checkSelection(filled, box, "root Fill");
 
-    // Build shape still opens with Fill first.
-    const submenu = await f.menu("shape", "buildShape");
     check(
-      submenu.offered === true && submenu.flow.menuLevel === "build",
-      "Build shape submenu did not open",
+      (await f.tap("block")).menu?.[0]?.id === "adjustHeight",
+      "root after Fill did not start with Edit height again",
     );
-    // The edit hook serializes the full domain flow.
+    const adjusted = await f.menu("shape", "adjustHeight");
     check(
-      buildMenu(submenu.flow as BuildFlow)[0]?.id === "fill",
-      "submenu Fill is not first",
+      adjusted.offered === true && adjusted.flow.kind === "baseHeight",
+      "Edit height again did not reopen height aiming",
+    );
+    checkSelection(await f.tap("fixHeight"), box, "reconfirmed height");
+    const reopened = await f.tap("block");
+    check(
+      reopened.menu?.[0]?.id === "fill" &&
+        !reopened.menu.some(({ id }) => id === "adjustHeight"),
+      "first root after reconfirmation did not hide Edit height again",
     );
   });
 }

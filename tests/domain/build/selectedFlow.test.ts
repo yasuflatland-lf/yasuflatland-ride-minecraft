@@ -37,6 +37,7 @@ it("preserves the line confirmation literal", () => {
         freshEnd: true,
       });
       expect(Object.isFrozen(flow)).toBe(true);
+      expect(Object.hasOwn(flow, "rootShown")).toBe(false);
       expect(flow).toEqual({
         kind: "selected",
         start,
@@ -69,14 +70,18 @@ it("preserves the confirmed height and kept selection literals", () => {
         start,
         taps,
       };
-      for (const flow of [
-        confirmedSelection({ start, selection, taps }),
-        keptSelection({ start, selection, taps }),
-      ]) {
+      const confirmed = confirmedSelection({ start, selection, taps });
+      const kept = keptSelection({ start, selection, taps });
+      expect(Object.hasOwn(confirmed, "rootShown")).toBe(false);
+      expect(kept.rootShown).toBe(true);
+      for (const [flow, literal] of [
+        [confirmed, expected],
+        [kept, { ...expected, rootShown: true }],
+      ] as const) {
         expect(Object.isFrozen(flow)).toBe(true);
-        expect(flow).toEqual(expected);
+        expect(flow).toEqual(literal);
         expect(Object.hasOwn(flow, "freshEnd")).toBe(false);
-        expect(JSON.stringify(flow)).toBe(JSON.stringify(expected));
+        expect(JSON.stringify(flow)).toBe(JSON.stringify(literal));
       }
     }),
   );

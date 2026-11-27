@@ -21,6 +21,7 @@ it("clears a line's undo target when its root menu first opens", () => {
   expect(menu.execute({ playerId })).toEqual(shapeMenu(line));
   const opened = session.flow;
   expect(opened).not.toHaveProperty("freshEnd");
+  expect(opened).toHaveProperty("rootShown", true);
   expect(menu.execute({ playerId })).toEqual(shapeMenu(line));
-  expect(session.flow).toBe(opened);
+  expect(session.flow).toEqual(opened);
 });

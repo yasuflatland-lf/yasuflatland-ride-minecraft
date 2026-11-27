@@ -144,6 +144,8 @@ const labels = (entries: { id: string }[]) =>
     translate: BUILD_FORM[id as keyof typeof BUILD_FORM],
   }));
 
+const shownEndpoint = { ...endpoint, rootShown: true } as const;
+
 it("accepts a line menu response after opening clears the undo target", async () => {
   const { session, menus, player, cases } = setup();
   const point = tapBlock({ kind: "idle" }, overworld, from, stone);
@@ -165,7 +167,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
     const { session, menus, player, refresh } = setup();
     const build = openBuildMenu(endpoint);
     ui.answers.push(
-      { selection: 3 },
+      ...shapeAnswers(endpoint, "buildShape"),
       answer === "back"
         ? {
             selection: buildMenu(build).findIndex(
@@ -183,8 +185,7 @@ it.each(["back", "dismiss", "unanswered"] as const)(
       { translate: BUILD_FORM.buildShapeTitle },
       { translate: BUILD_FORM.shapeTitle },
     ]);
-    expect(ui.forms[0]?.buttons).toEqual([
-      { translate: BUILD_FORM.adjustHeight },
+    const firstButtons = [
       { translate: "yasu_build.form.fill" },
       { translate: BUILD_FORM.cut },
       { translate: BUILD_FORM.buildShape },
@@ -192,9 +193,14 @@ it.each(["back", "dismiss", "unanswered"] as const)(
       { translate: BUILD_FORM.fillBelow },
       { translate: BUILD_FORM.copy },
       { translate: BUILD_FORM.cancel },
+    ];
+    expect(ui.forms[0]?.buttons).toEqual(firstButtons);
+    expect(ui.forms[2]?.buttons).toEqual([
+      { translate: BUILD_FORM.adjustHeight },
+      ...firstButtons,
     ]);
     expect(refresh).toHaveBeenCalledWith(playerId, engine.tick);
-    expect(session.flow).toEqual(endpoint);
+    expect(session.flow).toEqual(shownEndpoint);
   },
 );
 
@@ -203,13 +209,13 @@ it("keeps a refused side-cylinder choice at the build level", async () => {
   cases.chooseSideCylinder.execute.mockImplementation(() => {});
   ui.answers.push(...shapeAnswers(endpoint, "sideCylinder"));
   await menus.showShapeMenu(player);
-  expect(session.flow).toEqual(openBuildMenu(endpoint));
+  expect(session.flow).toEqual(openBuildMenu(shownEndpoint));
   ui.answers.push({ canceled: true });
   await menus.showUtilityMenu(player);
   expect(ui.forms.at(-1)?.heading).toEqual({
     translate: BUILD_FORM.shapeTitle,
   });
-  expect(session.flow).toEqual(endpoint);
+  expect(session.flow).toEqual(shownEndpoint);
 });
 
 it("rebuilds shape and roof entries from the live flow, including empty models", async () => {
@@ -325,16 +331,14 @@ it("keeps a dismissed root selection and clears it on Cancel", async () => {
   ]) {
     ui.answers.push(answer);
     await menus.showUtilityMenu(player);
-    expect(session.flow).toBe(endpoint);
+    expect(session.flow).toEqual(shownEndpoint);
     expect(cases.clear.execute).not.toHaveBeenCalled();
   }
   expect(ui.forms.map((form) => form.buttons)).toEqual([
     labels(shapeMenu(endpoint)),
-    labels(shapeMenu(endpoint)),
+    labels(shapeMenu(shownEndpoint)),
   ]);
-  ui.answers.push({
-    selection: shapeMenu(endpoint).findIndex((entry) => entry.id === "cancel"),
-  });
+  ui.answers.push(...shapeAnswers(shownEndpoint, "cancel"));
   await menus.showUtilityMenu(player);
   expect(cases.clear.execute).toHaveBeenCalledExactlyOnceWith({ playerId });
   expect(session.flow.kind).toBe("idle");
@@ -743,7 +747,7 @@ it("opens no confirmation when the area is too large", async () => {
   });
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(1);
-  expect(session.flow).toBe(area);
+  expect(session.flow).toEqual({ ...area, rootShown: true });
   expect(cases.confirmTerrain.execute).not.toHaveBeenCalled();
 });
 
@@ -904,16 +908,13 @@ it.each([
   "returns from the build submenu to the same root selection (%s)",
   async (answer) => {
     const { session, menus, player, cases, refresh } = setup();
-    session.setFlowForTest(selected(from, cellOf({ x: 4, y: 64, z: 0 })));
-    const initial = session.flow;
+    const initial = selected(from, cellOf({ x: 4, y: 64, z: 0 }));
+    const shown = { ...initial, rootShown: true } as const;
+    session.setFlowForTest(initial);
     ui.answers.push(
-      {
-        selection: shapeMenu(initial).findIndex(
-          ({ id }) => id === "buildShape",
-        ),
-      },
+      ...shapeAnswers(initial, "buildShape"),
       answer,
-      { selection: shapeMenu(initial).findIndex(({ id }) => id === "cut") },
+      ...shapeAnswers(shown, "cut"),
     );
     await menus.showShapeMenu(player);
     expect(refresh.mock.calls).toEqual([
@@ -925,7 +926,7 @@ it.each([
       { translate: BUILD_FORM.buildShapeTitle },
       { translate: BUILD_FORM.shapeTitle },
     ]);
-    expect(ui.forms[2]?.buttons).toEqual(labels(shapeMenu(initial)));
+    expect(ui.forms[2]?.buttons).toEqual(labels(shapeMenu(shown)));
     expect(cases.chooseBoxStep.execute).toHaveBeenCalledWith({
       playerId,
       kind: "cut",
@@ -967,7 +968,7 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   let dismiss!: (value: Answer) => void;
   let finish!: (value: Answer) => void;
   ui.answers.push(
-    { selection: 3 },
+    ...shapeAnswers(endpoint, "buildShape"),
     new Promise((resolve) => {
       dismiss = resolve;
     }),
@@ -977,17 +978,17 @@ it("holds the lock through submenu dismissal and the reopened root", async () =>
   );
   const pending = menus.showShapeMenu(player);
   await vi.waitFor(() => expect(ui.forms).toHaveLength(2));
-  expect(session.flow).toEqual(openBuildMenu(endpoint));
+  expect(session.flow).toEqual(openBuildMenu(shownEndpoint));
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(2);
   dismiss({ canceled: true });
   await vi.waitFor(() => expect(ui.forms).toHaveLength(3));
-  expect(session.flow).toEqual(endpoint);
+  expect(session.flow).toEqual(shownEndpoint);
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(3);
   finish({ canceled: true });
   await pending;
-  expect(session.flow).toEqual(endpoint);
+  expect(session.flow).toEqual(shownEndpoint);
 });
 
 it.each([

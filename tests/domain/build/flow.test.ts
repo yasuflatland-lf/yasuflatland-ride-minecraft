@@ -251,7 +251,6 @@ it("offers the ordered root and build menus for every shape and returns unchange
         const shape = shapeOf(from, to);
         const before = structuredClone(flow);
         const rootIds = [
-          ...(shape.kind === "line" ? [] : ["adjustHeight"]),
           "fill",
           "cut",
           ...(shape.kind === "line" ? [] : ["buildShape"]),
@@ -791,7 +790,7 @@ it("offers an ordered subsequence of root entries for every selected shape", () 
     "cancel",
   ];
   fc.assert(
-    fc.property(cell, cell, (from, to) => {
+    fc.property(cell, cell, fc.boolean(), (from, to, rootShown) => {
       const flow = confirmEndpointHeight(
         tapAir(
           tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
@@ -802,11 +801,13 @@ it("offers an ordered subsequence of root entries for every selected shape", () 
       if (flow.kind !== "selected") throw new Error("Expected a selection");
       const { min, max } = flow.selection.box;
       const isLine = shapeOf(min, max).kind === "line";
-      const ids: string[] = shapeMenu(flow).map(({ id }) => id);
+      const ids: string[] = shapeMenu(
+        rootShown ? { ...flow, rootShown: true } : flow,
+      ).map(({ id }) => id);
       expect(ids).toEqual(order.filter((id) => ids.includes(id)));
       expect(ids).toEqual(expect.arrayContaining(["fill", "cut"]));
       expect(ids.includes("buildShape")).toBe(!isLine);
-      expect(ids.includes("adjustHeight")).toBe(!isLine);
+      expect(ids.includes("adjustHeight")).toBe(!isLine && rootShown);
       expect(ids).not.toContain("place");
     }),
   );
@@ -816,12 +817,12 @@ it.each([
   [
     "box",
     { x: 2, y: 1, z: 2 },
-    "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
+    "fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
   ],
   [
     "single cell",
     { x: 0, y: 0, z: 0 },
-    "adjustHeight,fill,cut,buildShape,stairs,terrace,removeAbove,fillBelow,copy,cancel",
+    "fill,cut,buildShape,stairs,terrace,removeAbove,fillBelow,copy,cancel",
   ],
   [
     "horizontal row",
@@ -927,7 +928,6 @@ it("offers Stairs and Terrace after Build shape for a single-cell box only when 
       if (selected.kind !== "selected")
         throw new Error("Expected a selected cell");
       expect(shapeMenu(selected).map(({ id }) => id)).toEqual([
-        "adjustHeight",
         "fill",
         "cut",
         "buildShape",

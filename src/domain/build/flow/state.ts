@@ -37,6 +37,7 @@ export type BuildFlow =
       readonly kind: "selected";
       readonly start: BuildStart;
       readonly freshEnd?: true;
+      readonly rootShown?: true;
       readonly menuLevel: "root" | "build";
       readonly selection: Selection;
       readonly taps: Taps;

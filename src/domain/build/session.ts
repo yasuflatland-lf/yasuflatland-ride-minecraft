@@ -202,8 +202,9 @@ export class BuildSession {
   openSelectionMenu() {
     const flow = this.currentFlow;
     if (flow.kind !== "selected" || flow.menuLevel !== "root") return [];
-    this.setFlow(withoutStepBack(flow));
-    return shapeMenu(flow);
+    const entries = shapeMenu(flow);
+    this.setFlow(Object.freeze({ ...withoutStepBack(flow), rootShown: true }));
+    return entries;
   }
 
   openBuildMenu(): boolean {
