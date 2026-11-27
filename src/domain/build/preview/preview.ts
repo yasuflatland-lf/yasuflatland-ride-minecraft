@@ -6,7 +6,7 @@ import { cornerMarkerPoints } from "../cornerMarker";
 import { liveHeightBox } from "../flow/heightFlow";
 import { type BuildFlow, dimensionOf } from "../flow/state";
 import { BUILD_SPEC } from "../spec";
-import type { Staircase } from "../stairs/staircase";
+import { staircaseToward } from "../stairs/staircase";
 import { endMarkerCell } from "../tapTarget";
 import { volumeOf } from "../volume/geometry";
 import { pasteOutline } from "./pasteOutline";
@@ -28,8 +28,7 @@ export interface PreviewAim {
   playerDimension?: DimensionId;
   end?: Cell;
   height?: number;
-  staircase?: Staircase;
-  pasteBox?: CellBox;
+  pasteTarget?: { box: CellBox; corner: Cell };
 }
 
 /**
@@ -136,13 +135,19 @@ export function previewModel(
       set.roof = wireframe;
       break;
     }
-    case "stairAim":
-      if (aim.staircase)
-        set.stairs = stairPreviewPoints(
-          aim.staircase,
-          BUILD_SPEC.outlineMaxPoints,
+    case "stairAim": {
+      if (!flow.goalTap) {
+        Object.assign(
+          set,
+          endpointMarkers(flow.taps.from, flow.taps.to, false),
         );
+        break;
+      }
+      const staircase = staircaseToward(flow.row, flow.goalTap.cell);
+      if (staircase)
+        set.stairs = stairPreviewPoints(staircase, BUILD_SPEC.outlineMaxPoints);
       break;
+    }
     case "stairContents":
       set.stairs = stairPreviewPoints(
         flow.staircase,
@@ -150,9 +155,10 @@ export function previewModel(
       );
       break;
     case "pasteAim":
-      if (aim.pasteBox) {
+      if (aim.pasteTarget) {
+        set.startMarker = cornerMarkerPoints(aim.pasteTarget.corner);
         const { horizontal, vertical } = pasteOutline(
-          aim.pasteBox,
+          aim.pasteTarget.box,
           BUILD_SPEC.outlineMaxPoints,
         );
         set.paste = horizontal;

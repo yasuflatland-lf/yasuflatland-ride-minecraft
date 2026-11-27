@@ -6,6 +6,7 @@ import { clamp } from "../shared/vec";
 import type { Ray } from "./aim/aim";
 import { aimedHeight } from "./aim/height";
 import type { BlockState } from "./blockState";
+import type { BlockTap } from "./blockTap";
 import { boxWithHeight, type CellBox } from "./box";
 import { type Clipboard, structureOf } from "./clipboard/clipboard";
 import type { EditKind, EditRecord } from "./edit/change";
@@ -30,6 +31,7 @@ import {
   stepBackSelection,
   withoutStepBack,
 } from "./flow/stepBack";
+import { classifyTap, isDeliberate } from "./flow/tapConfirm";
 import { type Taps, tapsForBox } from "./flow/taps";
 import { chooseTerrain } from "./flow/terrainFlow";
 import type { HeightRange } from "./heightRange";
@@ -231,13 +233,37 @@ export class BuildSession {
     this.setFlow(next);
   }
 
-  fixStairGoal(hit: Cell | undefined): StairOp | undefined {
+  tapStairGoal(
+    tap: BlockTap,
+    quietTicks: number,
+  ): "set" | "confirm" | "ignored" | "noGoal" {
     const flow = this.currentFlow;
-    if (flow.kind !== "stairAim" || !hit) return undefined;
-    const staircase = staircaseToward(flow.row, hit);
-    if (!staircase) return undefined;
+    if (flow.kind !== "stairAim") return "ignored";
+    switch (classifyTap(flow.goalTap, tap, quietTicks)) {
+      case "ignore":
+        return "ignored";
+      case "confirm":
+        return this.confirmStairGoal(quietTicks);
+      case "set":
+        if (
+          tap.dimensionId !== flow.start.dimensionId ||
+          !staircaseToward(flow.row, tap.cell)
+        )
+          return "noGoal";
+        this.setFlow(Object.freeze({ ...flow, goalTap: tap }));
+        return "set";
+    }
+  }
+
+  confirmStairGoal(quietTicks: number): "confirm" | "ignored" | "noGoal" {
+    const flow = this.currentFlow;
+    if (flow.kind !== "stairAim") return "ignored";
+    if (!flow.goalTap) return "noGoal";
+    if (!isDeliberate(quietTicks)) return "ignored";
+    const staircase = staircaseToward(flow.row, flow.goalTap.cell);
+    if (!staircase) return "noGoal";
     this.setFlow(fixStairGoal(flow, staircase));
-    return flow.op;
+    return "confirm";
   }
 
   chooseTerrain(op: TerrainOp) {

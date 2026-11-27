@@ -14,7 +14,7 @@ export type BuildMessage =
   | "pointSet"
   | "heightAim"
   | "endSet"
-  | "aimStairGoal"
+  | "stairTapGoal"
   | "noStairGoal"
   | "materialRefused"
   | "fillMaterialRefused"

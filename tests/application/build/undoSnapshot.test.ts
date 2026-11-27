@@ -10,6 +10,7 @@ import {
   cellsOf,
   volume,
 } from "../../../src/domain/build/box";
+import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { cornerTaps } from "../../../src/domain/build/flow/taps";
 import { planRotationAboutCenter } from "../../../src/domain/build/rotation/rotateBox";
@@ -109,13 +110,11 @@ it.each([
   e.session.takeUndo();
   const material = blockStateOf("minecraft:stone");
   const selection = selectionOf(overworld, box, material);
-  const clipboard = {
-    material,
-    size: { x: 3, y: 1, z: 1 },
-    blockCount: 3,
-    facing: "east" as const,
-    contents: { kind: "structure" as const, handle: e.handle },
-  };
+  const clipboard = clipboardOf({
+    selection,
+    facing: "east",
+    handle: e.handle,
+  });
   e.session.completeCopy(selection, clipboard);
   const paste = new PasteAt(
     e.repo,
@@ -128,7 +127,7 @@ it.each([
     paste.execute({
       playerId,
       dimensionId: overworld,
-      target: { box, anchor: box.min, turn: 0 },
+      target: { box, corner: box.min, anchor: box.min, turn: 0 },
     }),
   ).toBe("pasted");
   if (situation === "rotated") {

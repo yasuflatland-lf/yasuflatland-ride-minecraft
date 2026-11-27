@@ -9,6 +9,7 @@ import type {
   BuildMessage,
 } from "../../../application/build/ports/feedback";
 import type { PressWand } from "../../../application/build/pressWand";
+import { blockTapOf } from "../../../domain/build/blockTap";
 import { sizeOf } from "../../../domain/build/box";
 import { confirmLiveHeight } from "../../../domain/build/flow/heightFlow";
 import { routePress } from "../../../domain/build/flow/press";
@@ -110,9 +111,8 @@ export function registerTestTap(
             intent === "confirmLiveHeight" ? aim.aim(playerId)?.ray : undefined;
           const followUp = pressWand.execute({
             playerId,
-            dimensionId,
             intent,
-            cell,
+            tap: blockTapOf(dimensionId, cell),
             ray,
           });
           // The fixture reports an explicitly requested selection menu without showing a form.

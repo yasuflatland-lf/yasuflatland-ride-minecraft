@@ -8,6 +8,7 @@ import { EndBuildSession } from "../../../src/application/build/endBuildSession"
 import { EndPasting } from "../../../src/application/build/endPasting";
 import { LeaveBuild } from "../../../src/application/build/leaveBuild";
 import { MenuChoices } from "../../../src/application/build/menuChoices";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, volume } from "../../../src/domain/build/box";
@@ -78,6 +79,7 @@ it("captures exactly once with the owner and dimension and stores the full box s
       ]);
       const clipboard = e.repo.get(playerId)?.clipboard;
       expect(clipboard).toEqual({
+        anchor: { x: "min", z: "min" },
         material: AIR,
         size: {
           x: box.max.x - box.min.x + 1,
@@ -294,6 +296,7 @@ it.each(["absent", "structure"] as const)(
                   );
                 }
                 expectedClipboard = {
+                  anchor: { x: "min", z: "min" },
                   material: AIR,
                   size: {
                     x: box.max.x - box.min.x + 1,
@@ -314,9 +317,11 @@ it.each(["absent", "structure"] as const)(
               else if (operation === "leaveBuild")
                 new LeaveBuild(e.repo, new FakeTapTargets()).execute(playerId);
               else {
-                new EndBuildSession(e.repo, new FakeTapTargets()).execute(
-                  playerId,
-                );
+                new EndBuildSession(
+                  e.repo,
+                  new FakeTapTargets(),
+                  new PressGaps(),
+                ).execute(playerId);
                 snapshotHandles = [];
                 sessionExists = false;
               }
@@ -373,7 +378,11 @@ it.each(["absent", "structure"] as const)(
               );
             }
           }
-          new EndBuildSession(e.repo, new FakeTapTargets()).execute(playerId);
+          new EndBuildSession(
+            e.repo,
+            new FakeTapTargets(),
+            new PressGaps(),
+          ).execute(playerId);
           expect(e.structures.live.size).toBe(0);
           expect(discarded).toEqual(captured);
         },

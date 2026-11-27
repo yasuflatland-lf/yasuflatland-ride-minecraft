@@ -12,10 +12,6 @@ import { degreesOf } from "../../domain/build/rotation/quarterTurn";
 import type { BuildSession } from "../../domain/build/session";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
-import {
-  type Staircase,
-  staircaseToward,
-} from "../../domain/build/stairs/staircase";
 import { volumeSize } from "../../domain/build/volume/size";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
 import type { AimReader, AimResult } from "./ports/aim";
@@ -38,13 +34,6 @@ type RefreshOptions = {
 export class ShowPreview {
   private readonly trackGaze: TrackGaze;
   private readonly sizes = new Map<PlayerId, ReturnType<typeof volumeSize>>();
-  private readonly staircases = new Map<
-    PlayerId,
-    {
-      flow: Extract<BuildFlow, { kind: "stairAim" }>;
-      staircase: Staircase;
-    }
-  >();
   constructor(
     private readonly repo: BuildSessionRepository,
     private readonly feedback: BuildFeedback,
@@ -103,8 +92,6 @@ export class ShowPreview {
     session: BuildSession | undefined,
     options?: RefreshOptions,
   ): void {
-    if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
-      this.staircases.delete(id);
     if (!session?.isInBuildMode) {
       this.hideTapTarget(id);
       return;
@@ -113,6 +100,11 @@ export class ShowPreview {
   }
 
   private sample(session: BuildSession): PreviewSample {
+    if (
+      session.flow.kind === "stairAim" ||
+      session.flow.kind === "stairContents"
+    )
+      return { aim: undefined, playerDimension: undefined };
     const aim = this.aimReader.aim(session.playerId);
     const playerDimension =
       session.flow.kind === "pasteAim" || aim?.input === "touch"
@@ -129,7 +121,7 @@ export class ShowPreview {
   ): void {
     const { playerId, flow, clipboard } = session;
     const blink = Math.floor(tick / BUILD_SPEC.outlineInterval) % 2 === 0;
-    const preview = this.previewAim(playerId, flow, aim, blink);
+    const preview = this.previewAim(flow, aim, blink);
     preview.playerDimension = playerDimension;
     const facing =
       flow.kind === "pasteAim" && clipboard
@@ -148,7 +140,7 @@ export class ShowPreview {
         aim,
         tick,
       });
-      if (result.kind === "target") preview.pasteBox = result.target.box;
+      if (result.kind === "target") preview.pasteTarget = result.target;
     }
 
     const { dimensionId, set } = previewModel(flow, preview);
@@ -165,7 +157,6 @@ export class ShowPreview {
   }
 
   private previewAim(
-    id: PlayerId,
     flow: BuildFlow,
     aim: AimResult | undefined,
     blink: boolean,
@@ -186,14 +177,6 @@ export class ShowPreview {
               this.blocks.heightRange(flow.start.dimensionId),
             )
           : flow.liveHeight;
-    if (flow.kind === "stairAim") {
-      const hit = aim?.block?.cell;
-      const staircase = hit && staircaseToward(flow.row, hit);
-      if (staircase) this.staircases.set(id, { flow, staircase });
-      const cached = this.staircases.get(id);
-      if (cached?.flow === flow) preview.staircase = cached.staircase;
-      else this.staircases.delete(id);
-    }
     return preview;
   }
 
@@ -256,11 +239,6 @@ export class ShowPreview {
           session.flow.kind !== "baseHeight")
       )
         this.sizes.delete(id);
-    }
-    for (const id of this.staircases.keys()) {
-      const session = this.repo.get(id);
-      if (!session?.isInBuildMode || session.flow.kind !== "stairAim")
-        this.staircases.delete(id);
     }
   }
 }

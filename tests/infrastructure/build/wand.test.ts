@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { expect, it, vi } from "vitest";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { chooseStairs } from "../../../src/domain/build/flow/stairFlow";
@@ -35,6 +36,7 @@ const engine = vi.hoisted(() => {
   return { handlers, scheduled, event, tick: 0 };
 });
 vi.mock("@minecraft/server", () => ({
+  Direction: { Up: "Up", West: "West" },
   world: {
     afterEvents: {
       entityHitBlock: engine.event("hit"),
@@ -86,11 +88,17 @@ function setup() {
     menus,
     debounce,
     pasteDebounce: new Debounces(BUILD_SPEC.pasteRepeatTicks),
+    pressGaps: new PressGaps(),
   });
-  const interact = (location = start, isFirstEvent = true) => {
+  const interact = (
+    location = start,
+    isFirstEvent = true,
+    blockFace = "Up",
+  ) => {
     const event = {
       player,
       block: { dimension: player.dimension, location },
+      blockFace,
       isFirstEvent,
       cancel: false,
     };
@@ -138,6 +146,18 @@ it("cancels wand interactions and defers only the first block event", () => {
         else expect(f.flow()).toBeUndefined();
       },
     ),
+  );
+});
+
+it("passes the interacted block face to the deferred wand press", () => {
+  const f = setup();
+  const execute = vi.spyOn(f.press, "execute");
+  f.interact(start, true, "West");
+  f.flush();
+  expect(execute).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      tap: { dimensionId: nether, cell: start, face: "west" },
+    }),
   );
 });
 
@@ -236,7 +256,7 @@ it.each(["air", "block"] as const)(
 );
 
 it.each(["stairs", "terrace"] as const)(
-  "samples the %s goal once for a paired block and item event",
+  "requires a quiet gap to confirm a %s goal across both wand event routes",
   (op) => {
     const f = setup();
     f.interact();
@@ -245,19 +265,34 @@ it.each(["stairs", "terrace"] as const)(
     f.flush();
     const session = f.repo.getOrCreate(id);
     session.setFlowForTest(chooseStairs(session.flow, op));
-    f.aim.target = {
-      input: "pointer",
-      ray,
-      block: { cell: cellOf({ ...end, y: start.y + 2 }), face: "up" },
-    };
     const read = vi.spyOn(f.aim, "aim");
-    f.interact(end);
+    const showMenu =
+      op === "stairs" ? menus.showStairContentsMenu : menus.showTerraceMenu;
+    const goal = cellOf({ ...end, y: start.y + 2 });
+    engine.tick = 20;
+    f.interact(goal);
     f.use();
     f.flush();
-    expect(read).toHaveBeenCalledExactlyOnceWith(id);
-    expect(
-      op === "stairs" ? menus.showStairContentsMenu : menus.showTerraceMenu,
-    ).toHaveBeenCalledExactlyOnceWith(f.player);
+    expect(f.flow()).toMatchObject({
+      kind: "stairAim",
+      goalTap: { cell: goal },
+    });
+
+    // A held block event still counts, even though only first events reach the flow.
+    engine.tick = 28;
+    f.interact(goal, false);
+    engine.tick = 36;
+    f.use();
+    expect(showMenu).not.toHaveBeenCalled();
+    engine.tick = 44;
+    f.interact(goal, true, "West");
+    f.flush();
+    expect(showMenu).not.toHaveBeenCalled();
+    engine.tick = 53;
+    f.use();
+    expect(f.flow()?.kind).toBe("stairContents");
+    expect(showMenu).toHaveBeenCalledExactlyOnceWith(f.player);
+    expect(read).not.toHaveBeenCalled();
   },
 );
 

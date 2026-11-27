@@ -55,11 +55,9 @@ export function parseFacing(value: string): Facing | undefined {
   return FACINGS.find((facing) => facing === value.toLowerCase());
 }
 
-export function opposite(facing: Facing): Facing {
+export function oppositeFacing(facing: Facing): Facing {
   return FACINGS[(FACINGS.indexOf(facing) + 2) % 4] as Facing;
 }
-
-export { opposite as oppositeFacing };
 
 export function facingVector(facing: Facing): Vec3 {
   return { ...FACING_STEP[facing] };

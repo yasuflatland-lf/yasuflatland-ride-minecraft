@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { EndPasting } from "../../../src/application/build/endPasting";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -93,7 +94,7 @@ it("discards the clipboard and confirmed box on death and dimension change in ev
           expect(rotateDebounce.press(id, 0)).toBe(true);
           expect(undoDebounce.press(id, 0)).toBe(true);
           registerSessions(
-            new EndBuildSession(repo, new FakeTapTargets()),
+            new EndBuildSession(repo, new FakeTapTargets(), new PressGaps()),
             new EndPasting(repo),
             debounce,
             pasteDebounce,
@@ -153,8 +154,10 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   const targets = new FakeTapTargets();
   targets.show(id, { dimensionId: overworld, cell: at });
   const onPlayerLeave = vi.fn();
+  const pressGaps = new PressGaps();
+  pressGaps.note(id, 0);
   registerSessions(
-    new EndBuildSession(repo, targets),
+    new EndBuildSession(repo, targets, pressGaps),
     new EndPasting(repo),
     debounce,
     pasteDebounce,
@@ -172,6 +175,7 @@ it("ignores non-player deaths and drops the session, history and all debounces o
   engine.handlers.get("leave")?.({ playerId: id });
   expect(repo.get(id)).toBeUndefined();
   expect(targets.placements.has(id)).toBe(false);
+  expect(pressGaps.note(id, 0)).toBe(Number.POSITIVE_INFINITY);
   expect(onPlayerLeave).toHaveBeenCalledExactlyOnceWith(id);
   expect(session.hasHistory).toBe(false);
   expect(structures.live.size).toBe(0);

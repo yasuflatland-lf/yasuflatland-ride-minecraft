@@ -69,7 +69,6 @@ function setup(block: Cell, turn: QuarterTurn) {
     block,
     "up",
     turnBetween(clipboard.facing, facing),
-    facing,
   );
   const paste = new PasteAt(repo, world, feedback, store, players);
   const press = new PressPasteAim(
@@ -191,7 +190,6 @@ it("refuses a blocked cell inside only the rotated footprint without changing fl
         block,
         "up",
         turnBetween(e.clipboard.facing, "east"),
-        "east",
       );
       const blocked = [...cellsOf(e.target.box)].find(
         (cell) =>

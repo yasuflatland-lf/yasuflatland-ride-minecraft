@@ -1,15 +1,15 @@
 import type { Ray } from "../../domain/build/aim/aim";
 import { virtualAimedEndPoint } from "../../domain/build/aim/endPoint";
+import type { BlockTap } from "../../domain/build/blockTap";
 import type { PressIntent } from "../../domain/build/flow/press";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
-import type { Cell } from "../../domain/shared/cells";
 import type { DimensionId, PlayerId } from "../../domain/shared/ids";
-import type { FixStairGoal } from "./fixStairGoal";
 import type { AimResult } from "./ports/aim";
 import type { BuildBlockWorld } from "./ports/blocks";
 import type { PressPasteAim } from "./pressPasteAim";
 import type { SetPoint } from "./setPoint";
 import type { TapAir } from "./tapAir";
+import type { TapStairGoal } from "./tapStairGoal";
 
 export type FollowUp =
   | "utilityMenu"
@@ -25,7 +25,7 @@ export class PressWand {
     private readonly actions: {
       setPoint: SetPoint;
       tapAir: TapAir;
-      fixStairGoal: FixStairGoal;
+      tapStairGoal: TapStairGoal;
       pressPasteAim: PressPasteAim;
       onPasted(playerId: PlayerId, tick: number): void;
     },
@@ -36,15 +36,17 @@ export class PressWand {
     playerId,
     intent,
     dimensionId,
-    cell,
+    tap,
     ray,
+    quietTicks = 0,
     itemUse,
   }: {
     playerId: PlayerId;
     intent: PressIntent["kind"];
     dimensionId?: DimensionId;
-    cell?: Cell;
+    tap?: BlockTap;
     ray?: Ray;
+    quietTicks?: number;
     itemUse?: { aim: AimResult | undefined; tick: number; sneaking: boolean };
   }): FollowUp {
     const session = this.repo.get(playerId);
@@ -52,13 +54,17 @@ export class PressWand {
     const heightRay = ray ?? itemUse?.aim?.ray;
     switch (intent) {
       case "selectPoint":
-        if (dimensionId && cell)
-          this.actions.setPoint.execute({ playerId, dimensionId, cell });
+        if (tap)
+          this.actions.setPoint.execute({
+            playerId,
+            dimensionId: tap.dimensionId,
+            cell: tap.cell,
+          });
         return "none";
       case "fixEndpoint": {
         if (flow?.kind !== "point1") return "none";
         const end =
-          cell ??
+          tap?.cell ??
           (itemUse?.aim &&
             virtualAimedEndPoint(
               flow.start.cell,
@@ -85,13 +91,17 @@ export class PressWand {
             this.blocks.heightRange(flow.start.dimensionId),
           );
         return "contentsMenu";
-      case "fixStairGoal":
-        if (
-          flow?.kind !== "stairAim" ||
-          !this.actions.fixStairGoal.execute({ playerId })
-        )
-          return "none";
+      case "tapStairGoal":
+      case "confirmStairGoal": {
+        if (flow?.kind !== "stairAim") return "none";
+        const press = { playerId, quietTicks };
+        const confirmed =
+          intent === "tapStairGoal"
+            ? tap && this.actions.tapStairGoal.tap({ ...press, tap })
+            : this.actions.tapStairGoal.confirm(press);
+        if (!confirmed) return "none";
         return flow.op === "terrace" ? "terraceMenu" : "stairContents";
+      }
       case "openUtilityMenu":
         return flow ? "utilityMenu" : "none";
       case "pasteAim": {

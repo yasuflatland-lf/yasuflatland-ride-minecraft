@@ -1,4 +1,7 @@
 import { system, world } from "@minecraft/server";
+import type { AimReader } from "../../../../application/build/ports/aim";
+import type { PressGaps } from "../../../../application/build/pressGaps";
+import { blockTapOf } from "../../../../domain/build/blockTap";
 import {
   acceptsAnyItemUse,
   routePress,
@@ -10,6 +13,7 @@ import {
   asPlayerId,
   type PlayerId,
 } from "../../../../domain/shared/ids";
+import { blockFaceOf } from "../../../shared/faces";
 import { buildItemRole } from "../../identifiers";
 import { heldBuildItem } from "../heldBuildItem";
 import {
@@ -20,18 +24,25 @@ import {
 } from "./wandPress";
 
 export function registerWand(
-  context: BlockPressContext & { pasteDebounce: Debounces<PlayerId> },
+  context: BlockPressContext & {
+    aim: AimReader;
+    debounce: Debounces<PlayerId>;
+    pasteDebounce: Debounces<PlayerId>;
+    pressGaps: PressGaps;
+  },
 ): void {
-  const { aim, debounce, menus, pasteDebounce, pressWand, repo } = context;
+  const { aim, debounce, menus, pasteDebounce, pressGaps, pressWand, repo } =
+    context;
   world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     if (heldBuildItem(ev.player) === "wand") ev.cancel = true;
   });
   world.beforeEvents.playerInteractWithBlock.subscribe((ev) => {
     if (heldBuildItem(ev.player) !== "wand") return;
     ev.cancel = true;
-    if (!ev.isFirstEvent) return;
     const player = ev.player;
     const playerId = asPlayerId(player.id);
+    const quietTicks = pressGaps.note(playerId, system.currentTick);
+    if (!ev.isFirstEvent) return;
     const flow = repo.get(playerId)?.flow ?? { kind: "idle" };
     const intent = blockPressIntent(flow, player.isSneaking);
     if (intent === "ignore") return;
@@ -45,10 +56,19 @@ export function registerWand(
     const command = {
       player,
       playerId,
-      dimensionId: asDimensionId(ev.block.dimension.id),
-      cell: cellOf(ev.block.location),
+      tap: blockTapOf(
+        asDimensionId(ev.block.dimension.id),
+        cellOf(ev.block.location),
+        blockFaceOf(ev.blockFace),
+      ),
     };
-    system.run(() => pressBlockCell(context, command, intent));
+    system.run(() => {
+      const ray =
+        intent === "aimHeight" || intent === "confirmLiveHeight"
+          ? aim.aim(playerId)?.ray
+          : undefined;
+      pressBlockCell(context, { ...command, ray, quietTicks }, intent);
+    });
   });
   world.afterEvents.itemUse.subscribe(({ source, itemStack }) => {
     if (!source.isValid || buildItemRole(itemStack.typeId) !== "wand") return;
@@ -56,11 +76,12 @@ export function registerWand(
     // Opening the menu must not swallow the next commit; commits also debounce across anchors.
     const flow = repo.get(playerId)?.flow;
     const tick = system.currentTick;
+    const quietTicks = pressGaps.note(playerId, tick);
     const presses =
       source.isSneaking && flow?.kind === "pasteAim" ? pasteDebounce : debounce;
-    if (!presses.press(playerId, tick)) return;
+    // Stair confirmation uses the gap across both event routes, including held repeats.
+    if (!presses.press(playerId, tick) && flow?.kind !== "stairAim") return;
     if (!flow) return;
-    // FixStairGoal samples its own block hit.
     const target =
       flow.kind === "stairAim" || flow.kind === "stairContents"
         ? undefined
@@ -75,6 +96,7 @@ export function registerWand(
     const followUp = pressWand.execute({
       playerId,
       intent,
+      quietTicks,
       dimensionId: asDimensionId(source.dimension.id),
       itemUse: { aim: target, tick, sneaking: source.isSneaking },
     });
