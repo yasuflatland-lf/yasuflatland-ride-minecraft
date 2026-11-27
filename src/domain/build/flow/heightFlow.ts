@@ -8,6 +8,7 @@ import { selectionHeightLimit, selectionOf, withBox } from "../selection";
 import { type Shape, shapeOf } from "../shape/shape";
 import { stairMaterialOf } from "../stair";
 import { type HeightStepKind, locksBoxHeight } from "../volume/kind";
+import { confirmedSelection, type SelectedFlow } from "./selectedFlow";
 import {
   type BaseHeightFlow,
   type BuildFlow,
@@ -64,14 +65,7 @@ export function tapAir(
   const taps = Object.freeze({ from, to });
   const selection = selectionOf(dimensionId, boxOf(from, to), material);
   if (shapeOf(from, to).kind === "line")
-    return Object.freeze({
-      kind: "selected",
-      start,
-      freshEnd: true,
-      menuLevel: "root",
-      selection,
-      taps,
-    });
+    return confirmedSelection({ start, selection, taps, freshEnd: true });
   return Object.freeze({
     kind: "baseHeight",
     start,
@@ -120,23 +114,16 @@ function tappedSpanBox(flow: BaseHeightFlow, range: HeightRange): CellBox {
 export function confirmTappedSpan(
   flow: BaseHeightFlow,
   range: HeightRange,
-): Extract<BuildFlow, { kind: "selected" }> {
+): SelectedFlow {
   return confirmBox(flow, tappedSpanBox(flow, range));
 }
 
-export function confirmLiveHeight(
-  flow: BaseHeightFlow,
-): Extract<BuildFlow, { kind: "selected" }> {
+export function confirmLiveHeight(flow: BaseHeightFlow): SelectedFlow {
   return confirmBox(flow, liveHeightBox(flow));
 }
 
-function confirmBox(
-  flow: BaseHeightFlow,
-  box: CellBox,
-): Extract<BuildFlow, { kind: "selected" }> {
-  return Object.freeze({
-    kind: "selected",
-    menuLevel: "root",
+function confirmBox(flow: BaseHeightFlow, box: CellBox): SelectedFlow {
+  return confirmedSelection({
     selection: withBox(flow.selection, box),
     start: flow.start,
     taps: flow.taps,
