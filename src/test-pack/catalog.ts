@@ -2421,7 +2421,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_marker_night",
     file: "buildFlow",
-    ticks: 700,
+    ticks: 1300,
     features: ["build"],
     isolation: "exclusive",
     needsArena: true,
