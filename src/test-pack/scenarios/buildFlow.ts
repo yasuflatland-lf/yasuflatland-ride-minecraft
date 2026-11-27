@@ -1496,7 +1496,12 @@ export function buildEndPastingDiscards(a: Arena): Promise<Outcome> {
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 1, 1);
     await f.menu("paste", "endPaste");
     await checkState(f, "idle", false);
-    await pasteInto(f, target);
+    await holdPasteControl(f, PASTE_PLACE_TYPE);
+    check(
+      (await f.press("itemUse")).message === "pasteInactive",
+      "Place stayed active",
+    );
+    f.hold(true);
     await checkState(f, "idle", false);
     check(
       unchanged(f, target.cells, target.before),
@@ -1521,11 +1526,8 @@ export function buildNewCopyReplaces(a: Arena): Promise<Outcome> {
     await startPasteStep(f);
     await checkState(f, "pasteAim", true);
     const target = pasteTarget(f, f.cell(12, 0, 12), 2, 2, 2);
-    await holdPasteControl(f, PASTE_PLACE_TYPE);
-    check(
-      (await f.press("itemUse")).message === "pasteInactive",
-      "Place stayed active",
-    );
+    await pasteInto(f, target);
+    await checkState(f, "pasteAim", true);
     check(
       unchanged(f, target.cells, expected),
       "New copy did not replace the clipboard",
@@ -4081,6 +4083,9 @@ export async function buildPasteStructureDecor(
         const mirrored = cellOf({ ...cell, x: cell.x + 12 });
         f.block(mirrored).setPermutation(permutation);
         const anchor = f.cell(19, -1, 7);
+        // The test clipboard records east, and the first paste tap takes the
+        // facing from the connected player, so face east to paste unrotated.
+        await f.lookSettled(-90);
         const pasted = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste",
@@ -4113,6 +4118,7 @@ export async function buildPasteStructureDecor(
         f.block(mirrored).setPermutation(permutation);
         for (const c of f.region(8, 1, 8, f.cell(12)))
           f.block(c).setType("minecraft:air");
+        await f.lookSettled(-90);
         const repeated = await pasteStep(f, anchor.x, anchor.y, anchor.z, "up");
         record(
           "paste_repeat",
