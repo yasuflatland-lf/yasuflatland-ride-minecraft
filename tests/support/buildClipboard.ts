@@ -1,12 +1,10 @@
 import type { BlockState } from "../../src/domain/build/blockState";
 import { AIR } from "../../src/domain/build/blockState";
+import { boxOf, type CellBox, cellsOf } from "../../src/domain/build/box";
 import {
-  boxOf,
-  type CellBox,
-  cellsOf,
-  volume,
-} from "../../src/domain/build/box";
-import type { Clipboard } from "../../src/domain/build/clipboard/clipboard";
+  type Clipboard,
+  clipboardOf,
+} from "../../src/domain/build/clipboard/clipboard";
 import { selectionOf } from "../../src/domain/build/selection";
 import type { BuildSession } from "../../src/domain/build/session";
 import { type Cell, cellOf } from "../../src/domain/shared/cells";
@@ -50,15 +48,9 @@ export function structureClipboard(
     asPlayerId("clipboard"),
   );
   if (handle === "tooLarge" || handle === "unreadable") throw new Error(handle);
-  return {
-    material: read(box.min) ?? AIR,
-    size: {
-      x: box.max.x - box.min.x + 1,
-      y: box.max.y - box.min.y + 1,
-      z: box.max.z - box.min.z + 1,
-    },
-    blockCount: volume(box),
+  return clipboardOf({
+    selection: selectionOf(COPY_DIMENSION, box, read(box.min) ?? AIR),
     facing: "east",
-    contents: { kind: "structure", handle },
-  };
+    handle,
+  });
 }

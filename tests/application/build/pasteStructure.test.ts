@@ -3,13 +3,11 @@ import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { PasteAt } from "../../../src/application/build/pasteAt";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
-import {
-  boxFromSize,
-  boxOf,
-  cellsOf,
-  volume,
-} from "../../../src/domain/build/box";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
+import { boxFromSize, boxOf, cellsOf } from "../../../src/domain/build/box";
+import { clipboardOf } from "../../../src/domain/build/clipboard/clipboard";
 import { beginPasteAim } from "../../../src/domain/build/flow/paste";
 import { FACINGS } from "../../../src/domain/build/rotation/facing";
 import { rotatedSize } from "../../../src/domain/build/rotation/quarterTurn";
@@ -18,7 +16,6 @@ import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { structureHandle } from "../../../src/domain/build/structure/handle";
 import { cellOf } from "../../../src/domain/shared/cells";
 import { asPlayerId } from "../../../src/domain/shared/ids";
-import { tappedSelection } from "../../support/buildSelection";
 import {
   cellKey,
   FakeBuildPlayers,
@@ -56,12 +53,10 @@ function setup(anchor = cellOf({ x: 0, y: 1, z: 0 }), blockCount = 8) {
       z: anchor.z + 1,
     }),
   );
-  session.completeCopy(selectionOf(overworld, box, AIR), {
-    material: AIR,
-    size: { x: 2, y: 2, z: 2 },
+  const selection = selectionOf(overworld, box, AIR);
+  session.completeCopy(selection, {
+    ...clipboardOf({ selection, facing: "east", handle }),
     blockCount,
-    facing: "east",
-    contents: { kind: "structure", handle },
   });
   const jobs = new EditJobs(repo, world, feedback, { warn: () => {} }, players);
   const start = vi.spyOn(jobs, "start");
@@ -69,12 +64,12 @@ function setup(anchor = cellOf({ x: 0, y: 1, z: 0 }), blockCount = 8) {
   const cmd = {
     playerId,
     dimensionId: overworld,
-    target: { anchor, box, turn: 0 as const },
+    target: { anchor, corner: anchor, box, turn: 0 as const },
   };
   return { repo, session, world, players, feedback, store, start, paste, cmd };
 }
 
-it("selects the pasted box at the root and keeps the clipboard", () => {
+it("clears the target and keeps the clipboard and manual turn", () => {
   fc.assert(
     fc.property(
       origin,
@@ -94,29 +89,22 @@ it("selects the pasted box at the root and keeps the clipboard", () => {
         const e = setup(source);
         const material = blockStateOf(materialId);
         const sourceBox = boxFromSize(source, size);
-        const clipboard = {
-          material,
-          size,
-          blockCount: volume(sourceBox),
-          facing,
-          contents: { kind: "structure" as const, handle },
-        };
-        e.session.completeCopy(
-          selectionOf(overworld, sourceBox, material),
-          clipboard,
-        );
+        const selection = selectionOf(overworld, sourceBox, material);
+        const clipboard = clipboardOf({ selection, facing, handle });
+        e.session.completeCopy(selection, clipboard);
         const box = boxFromSize(anchor, rotatedSize(size, turn));
-        const cmd = { ...e.cmd, dimensionId, target: { anchor, box, turn } };
+        const cmd = {
+          ...e.cmd,
+          dimensionId,
+          target: { anchor, corner: anchor, box, turn },
+        };
+        e.session.tapPaste(blockTapOf(dimensionId, anchor, "up"), 0, facing);
+        e.session.rotatePaste();
         expect(e.paste.execute(cmd)).toBe("pasted");
-        expect(e.session.flow).toEqual({
-          kind: "selected",
-          menuLevel: "root",
-          ...tappedSelection({ dimensionId, box, material }, box.min, box.max),
-        });
-        expect(e.session.confirmedBox).toEqual({ dimensionId, box, material });
+        expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 1 });
+        expect(e.session.confirmedBox).toEqual(selection);
         expect(e.session.clipboard).toBe(clipboard);
         expect(e.store.live.has(handle)).toBe(true);
-        expect(e.paste.execute(cmd)).toBe("ignored");
       },
     ),
   );
@@ -324,7 +312,11 @@ it("discards the clipboard and paste snapshot before removing the session, and t
           expect(e.repo.get(playerId)).toBe(e.session);
           original(handle);
         });
-      const end = new EndBuildSession(e.repo, new FakeTapTargets());
+      const end = new EndBuildSession(
+        e.repo,
+        new FakeTapTargets(),
+        new PressGaps(),
+      );
       end.execute(playerId);
       expect(discard).toHaveBeenCalledWith(handle);
       expect(discard).toHaveBeenCalledWith(snapshot);

@@ -12,6 +12,6 @@ export class ChooseStairs {
   execute({ playerId, op }: { playerId: PlayerId; op: StairOp }): void {
     const session = this.repo.getOrCreate(playerId);
     const refusal = session.chooseStairs(op);
-    this.feedback.showMessage(playerId, refusal ?? "aimStairGoal");
+    this.feedback.showMessage(playerId, refusal ?? "stairTapGoal");
   }
 }

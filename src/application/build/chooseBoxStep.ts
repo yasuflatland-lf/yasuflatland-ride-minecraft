@@ -30,6 +30,7 @@ export class ChooseBoxStep {
       playerId,
       selection: flow.selection,
       facing,
+      point1: flow.taps.from,
     });
   }
 }

@@ -7,12 +7,10 @@ import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
 import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
-import {
-  facingVector,
-  turnBetween,
-} from "../../../src/domain/build/rotation/facing";
+import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -62,14 +60,14 @@ function setup(block: Cell, turn: QuarterTurn) {
   );
   session.completeCopy(selectionOf(overworld, source, stone), clipboard);
   const facing = (["east", "south", "west", "north"] as const)[turn];
-  session.followPasteFacing(facing);
+  const tap = blockTapOf(overworld, block, "up");
+  session.tapPaste(tap, 0, facing);
   store.calls.length = 0;
   const target = pasteTarget(
     clipboard,
     block,
     "up",
     turnBetween(clipboard.facing, facing),
-    facing,
   );
   const paste = new PasteAt(repo, world, feedback, store, players);
   const press = new PressPasteAim(
@@ -77,15 +75,12 @@ function setup(block: Cell, turn: QuarterTurn) {
     paste,
     feedback,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    { facingOf: () => facing },
   );
   const cmd = {
     playerId,
     dimensionId: overworld,
-    aim: {
-      block: { cell: block, face: "up" as const },
-      input: "pointer" as const,
-      ray: { origin: block, direction: facingVector(facing) },
-    },
+    quietTicks: Infinity,
     tick: 100,
     sneaking: true,
   };
@@ -103,11 +98,12 @@ function setup(block: Cell, turn: QuarterTurn) {
     target,
     press,
     cmd,
+    tap,
     undo,
   };
 }
 
-it("uses the live turn for a paste and restores the entire rotated box on Undo", () => {
+it("uses the locked turn for a paste and restores the entire rotated box on Undo", () => {
   fc.assert(
     fc.property(origin, turn, (block, turn) => {
       const e = setup(block, turn);
@@ -163,6 +159,7 @@ it("uses the live turn for a paste and restores the entire rotated box on Undo",
         expect(e.world.stateAt(overworld, cell)).toEqual(dirt);
       expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
       expect(e.session.pasteTurn).toBe(0);
+      e.press.tap({ ...e.cmd, tap: e.tap, quietTicks: 0 });
       expect(e.press.execute(e.cmd)).toBe("pasted");
       expect(
         e.press.execute({
@@ -191,7 +188,6 @@ it("refuses a blocked cell inside only the rotated footprint without changing fl
         block,
         "up",
         turnBetween(e.clipboard.facing, "east"),
-        "east",
       );
       const blocked = [...cellsOf(e.target.box)].find(
         (cell) =>
@@ -249,7 +245,7 @@ it("resets the turn on New copy, a completed copy and End pasting", () => {
           expect(new DescribeBuild(e.repo).execute(playerId).pasteTurn).toBe(0);
           if (action !== "completeCopy") {
             const flow = e.session.flow;
-            e.session.followPasteFacing("south");
+            e.session.tapPaste(e.tap, 0, "south");
             expect(e.session.flow).toBe(flow);
           }
         }

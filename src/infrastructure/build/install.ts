@@ -18,7 +18,6 @@ import { CutBox } from "../../application/build/cutBox";
 import { EditJobs } from "../../application/build/editJobs";
 import { EndBuildSession } from "../../application/build/endBuildSession";
 import { EndPasting } from "../../application/build/endPasting";
-import { FixStairGoal } from "../../application/build/fixStairGoal";
 import { LeaveBuild } from "../../application/build/leaveBuild";
 import {
   type MenuCases,
@@ -26,6 +25,7 @@ import {
 } from "../../application/build/menuChoices";
 import { OpenSelectionMenu } from "../../application/build/openSelectionMenu";
 import { PasteAt } from "../../application/build/pasteAt";
+import { PressGaps } from "../../application/build/pressGaps";
 import { PressPasteAim } from "../../application/build/pressPasteAim";
 import { PressUndo } from "../../application/build/pressUndo";
 import { PressWand } from "../../application/build/pressWand";
@@ -38,6 +38,7 @@ import { ShowPreview } from "../../application/build/showPreview";
 import { StepBackSelection } from "../../application/build/stepBackSelection";
 import { SyncTapTarget } from "../../application/build/syncTapTarget";
 import { TapAir } from "../../application/build/tapAir";
+import { TapStairGoal } from "../../application/build/tapStairGoal";
 import { UndoEdit } from "../../application/build/undoEdit";
 import { UpdateBuildModes } from "../../application/build/updateBuildModes";
 import type { SpaceCheck } from "../../application/shared/ports/space";
@@ -90,7 +91,8 @@ export function installBuild(deps: {
     BUILD_SPEC.rotateDebounceTicks,
   );
   const debounce = new Debounces<PlayerId>(BUILD_SPEC.pressDebounceTicks);
-  const endSession = new EndBuildSession(repo, tapTargets);
+  const pressGaps = new PressGaps();
+  const endSession = new EndBuildSession(repo, tapTargets, pressGaps);
   const modes = new UpdateBuildModes(repo, new LeaveBuild(repo, tapTargets));
   const players = new BedrockBuildPlayers();
   const facing = new BedrockFacingReader();
@@ -170,6 +172,7 @@ export function installBuild(deps: {
     cases.pasteAt,
     feedback,
     resolveTarget,
+    facing,
   );
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
   const pressUndo = new PressUndo(
@@ -180,32 +183,29 @@ export function installBuild(deps: {
     pressUndo,
     undoDebounce,
     repo,
-    aim,
+    pressGaps,
     pressPasteAim,
     rotatePasteAim,
     rotateSelection: new RotateSelection(repo, rotateBox, feedback, blocks),
     pasteDebounce,
     rotateDebounce,
     refresh: (id, tick) => preview.refresh(id, tick),
-    refreshResumedPaste: (id, tick) => preview.refreshResumedPaste(id, tick),
+    refreshAfterPastePress: (id, tick) =>
+      preview.refreshAfterPastePress(id, tick),
   });
   const pressWand = new PressWand(
     repo,
     {
       setPoint: new SetPoint(repo, blocks, feedback),
       tapAir: new TapAir(repo, feedback, blocks),
-      fixStairGoal: new FixStairGoal(repo, feedback, aim),
+      tapStairGoal: new TapStairGoal(repo, feedback),
       pressPasteAim,
-      onPasted: (id, tick) => {
-        // Another event from the paste gesture now routes through selection.
-        debounce.press(id, tick);
-        preview.refresh(id, tick);
-      },
+      onPasted: (id, tick) => preview.refreshAfterPastePress(id, tick),
     },
     blocks,
   );
   const wand = { repo, aim, menus, pressWand, debounce };
-  registerWand({ ...wand, pasteDebounce });
+  registerWand({ ...wand, pasteDebounce, pressGaps });
   const pressTapTarget = registerTapTarget({ ...wand, targets: tapTargets });
   registerModeTick(modes);
   registerOutlineTick(preview);
@@ -235,11 +235,9 @@ export function installBuild(deps: {
     routes,
     menuCases,
     menuChoices,
-    pressPasteAim,
     pressUndo,
     endSession,
     structures: ports.structures,
-    rotatePasteAim,
     onPlayerLeave,
   };
 }

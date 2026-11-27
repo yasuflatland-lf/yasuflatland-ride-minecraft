@@ -11,6 +11,7 @@ import { ShowPreview } from "../../../src/application/build/showPreview";
 import { SyncTapTarget } from "../../../src/application/build/syncTapTarget";
 import { UpdateBuildModes } from "../../../src/application/build/updateBuildModes";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
 import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
 import { previewModel } from "../../../src/domain/build/preview/preview";
@@ -282,46 +283,27 @@ it("uses the confirmation height calculation for roofs without mutating the sess
   );
 });
 
-it("anchors paste on each typed face in the viewer dimension and ignores absent targets", () => {
+it("draws a fixed paste box in the tapped dimension without reading aim", () => {
   const { session, preview, feedback, aim } = setup();
-  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
+  session.completeCopy(
+    selectionOf(overworld, boxOf(cell, end), AIR),
+    structureClipboard(boxOf(cell, end)),
+  );
   aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
   preview.execute(0);
   expect(feedback.previews).toEqual([]);
-  holdClipboard(
-    session,
-    structureClipboard(boxOf(cell, end), () => material),
-  );
-  for (const face of [
-    "up",
-    "down",
-    "north",
-    "south",
-    "east",
-    "west",
-  ] as const) {
-    aim.mockReturnValue({ input: "pointer", ray, block: { cell, face } });
-    preview.execute(0);
-  }
-  expect(feedback.previews).toHaveLength(6);
-  expect(feedback.previews[0]).toEqual({
-    playerId: alex,
-    dimensionId: nether,
-    set: previewModel(session.flow, {
-      blink: true,
-      pasteBox: boxOf(
-        cellOf({ x: 0, y: 65, z: 0 }),
-        cellOf({ x: 0, y: 67, z: 3 }),
-      ),
-    }).set,
-  });
-  const hintsBeforeAir = feedback.modes.length;
-  for (const target of [{ input: "pointer" as const, ray }, undefined]) {
-    aim.mockReturnValue(target);
-    preview.execute(0);
-  }
-  expect(feedback.modes).toHaveLength(hintsBeforeAir + 2);
-  expect(feedback.previews).toHaveLength(6);
+  session.tapPaste(blockTapOf(nether, cell, "up"), 0, "east");
+  preview.execute(0);
+  aim.mockReturnValue(undefined);
+  preview.execute(0);
+  expect(feedback.previews).toHaveLength(2);
+  expect(feedback.previews[1]).toEqual(feedback.previews[0]);
+  expect(feedback.previews[0]?.dimensionId).toBe(nether);
+  expect(aim).not.toHaveBeenCalled();
+  session.pasted();
+  session.tapPaste(blockTapOf(overworld, cell, "up"), 0, "east");
+  preview.execute(0);
+  expect(feedback.previews).toHaveLength(2);
 });
 
 it("keeps concurrent players and their aim targets separate", () => {
@@ -619,7 +601,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
   );
 });
 
-it("shows the hint and only paste layers after copying a confirmed box", () => {
+it("shows the paste hint, and shows the outline and white anchor marker after a tap", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: 1, max: 5 }),
@@ -627,7 +609,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
       fc.integer({ min: 1, max: 5 }),
       fc.boolean(),
       (x, y, z, hit) => {
-        const { session, preview, feedback, aim } = setup();
+        const { session, preview, feedback } = setup();
         const box = boxOf(
           cell,
           cellOf({
@@ -638,11 +620,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
         );
         const clipboard = structureClipboard(box, () => material);
         session.completeCopy(selectionOf(overworld, box, AIR), clipboard);
-        aim.mockReturnValue(
-          hit
-            ? { input: "pointer", ray, block: { cell: end, face: "up" } }
-            : { input: "pointer", ray },
-        );
+        if (hit) session.tapPaste(blockTapOf(nether, end, "up"), 0, "east");
         preview.execute(0);
         expect(feedback.modes).toEqual([
           {
@@ -665,12 +643,10 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
           expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
-          for (const layer of [
-            "startMarker",
-            "shape",
-            "endMarker",
-            "roof",
-          ] as const)
+          expect(set?.startMarker).toEqual(
+            cornerMarkerPoints(cellOf({ ...end, y: end.y + 1 })),
+          );
+          for (const layer of ["shape", "endMarker", "roof"] as const)
             expect(set?.[layer]).toEqual([]);
         } else expect(feedback.previews).toEqual([]);
       },
@@ -681,7 +657,7 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
 it("outlines the rotated paste box at each heading", () => {
   fc.assert(
     fc.property(fc.constantFrom(0, 1, 2, 3), (turn) => {
-      const { session, preview, feedback, aim } = setup();
+      const { session, preview, feedback } = setup();
       session.completeCopy(
         selectionOf(overworld, boxOf(cell, end), AIR),
         structureClipboard(boxOf(cell, end)),
@@ -689,11 +665,7 @@ it("outlines the rotated paste box at each heading", () => {
       const facing = (["east", "south", "west", "north"] as const)[
         turn
       ] as Facing;
-      aim.mockReturnValue({
-        input: "pointer",
-        ray: { ...ray, direction: facingVector(facing) },
-        block: { cell, face: "up" },
-      });
+      session.tapPaste(blockTapOf(nether, cell, "up"), 0, facing);
       preview.execute(0);
       const anchor = cellOf({ x: 0, y: 65, z: 0 });
       const max = [
@@ -706,52 +678,14 @@ it("outlines the rotated paste box at each heading", () => {
       expect(feedback.previews[0]?.set).toEqual(
         previewModel(session.flow, {
           blink: true,
-          pasteBox: boxOf(anchor, cellOf(max)),
+          pasteTarget: {
+            corner: cellOf({ x: 0, y: 65, z: 0 }),
+            box: boxOf(anchor, cellOf(max)),
+          },
         }).set,
       );
     }),
   );
-});
-
-it("tracks paste facing between redraws without drawing or reporting the HUD", () => {
-  const { session, preview, feedback, aim } = setup();
-  const box = boxOf(cell, end);
-  session.completeCopy(
-    selectionOf(overworld, box, AIR),
-    structureClipboard(box),
-  );
-  aim.mockReturnValue({
-    input: "pointer",
-    ray: { ...ray, direction: facingVector("south") },
-  });
-
-  preview.execute(interval - 1);
-
-  expect(session.flow).toMatchObject({ kind: "pasteAim", facing: "south" });
-  expect(aim).toHaveBeenCalledExactlyOnceWith(alex);
-  expect(feedback.previews).toEqual([]);
-  expect(feedback.modes).toEqual([]);
-});
-
-it("refreshes the paste display without changing the tracked facing", () => {
-  const { session, preview, feedback, aim } = setup();
-  const box = boxOf(cell, end);
-  session.completeCopy(
-    selectionOf(overworld, box, AIR),
-    structureClipboard(box),
-  );
-  const flow = session.flow;
-  aim.mockReturnValue({
-    input: "pointer",
-    ray: { ...ray, direction: facingVector("south") },
-    block: { cell, face: "up" },
-  });
-
-  preview.refresh(alex, 1);
-
-  expect(session.flow).toBe(flow);
-  expect(feedback.modes.at(-1)?.mode).toMatchObject({ degrees: 90 });
-  expect(feedback.previews).toHaveLength(1);
 });
 
 it("shows the copied orientation on resume and leaves the position prompt visible", () => {
@@ -768,19 +702,12 @@ it("shows the copied orientation on resume and leaves the position prompt visibl
     ray: { ...ray, direction: facingVector("south") },
     block: { cell, face: "up" },
   });
-  e.preview.refreshResumedPaste(alex, 1);
-  expect(e.feedback.previews[0]?.set).toEqual(
-    previewModel(e.session.flow, {
-      blink: true,
-      pasteBox: boxOf(
-        cellOf({ x: 0, y: 65, z: 0 }),
-        cellOf({ x: 0, y: 67, z: 3 }),
-      ),
-    }).set,
-  );
+  e.preview.refreshAfterPastePress(alex, 1);
+  expect(e.feedback.previews).toEqual([]);
+  expect(e.aim).not.toHaveBeenCalled();
   expect(e.feedback.modes).toEqual([]);
   e.preview.execute(BUILD_SPEC.outlineInterval);
-  expect(e.session.pasteTurn).toBe(1);
+  expect(e.session.pasteTurn).toBe(0);
   expect(e.feedback.modes).toHaveLength(1);
 });
 
@@ -790,23 +717,26 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
     selectionOf(overworld, boxOf(cell, end), AIR),
     structureClipboard(boxOf(cell, end)),
   );
-  e.aim.mockReturnValue({ input: "pointer", ray, block: { cell, face: "up" } });
+  e.session.tapPaste(blockTapOf(nether, cell, "up"), 0, "east");
   e.preview.execute(0);
   e.session.rotatePaste();
   e.feedback.previews.length = 0;
   e.aim.mockClear();
   e.preview.refresh(alex, 1);
-  expect(e.aim).toHaveBeenCalledExactlyOnceWith(alex);
+  expect(e.aim).not.toHaveBeenCalled();
   expect(e.feedback.previews).toEqual([
     {
       playerId: alex,
       dimensionId: nether,
       set: previewModel(e.session.flow, {
         blink: true,
-        pasteBox: boxOf(
-          cellOf({ x: 0, y: 65, z: 0 }),
-          cellOf({ x: 3, y: 67, z: 0 }),
-        ),
+        pasteTarget: {
+          corner: cellOf({ x: 0, y: 65, z: 0 }),
+          box: boxOf(
+            cellOf({ x: 0, y: 65, z: 0 }),
+            cellOf({ x: -3, y: 67, z: 0 }),
+          ),
+        },
       }).set,
     },
   ]);
@@ -817,7 +747,7 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
   expect(inactive.aim).not.toHaveBeenCalled();
 });
 
-it("shows the effective degrees for every facing and manual turn, including air aim and immediate refresh", () => {
+it("shows the effective degrees for every facing and manual turn, including no target and immediate refresh", () => {
   fc.assert(
     fc.property(
       fc.constantFrom(...FACINGS),
@@ -837,8 +767,12 @@ it("shows the effective degrees for every facing and manual turn, including air 
           ray: { ...ray, direction: facingVector(gaze) },
           block: hit ? { cell, face: "up" } : undefined,
         });
+        if (hit) e.session.tapPaste(blockTapOf(nether, cell, "up"), 0, gaze);
         const expected =
-          ((FACINGS.indexOf(gaze) - FACINGS.indexOf(copied) + 4 + manualTurn) %
+          ((FACINGS.indexOf(hit ? gaze : copied) -
+            FACINGS.indexOf(copied) +
+            4 +
+            manualTurn) %
             4) *
           90;
         e.preview.execute(1);

@@ -1,6 +1,7 @@
 import type { Cell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { BlockState } from "../blockState";
+import type { BlockTap } from "../blockTap";
 import type { CellBox } from "../box";
 import type { Selection } from "../selection";
 import type { StairOp } from "../stairs/contents";
@@ -63,6 +64,7 @@ export type BuildFlow =
       readonly op: StairOp;
       readonly start: BuildStart;
       readonly row: StairRow;
+      readonly goalTap?: BlockTap;
       readonly taps: Taps;
       readonly selectionBefore: CellBox;
     }

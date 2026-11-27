@@ -73,7 +73,7 @@ it("routes to edit undo exactly when the flow has no selection step to reverse",
           new StepBackSelection(repo, feedback),
           undo,
         );
-        session.selectPasted(selected.selection);
+        session.confirmBox(selected.selection, "selected", selected.taps);
         const pasted = session.flow;
         // Built and pasted boxes both use confirmBox, which ends endpoint freshness.
         session.confirmBox(selected.selection, "selected", {
