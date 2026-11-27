@@ -518,8 +518,8 @@ it("uses a distinct Molang color map for each marker layer and reuses it for the
   expect(spawnParticle).toHaveBeenCalledTimes(6);
   const colors = [
     { red: 1, green: 1, blue: 1 },
-    { red: 1, green: 0.15, blue: 0.15 },
-    { red: 1, green: 0.55, blue: 0 },
+    { red: 1, green: 0.35, blue: 0.35 },
+    { red: 1, green: 0.7, blue: 0.2 },
   ];
   const maps = colors.map((color, index) => {
     const firstCall = index * 2 + 1;

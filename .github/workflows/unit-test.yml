@@ -203,7 +203,7 @@ jobs:
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
       - uses: ./.github/actions/generated-files
       - if: github.event_name == 'pull_request'
-        run: python3 -I tools/run_generators.py --check --only gen_model.py gen_sportsboat.py gen_camper.py gen_bulldozer.py gen_scooter.py gen_vehicle_switch_docs.py gen_build_tools.py gen_warp_art.py gen_camping_gear.py gen_item_catalog.py gen_low_chair.py gen_sofa.py gen_noga_chair.py gen_camp_table.py gen_fire_pit.py gen_dutch_oven.py gen_gas_lantern.py gen_tent.py gen_beach_parasol.py gen_beach_chair.py gen_dining_table.py gen_dining_chair.py gen_roof_tent.py gen_toilet.py gen_washstand.py
+        run: python3 -I tools/run_generators.py --check --only gen_model.py gen_sportsboat.py gen_camper.py gen_bulldozer.py gen_scooter.py gen_vehicle_switch_docs.py gen_build_tools.py gen_build_particles.py gen_warp_art.py gen_camping_gear.py gen_item_catalog.py gen_low_chair.py gen_sofa.py gen_noga_chair.py gen_camp_table.py gen_fire_pit.py gen_dutch_oven.py gen_gas_lantern.py gen_tent.py gen_beach_parasol.py gen_beach_chair.py gen_dining_table.py gen_dining_chair.py gen_roof_tent.py gen_toilet.py gen_washstand.py
       - if: github.event_name == 'push'
         run: pnpm run model:check
 

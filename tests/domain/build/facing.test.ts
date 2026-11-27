@@ -18,11 +18,6 @@ import {
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 
 const facing = fc.constantFrom(...FACINGS);
-const direction = (degrees: number) => ({
-  x: Math.sin((degrees * Math.PI) / 180),
-  y: 0,
-  z: -Math.cos((degrees * Math.PI) / 180),
-});
 
 it("composes clockwise turns", () => {
   fc.assert(
@@ -72,40 +67,11 @@ it("maps cardinal vectors and Bedrock yaw to facings", () => {
   );
 });
 
-it("holds the current facing through the hysteresis margin", () => {
-  fc.assert(
-    fc.property(
-      facing,
-      facing,
-      fc.integer({ min: -180000, max: 180000 }),
-      (current, other, millidegrees) => {
-        const offset = millidegrees / 1000;
-        const centre = FACINGS.indexOf(current) * 90;
-        const result = facingFromDirection(direction(centre + offset), current);
-        if (
-          Math.abs(offset) <
-          45 + BUILD_SPEC.pasteFacingHysteresisDegrees - 0.001
-        )
-          expect(result).toBe(current);
-        if (
-          Math.abs(offset) >
-          45 + BUILD_SPEC.pasteFacingHysteresisDegrees + 0.001
-        )
-          expect(result).toBe(facingFromDirection(direction(centre + offset)));
-        if (Math.abs(offset) < 34.999)
-          expect(facingFromDirection(direction(centre + offset), other)).toBe(
-            current,
-          );
-      },
-    ),
-  );
-});
-
 it("rejects vertical directions and parses facing names", () => {
   fc.assert(
     fc.property(facing, (f) => {
       expect(parseFacing(f.toUpperCase())).toBe(f);
-      expect(facingFromDirection({ x: 0, y: 1, z: 0 }, f)).toBeUndefined();
+      expect(facingFromDirection({ x: 0, y: 1, z: 0 })).toBeUndefined();
       expect(
         facingFromDirection({
           x: BUILD_SPEC.facingMinHorizontal / 2,

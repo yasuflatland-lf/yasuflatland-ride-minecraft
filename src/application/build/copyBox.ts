@@ -1,5 +1,5 @@
-import { sizeOf, volume } from "../../domain/build/box";
-import type { Clipboard } from "../../domain/build/clipboard/clipboard";
+import { volume } from "../../domain/build/box";
+import { clipboardOf } from "../../domain/build/clipboard/clipboard";
 import type { BuildSessionRepository } from "../../domain/build/sessionRepository";
 import { BUILD_SPEC } from "../../domain/build/spec";
 import type { BoxAction, BoxActionCommand } from "./boxAction";
@@ -28,13 +28,12 @@ export class CopyBox implements BoxAction {
       else this.feedback.showMessage(playerId, "copyUnreadable");
       return false;
     }
-    const clipboard: Clipboard = {
-      material: selection.material,
+    const clipboard = clipboardOf({
+      selection,
       facing: cmd.facing,
-      size: sizeOf(box),
-      blockCount: count,
-      contents: { kind: "structure", handle },
-    };
+      point1: cmd.point1,
+      handle,
+    });
     this.repo.update(this.repo.getOrCreate(playerId), (session) => {
       session.completeCopy(selection, clipboard);
     });

@@ -1,11 +1,11 @@
 import { vi } from "vitest";
-import { FixStairGoal } from "../../../../src/application/build/fixStairGoal";
 import { PasteAt } from "../../../../src/application/build/pasteAt";
 import { PressPasteAim } from "../../../../src/application/build/pressPasteAim";
 import { PressWand } from "../../../../src/application/build/pressWand";
 import { ResolvePasteTarget } from "../../../../src/application/build/resolvePasteTarget";
 import { SetPoint } from "../../../../src/application/build/setPoint";
 import { TapAir } from "../../../../src/application/build/tapAir";
+import { TapStairGoal } from "../../../../src/application/build/tapStairGoal";
 import type { PlayerId } from "../../../../src/domain/shared/ids";
 import {
   FakeAimReader,
@@ -29,12 +29,13 @@ export function wandFixture(afterPaste?: (id: PlayerId, tick: number) => void) {
     {
       setPoint: new SetPoint(repo, world, feedback),
       tapAir: new TapAir(repo, feedback, world),
-      fixStairGoal: new FixStairGoal(repo, feedback, aim),
+      tapStairGoal: new TapStairGoal(repo, feedback),
       pressPasteAim: new PressPasteAim(
         repo,
         new PasteAt(repo, world, feedback, structures, new FakeBuildPlayers()),
         feedback,
         new ResolvePasteTarget(repo, new FakeGroundProbe()),
+        { facingOf: () => "east" },
       ),
       onPasted,
     },

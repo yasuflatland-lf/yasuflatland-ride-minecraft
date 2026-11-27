@@ -8,8 +8,10 @@ export type PressIntent =
   | { kind: "fixEndpoint" } // Try to fix the virtual endpoint from the aim ray.
   | { kind: "openUtilityMenu" } // Offer the available utility actions.
   | { kind: "confirmLiveHeight" }
-  | { kind: "fixStairGoal" }
+  | { kind: "tapStairGoal" }
+  | { kind: "confirmStairGoal" }
   | { kind: "aimHeight" } // Confirm the aimed height and advance the height step.
+  | { kind: "tapPaste" }
   | { kind: "pasteAim" } // Handle the wand's paste gesture or direct Paste Place.
   | { kind: "undo" } // Request undo of the last edit.
   | { kind: "rotateSelection" }
@@ -44,10 +46,13 @@ export function routePress({
   }
 
   if (flow.kind === "pasteAim")
-    return { kind: route === "itemUse" ? "pasteAim" : "ignore" };
+    return { kind: route === "itemUse" ? "pasteAim" : "tapPaste" };
 
   if (flow.kind === "stairContents") return { kind: "ignore" };
-  if (flow.kind === "stairAim") return { kind: "fixStairGoal" };
+  if (flow.kind === "stairAim")
+    return {
+      kind: route === "blockInteract" ? "tapStairGoal" : "confirmStairGoal",
+    };
 
   if (route === "itemUse" && target !== "air" && !acceptsAnyItemUse(flow))
     return { kind: "ignore" };

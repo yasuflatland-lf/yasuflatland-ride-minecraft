@@ -16,9 +16,10 @@ export function selectionAfterUndo(
   if (entry.kind === "snapshot" && entry.snapshot.paste) {
     if (
       clipboardPresent &&
-      flow.kind === "selected" &&
-      inDimension(flow.selection, entry.snapshot.dimensionId) &&
-      sameBox(flow.selection.box, entry.snapshot.box)
+      (flow.kind === "pasteAim" ||
+        (flow.kind === "selected" &&
+          inDimension(flow.selection, entry.snapshot.dimensionId) &&
+          sameBox(flow.selection.box, entry.snapshot.box)))
     )
       return { aimPaste: true };
     return undefined;

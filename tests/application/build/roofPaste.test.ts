@@ -399,15 +399,14 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
           cellOf(block),
           face,
           turnBetween(clip.facing, "east"),
-          "east",
         );
         const delta = {
           up: [0, 1, 0],
           down: [0, -1, 0],
-          north: [1 - clip.size.x, 0, -clip.size.z],
+          north: [0, 0, -1],
           south: [0, 0, 1],
-          east: [1, 0, 1 - clip.size.z],
-          west: [-clip.size.x, 0, 0],
+          east: [1, 0, 0],
+          west: [-1, 0, 0],
         }[face];
         expect(anchor).toEqual({
           x: block.x + (delta[0] as number),
@@ -431,17 +430,12 @@ it("pastes clipboard-relative cells at the hit face including air", () => {
             cellOf(block),
             face,
             turnBetween(clip.facing, "east"),
-            "east",
           ),
         });
         expect(read.mock.calls).toEqual(
           [...cellsOf(box)].map((at) => [nether, at]),
         );
-        expect(e.session.flow).toMatchObject({
-          kind: "selected",
-          menuLevel: "root",
-          selection: { dimensionId: nether, box },
-        });
+        expect(e.session.flow).toEqual(beginPasteAim());
         e.jobs.step();
         for (const [index, at] of [...cellsOf(box)].entries())
           expect(e.world.stateAt(nether, at)).toEqual(expected[index]);
@@ -476,7 +470,6 @@ it("preserves paste aiming on missing clipboard, busy jobs and protected holes",
         ).facing,
         "east",
       ),
-      "east",
     ),
   };
   paste.execute(cmd);

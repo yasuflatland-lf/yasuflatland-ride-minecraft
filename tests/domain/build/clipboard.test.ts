@@ -1,9 +1,11 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
-import { boxOf, volume } from "../../../src/domain/build/box";
+import { blockStateOf } from "../../../src/domain/build/blockState";
+import { boxOf, sizeOf, volume } from "../../../src/domain/build/box";
+import { anchorCornerOf } from "../../../src/domain/build/clipboard/anchorCorner";
 import {
-  aimedPasteTarget,
   type Clipboard,
+  clipboardOf,
   pasteTarget,
 } from "../../../src/domain/build/clipboard/clipboard";
 import {
@@ -11,11 +13,14 @@ import {
   turnBetween,
 } from "../../../src/domain/build/rotation/facing";
 import type { QuarterTurn } from "../../../src/domain/build/rotation/quarterTurn";
+import { selectionOf } from "../../../src/domain/build/selection";
+import { structureHandle } from "../../../src/domain/build/structure/handle";
 import {
   anchorCell,
   type BlockFace,
 } from "../../../src/domain/shared/blockFace";
 import { cellOf } from "../../../src/domain/shared/cells";
+import { asDimensionId } from "../../../src/domain/shared/ids";
 import { structureClipboard } from "../../support/buildClipboard";
 
 const faces: readonly BlockFace[] = [
@@ -43,6 +48,36 @@ const clipboard: fc.Arbitrary<Clipboard> = fc
     ),
   );
 
+it("builds the same clipboard as the copy and cut literals", () => {
+  fc.assert(
+    fc.property(
+      cell,
+      cell,
+      fc.constantFrom(...FACINGS),
+      fc.constantFrom("minecraft:stone", "minecraft:dirt"),
+      fc.uuid(),
+      (a, b, facing, materialId, rawHandle) => {
+        const box = boxOf(a, b);
+        const material = blockStateOf(materialId);
+        const selection = selectionOf(
+          asDimensionId("minecraft:overworld"),
+          box,
+          material,
+        );
+        const handle = structureHandle(rawHandle);
+        expect(clipboardOf({ selection, facing, handle })).toStrictEqual({
+          anchor: anchorCornerOf(box, undefined, facing),
+          material,
+          facing,
+          size: sizeOf(box),
+          blockCount: volume(box),
+          contents: { kind: "structure", handle },
+        });
+      },
+    ),
+  );
+});
+
 it("four facings give distinct turns, preserve volume and swap horizontal extents on odd turns", () => {
   fc.assert(
     fc.property(
@@ -57,7 +92,6 @@ it("four facings give distinct turns, preserve volume and swap horizontal extent
           block,
           face,
           turnBetween(clip.facing, "east"),
-          "east",
         );
         const turns = new Set<number>();
         for (const facing of FACINGS) {
@@ -68,7 +102,6 @@ it("four facings give distinct turns, preserve volume and swap horizontal extent
             block,
             face,
             turnBetween(clip.facing, facing),
-            facing,
           );
           expect(volume(target.box)).toBe(volume(original.box));
           expect(target.anchor).toEqual(target.box.min);
@@ -80,14 +113,6 @@ it("four facings give distinct turns, preserve volume and swap horizontal extent
             turn % 2 ? clip.size.x : clip.size.z,
           );
           expect(target.box.max.y - target.box.min.y + 1).toBe(clip.size.y);
-          expect(
-            aimedPasteTarget(
-              clip,
-              { block: { cell: block, face } },
-              turnBetween(clip.facing, facing),
-              facing,
-            ),
-          ).toEqual(target);
         }
         expect(turns.size).toBe(4);
       },
@@ -107,7 +132,6 @@ it("east-facing vertical-face targets reproduce the original positive-axis box",
           block,
           face,
           turnBetween(clip.facing, "east"),
-          "east",
         );
         const offsets = {
           up: { x: 0, y: 1, z: 0 },
@@ -143,45 +167,17 @@ it("east-facing vertical-face targets reproduce the original positive-axis box",
   );
 });
 
-it("aimedPasteTarget is undefined exactly when there is no aimed block", () => {
-  fc.assert(
-    fc.property(
-      clipboard,
-      fc.option(fc.record({ cell, face }), { nil: undefined }),
-      (clip, block) => {
-        const target = aimedPasteTarget(
-          clip,
-          { block },
-          turnBetween(clip.facing, "east"),
-          "east",
-        );
-        expect(target === undefined).toBe(block === undefined);
-        if (block)
-          expect(target).toEqual(
-            pasteTarget(
-              clip,
-              block.cell,
-              block.face,
-              turnBetween(clip.facing, "east"),
-              "east",
-            ),
-          );
-      },
-    ),
-  );
-});
-
 it("uses the explicit turn for the footprint independently of the facing", () => {
   fc.assert(
     fc.property(
       clipboard,
       cell,
       face,
-      fc.constantFrom(...FACINGS),
       fc.constantFrom<QuarterTurn>(0, 1, 2, 3),
-      (clip, block, face, facing, turn) => {
-        const target = pasteTarget(clip, block, face, turn, facing);
+      (clip, block, face, turn) => {
+        const target = pasteTarget(clip, block, face, turn);
         const near = anchorCell(block, face);
+        expect(target.corner).toEqual(near);
         for (const axis of ["x", "y", "z"] as const) {
           expect(target.box.min[axis]).toBeLessThanOrEqual(near[axis]);
           expect(target.box.max[axis]).toBeGreaterThanOrEqual(near[axis]);
@@ -198,14 +194,6 @@ it("uses the explicit turn for the footprint independently of the facing", () =>
           turn % 2 ? clip.size.x : clip.size.z,
         );
         expect(target.box.max.y - target.box.min.y + 1).toBe(clip.size.y);
-        expect(
-          aimedPasteTarget(
-            clip,
-            { block: { cell: block, face } },
-            turn,
-            facing,
-          ),
-        ).toEqual(target);
       },
     ),
   );

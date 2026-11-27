@@ -31,10 +31,9 @@ export function installBuildTestHooks(
   );
   registerTestMode(ctx.modes, ctx.repo);
   const describe = new DescribeBuild(ctx.repo);
-  registerTestPress(ctx.routes, describe, messages);
+  registerTestPress(ctx.routes, ctx.pressWand, describe, messages);
   registerTestEdit(
     ctx.menuChoices,
-    ctx.pressPasteAim,
     ctx.menuCases.undo,
     ctx.pressUndo,
     describe,
@@ -42,7 +41,6 @@ export function installBuildTestHooks(
     ctx.repo,
     ctx.endSession,
     ctx.structures,
-    ctx.rotatePasteAim,
     { aim: testAim, preview: ctx.preview },
   );
 }
