@@ -148,7 +148,7 @@ export class ShowPreview {
         aim,
         tick,
       });
-      if (result.kind === "target") preview.pasteBox = result.target.box;
+      if (result.kind === "target") preview.pasteTarget = result.target;
     }
 
     const { dimensionId, set } = previewModel(flow, preview);

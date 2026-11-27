@@ -84,7 +84,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             blink,
             playerDimension,
             end: flow.kind === "selected" ? cellOf(a) : cellOf(b),
-            pasteBox: box,
+            pasteTarget: { box, corner: box.min },
             height: height,
           });
           const { set } = model;
@@ -106,6 +106,8 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
           expect(
             set.paste.length + set.pasteVertical.length,
           ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
+          if (flow.kind === "pasteAim")
+            expect(set.startMarker).toEqual(cornerMarkerPoints(box.min));
           if (flow.kind === "point1" || flow.kind === "selected")
             expect(set).toMatchObject(
               endpointMarkers(cellOf(a), cellOf(b), blink),

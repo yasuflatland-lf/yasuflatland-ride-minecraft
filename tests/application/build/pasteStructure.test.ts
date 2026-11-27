@@ -63,7 +63,7 @@ function setup(anchor = cellOf({ x: 0, y: 1, z: 0 }), blockCount = 8) {
   const cmd = {
     playerId,
     dimensionId: overworld,
-    target: { anchor, box, turn: 0 as const },
+    target: { anchor, corner: anchor, box, turn: 0 as const },
   };
   return { repo, session, world, players, feedback, store, start, paste, cmd };
 }
@@ -92,7 +92,11 @@ it("selects the pasted box at the root and keeps the clipboard", () => {
         const clipboard = clipboardOf({ selection, facing, handle });
         e.session.completeCopy(selection, clipboard);
         const box = boxFromSize(anchor, rotatedSize(size, turn));
-        const cmd = { ...e.cmd, dimensionId, target: { anchor, box, turn } };
+        const cmd = {
+          ...e.cmd,
+          dimensionId,
+          target: { anchor, corner: anchor, box, turn },
+        };
         expect(e.paste.execute(cmd)).toBe("pasted");
         expect(e.session.flow).toEqual({
           kind: "selected",

@@ -67,7 +67,6 @@ function setup() {
       cellOf(block),
       "up",
       turnBetween(session.clipboard.facing, "east"),
-      "east",
     );
   };
   return { repo, session, world, feedback, paste, target, structures };

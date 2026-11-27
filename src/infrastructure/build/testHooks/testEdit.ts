@@ -164,12 +164,13 @@ export function registerTestEdit(
             );
             return;
           }
+          const point1 = cellOf({
+            x: Number(args[0]),
+            y: Number(args[1]),
+            z: Number(args[2]),
+          });
           const box = boxOf(
-            cellOf({
-              x: Number(args[0]),
-              y: Number(args[1]),
-              z: Number(args[2]),
-            }),
+            point1,
             cellOf({
               x: Number(args[3]),
               y: Number(args[4]),
@@ -184,7 +185,7 @@ export function registerTestEdit(
           repo.update(repo.getOrCreate(playerId), (session) => {
             session.completeCopy(
               selection,
-              clipboardOf({ selection, facing, handle }),
+              clipboardOf({ selection, facing, handle, point1 }),
             );
           });
         } else if (command === "releaseStructures" && args.length === 0) {

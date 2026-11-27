@@ -309,10 +309,13 @@ it("anchors paste on each typed face in the viewer dimension and ignores absent 
     dimensionId: nether,
     set: previewModel(session.flow, {
       blink: true,
-      pasteBox: boxOf(
-        cellOf({ x: 0, y: 65, z: 0 }),
-        cellOf({ x: 0, y: 67, z: 3 }),
-      ),
+      pasteTarget: {
+        corner: cellOf({ x: 0, y: 65, z: 0 }),
+        box: boxOf(
+          cellOf({ x: 0, y: 65, z: 0 }),
+          cellOf({ x: 0, y: 67, z: 3 }),
+        ),
+      },
     }).set,
   });
   const hintsBeforeAir = feedback.modes.length;
@@ -619,7 +622,7 @@ it("idle after New copy draws no paste layers or hints with a held clipboard", (
   );
 });
 
-it("shows the hint and only paste layers after copying a confirmed box", () => {
+it("shows the paste hint, outline and white anchor marker after copying a confirmed box", () => {
   fc.assert(
     fc.property(
       fc.integer({ min: 1, max: 5 }),
@@ -665,12 +668,10 @@ it("shows the hint and only paste layers after copying a confirmed box", () => {
           const set = feedback.previews[0]?.set;
           expect(set?.paste.length).toBeGreaterThan(0);
           expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
-          for (const layer of [
-            "startMarker",
-            "shape",
-            "endMarker",
-            "roof",
-          ] as const)
+          expect(set?.startMarker).toEqual(
+            cornerMarkerPoints(cellOf({ ...end, y: end.y + 1 })),
+          );
+          for (const layer of ["shape", "endMarker", "roof"] as const)
             expect(set?.[layer]).toEqual([]);
         } else expect(feedback.previews).toEqual([]);
       },
@@ -706,7 +707,10 @@ it("outlines the rotated paste box at each heading", () => {
       expect(feedback.previews[0]?.set).toEqual(
         previewModel(session.flow, {
           blink: true,
-          pasteBox: boxOf(anchor, cellOf(max)),
+          pasteTarget: {
+            corner: cellOf({ x: 0, y: 65, z: 0 }),
+            box: boxOf(anchor, cellOf(max)),
+          },
         }).set,
       );
     }),
@@ -772,10 +776,13 @@ it("shows the copied orientation on resume and leaves the position prompt visibl
   expect(e.feedback.previews[0]?.set).toEqual(
     previewModel(e.session.flow, {
       blink: true,
-      pasteBox: boxOf(
-        cellOf({ x: 0, y: 65, z: 0 }),
-        cellOf({ x: 0, y: 67, z: 3 }),
-      ),
+      pasteTarget: {
+        corner: cellOf({ x: 0, y: 65, z: 0 }),
+        box: boxOf(
+          cellOf({ x: 0, y: 65, z: 0 }),
+          cellOf({ x: 0, y: 67, z: 3 }),
+        ),
+      },
     }).set,
   );
   expect(e.feedback.modes).toEqual([]);
@@ -803,10 +810,13 @@ it("refreshes only the requested player's rotated paste between outline ticks", 
       dimensionId: nether,
       set: previewModel(e.session.flow, {
         blink: true,
-        pasteBox: boxOf(
-          cellOf({ x: 0, y: 65, z: 0 }),
-          cellOf({ x: 3, y: 67, z: 0 }),
-        ),
+        pasteTarget: {
+          corner: cellOf({ x: 0, y: 65, z: 0 }),
+          box: boxOf(
+            cellOf({ x: 0, y: 65, z: 0 }),
+            cellOf({ x: -3, y: 67, z: 0 }),
+          ),
+        },
       }).set,
     },
   ]);

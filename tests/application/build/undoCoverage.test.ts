@@ -160,7 +160,7 @@ it("Build Undo restores blocks after paste selects its result", () => {
     e.paste.execute({
       playerId,
       dimensionId: overworld,
-      target: { anchor: target.min, box: target, turn: 0 },
+      target: { corner: target.min, anchor: target.min, box: target, turn: 0 },
     }),
   ).toBe("pasted");
   expect(e.session.flow.kind).toBe("selected");

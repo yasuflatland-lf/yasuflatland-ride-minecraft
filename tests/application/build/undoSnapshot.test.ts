@@ -127,7 +127,7 @@ it.each([
     paste.execute({
       playerId,
       dimensionId: overworld,
-      target: { box, anchor: box.min, turn: 0 },
+      target: { box, corner: box.min, anchor: box.min, turn: 0 },
     }),
   ).toBe("pasted");
   if (situation === "rotated") {

@@ -29,7 +29,7 @@ export interface PreviewAim {
   end?: Cell;
   height?: number;
   staircase?: Staircase;
-  pasteBox?: CellBox;
+  pasteTarget?: { box: CellBox; corner: Cell };
 }
 
 /**
@@ -150,9 +150,10 @@ export function previewModel(
       );
       break;
     case "pasteAim":
-      if (aim.pasteBox) {
+      if (aim.pasteTarget) {
+        set.startMarker = cornerMarkerPoints(aim.pasteTarget.corner);
         const { horizontal, vertical } = pasteOutline(
-          aim.pasteBox,
+          aim.pasteTarget.box,
           BUILD_SPEC.outlineMaxPoints,
         );
         set.paste = horizontal;

@@ -78,6 +78,7 @@ it("captures exactly once with the owner and dimension and stores the full box s
       ]);
       const clipboard = e.repo.get(playerId)?.clipboard;
       expect(clipboard).toEqual({
+        anchor: { x: "min", z: "min" },
         material: AIR,
         size: {
           x: box.max.x - box.min.x + 1,
@@ -294,6 +295,7 @@ it.each(["absent", "structure"] as const)(
                   );
                 }
                 expectedClipboard = {
+                  anchor: { x: "min", z: "min" },
                   material: AIR,
                   size: {
                     x: box.max.x - box.min.x + 1,
