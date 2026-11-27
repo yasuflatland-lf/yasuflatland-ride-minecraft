@@ -11,7 +11,6 @@ import type { BuildFlow } from "./state";
 
 export type EditEntryId = "cut" | "removeAbove" | "fillBelow" | "copy";
 export type BuildEntryId =
-  | "place"
   | "fill"
   | "frame"
   | "faces"
@@ -23,7 +22,7 @@ export type RootEntryId =
   | "adjustHeight"
   | StairOp
   | "buildShape"
-  | "place"
+  | "fill"
   | "cancel";
 export type BuildMenuEntryId = BuildEntryId | "back";
 /** What a shape-menu (root or build level) entry asks for. */
@@ -62,9 +61,7 @@ export function buildEntries(shape: Shape): MenuEntry<BuildEntryId>[] {
       ? HEIGHTED_ENTRIES
       : [];
   return [
-    ...stylesFor(shape).map<MenuEntry<BuildEntryId>>((style) => ({
-      id: shape.kind === "line" ? "place" : style,
-    })),
+    ...stylesFor(shape).map((id) => ({ id })),
     ...extraEntries.map((id) => ({ id })),
   ];
 }
@@ -86,7 +83,6 @@ export function shapeChoiceOf(id: RootEntryId | BuildMenuEntryId): ShapeChoice {
     case "fillBelow":
     case "copy":
       return { kind: "edit", id };
-    case "place":
     case "fill":
     case "frame":
     case "faces":
@@ -107,14 +103,15 @@ export function shapeMenu(flow: BuildFlow): MenuEntry<RootEntryId>[] {
   const isLine = shapeOf(min, max).kind === "line";
   return [
     ...(isLine ? [] : [{ id: "adjustHeight" as const }]),
+    { id: "fill" },
     { id: "cut" },
-    { id: "removeAbove" },
-    { id: isLine ? "place" : "buildShape" },
+    ...(isLine ? [] : [{ id: "buildShape" as const }]),
     ...(selectedStairRow(flow)
       ? [{ id: "stairs" as const }, { id: "terrace" as const }]
       : []),
-    { id: "copy" },
+    { id: "removeAbove" },
     { id: "fillBelow" },
+    { id: "copy" },
     { id: "cancel" },
   ];
 }

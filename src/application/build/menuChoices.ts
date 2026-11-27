@@ -219,15 +219,11 @@ export class MenuChoices {
 
   private dispatchBuildEntry(id: BuildEntryId, playerId: PlayerId) {
     switch (id) {
-      case "place":
       case "fill":
       case "frame":
       case "faces":
       case "walls":
-        this.cases.confirmShape.execute({
-          playerId,
-          style: id === "place" ? "fill" : id,
-        });
+        this.cases.confirmShape.execute({ playerId, style: id });
         break;
       case "gable":
       case "hip":

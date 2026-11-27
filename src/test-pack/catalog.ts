@@ -2429,6 +2429,16 @@ export const CATALOG: readonly ScenarioSpec[] = [
     vehicles: 0,
   },
   {
+    name: "build_root_menu",
+    file: "buildFlow",
+    ticks: 200,
+    features: ["build"],
+    isolation: "exclusive",
+    needsArena: true,
+    needsPlayer: true,
+    vehicles: 0,
+  },
+  {
     name: "build_tap_target_follows",
     file: "buildFlow",
     ticks: 120,

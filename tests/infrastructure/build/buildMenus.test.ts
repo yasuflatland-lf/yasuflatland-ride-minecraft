@@ -183,17 +183,16 @@ it.each(["back", "dismiss", "unanswered"] as const)(
       { translate: BUILD_FORM.buildShapeTitle },
       { translate: BUILD_FORM.shapeTitle },
     ]);
-    expect(ui.forms[0]?.buttons).toEqual(
-      [
-        "adjustHeight",
-        "cut",
-        "removeAbove",
-        "buildShape",
-        "copy",
-        "fillBelow",
-        "cancel",
-      ].map((id) => ({ translate: BUILD_FORM[id as keyof typeof BUILD_FORM] })),
-    );
+    expect(ui.forms[0]?.buttons).toEqual([
+      { translate: BUILD_FORM.adjustHeight },
+      { translate: "yasu_build.form.fill" },
+      { translate: BUILD_FORM.cut },
+      { translate: BUILD_FORM.buildShape },
+      { translate: BUILD_FORM.removeAbove },
+      { translate: BUILD_FORM.fillBelow },
+      { translate: BUILD_FORM.copy },
+      { translate: BUILD_FORM.cancel },
+    ]);
     expect(refresh).toHaveBeenCalledWith(playerId, engine.tick);
     expect(session.flow).toEqual(endpoint);
   },
@@ -289,12 +288,15 @@ it("shows exactly the applicable utility entries", async () => {
   );
 });
 
-it("offers Place directly on a line without opening the build submenu", async () => {
+it("offers Fill directly on a line without opening the build submenu", async () => {
   const { session, menus, player, cases } = setup();
   session.setFlowForTest(selected(from, { ...from, x: 4 }));
-  ui.answers.push(...shapeAnswers(session.flow, "place"));
+  ui.answers.push(...shapeAnswers(session.flow, "fill"));
   await menus.showShapeMenu(player);
   expect(ui.forms).toHaveLength(1);
+  expect(ui.forms[0]?.buttons[0]).toEqual({
+    translate: "yasu_build.form.fill",
+  });
   expect(cases.confirmShape.execute).toHaveBeenCalledExactlyOnceWith({
     playerId,
     style: "fill",
