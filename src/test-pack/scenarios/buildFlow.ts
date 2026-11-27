@@ -855,6 +855,55 @@ export function buildFlowCancel(a: Arena): Promise<Outcome> {
   });
 }
 
+export function buildMarkerNight(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const start = f.cell();
+    const end = f.cell(0, 0, 3);
+    const hold = async (label: string) => {
+      const message = `marker night: ${label}`;
+      console.warn(message);
+      f.player.sendMessage(message);
+      await wait(200);
+    };
+    const time = world.getTimeOfDay();
+    try {
+      a.dim.runCommand("time set midnight");
+      f.block(f.cell(-4, -1)).setType("minecraft:stone");
+      f.player.teleport(f.at(-3.5, 0, 0.5), {
+        facingLocation: f.at(0.5, 0.5, 1.5),
+      });
+      f.block(start).setType("minecraft:stone");
+      // Aim away from the start plane so the live endpoint stays absent while the player watches.
+      await f.edit("aim west");
+      check(
+        (await f.tap("block", start)).flow.kind === "point1",
+        "Missing start marker",
+      );
+      await hold("blinking white start only");
+
+      checkSelection(
+        await f.tap("air", end),
+        { min: start, max: end },
+        "distinct endpoints",
+      );
+      await hold("white start and red end with outline");
+
+      await f.tap("clear");
+      await f.tap("block", start);
+      await f.tap("air", start);
+      checkSelection(
+        await f.tap("fixHeight"),
+        { min: start, max: start },
+        "shared endpoint",
+      );
+      await hold("orange shared endpoint");
+    } finally {
+      world.setTimeOfDay(time);
+      await f.edit("aim clear");
+    }
+  });
+}
+
 export function buildPersistentSelection(a: Arena): Promise<Outcome> {
   return withBuilder(a, async (f) => {
     const end = f.cell(4, 0, 4);
