@@ -2,7 +2,7 @@ import { type Cell, cellCenter, sameCell } from "../../shared/cells";
 import type { DimensionId } from "../../shared/ids";
 import type { Vec3 } from "../../shared/vec";
 import { boxOf, type CellBox, edgePoints } from "../box";
-import { cornerMarkerPoints } from "../cornerMarker";
+import { cornerMarkerEdges, type MarkerEdge } from "../cornerMarker";
 import { liveHeightBox } from "../flow/heightFlow";
 import { type BuildFlow, dimensionOf } from "../flow/state";
 import { BUILD_SPEC } from "../spec";
@@ -13,9 +13,9 @@ import { pasteOutline } from "./pasteOutline";
 import { stairPreviewPoints } from "./stairPreview";
 
 export interface PreviewSet {
-  startMarker: Vec3[];
-  endMarker: Vec3[];
-  sharedMarker: Vec3[];
+  startMarker: MarkerEdge[];
+  endMarker: MarkerEdge[];
+  sharedMarker: MarkerEdge[];
   shape: Vec3[];
   roof: Vec3[];
   stairs: Vec3[];
@@ -79,11 +79,11 @@ export function endpointMarkers(
     return {
       startMarker: [],
       endMarker: [],
-      sharedMarker: cornerMarkerPoints(start),
+      sharedMarker: cornerMarkerEdges(start),
     };
   return {
-    startMarker: end || blink ? cornerMarkerPoints(start) : [],
-    endMarker: end ? cornerMarkerPoints(end) : [],
+    startMarker: end || blink ? cornerMarkerEdges(start) : [],
+    endMarker: end ? cornerMarkerEdges(end) : [],
     sharedMarker: [],
   };
 }
@@ -156,7 +156,7 @@ export function previewModel(
       break;
     case "pasteAim":
       if (aim.pasteTarget) {
-        set.startMarker = cornerMarkerPoints(aim.pasteTarget.corner);
+        set.startMarker = cornerMarkerEdges(aim.pasteTarget.corner);
         const { horizontal, vertical } = pasteOutline(
           aim.pasteTarget.box,
           BUILD_SPEC.outlineMaxPoints,

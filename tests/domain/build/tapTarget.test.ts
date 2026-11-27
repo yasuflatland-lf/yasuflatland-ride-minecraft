@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
+import { cornerMarkerEdges } from "../../../src/domain/build/cornerMarker";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import { previewModel } from "../../../src/domain/build/preview/preview";
 import { selectionOf } from "../../../src/domain/build/selection";
@@ -49,7 +49,7 @@ it("follows the aimed end at point one and the fixed end at either menu level an
             blink: true,
           }).set;
           expect([...endMarker, ...sharedMarker]).toEqual(
-            target ? cornerMarkerPoints(target) : [],
+            target ? cornerMarkerEdges(target) : [],
           );
         }
       },
