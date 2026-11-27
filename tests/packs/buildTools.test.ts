@@ -168,7 +168,10 @@ describe("Build particles", () => {
     read(`${rp}/particles/yasu_build/${name}.particle.json`).particle_effect;
   const texture = "textures/yasu_build/marker_particle";
 
-  it("renders endpoints at full tint across the entire marker texture", () => {
+  it("draws endpoints as thin edge-aligned lines at full tint", () => {
+    expect(
+      read(`${rp}/particles/yasu_build/marker.particle.json`).format_version,
+    ).toBe("1.20.0");
     const marker = particle("marker");
     expect(marker.description.basic_render_parameters).toEqual({
       material: "particles_alpha",
@@ -177,7 +180,12 @@ describe("Build particles", () => {
     expect(
       marker.components["minecraft:particle_appearance_billboard"],
     ).toMatchObject({
-      size: [0.25, 0.25],
+      facing_camera_mode: "lookat_direction",
+      direction: {
+        mode: "custom",
+        custom_direction: ["v.direction.x", "v.direction.y", "v.direction.z"],
+      },
+      size: ["v.length * 0.5 + 0.03", 0.03],
       uv: {
         texture_width: 16,
         texture_height: 16,
