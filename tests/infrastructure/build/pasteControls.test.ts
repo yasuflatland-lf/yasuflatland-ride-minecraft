@@ -549,12 +549,17 @@ it.each(["itemUse", "blockInteract", "blockInteract,itemUse"])(
     vi.mocked(world.getAllPlayers).mockReturnValue([
       e.player as unknown as Player,
     ]);
-    registerTestPress(e.pressPasteControl, new DescribeBuild(e.repo), {
-      forget: vi.fn(),
-      last: () => undefined,
-      lastMode: () => undefined,
-      hints: () => 0,
-    });
+    registerTestPress(
+      e.pressPasteControl,
+      { execute: vi.fn() },
+      new DescribeBuild(e.repo),
+      {
+        forget: vi.fn(),
+        last: () => undefined,
+        lastMode: () => undefined,
+        hints: () => 0,
+      },
+    );
     engine.handlers.get("script")?.({
       sourceType: "Server",
       id: TEST_PRESS_EVENT,

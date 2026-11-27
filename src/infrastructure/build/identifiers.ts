@@ -48,7 +48,7 @@ export const BUILD_MESSAGE: Readonly<
   pointSet: "yasu_build.message.point_set",
   endSet: "yasu_build.message.end_set",
   heightAim: "yasu_build.message.height_aim",
-  aimStairGoal: "yasu_build.message.aim_stair_goal",
+  stairTapGoal: "yasu_build.message.stair_tap_goal",
   noStairGoal: "yasu_build.message.no_stair_goal",
   fillMaterialRefused: "yasu_build.message.fill_material_refused",
   materialRefused: "yasu_build.message.material_refused",

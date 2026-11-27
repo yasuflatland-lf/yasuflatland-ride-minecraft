@@ -9,15 +9,16 @@ import { ConfirmTerrain } from "../../../src/application/build/confirmTerrain";
 import { CopyBox } from "../../../src/application/build/copyBox";
 import { CutBox } from "../../../src/application/build/cutBox";
 import { EditJobs } from "../../../src/application/build/editJobs";
-import { FixStairGoal } from "../../../src/application/build/fixStairGoal";
 import { PasteAt } from "../../../src/application/build/pasteAt";
 import { PressUndo } from "../../../src/application/build/pressUndo";
 import { RotateBox } from "../../../src/application/build/rotateBox";
 import { RotateSelection } from "../../../src/application/build/rotateSelection";
 import { SetPoint } from "../../../src/application/build/setPoint";
 import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
+import { TapStairGoal } from "../../../src/application/build/tapStairGoal";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import {
   boxFromSize,
   boxOf,
@@ -47,7 +48,6 @@ import {
   tappedSelection,
 } from "../../support/buildSelection";
 import {
-  FakeAimReader,
   FakeBuildPlayers,
   FakeFeedback,
   FakeSessions,
@@ -612,14 +612,14 @@ it("keeps taps spanning the selection through height, rotation, Undo and the bui
         const aim = e.session.flow;
         if (aim.kind !== "stairAim") throw new Error("Expected stair aim");
         const goal = { ...aim.row.min, x: aim.row.min.x + 4, y: aim.row.y + 1 };
-        const gaze = new FakeAimReader();
-        gaze.target = {
-          input: "pointer",
-          ray: { origin: goal, direction: { x: 0, y: -1, z: 0 } },
-          block: { cell: goal, face: "up" },
+        const tapGoal = new TapStairGoal(e.repo, e.feedback);
+        const press = {
+          ...cmd,
+          tap: blockTapOf(aim.start.dimensionId, goal),
+          quietTicks: 9,
         };
-        const fix = new FixStairGoal(e.repo, e.feedback, gaze);
-        expect(fix.execute(cmd)).toBe(true);
+        expect(tapGoal.tap(press)).toBe(false);
+        expect(tapGoal.tap(press)).toBe(true);
         check();
         e.session.backToAiming();
         expect(e.session.flow).toMatchObject({

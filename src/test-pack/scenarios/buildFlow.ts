@@ -15,6 +15,7 @@ import {
   blockStateOf,
   sameBlockState,
 } from "../../domain/build/blockState";
+import type { BlockTap } from "../../domain/build/blockTap";
 import { boxOf, type CellBox, cellBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
 import {
@@ -24,6 +25,11 @@ import {
 } from "../../domain/build/roof/roof";
 import type { Facing } from "../../domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../domain/build/spec";
+import {
+  goalRowTaps,
+  type Staircase,
+} from "../../domain/build/stairs/staircase";
+import type { BlockFace } from "../../domain/shared/blockFace";
 import {
   type Cell,
   cellCenter,
@@ -82,6 +88,8 @@ interface Reply {
   flow: {
     kind: string;
     liveHeight?: number;
+    goalTap?: BlockTap;
+    staircase?: Staircase;
     menuLevel?: "root" | "build";
     heightLocked?: boolean;
     heightedKind?: string;
@@ -99,6 +107,7 @@ function check(ok: boolean, detail: string): asserts ok {
 async function withBuilder(
   a: Arena,
   run: (f: Fixture) => Promise<void>,
+  { settleView = true } = {},
 ): Promise<Outcome> {
   const player = world.getAllPlayers()[0];
   if (!player?.isValid)
@@ -202,6 +211,11 @@ async function withBuilder(
         TEST_PRESS_EVENT,
         `${player.id} ${routes}${gapTicks ? ` ${gapTicks}` : ""}`,
       ),
+    pressBlock: ({ x, y, z }: Cell, face: BlockFace, quietTicks: number) =>
+      query(
+        TEST_PRESS_EVENT,
+        `${player.id} tap ${x} ${y} ${z} ${face} ${quietTicks}`,
+      ),
     holdControl: (typeId: string) =>
       inventory.setItem(player.selectedSlotIndex, new ItemStack(typeId)),
     region,
@@ -251,7 +265,7 @@ async function withBuilder(
   try {
     player.teleport(a.at(45, a.gy, 45), { dimension: a.dim });
     f.hold(true);
-    await f.lookSettled(-90);
+    if (settleView) await f.lookSettled(-90);
     await wait(BUILD_SPEC.modeEnterTicks + 2);
     await tap("clear");
     await run(f);
@@ -284,6 +298,7 @@ type Fixture = {
   ): Promise<Reply>;
   edit(command: string): Promise<Reply>;
   press(routes: string, gapTicks?: number): Promise<Reply>;
+  pressBlock(cell: Cell, face: BlockFace, quietTicks: number): Promise<Reply>;
   holdControl(typeId: string): void;
   menu(menu: string, id: string): Promise<Reply>;
   mode(): Promise<Reply>;
@@ -404,23 +419,24 @@ export function buildRoofs(a: Arena): Promise<Outcome> {
 }
 
 export function buildTerrace(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    const hill = f.region(3, 6, 6);
-    for (const cell of hill) f.block(cell).setType("minecraft:stone");
-    const overhang = f.block(f.cell(1, 6, 1));
-    overhang.setType("minecraft:stone");
-    const foot = { min: f.cell(), max: f.cell(2) };
-    const goal = f.cell(0, 2, 5);
-    await f.select(foot.max);
-    const aim = await f.menu("shape", "terrace");
-    check(
-      aim.offered === true && aim.flow.kind === "stairAim",
-      "Terrace did not enter aiming",
-    );
-    try {
-      await f.edit(`aim ${goal.x} ${goal.y} ${goal.z}`);
+  return withBuilder(
+    a,
+    async (f) => {
+      const hill = f.region(3, 6, 6);
+      for (const cell of hill) f.block(cell).setType("minecraft:stone");
+      const overhang = f.block(f.cell(1, 6, 1));
+      overhang.setType("minecraft:stone");
+      const foot = { min: f.cell(), max: f.cell(2) };
+      const goal = f.cell(0, 2, 5);
+      await f.select(foot.max);
+      const aim = await f.menu("shape", "terrace");
       check(
-        (await f.tap("block", goal)).flow.kind === "stairContents",
+        aim.offered === true && aim.flow.kind === "stairAim",
+        "Terrace did not enter aiming",
+      );
+      await f.pressBlock(goal, "up", 9);
+      check(
+        (await f.pressBlock(goal, "up", 9)).flow.kind === "stairContents",
         "Terrace did not fix the goal",
       );
       const built = await f.menu("terrace", "confirm");
@@ -454,48 +470,48 @@ export function buildTerrace(a: Arena): Promise<Outcome> {
         f.count(hill) === hill.length,
         "Undo did not restore the stone hill",
       );
-    } finally {
-      await f.edit("aim clear");
-    }
-  });
+    },
+    { settleView: false },
+  );
 }
 
 export function buildStairs(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    const cells = f.region(5, 8, 7, f.cell(-1, -1, -1));
-    for (const contents of ["stepsOnly", "passage"] as const) {
-      const passage = contents === "passage";
-      for (const cell of cells)
-        f.block(cell).setType(passage ? "minecraft:stone" : "minecraft:air");
-      await f.tap("clear");
-      const min = f.cell();
-      const max = f.cell(2);
-      const goal = f.cell(1, 2, 4);
-      const material = "minecraft:oak_stairs";
-      const first = f.block(min);
-      first.setType(material);
-      first.setPermutation(
-        first.permutation
-          .withState("weirdo_direction", 0)
-          .withState("upside_down_bit", true),
-      );
-      await f.tap("block", min);
-      checkSelection(await f.tap("air", max), { min, max }, "Stair foot");
-      first.setType("minecraft:stone");
-      if (!passage) f.block(f.cell(0, 2, 1)).setType("minecraft:oak_log");
-      const before = snapshot(f, cells);
-      const aim = await f.menu("shape", "stairs");
-      check(
-        aim.offered === true && aim.flow.kind === "stairAim",
-        "stairs did not enter aiming",
-      );
-      check(
-        (await f.menu("stairContents", contents)).offered === false,
-        "contents offered before goal",
-      );
-      try {
-        await f.edit(`aim ${goal.x} ${goal.y} ${goal.z}`);
-        const fixed = await f.tap("block", goal);
+  return withBuilder(
+    a,
+    async (f) => {
+      const cells = f.region(5, 8, 7, f.cell(-1, -1, -1));
+      for (const contents of ["stepsOnly", "passage"] as const) {
+        const passage = contents === "passage";
+        for (const cell of cells)
+          f.block(cell).setType(passage ? "minecraft:stone" : "minecraft:air");
+        await f.tap("clear");
+        const min = f.cell();
+        const max = f.cell(2);
+        const goal = f.cell(1, 2, 4);
+        const material = "minecraft:oak_stairs";
+        const first = f.block(min);
+        first.setType(material);
+        first.setPermutation(
+          first.permutation
+            .withState("weirdo_direction", 0)
+            .withState("upside_down_bit", true),
+        );
+        await f.tap("block", min);
+        checkSelection(await f.tap("air", max), { min, max }, "Stair foot");
+        first.setType("minecraft:stone");
+        if (!passage) f.block(f.cell(0, 2, 1)).setType("minecraft:oak_log");
+        const before = snapshot(f, cells);
+        const aim = await f.menu("shape", "stairs");
+        check(
+          aim.offered === true && aim.flow.kind === "stairAim",
+          "stairs did not enter aiming",
+        );
+        check(
+          (await f.menu("stairContents", contents)).offered === false,
+          "contents offered before goal",
+        );
+        await f.pressBlock(goal, "up", 9);
+        const fixed = await f.pressBlock(goal, "up", 9);
         check(
           fixed.flow.kind === "stairContents",
           "press did not fix stair goal",
@@ -561,39 +577,39 @@ export function buildStairs(a: Arena): Promise<Outcome> {
           unchanged(f, cells, before),
           "Undo did not restore the stair cells",
         );
-      } finally {
-        await f.edit("aim clear");
       }
-    }
-  });
+    },
+    { settleView: false },
+  );
 }
 
 export function buildStairsSingle(a: Arena): Promise<Outcome> {
-  return withBuilder(a, async (f) => {
-    const cells = f.region(5, 6, 3, f.cell(0, 0, -1));
-    for (const cell of cells) f.block(cell).setType("minecraft:air");
-    const foot = f.cell();
-    f.block(foot).setType("minecraft:stone");
-    await f.tap("block", foot);
-    check(
-      (await f.tap("block", foot)).flow.kind === "baseHeight",
-      "same-cell taps skipped live height",
-    );
-    checkSelection(
-      await f.tap("air"),
-      { min: foot, max: foot },
-      "Single-cell foot",
-    );
-    check(
-      (await f.menu("shape", "stairs")).flow.kind === "stairAim",
-      "single-cell foot did not enter stair aiming",
-    );
-    const hit = f.cell(4, 2, 1);
-    const goal = f.cell(4, 2, 0);
-    try {
-      await f.edit(`aim ${hit.x} ${hit.y} ${hit.z}`);
+  return withBuilder(
+    a,
+    async (f) => {
+      const cells = f.region(5, 6, 3, f.cell(0, 0, -1));
+      for (const cell of cells) f.block(cell).setType("minecraft:air");
+      const foot = f.cell();
+      f.block(foot).setType("minecraft:stone");
+      await f.tap("block", foot);
       check(
-        (await f.tap("block", hit)).flow.kind === "stairContents",
+        (await f.tap("block", foot)).flow.kind === "baseHeight",
+        "same-cell taps skipped live height",
+      );
+      checkSelection(
+        await f.tap("fixHeight"),
+        { min: foot, max: foot },
+        "Single-cell foot",
+      );
+      check(
+        (await f.menu("shape", "stairs")).flow.kind === "stairAim",
+        "single-cell foot did not enter stair aiming",
+      );
+      const hit = f.cell(4, 2, 1);
+      const goal = f.cell(4, 2, 0);
+      await f.pressBlock(hit, "up", 9);
+      check(
+        (await f.pressBlock(hit, "up", 9)).flow.kind === "stairContents",
         "press did not fix the goal",
       );
       const built = await f.menu("stairContents", "stepsOnly");
@@ -621,8 +637,9 @@ export function buildStairsSingle(a: Arena): Promise<Outcome> {
         aim.offered === true && aim.flow.kind === "stairAim",
         "single-cell foot did not enter Terrace aiming",
       );
+      await f.pressBlock(hit, "up", 9);
       check(
-        (await f.tap("block", hit)).flow.kind === "stairContents",
+        (await f.pressBlock(hit, "up", 9)).flow.kind === "stairContents",
         "Terrace did not fix the single-cell goal",
       );
       const terrace = await f.menu("terrace", "confirm");
@@ -652,10 +669,55 @@ export function buildStairsSingle(a: Arena): Promise<Outcome> {
         aboveFoot.typeId === "minecraft:stone",
         "Terrace Undo did not restore the cleared block",
       );
-    } finally {
-      await f.edit("aim clear");
-    }
-  });
+    },
+    { settleView: false },
+  );
+}
+
+export function buildStairsTapRetap(a: Arena): Promise<Outcome> {
+  return withBuilder(
+    a,
+    async (f) => {
+      await f.select(f.cell(2));
+      const entry = await f.menu("shape", "stairs");
+      check(
+        entry.flow.kind === "stairAim" && entry.flow.goalTap === undefined,
+        "Stairs started with a goal",
+      );
+
+      const first = f.cell(0, 1, 2);
+      const second = f.cell(0, 2, 4);
+      for (const goal of [first, second]) {
+        f.block(goal).setType("minecraft:stone");
+        const { flow } = await f.pressBlock(goal, "up", 0);
+        check(
+          flow.kind === "stairAim" &&
+            flow.goalTap !== undefined &&
+            sameCell(flow.goalTap.cell, goal),
+          `Tap did not set the goal to ${cellKey(goal)}`,
+        );
+      }
+      const quick = await f.pressBlock(second, "north", 8);
+      check(
+        quick.flow.kind === "stairAim" &&
+          quick.flow.goalTap !== undefined &&
+          sameCell(quick.flow.goalTap.cell, second),
+        "A quick retap should keep the second goal in stair aiming",
+      );
+      const deliberate = await f.pressBlock(second, "north", 9);
+      check(
+        deliberate.flow.kind === "stairContents" &&
+          deliberate.flow.staircase !== undefined,
+        "A deliberate retap did not confirm the goal",
+      );
+      const { from, to } = goalRowTaps(deliberate.flow.staircase);
+      check(
+        sameCell(from, second) && sameCell(to, f.cell(2, 2, 4)),
+        "The confirmed goal row did not match the second tap",
+      );
+    },
+    { settleView: false },
+  );
 }
 
 export function buildStairRoofs(a: Arena): Promise<Outcome> {

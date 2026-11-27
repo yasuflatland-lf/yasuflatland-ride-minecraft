@@ -5,6 +5,7 @@ import type {
   BuildFeedback,
   BuildMessage,
 } from "../../application/build/ports/feedback";
+import { PressGaps } from "../../application/build/pressGaps";
 import { RotateBox } from "../../application/build/rotateBox";
 import { RotateSelection } from "../../application/build/rotateSelection";
 import { UndoEdit } from "../../application/build/undoEdit";
@@ -196,7 +197,9 @@ export async function buildRotateBox(a: Arena): Promise<Outcome> {
   } catch (error) {
     check(String(error), false);
   } finally {
-    new EndBuildSession(repo, new BedrockTapTargets()).execute(playerId);
+    new EndBuildSession(repo, new BedrockTapTargets(), new PressGaps()).execute(
+      playerId,
+    );
     structures.clearEntities(dimensionId, plan.union);
     check("cleanup", structures.clearBlocks(dimensionId, plan.union));
   }
