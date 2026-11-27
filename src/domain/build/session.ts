@@ -28,6 +28,7 @@ import {
   rotatePasteAim,
   tapPasteAim,
 } from "./flow/paste";
+import { keptSelection } from "./flow/selectedFlow";
 import { chooseStairs, fixStairGoal } from "./flow/stairFlow";
 import { type BuildFlow, type BuildStart, startOf } from "./flow/state";
 import {
@@ -355,9 +356,7 @@ export class BuildSession {
     this.currentConfirmedBox = selection;
     this.setFlow(
       taps
-        ? Object.freeze({
-            kind: "selected",
-            menuLevel: "root",
+        ? keptSelection({
             selection,
             start: selectionStart(this.currentFlow, selection, taps),
             taps,

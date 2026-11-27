@@ -2,11 +2,10 @@ import { boxOf, sameBox } from "../box";
 import type { StairOp } from "../stairs/contents";
 import { type StairRow, stairRowOf } from "../stairs/row";
 import type { Staircase } from "../stairs/staircase";
+import type { SelectedFlow } from "./selectedFlow";
 import type { BuildFlow } from "./state";
 
-export function selectedStairRow(
-  flow: Extract<BuildFlow, { kind: "selected" }>,
-): StairRow | undefined {
+export function selectedStairRow(flow: SelectedFlow): StairRow | undefined {
   const row = stairRowOf(flow.taps);
   return row && sameBox(boxOf(row.min, row.max), flow.selection.box)
     ? row
