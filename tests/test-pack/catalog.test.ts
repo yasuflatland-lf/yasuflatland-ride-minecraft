@@ -14,11 +14,13 @@ vi.mock("@minecraft/server", () => ({}));
 // A scenario of at most 300 ticks only looks stalled when TPS falls to about 5.
 const MAX_SCENARIO_TICKS = ((STALL_MS / 1000) * TPS) / 4;
 
-const playerDecorScenarios = new Set([
-  "build_structure_decor_probe",
-  "build_structure_store_decor",
-  "build_structure_rotation_decor",
-  "build_paste_structure_decor",
+// Decor setup allows 1,200 ticks (ADR 0244). The night check holds three views for 200 ticks each.
+const manualTickBudgets = new Map([
+  ["build_structure_decor_probe", 1300],
+  ["build_structure_store_decor", 1300],
+  ["build_structure_rotation_decor", 1300],
+  ["build_paste_structure_decor", 1300],
+  ["build_marker_night", 700],
 ]);
 const longCamperFlights = new Set([
   "camper_boost_release",
@@ -63,13 +65,9 @@ describe("scenario catalog", () => {
       expect(Number.isInteger(count)).toBe(true);
       expect(count).toBeGreaterThanOrEqual(0);
     }
-    // Player-driven decor setup needs up to 1,200 ticks and streams progress (0244).
     const budget =
-      playerDecorScenarios.has(spec.name) && spec.needsPlayer
-        ? 1300
-        : longCamperFlights.has(spec.name)
-          ? 350
-          : MAX_SCENARIO_TICKS;
+      manualTickBudgets.get(spec.name) ??
+      (longCamperFlights.has(spec.name) ? 350 : MAX_SCENARIO_TICKS);
     expect(spec.ticks).toBeLessThanOrEqual(budget);
     expect(spec.features.length).toBeGreaterThan(0);
     expect(new Set(spec.features).size).toBe(spec.features.length);
@@ -79,7 +77,7 @@ describe("scenario catalog", () => {
       expect(spec.vehicles).toBe(0);
       expect(spec.isolation).toBe("exclusive");
     }
-    expect(spec.manualSetup === true).toBe(playerDecorScenarios.has(spec.name));
+    expect(spec.manualSetup === true).toBe(manualTickBudgets.has(spec.name));
     if (spec.manualSetup) expect(spec.needsPlayer).toBe(true);
     if (spec.group !== undefined) expect(spec.isolation).toBe("lane");
     expect(existsSync(new URL(`${spec.file}.ts`, scenarios))).toBe(true);
