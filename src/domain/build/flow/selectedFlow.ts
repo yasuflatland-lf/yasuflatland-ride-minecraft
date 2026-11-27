@@ -10,10 +10,12 @@ type SelectionInput = {
   taps: Taps;
 };
 
+/** A selection the player has just confirmed: a fixed line or a confirmed height. */
 export function confirmedSelection(
   input: SelectionInput & { freshEnd?: true },
 ): SelectedFlow {
   const { start, selection, taps, freshEnd } = input;
+  // Preserve the replaced literals' property order for JSON.stringify in-game comparisons.
   return freshEnd
     ? Object.freeze({
         kind: "selected",
@@ -32,6 +34,7 @@ export function confirmedSelection(
       });
 }
 
+/** A selection kept after a build action or a paste; not a new confirmation. */
 export function keptSelection({
   start,
   selection,
