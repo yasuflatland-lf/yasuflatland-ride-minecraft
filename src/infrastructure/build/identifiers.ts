@@ -102,7 +102,6 @@ export const BUILD_FORM = {
   stepsOnly: "yasu_build.form.stair_steps_only",
   utilityTitle: "yasu_build.form.title",
   height: "yasu_build.form.height",
-  place: "yasu_build.form.place",
   frame: "yasu_build.form.frame",
   faces: "yasu_build.form.faces",
   walls: "yasu_build.form.walls",

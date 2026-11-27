@@ -167,7 +167,6 @@ yasu_build.message.material_refused=データを保持しない固体ブロッ�
 yasu_build.form.shape_title=形を選択
 yasu_build.form.roof_title=屋根を作成
 yasu_build.form.height=高さ
-yasu_build.form.place=配置
 yasu_build.form.frame=枠
 yasu_build.form.faces=面のみ
 yasu_build.form.walls=壁のみ

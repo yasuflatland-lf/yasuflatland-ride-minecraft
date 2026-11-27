@@ -25,7 +25,6 @@ const choices = {
   removeAbove: { kind: "edit", id: "removeAbove" },
   fillBelow: { kind: "edit", id: "fillBelow" },
   copy: { kind: "edit", id: "copy" },
-  place: { kind: "build", id: "place" },
   fill: { kind: "build", id: "fill" },
   frame: { kind: "build", id: "frame" },
   faces: { kind: "build", id: "faces" },
@@ -46,7 +45,7 @@ describe("menu entry groups", () => {
     },
   );
 
-  it("offers Place for lines along every axis in either direction", () => {
+  it("offers Fill for lines along every axis in either direction", () => {
     fc.assert(
       fc.property(cell, offset, fc.boolean(), (from, distance, reverse) => {
         for (const axis of axes) {
@@ -55,7 +54,7 @@ describe("menu entry groups", () => {
             [axis]: from[axis] + (reverse ? -distance : distance),
           });
           expect(buildEntries(shapeOf(cellOf(from), to))).toEqual([
-            { id: "place" },
+            { id: "fill" },
           ]);
         }
       }),

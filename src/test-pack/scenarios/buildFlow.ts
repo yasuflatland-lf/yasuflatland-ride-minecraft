@@ -17,6 +17,8 @@ import {
 } from "../../domain/build/blockState";
 import { boxOf, type CellBox, cellBox } from "../../domain/build/box";
 import type { Clipboard } from "../../domain/build/clipboard/clipboard";
+import { buildMenu } from "../../domain/build/flow/menu";
+import type { BuildFlow } from "../../domain/build/flow/state";
 import {
   type RoofSpec,
   roofCells,
@@ -215,7 +217,6 @@ async function withBuilder(
       if (
         menu === "shape" &&
         [
-          "fill",
           "frame",
           "faces",
           "walls",
@@ -319,7 +320,7 @@ export function buildShapes(a: Arena): Promise<Outcome> {
       ["faces", 5, 5, 5, 98],
       ["walls", 5, 5, 5, 80],
       ["frame", 5, 1, 5, 16],
-      ["place", 5, 1, 1, 5],
+      ["fill", 5, 1, 1, 5],
     ] as const) {
       const cells = f.region(5, 5, 5);
       for (const c of cells) {
@@ -328,7 +329,7 @@ export function buildShapes(a: Arena): Promise<Outcome> {
         b.setPermutation(b.permutation.withState("pillar_axis", "x"));
       }
       const end = f.cell(sx - 1, sy - 1, sz - 1);
-      await f.select(end, id !== "fill");
+      await f.select(end, id !== "fill" || sz === 1);
       const before = snapshot(f, cells);
       for (const absent of sy === 5 ? ["frame"] : ["faces", "walls"])
         check(
@@ -819,7 +820,7 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         const opened = await f.tap(route, target);
         check(
           opened.menu?.map(({ id }) => id).join() ===
-            "adjustHeight,cut,removeAbove,buildShape,copy,fillBelow,cancel",
+            "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
           "selection menu missing",
         );
         const dismissed = await f.edit("menu shape");
@@ -860,6 +861,79 @@ export function buildPersistentSelection(a: Arena): Promise<Outcome> {
         );
       }
     }
+  });
+}
+
+export function buildRootMenu(a: Arena): Promise<Outcome> {
+  return withBuilder(a, async (f) => {
+    const boxEnd = f.cell(2, 1, 2);
+    const box = { min: f.cell(), max: boxEnd };
+    for (const [label, end, expected] of [
+      [
+        "box",
+        boxEnd,
+        "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
+      ],
+      [
+        "single cell",
+        f.cell(),
+        "adjustHeight,fill,cut,buildShape,stairs,terrace,removeAbove,fillBelow,copy,cancel",
+      ],
+      [
+        "east-west row",
+        f.cell(3),
+        "fill,cut,stairs,terrace,removeAbove,fillBelow,copy,cancel",
+      ],
+      [
+        "vertical line",
+        f.cell(0, 2),
+        "fill,cut,removeAbove,fillBelow,copy,cancel",
+      ],
+    ] as const) {
+      await f.select(end);
+      const opened = await f.tap("block");
+      checkSelection(opened, { min: f.cell(), max: end }, label);
+      const actual = opened.menu?.map(({ id }) => id).join();
+      check(
+        actual === expected,
+        `${label}: expected ${expected}, got ${actual}`,
+      );
+    }
+
+    // Root Fill uses the captured material and keeps the same selection.
+    const cells = f.region(3, 2, 3);
+    for (const cell of cells) f.block(cell).setType("minecraft:air");
+    await f.select(boxEnd);
+    const opened = await f.tap("block");
+    check(
+      opened.menu?.some(({ id }) => id === "fill") === true,
+      "root Fill missing",
+    );
+    f.block(box.min).setType("minecraft:air");
+    const filled = await f.menu("shape", "fill");
+    check(
+      filled.offered === true &&
+        filled.message === "editDoneCount" &&
+        filled.count === cells.length,
+      "root Fill did not report all box cells edited",
+    );
+    check(
+      f.count(cells) === cells.length,
+      "root Fill did not fill the box with stone",
+    );
+    checkSelection(filled, box, "root Fill");
+
+    // Build shape still opens with Fill first.
+    const submenu = await f.menu("shape", "buildShape");
+    check(
+      submenu.offered === true && submenu.flow.menuLevel === "build",
+      "Build shape submenu did not open",
+    );
+    // The edit hook serializes the full domain flow.
+    check(
+      buildMenu(submenu.flow as BuildFlow)[0]?.id === "fill",
+      "submenu Fill is not first",
+    );
   });
 }
 
@@ -1424,7 +1498,7 @@ export function buildUndoItemAfterBuild(a: Arena): Promise<Outcome> {
     await f.select(f.cell(2));
     const before = snapshot(f, cells);
     check(
-      (await f.menu("shape", "place")).message === "editDoneCount",
+      (await f.menu("shape", "fill")).message === "editDoneCount",
       "Place failed",
     );
     check(f.count(cells) === cells.length, "Place did not write the line");
@@ -1575,7 +1649,7 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
     const source = f.region(3, 1, 1);
     for (const c of source) f.block(c).setType("minecraft:air");
     await f.select(f.cell(2));
-    await f.menu("shape", "place");
+    await f.menu("shape", "fill");
     f.block(f.cell(1)).setType("minecraft:air");
     f.block(f.cell(2)).setType("minecraft:oak_log");
     const log = f.block(f.cell(2));
@@ -2524,7 +2598,7 @@ export function buildRemoveAboveNoUndo(a: Arena): Promise<Outcome> {
     // The select helper places the first corner itself, so place the blocks afterwards.
     for (const cell of line) f.block(cell).setType("minecraft:dirt");
     check(
-      (await f.menu("shape", "place")).message === "editDoneCount",
+      (await f.menu("shape", "fill")).message === "editDoneCount",
       "Earlier edit did not finish",
     );
     check(f.count(line) === line.length, "Earlier edit left dirt behind");
@@ -2625,7 +2699,7 @@ export function buildSelectedLineFeedback(a: Arena): Promise<Outcome> {
     for (const cell of cells) f.block(cell).setType("minecraft:gold_block");
     await f.select(f.cell(1));
     f.block(f.cell()).setType("minecraft:gold_block");
-    const result = await f.menu("shape", "place");
+    const result = await f.menu("shape", "fill");
     check(
       result.message === "editDoneCount" && result.count === 2,
       "Edit feedback missing",
@@ -2819,7 +2893,7 @@ export function buildFillBelowNoUndo(a: Arena): Promise<Outcome> {
     const old = f.cell(1);
     await f.select(old);
     f.block(old).setType("minecraft:dirt");
-    await f.menu("shape", "place");
+    await f.menu("shape", "fill");
     const pit = await fillBelowPit(f);
     await f.menu("shape", "fillBelow");
     const done = await f.menu("terrain", "confirm");
