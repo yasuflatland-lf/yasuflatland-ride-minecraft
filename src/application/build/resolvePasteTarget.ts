@@ -27,8 +27,8 @@ type Snap = {
 };
 
 export class ResolvePasteTarget {
-  // The outline redraws every few ticks for a fixed block tap. The preview reuses the last snap instead of rescanning the
-  // footprint. Entries expire so blocks placed under it still show up.
+  // Reuse a snap across outline redraws. It expires so changes under the
+  // footprint show up even when the player keeps the same target.
   private readonly snaps = new Map<PlayerId, Snap>();
 
   constructor(

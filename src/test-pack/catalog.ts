@@ -2581,7 +2581,7 @@ export const CATALOG: readonly ScenarioSpec[] = [
   {
     name: "build_paste_rotate",
     file: "buildFlow",
-    ticks: 480, // Estimate for the tap and rotate control routes.
+    ticks: 300,
     features: ["build"],
     isolation: "exclusive",
     needsArena: true,

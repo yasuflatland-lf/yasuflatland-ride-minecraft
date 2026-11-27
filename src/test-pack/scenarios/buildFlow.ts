@@ -1308,7 +1308,7 @@ export function buildPasteMenu(a: Arena): Promise<Outcome> {
     );
     check(
       unchanged(f, target.cells, target.before),
-      "Plain press pasted instead of opening the menu",
+      "Setting the target wrote blocks",
     );
     await f.menu("paste", "cancel");
     await checkState(f, "pasteAim", true);
@@ -1704,7 +1704,7 @@ export function buildAimedPaste(a: Arena): Promise<Outcome> {
       }
       const before = snapshot(f, target);
       await pasteStep(f, anchor.x, anchor.y, anchor.z, face, false);
-      check(unchanged(f, target, before), "Plain aimed press wrote blocks");
+      check(unchanged(f, target, before), "Setting the target wrote blocks");
       const pasted = await pasteStep(
         f,
         anchor.x,
@@ -3189,7 +3189,8 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
         (await f.state()).clipboard?.facing === "east",
         "Copy did not record east",
       );
-      for (const [facing, gazeTurn, yaw] of [
+      let nextRotateTick = system.currentTick;
+      for (const [facing, facingTurn, yaw] of [
         ["south", 1, 0],
         ["west", 2, 90],
         ["north", 3, 180],
@@ -3197,7 +3198,7 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
       ] as const) {
         await f.lookSettled(yaw);
         for (const manualTurn of [0, 1, 2, 3]) {
-          const turn = (gazeTurn + manualTurn) % 4;
+          const turn = (facingTurn + manualTurn) % 4;
           const footprint = (
             [
               [5, 3, 1, 1, 3, 1],
@@ -3221,11 +3222,14 @@ export function buildPasteRotate(a: Arena): Promise<Outcome> {
           for (const c of target) f.block(c).setType("minecraft:air");
           for (const c of ground) f.block(c).setType("minecraft:stone");
           const anchor = f.cell(16, -1, 12);
-          if (manualTurn !== 0 || gazeTurn !== 1) {
+          if (manualTurn !== 0 || facingTurn !== 1) {
+            if (system.currentTick < nextRotateTick)
+              await wait(nextRotateTick - system.currentTick);
             f.holdControl(PASTE_ROTATE_TYPE);
+            nextRotateTick =
+              system.currentTick + BUILD_SPEC.rotateDebounceTicks;
             await f.press("itemUse");
             f.hold(true);
-            await wait(BUILD_SPEC.rotateDebounceTicks);
           }
           await f.pressBlock(anchor, "up", 0);
           check(
