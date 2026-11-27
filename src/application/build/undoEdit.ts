@@ -80,8 +80,10 @@ export class UndoEdit {
       session.clipboard !== undefined,
     );
     if (decision) {
-      if ("aimPaste" in decision) session.resumePasteAim();
-      else
+      if ("aimPaste" in decision) {
+        if (session.flow.kind === "pasteAim") session.pasted();
+        else session.resumePasteAim();
+      } else
         session.replaceSelection(
           decision.restore.selection,
           decision.restore.taps,

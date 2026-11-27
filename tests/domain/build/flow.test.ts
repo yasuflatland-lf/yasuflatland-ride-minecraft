@@ -1044,8 +1044,6 @@ it("keeps the fresh endpoint through live height updates but ends it on confirma
         session.setFlowForTest(base);
         session.confirmBox(confirmed.selection, "selected", base.taps);
         expect(session.flow).not.toHaveProperty("freshEnd");
-        session.selectPasted(confirmed.selection);
-        expect(session.flow).not.toHaveProperty("freshEnd");
       }
     }),
   );

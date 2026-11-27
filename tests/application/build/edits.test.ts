@@ -364,7 +364,6 @@ describe("edit use cases", () => {
           ).facing,
           "east",
         ),
-        "east",
       ),
     });
     env.undo.execute({ playerId: alex });
@@ -444,7 +443,6 @@ describe("edit use cases", () => {
           ).facing,
           "east",
         ),
-        "east",
       ),
     });
     expect(env.feedback.messages.at(-1)?.message).toBe("pasteBlocked");

@@ -3,6 +3,7 @@ import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import { expect, it, vi } from "vitest";
 import { EditJobs } from "../../../src/application/build/editJobs";
 import { PasteAt } from "../../../src/application/build/pasteAt";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { PressUndo } from "../../../src/application/build/pressUndo";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
@@ -10,6 +11,7 @@ import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { StepBackSelection } from "../../../src/application/build/stepBackSelection";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -89,6 +91,8 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
       selectionOf(nether, boxOf(cell, cell), AIR),
       structureClipboard(boxOf(cell, cell), undefined, structures),
     );
+  if (typeId === PASTE_PLACE_TYPE)
+    session.tapPaste(blockTapOf(nether, cell, "up"), 0, "east");
   structures.calls.length = 0;
   const rotatePasteAim = new RotatePasteAim(repo, feedback);
   const pressPasteAim = new PressPasteAim(
@@ -102,6 +106,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     ),
     feedback,
     new ResolvePasteTarget(repo, new FakeGroundProbe()),
+    { facingOf: () => "east" },
   );
   const rotate = vi.spyOn(rotatePasteAim, "execute");
   const place = vi.spyOn(pressPasteAim, "execute");
@@ -123,15 +128,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const undo = vi.spyOn(pressUndo, "execute");
   const undoDebounce = new Debounces<PlayerId>(BUILD_SPEC.pasteRepeatTicks);
   const refresh = vi.fn();
-  const refreshResumedPaste = vi.fn();
-  const aim = {
-    dimensionOf: () => nether,
-    aim: vi.fn(() => ({
-      input: "pointer" as const,
-      ray: { origin: cell, direction: { x: 1, y: 0, z: 0 } },
-      block: { cell, face: "up" as const },
-    })),
-  };
+  const refreshAfterPastePress = vi.fn();
   const rotateDebounce = new Debounces<PlayerId>(
     BUILD_SPEC.rotateDebounceTicks,
   );
@@ -139,7 +136,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
   const rotateSelection = { execute: vi.fn(() => "rotated" as const) };
   const pressPasteControl = registerPasteControls({
     repo,
-    aim,
+    pressGaps: new PressGaps(),
     rotatePasteAim,
     rotateSelection,
     pressPasteAim,
@@ -148,7 +145,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotateDebounce,
     pasteDebounce,
     refresh,
-    refreshResumedPaste,
+    refreshAfterPastePress,
   });
   const player = {
     id,
@@ -190,8 +187,7 @@ function setup(typeId = PASTE_ROTATE_TYPE, active = true) {
     rotate,
     place,
     refresh,
-    refreshResumedPaste,
-    aim,
+    refreshAfterPastePress,
     player,
     use,
     rotateDebounce,
@@ -250,31 +246,31 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
   },
 );
 
-it("immediately refreshes the ghost once when Place resumes aiming", () => {
+it("immediately refreshes once when Place resumes aiming", () => {
   const e = setup(PASTE_PLACE_TYPE);
   e.session.startNewCopy();
   engine.tick = 11;
   e.use();
-  expect(e.refreshResumedPaste).toHaveBeenCalledExactlyOnceWith(e.id, 11);
+  expect(e.refreshAfterPastePress).toHaveBeenCalledExactlyOnceWith(e.id, 11);
   expect(e.refresh).not.toHaveBeenCalled();
   expect(e.structures.calls).toEqual([]);
 });
 
-it("places without sneaking using the live aim, dimension and tick", () => {
+it("places at the stored tap without sneaking", () => {
   const e = setup(PASTE_PLACE_TYPE);
   engine.tick = 11;
   e.use();
   expect(e.place).toHaveBeenCalledExactlyOnceWith({
     playerId: e.id,
     dimensionId: nether,
-    aim: e.aim.aim(),
+    quietTicks: Infinity,
     tick: 11,
     sneaking: false,
     intent: "place",
   });
   expect(e.structures.calls.at(-1)?.kind).toBe("place");
   expect(e.rotate).not.toHaveBeenCalled();
-  expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11);
+  expect(e.refreshAfterPastePress).toHaveBeenCalledExactlyOnceWith(e.id, 11);
 });
 
 it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
@@ -317,13 +313,16 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
       expect(e.place).toHaveBeenCalledWith({
         playerId: e.id,
         dimensionId: nether,
-        aim: e.aim.aim(),
+        quietTicks: Infinity,
         tick: 11,
         sneaking: false,
         intent: "place",
       });
       expect(e.rotate).not.toHaveBeenCalled();
-      expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 11);
+      expect(e.refreshAfterPastePress).toHaveBeenCalledExactlyOnceWith(
+        e.id,
+        11,
+      );
     }
     engine.tick = 11 + window;
     press();
@@ -340,8 +339,8 @@ it("keeps rotate and place windows separate and honors shared wand windows", () 
   expect(e.place).toHaveBeenCalledTimes(1);
   engine.tick = BUILD_SPEC.rotateDebounceTicks;
   e.use();
-  expect(e.rotateSelection.execute).toHaveBeenCalledTimes(1);
-  expect(e.rotate).not.toHaveBeenCalled();
+  expect(e.rotateSelection.execute).not.toHaveBeenCalled();
+  expect(e.rotate).toHaveBeenCalledTimes(1);
   e.pasteDebounce.press(e.id, engine.tick);
   e.use(PASTE_PLACE_TYPE);
   expect(e.place).toHaveBeenCalledTimes(1);
@@ -364,9 +363,9 @@ it.each([PASTE_ROTATE_TYPE, PASTE_PLACE_TYPE])(
     } else {
       expect(e.place).toHaveBeenCalledTimes(1);
       expect(e.structures.calls.at(-1)?.kind).toBe("place");
-      expect(e.session.flow.kind).toBe("selected");
+      expect(e.session.flow.kind).toBe("pasteAim");
       expect(e.rotate).not.toHaveBeenCalled();
-      expect(e.refresh).toHaveBeenCalledExactlyOnceWith(e.id, 1);
+      expect(e.refreshAfterPastePress).toHaveBeenCalledExactlyOnceWith(e.id, 1);
     }
   },
 );
@@ -549,12 +548,17 @@ it.each(["itemUse", "blockInteract", "blockInteract,itemUse"])(
     vi.mocked(world.getAllPlayers).mockReturnValue([
       e.player as unknown as Player,
     ]);
-    registerTestPress(e.pressPasteControl, new DescribeBuild(e.repo), {
-      forget: vi.fn(),
-      last: () => undefined,
-      lastMode: () => undefined,
-      hints: () => 0,
-    });
+    registerTestPress(
+      e.pressPasteControl,
+      { execute: vi.fn() },
+      new DescribeBuild(e.repo),
+      {
+        forget: vi.fn(),
+        last: () => undefined,
+        lastMode: () => undefined,
+        hints: () => 0,
+      },
+    );
     engine.handlers.get("script")?.({
       sourceType: "Server",
       id: TEST_PRESS_EVENT,

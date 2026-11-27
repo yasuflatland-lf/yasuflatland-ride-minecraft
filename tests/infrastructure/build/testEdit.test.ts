@@ -3,8 +3,8 @@ import fc from "fast-check";
 import { expect, it, vi } from "vitest";
 import { EndBuildSession } from "../../../src/application/build/endBuildSession";
 import { MenuChoices } from "../../../src/application/build/menuChoices";
+import { PressGaps } from "../../../src/application/build/pressGaps";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
-import { RotatePasteAim } from "../../../src/application/build/rotatePasteAim";
 import { ShowPreview } from "../../../src/application/build/showPreview";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -145,7 +145,6 @@ function snapshotHook() {
     fakeSyncTapTarget(),
     new FakeWorld(),
   );
-  const execute = vi.fn(() => "pasted" as const);
   const undo = vi.fn(() => ({}));
   const undoItem = vi.fn(() => "stepped" as const);
   type Args = Parameters<typeof registerTestEdit>;
@@ -155,15 +154,13 @@ function snapshotHook() {
       feedback,
       refresh: () => {},
     }),
-    { execute } as unknown as Args[1],
-    { execute: undo } as unknown as Args[2],
-    { execute: undoItem } as unknown as Args[3],
+    { execute: undo } as unknown as Args[1],
+    { execute: undoItem } as unknown as Args[2],
     new DescribeBuild(repo),
     messages,
     repo,
-    new EndBuildSession(repo, new FakeTapTargets()),
+    new EndBuildSession(repo, new FakeTapTargets(), new PressGaps()),
     structures,
-    new RotatePasteAim(repo, feedback),
     { aim: new TestAimReader(overrides), preview },
   );
   const callback = vi
@@ -180,7 +177,6 @@ function snapshotHook() {
     repo,
     structures,
     send,
-    execute,
     feedback,
     messages,
     aim,
@@ -289,89 +285,6 @@ it.each([
   expect(system.sendScriptEvent).not.toHaveBeenCalled();
 });
 
-it.each([
-  ["", "east"],
-  [" north", "north"],
-])("stores structure facing for argument %s", (argument, facing) => {
-  const e = snapshotHook();
-  e.send(`structure 0 0 0 1 1 1${argument}`);
-  expect(e.repo.get(player)?.clipboard?.facing).toBe(facing);
-});
-
-it("rejects an invalid structure facing without replacing the clipboard", () => {
-  const e = snapshotHook();
-  e.send("structure 0 0 0 1 1 1");
-  const clipboard = e.repo.get(player)?.clipboard;
-  const calls = [...e.structures.calls];
-  e.send("structure 0 0 0 1 1 1 invalid");
-  expect(e.repo.get(player)?.clipboard).toBe(clipboard);
-  expect(e.structures.calls).toEqual(calls);
-  expect(system.sendScriptEvent).toHaveBeenLastCalledWith(
-    TEST_RESULT_EVENT,
-    JSON.stringify({ player: "Alex", error: "Invalid structure facing" }),
-  );
-});
-
-it.each([
-  ["", { x: 1, y: 0, z: 0 }],
-  [" true", { x: 1, y: 0, z: 0 }],
-  [" true north", { x: 0, y: 0, z: -1 }],
-  [" false south", { x: 0, y: 0, z: 1 }],
-  [" true west", { x: -1, y: 0, z: 0 }],
-])("uses deterministic paste facing for argument %s", (argument, direction) => {
-  const e = snapshotHook();
-  e.send("structure 0 0 0 1 1 1");
-  e.send(`pasteat 3 4 5 up${argument}`);
-  expect(e.execute).toHaveBeenCalledWith(
-    expect.objectContaining({
-      aim: expect.objectContaining({
-        ray: expect.objectContaining({ direction }),
-        block: { cell: { x: 3, y: 4, z: 5 }, face: "up" },
-      }),
-      sneaking: !argument.includes("false"),
-    }),
-  );
-});
-
-it("rejects invalid paste facing", () => {
-  const e = snapshotHook();
-  e.send("structure 0 0 0 1 1 1");
-  e.send("pasteat 3 4 5 up true invalid");
-  expect(e.execute).not.toHaveBeenCalled();
-  expect(system.sendScriptEvent).toHaveBeenLastCalledWith(
-    TEST_RESULT_EVENT,
-    JSON.stringify({ player: "Alex", error: "Invalid paste facing" }),
-  );
-});
-
-it.each([0, 1, 2, 3])(
-  "presses rotate %s times before the test paste",
-  (turns) => {
-    const e = snapshotHook();
-    e.send("structure 0 0 0 1 1 1");
-    let turnAtPaste: unknown;
-    e.execute.mockImplementation(() => {
-      turnAtPaste = e.repo.get(player)?.flow;
-      return "pasted";
-    });
-    e.send(`pasteat 3 4 5 up true east ${turns}`);
-    expect(e.execute).toHaveBeenCalledTimes(1);
-    expect(turnAtPaste).toEqual({ kind: "pasteAim", manualTurn: turns });
-  },
-);
-
-it.each(["-1", "4", "1.5", "invalid"])(
-  "rejects invalid rotation count %s before changing the flow",
-  (turns) => {
-    const e = snapshotHook();
-    e.send("structure 0 0 0 1 1 1");
-    const flow = e.repo.get(player)?.flow;
-    e.send(`pasteat 3 4 5 up true east ${turns}`);
-    expect(e.execute).not.toHaveBeenCalled();
-    expect(e.repo.get(player)?.flow).toBe(flow);
-  },
-);
-
 it("records the last mode independently per player and clears it on forget", () => {
   fc.assert(
     fc.property(fc.constantFrom(0, 90, 180, 270), (degrees) => {
@@ -411,23 +324,18 @@ it("returns the last shown paste-ready degrees in a state reply without clearing
   expect(e.messages.lastMode(player)?.degrees).toBe(270);
 });
 
-it("refreshes the shown degrees through the facing override and rejects invalid overrides", () => {
+it("keeps the HUD turn until a block tap despite changes in the facing override", () => {
   const e = snapshotHook();
   e.send("structure 0 0 0 1 1 1 east");
   for (let i = 0; i < BUILD_SPEC.modeEnterTicks; i++)
     e.repo.getOrCreate(player).tickMode({ holding: true });
-  for (const [facing, degrees] of [
-    ["east", 0],
-    ["south", 90],
-    ["west", 180],
-    ["north", 270],
-  ] as const) {
+  for (const facing of ["east", "south", "west", "north"]) {
     e.send(`aim ${facing}`);
     expect(
       JSON.parse(
         vi.mocked(system.sendScriptEvent).mock.calls.at(-1)?.[1] ?? "{}",
       ),
-    ).toMatchObject({ pasteReadyDegrees: degrees });
+    ).toMatchObject({ pasteReadyDegrees: 0 });
   }
   vi.mocked(system.sendScriptEvent).mockClear();
   e.send("aim invalid");

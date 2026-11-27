@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
 import {
   openBuildMenu,
@@ -8,10 +9,11 @@ import {
   utilityMenu,
 } from "../../../src/domain/build/flow/menu";
 import {
+  afterPaste,
   beginPasteAim,
-  followFacing,
   type PasteAim,
   rotatePasteAim,
+  tapPasteAim,
 } from "../../../src/domain/build/flow/paste";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import {
@@ -21,6 +23,7 @@ import {
 } from "../../../src/domain/build/rotation/facing";
 import { selectionOf } from "../../../src/domain/build/selection";
 import { BuildSession } from "../../../src/domain/build/session";
+import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import { cellOf } from "../../../src/domain/shared/cells";
 import { asDimensionId, asPlayerId } from "../../../src/domain/shared/ids";
 import {
@@ -93,7 +96,7 @@ it("offers ordered paste entries independent of history and never paste or endPa
   );
 });
 
-it("derives the session turn from copy and paste facings, and ignores following outside aiming", () => {
+it("derives the session turn from copy and first tap facings", () => {
   fc.assert(
     fc.property(
       cell,
@@ -102,11 +105,11 @@ it("derives the session turn from copy and paste facings, and ignores following 
       (at, copiedFacing, currentFacing) => {
         const session = new BuildSession(asPlayerId("p"));
         const idle = session.flow;
-        session.followPasteFacing(currentFacing);
+        session.tapPaste(blockTapOf(dimensionId, cellOf(at)), 0, currentFacing);
         expect(session.flow).toBe(idle);
         expect(session.pasteTurn).toBe(0);
         session.setFlowForTest(beginPasteAim());
-        session.followPasteFacing(currentFacing);
+        session.tapPaste(blockTapOf(dimensionId, cellOf(at)), 0, currentFacing);
         expect(session.pasteTurn).toBe(0);
         const box = boxOf(cellOf(at), cellOf(at));
         session.completeCopy(selectionOf(dimensionId, box, stone), {
@@ -114,7 +117,7 @@ it("derives the session turn from copy and paste facings, and ignores following 
           facing: copiedFacing,
         });
         expect(session.pasteTurn).toBe(0);
-        session.followPasteFacing(currentFacing);
+        session.tapPaste(blockTapOf(dimensionId, cellOf(at)), 0, currentFacing);
         expect(session.pasteTurn).toBe(
           turnBetween(copiedFacing, currentFacing),
         );
@@ -125,20 +128,42 @@ it("derives the session turn from copy and paste facings, and ignores following 
 
 const quarterTurn = fc.constantFrom(0, 1, 2, 3);
 
-it("updates facing without changing the manual turn", () => {
+it("retaps preserve the first facing and manual turn until paste clears the target", () => {
   fc.assert(
     fc.property(
+      cell,
+      cell,
       quarterTurn,
       fc.constantFrom(...FACINGS),
-      (manualTurn, facing) => {
+      fc.constantFrom(...FACINGS),
+      (a, b, manualTurn, first, second) => {
         const initial = { ...beginPasteAim(), manualTurn };
-        const next = followFacing(initial, facing);
-        expect(next).toEqual({ ...initial, facing });
+        const tap = blockTapOf(dimensionId, cellOf(a), "east");
+        const moved = blockTapOf(dimensionId, cellOf(b), "up");
+        const next = tapPasteAim(
+          tapPasteAim(initial, tap, first),
+          moved,
+          second,
+        );
+        expect(next).toEqual({ ...initial, tap: moved, facing: first });
         expect(Object.isFrozen(next)).toBe(true);
-        expect(initial).not.toHaveProperty("facing");
+        expect(afterPaste(next)).toEqual(initial);
       },
     ),
   );
+});
+
+it("keeps the original face when a deliberate retap confirms the same block", () => {
+  const session = new BuildSession(asPlayerId("p"));
+  session.setFlowForTest(beginPasteAim());
+  const at = cellOf({ x: 1, y: 2, z: 3 });
+  const original = blockTapOf(dimensionId, at, "north");
+  const retap = blockTapOf(dimensionId, at, "up");
+  const quiet = BUILD_SPEC.tapConfirmQuietTicks;
+  expect(session.tapPaste(original, 0, "north")).toBe("set");
+  expect(session.tapPaste(retap, quiet, "east")).toBe("ignored");
+  expect(session.tapPaste(retap, quiet + 1, "east")).toBe("confirm");
+  expect(session.flow).toMatchObject({ tap: original, facing: "north" });
 });
 
 it("rotates immutably through four turns while keeping facing", () => {
@@ -181,7 +206,7 @@ it("resets manual rotation on a fresh copy and discards it on paste exits", () =
           () => session.leaveBuildMode(),
         ]) {
           session.completeCopy(selectionOf(dimensionId, box, stone), clipboard);
-          session.followPasteFacing(gaze);
+          session.tapPaste(blockTapOf(dimensionId, cellOf(at)), 0, gaze);
           for (let i = 0; i < turns; i++)
             expect(session.rotatePaste()).toBe(true);
           expect(session.pasteTurn).toBe(
