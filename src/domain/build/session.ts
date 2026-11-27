@@ -22,7 +22,13 @@ import {
   tapBlock,
 } from "./flow/heightFlow";
 import { closeBuildMenu, openBuildMenu, shapeMenu } from "./flow/menu";
-import { beginPasteAim, followFacing, rotatePasteAim } from "./flow/paste";
+import {
+  afterPaste,
+  beginPasteAim,
+  rotatePasteAim,
+  tapPasteAim,
+} from "./flow/paste";
+import { keptSelection } from "./flow/selectedFlow";
 import { chooseStairs, fixStairGoal } from "./flow/stairFlow";
 import { type BuildFlow, type BuildStart, startOf } from "./flow/state";
 import {
@@ -350,22 +356,13 @@ export class BuildSession {
     this.currentConfirmedBox = selection;
     this.setFlow(
       taps
-        ? Object.freeze({
-            kind: "selected",
-            menuLevel: "root",
+        ? keptSelection({
             selection,
             start: selectionStart(this.currentFlow, selection, taps),
             taps,
           })
         : cancel(this.currentFlow),
     );
-  }
-
-  selectPasted(selection: Selection): void {
-    this.confirmBox(selection, "selected", {
-      from: selection.box.min,
-      to: selection.box.max,
-    });
   }
 
   completeCopy(selection: Selection, clipboard: Clipboard): void {
@@ -387,9 +384,22 @@ export class BuildSession {
     return true;
   }
 
-  followPasteFacing(facing: Facing): void {
-    if (this.currentFlow.kind !== "pasteAim") return;
-    this.currentFlow = followFacing(this.currentFlow, facing);
+  tapPaste(
+    tap: BlockTap,
+    quietTicks: number,
+    facing: Facing,
+  ): "set" | "confirm" | "ignored" {
+    const flow = this.currentFlow;
+    if (flow.kind !== "pasteAim") return "ignored";
+    const decision = classifyTap(flow.tap, tap, quietTicks);
+    if (decision === "ignore") return "ignored";
+    if (decision === "set") this.currentFlow = tapPasteAim(flow, tap, facing);
+    return decision;
+  }
+
+  pasted(): void {
+    if (this.currentFlow.kind === "pasteAim")
+      this.currentFlow = afterPaste(this.currentFlow);
   }
 
   rotatePaste(): boolean {

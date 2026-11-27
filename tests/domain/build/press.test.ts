@@ -95,7 +95,7 @@ const wandTable = {
     "confirmStairGoal",
   ],
   stairContents: ["ignore", "ignore", "ignore", "ignore", "ignore"],
-  pasteAim: ["ignore", "pasteAim", "pasteAim", "pasteAim", "pasteAim"],
+  pasteAim: ["tapPaste", "pasteAim", "pasteAim", "pasteAim", "pasteAim"],
 } satisfies Record<BuildFlow["kind"], [Kind, Kind, Kind, Kind, Kind]>;
 const routes: PressRoute[] = ["itemUse", "blockInteract"];
 const targets: PressTarget[] = ["air", "block", "none"];

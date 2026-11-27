@@ -6,8 +6,9 @@ import { PressPasteAim } from "../../../src/application/build/pressPasteAim";
 import { ResolvePasteTarget } from "../../../src/application/build/resolvePasteTarget";
 import { UndoEdit } from "../../../src/application/build/undoEdit";
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
+import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf, cellsOf } from "../../../src/domain/build/box";
-import { aimedPasteTarget } from "../../../src/domain/build/clipboard/clipboard";
+import { pasteTarget } from "../../../src/domain/build/clipboard/clipboard";
 import { turnBetween } from "../../../src/domain/build/rotation/facing";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
 import type { BlockFace } from "../../../src/domain/shared/blockFace";
@@ -28,7 +29,6 @@ import {
 import { undoRecord } from "../../support/undoRecord";
 import {
   cellKey,
-  FakeAimReader,
   FakeBuildPlayers,
   FakeFeedback,
   FakeGroundProbe,
@@ -82,6 +82,7 @@ function setup(
     paste,
     feedback,
     new ResolvePasteTarget(repo, ground),
+    { facingOf: () => "east" },
   );
   const clipboard = structureClipboard(
     boxOf(cellOf(block), cellOf({ ...block, x: block.x + 1 })),
@@ -89,26 +90,27 @@ function setup(
     structures,
   );
   holdClipboard(session, clipboard);
-  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0, facing: "east" });
-  const aim = new FakeAimReader();
-  aim.target = {
-    input: "pointer",
-    ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
-    block: { cell: cellOf(block), face },
-  };
-  const target = aimedPasteTarget(
+  session.setFlowForTest({ kind: "pasteAim", manualTurn: 0 });
+  const tap = blockTapOf(nether, cellOf(block), face);
+  const setTarget = () => press.tap({ playerId, tap, tick, quietTicks: 0 });
+  setTarget();
+  const clearTarget = () => session.pasted();
+  const target = pasteTarget(
     clipboard,
-    aim.target,
+    tap.cell,
+    face,
     turnBetween(clipboard.facing, "east"),
   );
-  if (!target) throw new Error("Expected paste target");
   const start = vi.spyOn(structures, "place");
-  const execute = (sneaking = true, intent?: "wand" | "place") => {
-    const target = aim.aim(playerId);
+  const execute = (
+    sneaking = true,
+    intent?: "wand" | "place",
+    quietTicks = Infinity,
+  ) => {
     return press.execute({
       playerId,
       dimensionId: nether,
-      aim: target,
+      quietTicks,
       tick,
       sneaking,
       intent,
@@ -123,14 +125,15 @@ function setup(
     feedback,
     jobs,
     clipboard,
-    aim,
+    setTarget,
+    clearTarget,
     target,
     start,
     execute,
   };
 }
 
-it("pastes at the live aimed anchor and creates one undo record", () => {
+it("pastes at the tapped anchor and creates one undo record", () => {
   fc.assert(
     fc.property(cell, face, tick, (block, face, tick) => {
       const e = setup(block, face, tick);
@@ -142,11 +145,7 @@ it("pastes at the live aimed anchor and creates one undo record", () => {
         e.target.anchor,
         0,
       ]);
-      expect(e.session.flow).toMatchObject({
-        kind: "selected",
-        menuLevel: "root",
-        selection: { dimensionId: nether, box: e.target.box },
-      });
+      expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
       e.jobs.step();
       for (const at of cellsOf(e.target.box))
         expect(e.world.stateAt(nether, at)).toEqual(stone);
@@ -230,7 +229,7 @@ it("refuses protected volumes and busy jobs without queuing", () => {
   );
 });
 
-it("can paste at the same anchor after undo returns the selection to aiming", () => {
+it("can paste at the same anchor after undo clears the next target", () => {
   fc.assert(
     fc.property(
       cell,
@@ -242,28 +241,7 @@ it("can paste at the same anchor after undo returns the selection to aiming", ()
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         const flow = e.session.flow;
-        const press = new PressPasteAim(
-          e.repo,
-          new PasteAt(
-            e.repo,
-            e.world,
-            e.feedback,
-            e.structures,
-            new FakeBuildPlayers(),
-          ),
-          e.feedback,
-          new ResolvePasteTarget(e.repo, new FakeGroundProbe()),
-        );
-        if (!e.aim.target) throw new Error("Expected aim");
-        expect(
-          press.execute({
-            playerId,
-            dimensionId: nether,
-            aim: e.aim.target,
-            tick: tick + delta,
-            sneaking: true,
-          }),
-        ).toBe("ignored");
+        expect(e.execute(true, "wand", delta)).toBe("ignored");
         expect(e.session.flow).toEqual(flow);
         expect(e.start).toHaveBeenCalledTimes(1);
         new UndoEdit(e.repo, e.feedback, e.jobs, e.world, e.structures, {
@@ -277,6 +255,7 @@ it("can paste at the same anchor after undo returns the selection to aiming", ()
         e.jobs.step();
         expect(e.world.stateAt(nether, e.target.anchor)).toBe(AIR);
         expect(e.session.hasHistory).toBe(false);
+        e.setTarget();
         expect(e.execute()).toBe("pasted");
         e.jobs.step();
         expect(e.start).toHaveBeenCalledTimes(3);
@@ -290,7 +269,7 @@ it("can paste at the same anchor after undo returns the selection to aiming", ()
   );
 });
 
-it("never writes for a plain press with arbitrary aim and tick", () => {
+it("never writes for a plain press with or without a tap", () => {
   fc.assert(
     fc.property(
       cell,
@@ -299,9 +278,8 @@ it("never writes for a plain press with arbitrary aim and tick", () => {
       fc.integer({ min: 0, max: 2 }),
       (block, face, tick, kind) => {
         const e = setup(block, face, tick);
-        if (kind === 0) e.aim.target = undefined;
-        else if (kind === 1 && e.aim.target)
-          e.aim.target = { input: e.aim.target.input, ray: e.aim.target.ray };
+        if (kind === 0) e.clearTarget();
+        if (kind === 1) e.session.rotatePaste();
         const capture = vi.spyOn(e.structures, "capture");
         const flow = e.session.flow;
         expect(e.execute(false)).toBe("menu");
@@ -318,34 +296,26 @@ it("never writes for a plain press with arbitrary aim and tick", () => {
 
 it("reports a missing target for a sneak press", () => {
   fc.assert(
-    fc.property(
-      cell,
-      face,
-      tick,
-      fc.boolean(),
-      (block, face, tick, missingAim) => {
-        const e = setup(block, face, tick);
-        e.aim.target = missingAim
-          ? undefined
-          : {
-              input: "pointer",
-              ray: { origin: block, direction: { x: 1, y: 0, z: 0 } },
-            };
-        expect(e.execute(true)).toBe("ignored");
-        expect(e.feedback.messages).toEqual([{ message: "pasteNoTarget" }]);
-        expect(e.start).not.toHaveBeenCalled();
-      },
-    ),
+    fc.property(cell, face, tick, fc.boolean(), (block, face, tick, rotate) => {
+      const e = setup(block, face, tick);
+      e.clearTarget();
+      if (rotate) e.session.rotatePaste();
+      expect(e.execute(true)).toBe("ignored");
+      expect(e.feedback.messages).toEqual([{ message: "pasteTapPosition" }]);
+      expect(e.start).not.toHaveBeenCalled();
+    }),
   );
 });
 
-it("resumes a selected clipboard on the first Place and pastes on the next press", () => {
+it("resumes a selected clipboard on the first Place and requires a block tap before placing", () => {
   const block = cellOf({ x: 3, y: 60, z: 1 });
   const e = setup(block, "up", 0);
   e.session.setFlowForTest(selectionFlows(block, nether, stone).selected);
   expect(e.execute(false, "place")).toBe("aiming");
-  expect(e.feedback.messages).toEqual([{ message: "pasteChoosePosition" }]);
+  expect(e.feedback.messages).toEqual([{ message: "pasteTapPosition" }]);
   expect(e.start).not.toHaveBeenCalled();
+  expect(e.execute(false, "place")).toBe("ignored");
+  e.setTarget();
   expect(e.execute(false, "place")).toBe("pasted");
   expect(e.start).toHaveBeenCalledTimes(1);
 });
@@ -414,7 +384,7 @@ it("place and sneak wand share placement, refusals, and missing targets", () => 
               vi.spyOn(e.world, "mayEdit").mockReturnValue(false);
             if (scenario === "busy") e.session.beginEdit();
             if (scenario === "noGround") e.ground.topOf = () => undefined;
-            if (scenario === "noTarget") e.aim.target = undefined;
+            if (scenario === "noTarget") e.clearTarget();
             if (scenario === "limit")
               vi.spyOn(e.structures, "capture").mockReturnValue("tooLarge");
           }
@@ -438,19 +408,16 @@ it("place and sneak wand share placement, refusals, and missing targets", () => 
   );
 });
 
-it("applies the manual turn before selecting the box", () => {
+it("applies the manual turn and preserves it after placement", () => {
   fc.assert(
     fc.property(cell, tick, (block, tick) => {
       const e = setup(block, "up", tick);
       expect(e.session.rotatePaste()).toBe(true);
       expect(e.execute(false, "place")).toBe("pasted");
       expect(e.start.mock.calls.map((call) => call.slice(2))).toEqual([
-        [e.target.anchor, 1],
+        [pasteTarget(e.clipboard, cellOf(block), "up", 1).anchor, 1],
       ]);
-      expect(e.session.flow).toMatchObject({
-        kind: "selected",
-        menuLevel: "root",
-      });
+      expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 1 });
       expect(e.execute()).toBe("ignored");
     }),
   );

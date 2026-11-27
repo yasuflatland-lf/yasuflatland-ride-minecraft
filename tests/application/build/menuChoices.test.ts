@@ -43,7 +43,6 @@ const cell = fc.record({
 const command = { playerId };
 const tick = 17;
 const shapeRoutes = {
-  place: ["confirmShape", { playerId, style: "fill" }],
   fill: ["confirmShape", { playerId, style: "fill" }],
   frame: ["confirmShape", { playerId, style: "frame" }],
   faces: ["confirmShape", { playerId, style: "faces" }],
@@ -142,6 +141,24 @@ it("dispatches only entries offered by the current flow, including stale choices
   );
   expectDispatch({ kind: "idle" }, "chooseShape", [], shapeRoutes);
 });
+
+it.each([
+  ["box", cellOf({ ...to, y: from.y + 1 })],
+  ["line", cellOf({ ...from, x: from.x + 3 })],
+] as const)(
+  "dispatches root Fill and rejects Place for a %s",
+  (_shape, end) => {
+    const { session, cases, choices } = setupMenuChoices();
+    session.setFlowForTest(selected(from, end));
+    expect(choices.chooseShape(playerId, "place", tick)).toBe(false);
+    expect(cases.confirmShape.execute).not.toHaveBeenCalled();
+    expect(choices.chooseShape(playerId, "fill", tick)).toBe(true);
+    expect(cases.confirmShape.execute).toHaveBeenCalledExactlyOnceWith({
+      playerId,
+      style: "fill",
+    });
+  },
+);
 
 it("dispatches only contents offered for the selected shape", () => {
   for (const kind of ["hip", "cube"] as const) {

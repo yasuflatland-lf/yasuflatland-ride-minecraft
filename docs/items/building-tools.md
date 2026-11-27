@@ -22,9 +22,9 @@ Holding the wand enters build mode after a short grace delay; putting it away le
 
 ## Selecting and building
 
-Tap or right-click a block to set point 1 and choose that block's material. A blinking marker surrounds it and the action bar names the material. Aim at a block or at air to preview the end point. In air the end point follows a vertical plane through point 1. Press the wand to fix the base. For a rectangle or box, aim to set the height and press again to fix it. A line is selected as soon as you fix the end point. With a fixed selection, press the wand to open the menu. Adjust height reopens live height aiming for rectangles and boxes.
+Tap or right-click a block to set point 1 and choose that block's material. A blinking marker surrounds it and the action bar names the material. Aim at a block or at air to preview the end point. In air the end point follows a vertical plane through point 1. Press the wand to fix the base. For a rectangle or box, aim to set the height and press again to fix it. A line is selected as soon as you fix the end point. With a fixed selection, press the wand to open the menu. Edit height again reopens live height aiming for rectangles and boxes.
 
-- A line offers Place directly.
+- Fill is available directly for every selection, including lines.
 - Under Build shape, a vertical rectangle offers Fill and Frame.
 - A horizontal rectangle offers Fill and Frame, and a box offers Fill, Faces only, and Walls only. Both also offer Gable roof, Hip roof, Cylinder, Sideways cylinder, Sphere, and Cube.
 

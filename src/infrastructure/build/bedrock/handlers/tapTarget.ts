@@ -1,5 +1,4 @@
 import { type Player, system, world } from "@minecraft/server";
-import type { AimReader } from "../../../../application/build/ports/aim";
 import { blockTapOf } from "../../../../domain/build/blockTap";
 import { tapTargetCell } from "../../../../domain/build/tapTarget";
 import type { Debounces } from "../../../../domain/shared/debounce";
@@ -15,12 +14,10 @@ import {
 
 export function registerTapTarget({
   targets,
-  aim,
   debounce,
   ...context
 }: BlockPressContext & {
   targets: Pick<BedrockTapTargets, "ownerOf">;
-  aim: AimReader;
   debounce: Debounces<PlayerId>;
 }) {
   const press = (player: Player, entityId: string, defer = false): void => {
@@ -38,11 +35,7 @@ export function registerTapTarget({
       playerId,
       tap: blockTapOf(owner.dimensionId, owner.cell),
     };
-    const run = () => {
-      const ray =
-        intent === "confirmLiveHeight" ? aim.aim(playerId)?.ray : undefined;
-      pressBlockCell(context, { ...command, ray }, intent);
-    };
+    const run = () => pressBlockCell(context, command, intent);
     if (defer) {
       // Claim the press before itemUse can handle the same interaction.
       system.run(run);

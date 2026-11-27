@@ -252,14 +252,15 @@ it("offers the ordered root and build menus for every shape and returns unchange
         const before = structuredClone(flow);
         const rootIds = [
           ...(shape.kind === "line" ? [] : ["adjustHeight"]),
+          "fill",
           "cut",
-          "removeAbove",
-          shape.kind === "line" ? "place" : "buildShape",
+          ...(shape.kind === "line" ? [] : ["buildShape"]),
           ...(shape.kind === "line" && from.y === to.y
             ? ["stairs", "terrace"]
             : []),
-          "copy",
+          "removeAbove",
           "fillBelow",
+          "copy",
           "cancel",
         ];
         expect(shapeMenu(flow).map((e) => e.id)).toEqual(rootIds);
@@ -435,9 +436,9 @@ it("accepts every heighted kind only on its supported shapes", () => {
           ],
           [{ x: dx, y: dy, z: 0 }, ["fill", "frame"]],
           [{ x: 0, y: dy, z: dz }, ["fill", "frame"]],
-          [{ x: dx, y: 0, z: 0 }, ["place"]],
-          [{ x: 0, y: dy, z: 0 }, ["place"]],
-          [{ x: 0, y: 0, z: dz }, ["place"]],
+          [{ x: dx, y: 0, z: 0 }, ["fill"]],
+          [{ x: 0, y: dy, z: 0 }, ["fill"]],
+          [{ x: 0, y: 0, z: dz }, ["fill"]],
         ] as const) {
           const end = cellOf({
             x: origin.x + offset.x,
@@ -776,7 +777,82 @@ it("enters the terrain confirmation only from an end point, keeps the points, an
   );
 });
 
-it("offers Cut then Remove above first for every shape and the confirmation only in its state", () => {
+it("offers an ordered subsequence of root entries for every selected shape", () => {
+  const order: readonly string[] = [
+    "adjustHeight",
+    "fill",
+    "cut",
+    "buildShape",
+    "stairs",
+    "terrace",
+    "removeAbove",
+    "fillBelow",
+    "copy",
+    "cancel",
+  ];
+  fc.assert(
+    fc.property(cell, cell, (from, to) => {
+      const flow = confirmEndpointHeight(
+        tapAir(
+          tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+          to,
+          OVERWORLD_RANGE,
+        ),
+      );
+      if (flow.kind !== "selected") throw new Error("Expected a selection");
+      const { min, max } = flow.selection.box;
+      const isLine = shapeOf(min, max).kind === "line";
+      const ids: string[] = shapeMenu(flow).map(({ id }) => id);
+      expect(ids).toEqual(order.filter((id) => ids.includes(id)));
+      expect(ids).toEqual(expect.arrayContaining(["fill", "cut"]));
+      expect(ids.includes("buildShape")).toBe(!isLine);
+      expect(ids.includes("adjustHeight")).toBe(!isLine);
+      expect(ids).not.toContain("place");
+    }),
+  );
+});
+
+it.each([
+  [
+    "box",
+    { x: 2, y: 1, z: 2 },
+    "adjustHeight,fill,cut,buildShape,removeAbove,fillBelow,copy,cancel",
+  ],
+  [
+    "single cell",
+    { x: 0, y: 0, z: 0 },
+    "adjustHeight,fill,cut,buildShape,stairs,terrace,removeAbove,fillBelow,copy,cancel",
+  ],
+  [
+    "horizontal row",
+    { x: 3, y: 0, z: 0 },
+    "fill,cut,stairs,terrace,removeAbove,fillBelow,copy,cancel",
+  ],
+  [
+    "vertical line",
+    { x: 0, y: 2, z: 0 },
+    "fill,cut,removeAbove,fillBelow,copy,cancel",
+  ],
+] as const)(
+  "lists the root entries in order for a %s",
+  (_shape, to, expected) => {
+    const from = cellOf({ x: 0, y: 0, z: 0 });
+    const flow = confirmEndpointHeight(
+      tapAir(
+        tapBlock(idle, dim, from, stone, OVERWORLD_RANGE),
+        cellOf(to),
+        OVERWORLD_RANGE,
+      ),
+    );
+    expect(
+      shapeMenu(flow)
+        .map(({ id }) => id)
+        .join(),
+    ).toBe(expected);
+  },
+);
+
+it("offers terrain confirmation only in its confirmation state", () => {
   fc.assert(
     fc.property(cell, cell, (a, b) => {
       const endpoint = confirmEndpointHeight(
@@ -786,11 +862,6 @@ it("offers Cut then Remove above first for every shape and the confirmation only
           OVERWORLD_RANGE,
         ),
       );
-      const ids = shapeMenu(endpoint).map((entry) => entry.id);
-      expect(ids.filter((id) => id !== "adjustHeight").slice(0, 2)).toEqual([
-        "cut",
-        "removeAbove",
-      ]);
       expect(terrainMenu(endpoint)).toEqual([]);
       const confirming = chooseTerrain(endpoint, "removeAbove");
       expect(shapeMenu(confirming)).toEqual([]);
@@ -835,13 +906,13 @@ it("offers Stairs only for a horizontal row and returns from either stair flow t
     expect(chooseStairs(other, "stairs")).toBe(other);
   }
   expect(shapeMenu(chosen).map(({ id }) => id)).toEqual([
+    "fill",
     "cut",
-    "removeAbove",
-    "place",
     "stairs",
     "terrace",
-    "copy",
+    "removeAbove",
     "fillBelow",
+    "copy",
     "cancel",
   ]);
 });
@@ -857,13 +928,14 @@ it("offers Stairs and Terrace after Build shape for a single-cell box only when 
         throw new Error("Expected a selected cell");
       expect(shapeMenu(selected).map(({ id }) => id)).toEqual([
         "adjustHeight",
+        "fill",
         "cut",
-        "removeAbove",
         "buildShape",
         "stairs",
         "terrace",
-        "copy",
+        "removeAbove",
         "fillBelow",
+        "copy",
         "cancel",
       ]);
       const next = { ...foot, x: foot.x + 1 };
@@ -1043,8 +1115,6 @@ it("keeps the fresh endpoint through live height updates but ends it on confirma
         const session = new BuildSession(asPlayerId("p"));
         session.setFlowForTest(base);
         session.confirmBox(confirmed.selection, "selected", base.taps);
-        expect(session.flow).not.toHaveProperty("freshEnd");
-        session.selectPasted(confirmed.selection);
         expect(session.flow).not.toHaveProperty("freshEnd");
       }
     }),

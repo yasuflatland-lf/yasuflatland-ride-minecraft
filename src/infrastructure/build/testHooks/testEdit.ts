@@ -7,21 +7,15 @@ import {
 import type { EndBuildSession } from "../../../application/build/endBuildSession";
 import type { MenuChoices } from "../../../application/build/menuChoices";
 import type { BuildStructureStore } from "../../../application/build/ports/structures";
-import type { PressPasteAim } from "../../../application/build/pressPasteAim";
 import type { PressUndo } from "../../../application/build/pressUndo";
-import type { RotatePasteAim } from "../../../application/build/rotatePasteAim";
 import type { ShowPreview } from "../../../application/build/showPreview";
 import type { UndoEdit } from "../../../application/build/undoEdit";
 import { AIR } from "../../../domain/build/blockState";
 import { boxOf } from "../../../domain/build/box";
 import { clipboardOf } from "../../../domain/build/clipboard/clipboard";
-import {
-  facingVector,
-  parseFacing,
-} from "../../../domain/build/rotation/facing";
+import { parseFacing } from "../../../domain/build/rotation/facing";
 import { selectionOf } from "../../../domain/build/selection";
 import type { BuildSessionRepository } from "../../../domain/build/sessionRepository";
-import { parseBlockFace } from "../../../domain/shared/blockFace";
 import { cellOf } from "../../../domain/shared/cells";
 import {
   asDimensionId,
@@ -39,7 +33,6 @@ import type { TestAimReader } from "./testAim";
 
 export function registerTestEdit(
   choices: MenuChoices,
-  paste: PressPasteAim,
   undo: UndoEdit,
   pressUndo: PressUndo,
   describe: DescribeBuild,
@@ -50,7 +43,6 @@ export function registerTestEdit(
   repo: BuildSessionRepository,
   endSession: EndBuildSession,
   structures: BuildStructureStore,
-  rotatePasteAim: RotatePasteAim,
   previewAim?: { aim: TestAimReader; preview: ShowPreview },
 ): void {
   const chooseFromMenu = new Map([
@@ -216,72 +208,6 @@ export function registerTestEdit(
           Number.isInteger(Number(args[0]))
         ) {
           choices.submitHeight(playerId, Number(args[0]));
-        } else if (
-          command === "pasteat" &&
-          (args.length === 4 ||
-            ((args.length === 5 || args.length === 6 || args.length === 7) &&
-              (args[4] === "true" || args[4] === "false"))) &&
-          args.slice(0, 3).every((value) => Number.isInteger(Number(value)))
-        ) {
-          const face = parseBlockFace(args[3] ?? "");
-          if (!face) {
-            system.sendScriptEvent(
-              TEST_RESULT_EVENT,
-              JSON.stringify({
-                player: player.name,
-                error: "Invalid paste face",
-              }),
-            );
-            return;
-          }
-          const facing = parseFacing(args[5] ?? "east");
-          if (!facing) {
-            system.sendScriptEvent(
-              TEST_RESULT_EVENT,
-              JSON.stringify({
-                player: player.name,
-                error: "Invalid paste facing",
-              }),
-            );
-            return;
-          }
-          const rotations = Number(args[6] ?? 0);
-          if (!Number.isInteger(rotations) || rotations < 0 || rotations > 3)
-            return;
-          const clipboard = repo.get(playerId)?.clipboard;
-          if (!clipboard) {
-            system.sendScriptEvent(
-              TEST_RESULT_EVENT,
-              JSON.stringify({
-                player: player.name,
-                error: "No clipboard for paste",
-              }),
-            );
-            return;
-          }
-          for (let i = 0; i < rotations; i++)
-            rotatePasteAim.execute({ playerId });
-          paste.execute({
-            playerId,
-            dimensionId: asDimensionId(player.dimension.id),
-            aim: {
-              input: "pointer",
-              ray: {
-                origin: player.location,
-                direction: facingVector(facing),
-              },
-              block: {
-                cell: cellOf({
-                  x: Number(args[0]),
-                  y: Number(args[1]),
-                  z: Number(args[2]),
-                }),
-                face,
-              },
-            },
-            sneaking: args[4] !== "false",
-            tick: system.currentTick,
-          });
         } else if (
           command === "slot" &&
           args.length === 1 &&

@@ -135,7 +135,7 @@ function undoAndExpectEmpty(e: Env) {
   expect(e.feedback.messages.at(-1)?.message).toBe("nothingToUndo");
 }
 
-it("Build Undo restores blocks after paste selects its result", () => {
+it("Build Undo restores blocks after paste and clears the next target", () => {
   const e = setup();
   const source = boxOf(
     cellOf({ x: 0, y: 64, z: 0 }),
@@ -163,10 +163,13 @@ it("Build Undo restores blocks after paste selects its result", () => {
       target: { corner: target.min, anchor: target.min, box: target, turn: 0 },
     }),
   ).toBe("pasted");
-  expect(e.session.flow.kind).toBe("selected");
+  expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 0 });
+  e.session.tapPaste(blockTapOf(overworld, target.min, "up"), 0, "west");
+  e.session.rotatePaste();
   expect(snapshot(e, target)).not.toEqual(before);
 
   expect(e.pressUndo.execute({ playerId })).toBe("undone");
+  expect(e.session.flow).toEqual({ kind: "pasteAim", manualTurn: 1 });
   e.drain();
   expect(e.feedback.messages.at(-1)?.message).toBe("undoDone");
   expect(e.session.hasHistory).toBe(false);

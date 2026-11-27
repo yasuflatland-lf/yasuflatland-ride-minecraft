@@ -11,6 +11,7 @@ it.each(locales)(
   "defines every build message and form label in %s",
   (locale) => {
     const entries = readLang(`packs/yasu_ride_rp/texts/${locale}.lang`);
+    expect(entries.has("yasu_build.form.place")).toBe(false);
     for (const [prefix, keys] of [
       ["yasu_build.message.", Object.values(BUILD_MESSAGE)],
       ["yasu_build.form.", Object.values(BUILD_FORM)],

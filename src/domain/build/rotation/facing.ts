@@ -1,4 +1,4 @@
-import { QUARTER_TURN, quarterOf } from "../../shared/facing";
+import { quarterOf } from "../../shared/facing";
 import {
   rightOf as horizontalRightOf,
   length,
@@ -25,25 +25,16 @@ export function turnBetween(from: Facing, to: Facing): QuarterTurn {
 
 export function effectiveTurn(
   clipboardFacing: Facing,
-  gazeFacing: Facing,
+  pasteFacing: Facing,
   manual: QuarterTurn,
 ): QuarterTurn {
-  return ((turnBetween(clipboardFacing, gazeFacing) + manual) %
+  return ((turnBetween(clipboardFacing, pasteFacing) + manual) %
     4) as QuarterTurn;
 }
 
-export function facingFromDirection(
-  direction: Vec3,
-  current?: Facing,
-): Facing | undefined {
+export function facingFromDirection(direction: Vec3): Facing | undefined {
   if (length(direction) < BUILD_SPEC.facingMinHorizontal) return undefined;
   const angle = (Math.atan2(direction.x, -direction.z) * 180) / Math.PI;
-  if (current !== undefined) {
-    const difference =
-      ((angle - FACINGS.indexOf(current) * QUARTER_TURN + 540) % 360) - 180;
-    if (Math.abs(difference) <= 45 + BUILD_SPEC.pasteFacingHysteresisDegrees)
-      return current;
-  }
   return FACINGS[quarterOf(angle)];
 }
 
