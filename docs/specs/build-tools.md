@@ -20,6 +20,7 @@
 - Source: [0254](../adr/0254-build-wand-stairs-and-terrace.md)
 - Source: [0258](../adr/0258-build-undo-steps-back-fresh-selection.md)
 - Source: [0257](../adr/0257-tap-the-build-wand-virtual-block-through-an-invisible-target-entity.md)
+- Source: [0262](../adr/0262-tap-to-place-the-build-wand-paste-box-and-stair-goal.md)
 - Excluded: [0205](../adr/0205-structured-adr-metadata-and-current-specs.md): defines the documentation format and checks, not build behavior
 - Excluded: [0180](../adr/0180-a-wide-bulldozer-blade.md): extends the Building Tools group with Wide Blade; switch behavior belongs to the bulldozer spec
 - Excluded: [0181](../adr/0181-a-road-paver-on-the-bulldozer.md): extends the Building Tools group with Road Paver; paving and switch behavior belong to the bulldozer spec

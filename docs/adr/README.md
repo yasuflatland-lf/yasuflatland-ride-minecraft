@@ -207,7 +207,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0200](0200-roof-tent-as-a-host-bound-camp-entity.md) | Roof tent as a host-bound camp entity | Proposed; superseded in part by [0207](0207-lay-a-rain-ceiling-over-an-occupied-roof-tent.md); extended by [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md), [0231](0231-release-every-roof-tent-spawn-setter.md) |
 | [0201](0201-build-wand-cylinder-and-cube.md) | Build Wand cylinder and cube | Accepted; superseded in part by [0233](0233-round-shapes-and-terrain-operations.md); extended by [0202](0202-build-wand-copy-and-continuous-paste.md) |
 | [0202](0202-build-wand-copy-and-continuous-paste.md) | Build Wand Copy and continuous Paste | Accepted; superseded in part by [0203](0203-build-wand-paste-aiming.md), [0230](0230-cut-a-selection-with-the-build-wand.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) |
-| [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed; superseded in part by [0232](0232-undo-skips-conflicting-cells.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md) |
+| [0203](0203-build-wand-paste-aiming.md) | Build Wand paste aiming | Proposed; superseded in part by [0232](0232-undo-skips-conflicting-cells.md), [0243](0243-copy-the-build-wand-box-as-an-engine-structure.md), [0262](0262-tap-to-place-the-build-wand-paste-box-and-stair-goal.md) |
 | [0204](0204-shard-unit-tests-across-ci-jobs.md) | Shard unit tests across CI jobs | Accepted |
 | [0205](0205-structured-adr-metadata-and-current-specs.md) | Structured ADR metadata and current specs | Proposed |
 | [0206](0206-seat-the-roof-tent-occupant-on-a-rideable-seat.md) | Seat the roof tent occupant on a rideable seat | Proposed |
@@ -257,7 +257,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0251](0251-add-the-scooter-kind.md) | Add the scooter kind | Proposed; extended by [0252](0252-budget-client-entity-texture-memory.md) |
 | [0252](0252-budget-client-entity-texture-memory.md) | Budget client entity texture memory | Accepted |
 | [0253](0253-persistent-build-selection-and-tool-swapping.md) | Persistent build selection and tool swapping | Proposed |
-| [0254](0254-build-wand-stairs-and-terrace.md) | Build Wand stairs and terrace from a row and a gaze goal | Proposed |
+| [0254](0254-build-wand-stairs-and-terrace.md) | Build Wand stairs and terrace from a row and a gaze goal | Proposed; superseded in part by [0262](0262-tap-to-place-the-build-wand-paste-box-and-stair-goal.md) |
 | [0255](0255-forbid-visible-coplanar-faces-with-a-ratcheted-model-test.md) | Forbid visible coplanar faces with a ratcheted model test | Accepted |
 | [0256](0256-cull-buried-faces-at-generation.md) | Cull buried faces at generation | Proposed |
 | [0257](0257-tap-the-build-wand-virtual-block-through-an-invisible-target-entity.md) | Tap the Build Wand virtual block through an invisible target entity | Proposed |
@@ -265,6 +265,7 @@ This directory records design decisions and the reasons behind them, using Micha
 | [0259](0259-bedrock-draws-east-on-the-minimum-x-side.md) | Bedrock draws east on the minimum x side | Accepted |
 | [0260](0260-toggle-flight-boost-with-a-booster.md) | Toggle flight boost with a booster | Accepted |
 | [0261](0261-navigation-by-explorer-maps-and-a-mob-radar.md) | Navigation by explorer maps and a mob radar | Proposed |
+| [0262](0262-tap-to-place-the-build-wand-paste-box-and-stair-goal.md) | Tap to place the Build Wand paste box and stair goal | Proposed |
 <!-- adr-index:end -->
 
 The measurements and in-game tests behind these decisions are in [the driving-core spike findings](../spikes/driving-core.md).
