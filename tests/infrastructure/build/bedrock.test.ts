@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { beforeEach, expect, it, vi } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf } from "../../../src/domain/build/box";
-import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
+import { cornerMarkerEdges } from "../../../src/domain/build/cornerMarker";
 import type { PreviewSet } from "../../../src/domain/build/preview/preview";
 import { boxOutline } from "../../../src/domain/build/preview/preview";
 import { BUILD_SPEC } from "../../../src/domain/build/spec";
@@ -31,9 +31,19 @@ vi.mock("@minecraft/server", () => ({
   BlockPermutation: { resolve: engine.resolve },
   MolangVariableMap: class {
     readonly colors: Record<string, unknown> = {};
+    readonly vectors: Record<string, unknown> = {};
+    readonly floats: Record<string, unknown> = {};
 
     setColorRGB(name: string, color: unknown): void {
       this.colors[name] = color;
+    }
+
+    setVector3(name: string, vector: unknown): void {
+      this.vectors[name] = vector;
+    }
+
+    setFloat(name: string, value: number): void {
+      this.floats[name] = value;
     }
   },
 }));
@@ -116,7 +126,12 @@ it("keeps all production feedback calls identical with recording enabled", () =>
           feedback.drawPreview(
             id,
             input.previewDimension,
-            preview({ startMarker: input.points, paste: input.points }),
+            preview({
+              startMarker: input.points.flatMap((point) =>
+                cornerMarkerEdges(cellOf(point)),
+              ),
+              paste: input.points,
+            }),
           );
         };
 
@@ -403,43 +418,22 @@ it("draws the marker particles on the corner boundary for the owner only", () =>
       };
       engine.getEntity.mockReturnValue(player);
       const feedback = new BedrockFeedback();
-      feedback.drawPreview(
-        playerId,
-        dimension,
-        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
-      );
+      const edges = cornerMarkerEdges(cellOf(at));
+      const set = preview({ startMarker: edges });
+      feedback.drawPreview(playerId, dimension, set);
       expect(engine.getEntity).toHaveBeenLastCalledWith(playerId);
-      expect(spawnParticle).toHaveBeenCalledTimes(
-        cornerMarkerPoints(cellOf(at)).length,
-      );
+      expect(spawnParticle).toHaveBeenCalledTimes(12);
       expect(
         spawnParticle.mock.calls.map(([particle, point]) => [particle, point]),
-      ).toEqual(
-        cornerMarkerPoints(cellOf(at)).map((point) => [
-          "yasu_build:marker",
-          point,
-        ]),
-      );
+      ).toEqual(edges.map(({ center }) => ["yasu_build:marker", center]));
       spawnParticle.mockClear();
-      feedback.drawPreview(
-        playerId,
-        asDimensionId("minecraft:nether"),
-        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
-      );
+      feedback.drawPreview(playerId, asDimensionId("minecraft:nether"), set);
       expect(spawnParticle).not.toHaveBeenCalled();
       player.isValid = false;
-      feedback.drawPreview(
-        playerId,
-        dimension,
-        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
-      );
+      feedback.drawPreview(playerId, dimension, set);
       expect(spawnParticle).not.toHaveBeenCalled();
       engine.getEntity.mockReturnValue(undefined);
-      feedback.drawPreview(
-        playerId,
-        dimension,
-        preview({ startMarker: cornerMarkerPoints(cellOf(at)) }),
-      );
+      feedback.drawPreview(playerId, dimension, set);
       expect(spawnParticle).not.toHaveBeenCalled();
     }),
   );
@@ -449,7 +443,7 @@ it("stops a corner marker at the first rejected particle without throwing", () =
   fc.assert(
     fc.property(
       cell,
-      fc.integer({ min: 0, max: 35 }),
+      fc.integer({ min: 0, max: 11 }),
       (at, successfulSpawns) => {
         const spawnParticle = vi.fn(() => {
           if (spawnParticle.mock.calls.length > successfulSpawns) {
@@ -467,9 +461,9 @@ it("stops a corner marker at the first rejected particle without throwing", () =
             playerId,
             dimension,
             preview({
-              startMarker: cornerMarkerPoints(cellOf(at)),
+              startMarker: cornerMarkerEdges(cellOf(at)),
               shape: [{ x: 0, y: 0, z: 0 }],
-              endMarker: cornerMarkerPoints(cellOf(at)),
+              endMarker: cornerMarkerEdges(cellOf(at)),
             }),
           ),
         ).not.toThrow();
@@ -496,7 +490,47 @@ it("refuses air, liquids and data-holding blocks as material", () => {
   }
 });
 
-it("uses a distinct Molang color map for each marker layer and reuses it for the layer's points", () => {
+it("passes each edge's axis and length to its particle", () => {
+  fc.assert(
+    fc.property(cell, (at) => {
+      const spawnParticle = vi.fn();
+      engine.getEntity.mockReturnValue({
+        typeId: "minecraft:player",
+        isValid: true,
+        dimension: { id: dimension },
+        spawnParticle,
+      });
+      const edges = cornerMarkerEdges(cellOf(at));
+      new BedrockFeedback().drawPreview(
+        playerId,
+        dimension,
+        preview({ startMarker: edges }),
+      );
+      expect(spawnParticle.mock.calls).toEqual(
+        edges.map(({ axis, center }) => [
+          "yasu_build:marker",
+          center,
+          expect.objectContaining({
+            colors: { "variable.color": { red: 1, green: 1, blue: 1 } },
+            vectors: {
+              "variable.direction": {
+                x: Number(axis === "x"),
+                y: Number(axis === "y"),
+                z: Number(axis === "z"),
+              },
+            },
+            floats: { "variable.length": 1.125 },
+          }),
+        ]),
+      );
+      expect(
+        new Set(spawnParticle.mock.calls.map(([, , molang]) => molang)).size,
+      ).toBe(12);
+    }),
+  );
+});
+
+it("draws marker and outline layers in order with their own colors", () => {
   const spawnParticle = vi.fn();
   engine.getEntity.mockReturnValue({
     typeId: "minecraft:player",
@@ -504,45 +538,46 @@ it("uses a distinct Molang color map for each marker layer and reuses it for the
     dimension: { id: dimension },
     spawnParticle,
   });
-  const first = { x: 1, y: 2, z: 3 };
-  const second = { x: 2, y: 2, z: 3 };
+  const edges = cornerMarkerEdges(cellOf({ x: 1, y: 2, z: 3 })).slice(0, 2);
+  const points = edges.map(({ center }) => center);
   new BedrockFeedback().drawPreview(
     playerId,
     dimension,
     preview({
-      startMarker: [first, second],
-      endMarker: [first, second],
-      sharedMarker: [first, second],
+      startMarker: edges,
+      shape: points,
+      endMarker: edges,
+      sharedMarker: edges,
     }),
   );
-  expect(spawnParticle).toHaveBeenCalledTimes(6);
-  const colors = [
-    { red: 1, green: 1, blue: 1 },
-    { red: 1, green: 0.35, blue: 0.35 },
-    { red: 1, green: 0.7, blue: 0.2 },
+  const layers = [
+    { particle: "yasu_build:marker", color: { red: 1, green: 1, blue: 1 } },
+    {
+      particle: "yasu_build:outline",
+      color: { red: 0.25, green: 1, blue: 0.35 },
+    },
+    {
+      particle: "yasu_build:marker",
+      color: { red: 1, green: 0.35, blue: 0.35 },
+    },
+    { particle: "yasu_build:marker", color: { red: 1, green: 0.7, blue: 0.2 } },
   ];
-  const maps = colors.map((color, index) => {
-    const firstCall = index * 2 + 1;
-    const molang = spawnParticle.mock.calls[firstCall - 1]?.[2];
-    expect(spawnParticle).toHaveBeenNthCalledWith(
-      firstCall,
-      "yasu_build:marker",
-      first,
-      expect.objectContaining({ colors: { "variable.color": color } }),
-    );
-    expect(spawnParticle).toHaveBeenNthCalledWith(
-      firstCall + 1,
-      "yasu_build:marker",
-      second,
-      molang,
-    );
-    expect(spawnParticle.mock.calls[firstCall]?.[2]).toBe(molang);
-    return molang;
-  });
-  expect(new Set(maps).size).toBe(colors.length);
+  expect(spawnParticle.mock.calls).toEqual(
+    layers.flatMap(({ particle, color }) =>
+      points.map((point) => [
+        particle,
+        point,
+        expect.objectContaining({ colors: { "variable.color": color } }),
+      ]),
+    ),
+  );
+  const outlineMaps = spawnParticle.mock.calls
+    .slice(2, 4)
+    .map(([, , molang]) => molang);
+  expect(new Set(outlineMaps).size).toBe(1);
 });
 
-it("draws outlines with the marker particle and flames without Molang variables in the viewer dimension when no dimension is fixed", () => {
+it("draws outlines with the outline particle and flames without Molang variables in the viewer dimension when no dimension is fixed", () => {
   const spawnParticle = vi.fn();
   engine.getEntity.mockReturnValue({
     typeId: "minecraft:player",

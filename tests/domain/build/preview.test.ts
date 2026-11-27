@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { expect, it } from "vitest";
 import { blockStateOf } from "../../../src/domain/build/blockState";
 import { boxOf, type CellBox, edgePoints } from "../../../src/domain/build/box";
-import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
+import { cornerMarkerEdges } from "../../../src/domain/build/cornerMarker";
 import type { BuildFlow } from "../../../src/domain/build/flow/state";
 import {
   boxOutline,
@@ -107,7 +107,7 @@ it("bounds every list and keeps shape and paste samples on box edges", () => {
             set.paste.length + set.pasteVertical.length,
           ).toBeLessThanOrEqual(BUILD_SPEC.outlineMaxPoints);
           if (flow.kind === "pasteAim")
-            expect(set.startMarker).toEqual(cornerMarkerPoints(box.min));
+            expect(set.startMarker).toEqual(cornerMarkerEdges(box.min));
           if (flow.kind === "point1" || flow.kind === "selected")
             expect(set).toMatchObject(
               endpointMarkers(cellOf(a), cellOf(b), blink),
@@ -149,7 +149,7 @@ it("blinks the start marker while the end is undefined", () => {
     fc.property(cell, fc.boolean(), (start, blink) => {
       const markers = endpointMarkers(cellOf(start), undefined, blink);
       expect(markers).toEqual({
-        startMarker: blink ? cornerMarkerPoints(cellOf(start)) : [],
+        startMarker: blink ? cornerMarkerEdges(cellOf(start)) : [],
         endMarker: [],
         sharedMarker: [],
       });
@@ -174,7 +174,7 @@ it("draws one shared marker on every redraw for coincident endpoints", () => {
       ).toEqual({
         startMarker: [],
         endMarker: [],
-        sharedMarker: cornerMarkerPoints(cellOf(start)),
+        sharedMarker: cornerMarkerEdges(cellOf(start)),
       });
     }),
   );
@@ -185,8 +185,8 @@ it("draws both distinct endpoint markers on every redraw", () => {
     fc.property(cell, cell, fc.boolean(), (start, end, blink) => {
       fc.pre(!sameCell(cellOf(start), cellOf(end)));
       expect(endpointMarkers(cellOf(start), cellOf(end), blink)).toEqual({
-        startMarker: cornerMarkerPoints(cellOf(start)),
-        endMarker: cornerMarkerPoints(cellOf(end)),
+        startMarker: cornerMarkerEdges(cellOf(start)),
+        endMarker: cornerMarkerEdges(cellOf(end)),
         sharedMarker: [],
       });
     }),

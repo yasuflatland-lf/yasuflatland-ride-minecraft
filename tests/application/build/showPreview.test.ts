@@ -13,7 +13,7 @@ import { UpdateBuildModes } from "../../../src/application/build/updateBuildMode
 import { AIR, blockStateOf } from "../../../src/domain/build/blockState";
 import { blockTapOf } from "../../../src/domain/build/blockTap";
 import { boxOf } from "../../../src/domain/build/box";
-import { cornerMarkerPoints } from "../../../src/domain/build/cornerMarker";
+import { cornerMarkerEdges } from "../../../src/domain/build/cornerMarker";
 import { previewModel } from "../../../src/domain/build/preview/preview";
 import {
   FACINGS,
@@ -159,7 +159,7 @@ it("draws the marker for its owner in the flow dimension on alternate redraws", 
     expect(entry.playerId).toBe(alex);
     expect(entry.dimensionId).toBe(nether);
     expect(entry.set.startMarker).toHaveLength(
-      cornerMarkerPoints(cellOf({ x: 0, y: 0, z: 0 })).length,
+      cornerMarkerEdges(cellOf({ x: 0, y: 0, z: 0 })).length,
     );
   }
 });
@@ -225,7 +225,7 @@ it("keeps a fixed endpoint and does not preview an unrelated clipboard", () => {
     previewModel(session.flow, { blink: true }).set,
   );
   expect(feedback.previews[0]?.set.startMarker).toHaveLength(
-    cornerMarkerPoints(cellOf({ x: 0, y: 0, z: 0 })).length,
+    cornerMarkerEdges(cellOf({ x: 0, y: 0, z: 0 })).length,
   );
   expect(feedback.previews[0]?.set.paste).toEqual([]);
 });
@@ -644,7 +644,7 @@ it("shows the paste hint, and shows the outline and white anchor marker after a 
           expect(set?.paste.length).toBeGreaterThan(0);
           expect((set?.pasteVertical.length ?? 0) > 0).toBe(y > 1);
           expect(set?.startMarker).toEqual(
-            cornerMarkerPoints(cellOf({ ...end, y: end.y + 1 })),
+            cornerMarkerEdges(cellOf({ ...end, y: end.y + 1 })),
           );
           for (const layer of ["shape", "endMarker", "roof"] as const)
             expect(set?.[layer]).toEqual([]);
