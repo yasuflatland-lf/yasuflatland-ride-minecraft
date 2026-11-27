@@ -60,6 +60,8 @@ const versionsBySuffix = new Map<string, string | number>([
 ]);
 
 const versionOverrides = new Map([
+  // Custom billboard direction requires particle format 1.20.0.
+  ["yasu_ride_rp/particles/yasu_build/marker.particle.json", "1.20.0"],
   // ADR 0238 keeps the vanilla player definition at its upstream format.
   ["yasu_ride_rp/entity/yasu_ride/player.ce.json", "1.26.0"],
   // The Warp Block uses the direct custom component syntax.
