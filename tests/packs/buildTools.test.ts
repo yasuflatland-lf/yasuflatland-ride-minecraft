@@ -185,7 +185,7 @@ describe("Build particles", () => {
         mode: "custom",
         custom_direction: ["v.direction.x", "v.direction.y", "v.direction.z"],
       },
-      size: ["v.length * 0.5 + 0.03", 0.03],
+      size: ["v.length * 0.5 + 0.015", 0.015],
       uv: {
         texture_width: 16,
         texture_height: 16,
